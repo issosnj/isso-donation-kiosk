@@ -27,9 +27,9 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Master Admin Dashboard</h1>
-        <p className="text-gray-600">Manage temples, users, and view all donations across the platform</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">Master Admin Dashboard</h1>
+        <p className="text-sm text-gray-600">Manage temples, users, and view all donations across the platform</p>
       </div>
       {renderTab()}
     </div>

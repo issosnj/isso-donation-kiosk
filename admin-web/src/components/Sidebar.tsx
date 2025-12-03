@@ -43,26 +43,26 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
   const tabs = isMasterAdmin ? masterTabs : templeTabs
 
   return (
-    <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+    <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm">
+      <div className="p-5 border-b border-gray-200">
+        <div className="flex items-center space-x-3 mb-5">
+          <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-lg">I</span>
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">ISSO Kiosk</h1>
-            <p className="text-xs text-gray-500">Admin Portal</p>
+            <h1 className="text-base font-bold text-gray-900">ISSO Kiosk</h1>
+            <p className="text-xs text-gray-500">Donor CRM</p>
           </div>
         </div>
-        <div className="pt-4 border-t border-gray-200">
-          <p className="text-sm font-medium text-gray-900">{user.name}</p>
-          <p className="text-xs text-gray-500 mt-1">
+        <div className="pt-3 border-t border-gray-200">
+          <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+          <p className="text-xs text-gray-500 mt-0.5">
             {isMasterAdmin ? 'Master Admin' : 'Temple Admin'}
           </p>
         </div>
       </div>
       
-      <nav className="mt-2 px-3 py-2">
+      <nav className="mt-1 px-2 py-3">
         {tabs.map((tab) => {
           const Icon = iconMap[tab.id] || OverviewIcon
           const isActive = activeTab === tab.id
@@ -70,14 +70,14 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full text-left px-4 py-2.5 mb-1 flex items-center space-x-3 rounded-lg transition-all duration-150 ${
+              className={`w-full text-left px-3 py-2.5 mb-0.5 flex items-center space-x-3 rounded-md transition-all duration-150 ${
                 isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-purple-50 text-purple-700 font-semibold'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
               <Icon />
-              <span className="font-medium text-sm">{tab.label}</span>
+              <span className="text-sm">{tab.label}</span>
             </button>
           )
         })}
@@ -86,7 +86,7 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
       <div className="absolute bottom-0 w-full p-4 border-t border-gray-200 bg-white">
         <button
           onClick={onLogout}
-          className="w-full px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg text-gray-700 font-medium flex items-center justify-center space-x-2 transition-all duration-150"
+          className="w-full px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 rounded-md text-gray-700 font-medium flex items-center justify-center space-x-2 transition-all duration-150 text-sm"
         >
           <LogoutIcon />
           <span>Logout</span>

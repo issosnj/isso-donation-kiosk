@@ -59,7 +59,7 @@ export default function TemplesTab() {
         </div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center space-x-2"
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors flex items-center space-x-2 text-sm"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -102,7 +102,7 @@ export default function TemplesTab() {
                 address: newTempleAddress || undefined 
               })}
               disabled={!newTempleName || createTempleMutation.isPending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               {createTempleMutation.isPending ? 'Creating...' : 'Create Temple'}
             </button>
@@ -134,7 +134,7 @@ export default function TemplesTab() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {temples?.map((temple: any) => (
-                  <tr key={temple.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={temple.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">{temple.name}</div>
                     </td>

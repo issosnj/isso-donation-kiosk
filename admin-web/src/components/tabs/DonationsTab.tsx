@@ -59,7 +59,7 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {donations.map((donation: any) => (
-              <tr key={donation.id} className="hover:bg-gray-50 transition-colors">
+              <tr key={donation.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {format(new Date(donation.createdAt), 'MMM dd, yyyy')}

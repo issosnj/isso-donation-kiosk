@@ -41,9 +41,9 @@ export default function TempleDashboard({ activeTab, templeId }: TempleDashboard
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{temple?.name || 'Temple Dashboard'}</h1>
-        <p className="text-gray-600">Manage your temple's donations, devices, and Square integration</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">{temple?.name || 'Temple Dashboard'}</h1>
+        <p className="text-sm text-gray-600">Manage your temple's donations, devices, and Square integration</p>
       </div>
       {renderTab()}
     </div>

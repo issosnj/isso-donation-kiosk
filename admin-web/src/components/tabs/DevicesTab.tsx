@@ -62,7 +62,7 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
           <button
             onClick={() => createDeviceMutation.mutate(newDeviceLabel)}
             disabled={!newDeviceLabel || createDeviceMutation.isPending}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
           >
             {createDeviceMutation.isPending ? 'Creating...' : 'Create'}
           </button>
@@ -82,7 +82,7 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {devices?.map((device: any) => (
-                <tr key={device.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={device.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-semibold text-gray-900">{device.label}</div>
                   </td>
