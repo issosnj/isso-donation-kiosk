@@ -28,6 +28,10 @@ export const typeOrmConfig = (): DataSourceOptions => {
       logging: configService.get('NODE_ENV') === 'development',
       migrations: ['dist/migrations/*.js'],
       migrationsTableName: 'migrations',
+      connectTimeoutMS: 10000,
+      extra: {
+        connect_timeout: 10,
+      },
     };
   }
   
@@ -44,6 +48,10 @@ export const typeOrmConfig = (): DataSourceOptions => {
     logging: configService.get('NODE_ENV') === 'development',
     migrations: ['dist/migrations/*.js'],
     migrationsTableName: 'migrations',
+    connectTimeoutMS: 10000,
+    extra: {
+      connect_timeout: 10,
+    },
   };
 };
 
