@@ -15,6 +15,7 @@ export default function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     setError('')
     setLoading(true)
 
@@ -23,8 +24,11 @@ export default function LoginForm() {
       login(response.data.access_token, response.data.user)
       router.push('/dashboard')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed')
-    } finally {
+      console.error('Login error:', err)
+      const errorMessage = err.response?.data?.message || 
+                          err.message || 
+                          'Login failed. Please check your credentials and try again.'
+      setError(errorMessage)
       setLoading(false)
     }
   }
@@ -47,7 +51,9 @@ export default function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
+          autoComplete="email"
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          style={{ color: '#111827', backgroundColor: '#ffffff' }}
         />
       </div>
       <div>
@@ -61,7 +67,9 @@ export default function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter your password"
+          autoComplete="current-password"
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          style={{ color: '#111827', backgroundColor: '#ffffff' }}
         />
       </div>
       <button

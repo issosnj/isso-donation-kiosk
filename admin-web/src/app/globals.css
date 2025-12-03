@@ -21,18 +21,43 @@ body {
   background: rgb(var(--background-start-rgb));
 }
 
-/* Ensure input text is always visible */
+/* Ensure input text is always visible - override any dark mode or other styles */
 input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="number"],
+input[type="tel"],
+input[type="url"],
 textarea,
 select {
   color: #111827 !important; /* text-gray-900 */
   background-color: #ffffff !important;
+  -webkit-text-fill-color: #111827 !important; /* For Safari */
 }
 
-input::placeholder {
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="number"]::placeholder,
+textarea::placeholder {
   color: #9ca3af !important; /* text-gray-400 */
+  -webkit-text-fill-color: #9ca3af !important; /* For Safari */
+  opacity: 1 !important;
+}
+
+/* Override dark mode for inputs */
+@media (prefers-color-scheme: dark) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    color: #111827 !important;
+    background-color: #ffffff !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
 }
 
