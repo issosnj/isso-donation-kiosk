@@ -20,12 +20,12 @@ export default function Home() {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg border border-gray-200">
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center shadow-md">
               <span className="text-white font-bold text-2xl">I</span>
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">
-            ISSO Donation Kiosk
+            ISSO Kiosk
           </h1>
           <p className="mt-2 text-gray-600 font-medium">Admin Portal</p>
           <p className="mt-1 text-sm text-gray-500">
