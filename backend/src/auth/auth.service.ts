@@ -12,16 +12,26 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<any> {
     try {
-      const user = await this.usersService.findByEmail(email);
+      // Normalize email
+      const normalizedEmail = email.toLowerCase().trim();
+      console.log('[Auth] Attempting login for email:', normalizedEmail);
+      
+      const user = await this.usersService.findByEmail(normalizedEmail);
       if (!user) {
+        console.log('[Auth] User not found:', normalizedEmail);
         throw new UnauthorizedException('Invalid credentials');
       }
 
+      console.log('[Auth] User found:', user.id, user.email, user.role);
+
       if (!user.passwordHash) {
+        console.log('[Auth] User missing passwordHash');
         throw new UnauthorizedException('Invalid user data');
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      console.log('[Auth] Password valid:', isPasswordValid);
+      
       if (!isPasswordValid) {
         throw new UnauthorizedException('Invalid credentials');
       }
@@ -34,7 +44,7 @@ export class AuthService {
         throw error;
       }
       // Log and re-throw other errors
-      console.error('Error in validateUser:', error);
+      console.error('[Auth] Error in validateUser:', error);
       throw new UnauthorizedException('Authentication failed');
     }
   }
