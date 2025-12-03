@@ -113,26 +113,30 @@ export class DonationsService {
   }
 
   async getStats(templeId?: string, startDate?: Date, endDate?: Date) {
-    const query = this.donationsRepository
+    // Build base query conditions
+    const baseQuery = this.donationsRepository
       .createQueryBuilder('donation')
       .where('donation.status = :status', { status: DonationStatus.SUCCEEDED });
 
     if (templeId) {
-      query.andWhere('donation.templeId = :templeId', { templeId });
+      baseQuery.andWhere('donation.templeId = :templeId', { templeId });
     }
 
     if (startDate && endDate) {
-      query.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
+      baseQuery.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
       });
     }
 
-    const total = await query
+    // Get total amount
+    const totalQuery = baseQuery.clone();
+    const total = await totalQuery
       .select('SUM(donation.amount)', 'total')
       .getRawOne();
 
-    const count = await query.getCount();
+    // Get count
+    const count = await baseQuery.getCount();
 
     return {
       total: parseFloat(total?.total || '0'),
