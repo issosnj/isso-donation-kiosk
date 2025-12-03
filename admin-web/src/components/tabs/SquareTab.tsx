@@ -42,7 +42,7 @@ export default function SquareTab({ templeId }: SquareTabProps) {
   const isConnected = !!temple?.squareMerchantId
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+    <div className="bg-white p-8 rounded-lg border border-gray-200">
       <div className="flex items-center space-x-3 mb-6">
         <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center">
           <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -87,7 +87,7 @@ export default function SquareTab({ templeId }: SquareTabProps) {
             <p className="text-gray-700 mb-4">Connect your Square account to enable payment processing for donations.</p>
             <button
               onClick={handleConnectSquare}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 font-medium shadow-lg shadow-blue-500/20 transition-all duration-200 flex items-center space-x-2"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center space-x-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />

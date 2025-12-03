@@ -49,7 +49,7 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="bg-white p-6 rounded-lg border border-gray-200">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Device</h2>
         <div className="flex space-x-4">
           <input
@@ -57,19 +57,19 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
             value={newDeviceLabel}
             onChange={(e) => setNewDeviceLabel(e.target.value)}
             placeholder="Device label (e.g., Front Lobby Kiosk)"
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
           <button
             onClick={() => createDeviceMutation.mutate(newDeviceLabel)}
             disabled={!newDeviceLabel || createDeviceMutation.isPending}
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {createDeviceMutation.isPending ? 'Creating...' : 'Create'}
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -82,7 +82,7 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {devices?.map((device: any) => (
-                <tr key={device.id} className="hover:bg-blue-50/50 transition-colors">
+                <tr key={device.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-semibold text-gray-900">{device.label}</div>
                   </td>

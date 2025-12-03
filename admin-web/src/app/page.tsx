@@ -16,11 +16,11 @@ export default function Home() {
   }, [isAuthenticated, router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg border border-gray-200">
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-2xl">I</span>
             </div>
           </div>

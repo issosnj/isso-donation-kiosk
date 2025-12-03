@@ -59,7 +59,7 @@ export default function TemplesTab() {
         </div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 font-medium shadow-lg shadow-blue-500/20 transition-all duration-200 flex items-center space-x-2"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center space-x-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -69,7 +69,7 @@ export default function TemplesTab() {
       </div>
 
       {showCreateForm && (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Temple</h3>
           <div className="space-y-4">
             <div>
@@ -81,7 +81,7 @@ export default function TemplesTab() {
                 value={newTempleName}
                 onChange={(e) => setNewTempleName(e.target.value)}
                 placeholder="Enter temple name"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>
             <div>
@@ -93,7 +93,7 @@ export default function TemplesTab() {
                 value={newTempleAddress}
                 onChange={(e) => setNewTempleAddress(e.target.value)}
                 placeholder="Enter temple address"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>
             <button
@@ -102,7 +102,7 @@ export default function TemplesTab() {
                 address: newTempleAddress || undefined 
               })}
               disabled={!newTempleName || createTempleMutation.isPending}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {createTempleMutation.isPending ? 'Creating...' : 'Create Temple'}
             </button>
@@ -110,7 +110,7 @@ export default function TemplesTab() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {temples?.length === 0 ? (
           <div className="p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -134,7 +134,7 @@ export default function TemplesTab() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {temples?.map((temple: any) => (
-                  <tr key={temple.id} className="hover:bg-blue-50/50 transition-colors">
+                  <tr key={temple.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">{temple.name}</div>
                     </td>

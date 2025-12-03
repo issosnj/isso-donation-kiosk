@@ -32,7 +32,7 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
 
   if (!donations || donations.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+      <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -45,7 +45,7 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -59,7 +59,7 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {donations.map((donation: any) => (
-              <tr key={donation.id} className="hover:bg-blue-50/50 transition-colors">
+              <tr key={donation.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {format(new Date(donation.createdAt), 'MMM dd, yyyy')}
