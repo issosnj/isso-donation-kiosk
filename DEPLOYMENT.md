@@ -16,10 +16,17 @@
   6. Add PostgreSQL database (free tier available)
   7. Set environment variables
 
-#### Option B: Railway (Recommended for flexibility)
-- **Pros**: Great developer experience, PostgreSQL included, easy scaling
+#### Option B: Railway (Recommended - Currently in use)
+- **Pros**: Great developer experience, PostgreSQL included, easy scaling, private networking
 - **Cost**: ~$5-20/month depending on usage
-- **Setup**: Similar to Render, very straightforward
+- **Setup**: 
+  1. Connect GitHub repo to Railway
+  2. Create new project
+  3. Add PostgreSQL service
+  4. Add backend service (select `backend` directory)
+  5. Railway auto-detects Dockerfile
+  6. Set environment variables (see below)
+  7. Deploy automatically on git push
 
 #### Option C: AWS (For production scale)
 - **Services**: 
@@ -127,44 +134,55 @@
 
 ## Step-by-Step Deployment
 
-### Backend on Render
+### Backend on Railway (Current Setup)
 
-1. **Create Account**: https://render.com
-2. **New Web Service**:
-   - Connect GitHub repo
-   - Name: `isso-donation-kiosk-backend`
-   - Root Directory: `backend`
-   - Environment: `Node`
-   - Build Command: `npm install && npm run build`
-   - Start Command: `npm run start:prod`
-   - Plan: Free or Starter ($7/month)
+1. **Create Account**: https://railway.app
+2. **New Project**:
+   - Click "New Project"
+   - Select "Deploy from GitHub repo"
+   - Choose your repository
 
 3. **Add PostgreSQL Database**:
-   - New → PostgreSQL
-   - Name: `isso-donation-kiosk-db`
-   - Plan: Free or Starter
+   - Click "+ New" → "Database" → "Add PostgreSQL"
+   - Wait for deployment (1-2 minutes)
 
-4. **Environment Variables**:
+4. **Add Backend Service**:
+   - Click "+ New" → "GitHub Repo"
+   - Select your repository
+   - Railway will auto-detect the `backend` directory
+   - It will use the `Dockerfile` in the backend directory
+
+5. **Environment Variables**:
    ```
    NODE_ENV=production
-   PORT=10000
-   DB_HOST=<from database connection string>
-   DB_PORT=5432
-   DB_USERNAME=<from database>
-   DB_PASSWORD=<from database>
-   DB_DATABASE=<from database>
+   PORT=3000
+   DATABASE_PUBLIC_URL=${{Postgres.DATABASE_PUBLIC_URL}}
+   # Or use individual DB variables:
+   # DB_HOST=${{Postgres.RAILWAY_PRIVATE_DOMAIN}}
+   # DB_PORT=5432
+   # DB_USERNAME=${{Postgres.POSTGRES_USER}}
+   # DB_PASSWORD=${{Postgres.POSTGRES_PASSWORD}}
+   # DB_DATABASE=${{Postgres.POSTGRES_DB}}
    JWT_SECRET=<generate strong random string>
    JWT_EXPIRES_IN=7d
    SQUARE_APPLICATION_ID=<your square app id>
    SQUARE_APPLICATION_SECRET=<your square secret>
    SQUARE_ENVIRONMENT=production
-   SQUARE_REDIRECT_URI=https://your-backend-url.onrender.com/api/square/callback
+   SQUARE_REDIRECT_URI=https://your-backend.railway.app/api/square/callback
    ENCRYPTION_KEY=<32 character random string>
    ADMIN_WEB_URL=https://your-admin-web.vercel.app
    ```
+   
+   **Note**: Replace `Postgres` with your actual PostgreSQL service name in Railway.
 
-5. **Update Square OAuth Redirect URI**:
-   - In Square Dashboard, update redirect URI to your Render URL
+6. **Create Master Admin User**:
+   - Go to Backend Service → Shell
+   - Run: `npm run seed:admin`
+   - Or for custom user: `npm run seed:user`
+   - See `backend/CREATE_ADMIN.md` for details
+
+7. **Update Square OAuth Redirect URI**:
+   - In Square Dashboard, update redirect URI to your Railway URL
 
 ### Admin Web on Vercel
 
