@@ -14,7 +14,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Login user' })
   @ApiBody({ type: LoginDto })
   async login(@Request() req) {
-    return this.authService.login(req.user);
+    try {
+      if (!req.user) {
+        throw new Error('User not found in request');
+      }
+      return this.authService.login(req.user);
+    } catch (error) {
+      console.error('Error in login controller:', error);
+      throw error;
+    }
   }
 }
 

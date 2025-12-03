@@ -11,18 +11,32 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    try {
+      const user = await this.usersService.findByEmail(email);
+      if (!user) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+      if (!user.passwordHash) {
+        throw new UnauthorizedException('Invalid user data');
+      }
 
-    const { passwordHash, ...result } = user;
-    return result;
+      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      const { passwordHash, ...result } = user;
+      return result;
+    } catch (error) {
+      // Re-throw UnauthorizedException as-is
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      // Log and re-throw other errors
+      console.error('Error in validateUser:', error);
+      throw new UnauthorizedException('Authentication failed');
+    }
   }
 
   async login(user: any) {
