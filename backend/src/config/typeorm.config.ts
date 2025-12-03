@@ -10,8 +10,8 @@ import { AuditLog } from '../audit/entities/audit-log.entity';
 export const typeOrmConfig = (): DataSourceOptions => {
   const configService = new ConfigService();
   
-  // Support DATABASE_URL (Railway provides this automatically)
-  const databaseUrl = configService.get<string>('DATABASE_URL');
+  // Try DATABASE_URL first (private network), then DATABASE_PUBLIC_URL (public network)
+  const databaseUrl = configService.get<string>('DATABASE_URL') || configService.get<string>('DATABASE_PUBLIC_URL');
   
   if (databaseUrl) {
     // Parse DATABASE_URL if provided
@@ -35,7 +35,8 @@ export const typeOrmConfig = (): DataSourceOptions => {
     };
     
     // Log connection details (without password) for debugging
-    console.log(`[TypeORM] Connecting to database: ${config.host}:${config.port}/${config.database} as ${config.username}`);
+    const urlSource = configService.get<string>('DATABASE_URL') ? 'DATABASE_URL' : 'DATABASE_PUBLIC_URL';
+    console.log(`[TypeORM] Using ${urlSource}: ${config.host}:${config.port}/${config.database} as ${config.username}`);
     
     return config;
   }
