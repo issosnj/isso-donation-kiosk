@@ -9,10 +9,29 @@ Railway's buildpack can't detect the app because the repository root contains mu
 
 1. In Railway dashboard, go to your service settings
 2. Under "Settings" → "Source"
-3. Set **Root Directory** to: `backend`
-4. Save and redeploy
+3. Look for **"Add Root Directory"** or **"Root Directory"** field
+4. Set it to: `backend`
+5. Save and redeploy
 
 This tells Railway to treat the `backend` folder as the root for this service.
+
+**Note:** If you don't see Root Directory option, use Option 2 below.
+
+### Option 1B: Use Custom Build/Start Commands
+
+If Root Directory is not available in your Railway plan:
+
+1. In Railway dashboard → Settings → Build
+2. Set **Custom Build Command** to:
+   ```
+   cd backend && npm install && npm run build
+   ```
+3. In Settings → Deploy
+4. Set **Custom Start Command** to:
+   ```
+   cd backend && npm run start:prod
+   ```
+5. Save and redeploy
 
 ### Option 2: Use Railway Configuration Files
 
