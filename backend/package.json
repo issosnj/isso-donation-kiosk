@@ -21,7 +21,8 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/typeorm.config.ts",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/typeorm.config.ts",
-    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/typeorm.config.ts"
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/typeorm.config.ts",
+    "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/create-master-admin.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
