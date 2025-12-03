@@ -16,18 +16,18 @@ export default function Home() {
   }, [isAuthenticated, router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg border border-gray-200">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg border border-gray-200">
         <div className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-2xl">I</span>
+          <div className="flex items-center justify-center mb-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
+              <span className="text-white font-bold text-3xl">I</span>
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             ISSO Kiosk
           </h1>
-          <p className="mt-2 text-gray-600 font-medium">Admin Portal</p>
+          <p className="text-gray-600 font-medium">Admin Portal</p>
           <p className="mt-1 text-sm text-gray-500">
             Master Admin & Temple Admin Login
           </p>
