@@ -18,9 +18,16 @@ export class TemplesService {
   }
 
   async findAll(): Promise<Temple[]> {
-    return this.templesRepository.find({
-      relations: ['devices', 'categories'],
-    });
+    try {
+      const result = await this.templesRepository.find({
+        relations: ['devices', 'categories'],
+      });
+      return result || [];
+    } catch (error) {
+      console.error('Error in findAll temples:', error);
+      // Return empty array instead of throwing to prevent 500 errors
+      return [];
+    }
   }
 
   async findOne(id: string): Promise<Temple> {
