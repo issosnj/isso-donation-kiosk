@@ -113,30 +113,35 @@ export class DonationsService {
   }
 
   async getStats(templeId?: string, startDate?: Date, endDate?: Date) {
-    // Build base query conditions
-    const baseQuery = this.donationsRepository
-      .createQueryBuilder('donation')
-      .where('donation.status = :status', { status: DonationStatus.SUCCEEDED });
+    // Helper function to build base query conditions
+    const buildBaseQuery = () => {
+      const query = this.donationsRepository
+        .createQueryBuilder('donation')
+        .where('donation.status = :status', { status: DonationStatus.SUCCEEDED });
 
-    if (templeId) {
-      baseQuery.andWhere('donation.templeId = :templeId', { templeId });
-    }
+      if (templeId) {
+        query.andWhere('donation.templeId = :templeId', { templeId });
+      }
 
-    if (startDate && endDate) {
-      baseQuery.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-    }
+      if (startDate && endDate) {
+        query.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        });
+      }
+
+      return query;
+    };
 
     // Get total amount
-    const totalQuery = baseQuery.clone();
+    const totalQuery = buildBaseQuery();
     const total = await totalQuery
       .select('SUM(donation.amount)', 'total')
       .getRawOne();
 
     // Get count
-    const count = await baseQuery.getCount();
+    const countQuery = buildBaseQuery();
+    const count = await countQuery.getCount();
 
     return {
       total: parseFloat(total?.total || '0'),
