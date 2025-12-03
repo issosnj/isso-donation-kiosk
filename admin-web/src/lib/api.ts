@@ -1,7 +1,14 @@
 import axios from 'axios'
 
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
+
+// Log the API URL in development to help debug
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('[API] Base URL:', baseURL)
+}
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  baseURL,
 })
 
 // Add auth token to requests
