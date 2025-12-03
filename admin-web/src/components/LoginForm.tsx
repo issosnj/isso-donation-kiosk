@@ -48,7 +48,7 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -64,8 +64,8 @@ export default function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
           autoComplete="email"
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+          className="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          style={{ color: '#111827', backgroundColor: '#ffffff', WebkitTextFillColor: '#111827' }}
         />
       </div>
       <div>
@@ -80,8 +80,8 @@ export default function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter your password"
           autoComplete="current-password"
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+          className="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          style={{ color: '#111827', backgroundColor: '#ffffff', WebkitTextFillColor: '#111827' }}
         />
       </div>
           <button
