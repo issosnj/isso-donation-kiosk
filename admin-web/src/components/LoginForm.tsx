@@ -25,9 +25,21 @@ export default function LoginForm() {
       router.push('/dashboard')
     } catch (err: any) {
       console.error('Login error:', err)
-      const errorMessage = err.response?.data?.message || 
-                          err.message || 
-                          'Login failed. Please check your credentials and try again.'
+      console.error('Error response:', err.response)
+      console.error('Error data:', err.response?.data)
+      
+      let errorMessage = 'Login failed. Please check your credentials and try again.'
+      
+      if (err.response?.status === 401) {
+        errorMessage = 'Invalid email or password. Please try again.'
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later or contact support.'
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
       setError(errorMessage)
       setLoading(false)
     }
