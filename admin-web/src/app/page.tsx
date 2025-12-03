@@ -26,6 +26,7 @@ export default function Home() {
           <p className="mt-1 text-sm text-gray-500">
             Master Admin & Temple Admin Login
           </p>
+          {/* Updated: Fixed login form text visibility */}
         </div>
         <LoginForm />
       </div>
