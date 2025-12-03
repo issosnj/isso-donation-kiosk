@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -15,6 +15,7 @@ export class DevicesService {
     private devicesRepository: Repository<Device>,
     private jwtService: JwtService,
     private templesService: TemplesService,
+    @Inject(forwardRef(() => DonationCategoriesService))
     private donationCategoriesService: DonationCategoriesService,
   ) {}
 

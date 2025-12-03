@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DonationsService } from './donations.service';
 import { DonationsController } from './donations.controller';
@@ -13,7 +13,7 @@ import { DevicesModule } from '../devices/devices.module';
   imports: [
     TypeOrmModule.forFeature([Donation, DonationCategory]),
     TemplesModule,
-    DevicesModule,
+    forwardRef(() => DevicesModule),
   ],
   controllers: [DonationsController, DonationCategoriesController],
   providers: [DonationsService, DonationCategoriesService],

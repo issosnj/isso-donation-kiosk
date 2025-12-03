@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DevicesService } from './devices.service';
 import { DevicesController } from './devices.controller';
@@ -12,7 +12,7 @@ import { DonationsModule } from '../donations/donations.module';
   imports: [
     TypeOrmModule.forFeature([Device]),
     TemplesModule,
-    DonationsModule,
+    forwardRef(() => DonationsModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
