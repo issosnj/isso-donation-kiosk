@@ -1,29 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Client, Environment } from 'squareup';
 import { TemplesService } from '../temples/temples.service';
 import { DonationsService } from '../donations/donations.service';
 import { DonationStatus } from '../donations/entities/donation.entity';
 
 @Injectable()
 export class SquareService {
-  private squareClient: Client;
-
   constructor(
     private configService: ConfigService,
     private templesService: TemplesService,
     private donationsService: DonationsService,
-  ) {
-    const environment =
-      this.configService.get<string>('SQUARE_ENVIRONMENT') === 'production'
-        ? Environment.Production
-        : Environment.Sandbox;
-
-    this.squareClient = new Client({
-      accessToken: this.configService.get<string>('SQUARE_APPLICATION_SECRET'),
-      environment,
-    });
-  }
+  ) {}
 
   getOAuthUrl(templeId: string): string {
     const applicationId = this.configService.get<string>('SQUARE_APPLICATION_ID');
@@ -128,10 +115,7 @@ export class SquareService {
     }
   }
 
-  getClientForTemple(templeId: string): Client {
-    // This would be used to get a Square client configured with the temple's access token
-    // For now, return the default client
-    return this.squareClient;
-  }
+  // Square client methods can be added here if needed in the future
+  // Currently using direct fetch calls for OAuth and API interactions
 }
 
