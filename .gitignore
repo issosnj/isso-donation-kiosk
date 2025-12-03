@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# iOS
+*.xcworkspace
+!default.xcworkspace
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Backend
+backend/dist/
+backend/.env
+
+# Admin Web
+admin-web/.next/
+admin-web/out/
+
+# Database
+*.db
+*.sqlite
+
