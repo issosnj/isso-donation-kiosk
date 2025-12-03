@@ -9,9 +9,14 @@ Next.js admin portal for managing temples, devices, donations, and Square integr
 npm install
 ```
 
-2. Copy `.env.example` to `.env` and configure:
-```
+2. Create `.env.local` file and configure:
+```env
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
+```
+
+For production, set this to your Railway backend URL:
+```env
+NEXT_PUBLIC_API_URL=https://your-app.railway.app/api
 ```
 
 3. Run development server:
@@ -19,7 +24,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 npm run dev
 ```
 
-4. Open [http://localhost:3001](http://localhost:3001)
+4. Open [http://localhost:3000](http://localhost:3000) (Next.js default port)
 
 ## Features
 

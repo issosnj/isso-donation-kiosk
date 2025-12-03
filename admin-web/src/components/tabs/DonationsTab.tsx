@@ -20,7 +20,22 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
   })
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return (
+      <div className="bg-white rounded-lg shadow p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!donations || donations.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+        No donations found for the selected period.
+      </div>
+    )
   }
 
   return (
@@ -36,12 +51,12 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {donations?.map((donation: any) => (
-            <tr key={donation.id}>
+          {donations.map((donation: any) => (
+            <tr key={donation.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {format(new Date(donation.createdAt), 'MMM dd, yyyy HH:mm')}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                 ${donation.amount.toFixed(2)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -57,7 +72,7 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {donation.donorName || '-'}
+                {donation.donorName || 'Anonymous'}
               </td>
             </tr>
           ))}

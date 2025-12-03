@@ -39,7 +39,14 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   })
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return (
+      <div className="bg-white rounded-lg shadow p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
