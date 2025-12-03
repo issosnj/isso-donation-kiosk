@@ -15,7 +15,9 @@ import { typeOrmConfig } from './config/typeorm.config';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    TypeOrmModule.forRoot(typeOrmConfig),
+    TypeOrmModule.forRootAsync({
+      useFactory: typeOrmConfig,
+    }),
     AuthModule,
     UsersModule,
     TemplesModule,
