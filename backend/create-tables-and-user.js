@@ -35,13 +35,36 @@ async function createTablesAndUser() {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR NOT NULL,
         address TEXT,
+        timezone VARCHAR,
         "squareMerchantId" VARCHAR,
+        "squareAccessToken" TEXT,
+        "squareRefreshToken" VARCHAR,
         "squareLocationId" VARCHAR,
+        "defaultCurrency" VARCHAR DEFAULT 'USD',
+        "logoUrl" VARCHAR,
+        branding JSONB,
         "createdAt" TIMESTAMP DEFAULT NOW(),
         "updatedAt" TIMESTAMP DEFAULT NOW()
       )
     `);
     console.log('✅ Temples table created/verified');
+    
+    // Add missing columns if table exists but is missing columns
+    try {
+      await client.query(`
+        ALTER TABLE temples 
+        ADD COLUMN IF NOT EXISTS timezone VARCHAR,
+        ADD COLUMN IF NOT EXISTS "squareAccessToken" TEXT,
+        ADD COLUMN IF NOT EXISTS "squareRefreshToken" VARCHAR,
+        ADD COLUMN IF NOT EXISTS "defaultCurrency" VARCHAR DEFAULT 'USD',
+        ADD COLUMN IF NOT EXISTS "logoUrl" VARCHAR,
+        ADD COLUMN IF NOT EXISTS branding JSONB
+      `);
+      console.log('✅ Temples table columns verified');
+    } catch (error) {
+      // Ignore if columns already exist
+      console.log('⚠️  Note:', error.message);
+    }
 
     const email = process.env.USER_EMAIL || 'patelmit101@gmail.com';
     const password = process.env.USER_PASSWORD || 'Admin123';
