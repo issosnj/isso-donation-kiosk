@@ -41,20 +41,11 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<User> {
-    // Try without relations first to avoid issues
-    const user = await this.usersRepository.findOne({
+    // Don't load relations for login - it's not needed and can cause errors
+    return this.usersRepository.findOne({
       where: { email: email.toLowerCase().trim() },
+      // Removed relations: ['temple'] to avoid schema issues
     });
-    
-    if (user) {
-      // Load temple relation separately if needed
-      return this.usersRepository.findOne({
-        where: { id: user.id },
-        relations: ['temple'],
-      });
-    }
-    
-    return null;
   }
 
   async findByTemple(templeId: string): Promise<User[]> {

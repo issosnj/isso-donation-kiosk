@@ -27,12 +27,14 @@ export class AuthController {
           email: user.email,
           role: user.role,
           hasPasswordHash: !!user.passwordHash,
+          templeId: user.templeId,
         } : null,
       };
     } catch (error) {
       return {
         success: false,
         error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       };
     }
   }
