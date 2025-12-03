@@ -25,7 +25,7 @@ export const typeOrmConfig = (): DataSourceOptions => {
       password: url.password,
       database: url.pathname.slice(1), // Remove leading /
       entities: [User, Temple, Device, DonationCategory, Donation, AuditLog],
-      synchronize: configService.get('NODE_ENV') === 'development',
+      synchronize: false, // Disabled to use existing Railway database schema
       logging: configService.get('NODE_ENV') === 'development',
       migrations: ['dist/migrations/*.js'],
       migrationsTableName: 'migrations',
