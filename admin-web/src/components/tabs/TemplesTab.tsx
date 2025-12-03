@@ -53,21 +53,27 @@ export default function TemplesTab() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Temples</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Temples</h2>
+          <p className="text-sm text-gray-600 mt-1">Manage all temples in the system</p>
+        </div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 font-medium shadow-lg shadow-blue-500/20 transition-all duration-200 flex items-center space-x-2"
         >
-          {showCreateForm ? 'Cancel' : '+ Add Temple'}
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span>{showCreateForm ? 'Cancel' : 'Add Temple'}</span>
         </button>
       </div>
 
       {showCreateForm && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Create New Temple</h3>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Temple</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Temple Name *
               </label>
               <input
@@ -75,11 +81,11 @@ export default function TemplesTab() {
                 value={newTempleName}
                 onChange={(e) => setNewTempleName(e.target.value)}
                 placeholder="Enter temple name"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Address
               </label>
               <input
@@ -87,7 +93,7 @@ export default function TemplesTab() {
                 value={newTempleAddress}
                 onChange={(e) => setNewTempleAddress(e.target.value)}
                 placeholder="Enter temple address"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
             <button
@@ -96,7 +102,7 @@ export default function TemplesTab() {
                 address: newTempleAddress || undefined 
               })}
               disabled={!newTempleName || createTempleMutation.isPending}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {createTempleMutation.isPending ? 'Creating...' : 'Create Temple'}
             </button>
@@ -104,40 +110,54 @@ export default function TemplesTab() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {temples?.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            No temples found. Create your first temple to get started.
+          <div className="p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <p className="text-gray-500 font-medium">No temples found</p>
+            <p className="text-sm text-gray-400 mt-1">Create your first temple to get started</p>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Square Connected</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Devices</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {temples?.map((temple: any) => (
-                <tr key={temple.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{temple.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{temple.address || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      temple.squareMerchantId ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {temple.squareMerchantId ? 'Yes' : 'No'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {temple.devices?.length || 0}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Square Connected</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Devices</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {temples?.map((temple: any) => (
+                  <tr key={temple.id} className="hover:bg-blue-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-gray-900">{temple.name}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">{temple.address || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${
+                        temple.squareMerchantId 
+                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                          : 'bg-gray-100 text-gray-700 border border-gray-200'
+                      }`}>
+                        {temple.squareMerchantId ? 'Connected' : 'Not Connected'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{temple.devices?.length || 0}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

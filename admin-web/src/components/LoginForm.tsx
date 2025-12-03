@@ -84,13 +84,13 @@ export default function LoginForm() {
           style={{ color: '#111827', backgroundColor: '#ffffff' }}
         />
       </div>
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {loading ? 'Logging in...' : 'Sign in'}
-      </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            {loading ? 'Logging in...' : 'Sign in'}
+          </button>
       <p className="text-center text-sm text-gray-500 mt-4">
         Use your Master Admin or Temple Admin credentials to sign in
       </p>

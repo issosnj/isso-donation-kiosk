@@ -30,19 +30,21 @@ export default function Dashboard({ user }: DashboardProps) {
   const isMasterAdmin = user.role === 'MASTER_ADMIN'
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
       <Sidebar
         user={user}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onLogout={logout}
       />
-      <div className="ml-64 p-8">
-        {isMasterAdmin ? (
-          <MasterDashboard activeTab={activeTab} />
-        ) : (
-          <TempleDashboard activeTab={activeTab} templeId={user.templeId!} />
-        )}
+      <div className="ml-64 min-h-screen">
+        <div className="p-8">
+          {isMasterAdmin ? (
+            <MasterDashboard activeTab={activeTab} />
+          ) : (
+            <TempleDashboard activeTab={activeTab} templeId={user.templeId!} />
+          )}
+        </div>
       </div>
     </div>
   )
