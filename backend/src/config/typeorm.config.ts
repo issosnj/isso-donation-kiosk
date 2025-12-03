@@ -9,10 +9,33 @@ import { AuditLog } from '../audit/entities/audit-log.entity';
 
 export const typeOrmConfig = (): DataSourceOptions => {
   const configService = new ConfigService();
+  
+  // Support DATABASE_URL (Railway provides this automatically)
+  const databaseUrl = configService.get<string>('DATABASE_URL');
+  
+  if (databaseUrl) {
+    // Parse DATABASE_URL if provided
+    const url = new URL(databaseUrl);
+    return {
+      type: 'postgres',
+      host: url.hostname,
+      port: parseInt(url.port, 10) || 5432,
+      username: url.username,
+      password: url.password,
+      database: url.pathname.slice(1), // Remove leading /
+      entities: [User, Temple, Device, DonationCategory, Donation, AuditLog],
+      synchronize: configService.get('NODE_ENV') === 'development',
+      logging: configService.get('NODE_ENV') === 'development',
+      migrations: ['dist/migrations/*.js'],
+      migrationsTableName: 'migrations',
+    };
+  }
+  
+  // Fallback to individual variables
   return {
     type: 'postgres',
     host: configService.get('DB_HOST', 'localhost'),
-    port: configService.get('DB_PORT', 5432),
+    port: parseInt(configService.get('DB_PORT', '5432'), 10),
     username: configService.get('DB_USERNAME', 'postgres'),
     password: configService.get('DB_PASSWORD', 'postgres'),
     database: configService.get('DB_DATABASE', 'isso_donation_kiosk'),
