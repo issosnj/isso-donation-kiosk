@@ -10,8 +10,9 @@ import { AuditLog } from '../audit/entities/audit-log.entity';
 export const typeOrmConfig = (): DataSourceOptions => {
   const configService = new ConfigService();
   
-  // Try DATABASE_URL first (private network), then DATABASE_PUBLIC_URL (public network)
-  const databaseUrl = configService.get<string>('DATABASE_URL') || configService.get<string>('DATABASE_PUBLIC_URL');
+  // Use DATABASE_PUBLIC_URL if available (more reliable), otherwise fall back to DATABASE_URL
+  // Private network (DATABASE_URL) may have connectivity issues, so prefer public URL
+  const databaseUrl = configService.get<string>('DATABASE_PUBLIC_URL') || configService.get<string>('DATABASE_URL');
   
   if (databaseUrl) {
     // Parse DATABASE_URL if provided
@@ -35,7 +36,7 @@ export const typeOrmConfig = (): DataSourceOptions => {
     };
     
     // Log connection details (without password) for debugging
-    const urlSource = configService.get<string>('DATABASE_URL') ? 'DATABASE_URL' : 'DATABASE_PUBLIC_URL';
+    const urlSource = configService.get<string>('DATABASE_PUBLIC_URL') ? 'DATABASE_PUBLIC_URL' : 'DATABASE_URL';
     console.log(`[TypeORM] Using ${urlSource}: ${config.host}:${config.port}/${config.database} as ${config.username}`);
     
     return config;
