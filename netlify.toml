@@ -1,7 +1,7 @@
 [build]
   base = "admin-web"
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
 
 [[redirects]]
   from = "/*"
@@ -10,3 +10,4 @@
 
 [build.environment]
   NODE_VERSION = "18"
+
