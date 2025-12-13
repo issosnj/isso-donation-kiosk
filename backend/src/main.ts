@@ -8,10 +8,21 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: [
-      process.env.ADMIN_WEB_URL || 'http://localhost:3001',
-      'http://localhost:3001',
-    ],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        process.env.ADMIN_WEB_URL || 'http://localhost:3001',
+        'http://localhost:3001',
+      ];
+
+      // Allow all Netlify URLs (including preview deployments)
+      const isNetlifyUrl = origin && origin.match(/https:\/\/.*\.netlify\.app$/);
+
+      if (!origin || allowedOrigins.includes(origin) || isNetlifyUrl) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
 
