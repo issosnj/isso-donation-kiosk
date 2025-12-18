@@ -10,12 +10,12 @@ export class TemplesService {
   constructor(
     @InjectRepository(Temple)
     private templesRepository: Repository<Temple>,
-  ) {}
+  ) { }
 
   async create(createTempleDto: CreateTempleDto): Promise<Temple> {
     const temple = this.templesRepository.create(createTempleDto);
     const savedTemple = await this.templesRepository.save(temple);
-    
+
     // Reload with relations to match findAll structure
     return this.templesRepository.findOne({
       where: { id: savedTemple.id },
@@ -25,12 +25,19 @@ export class TemplesService {
 
   async findAll(): Promise<Temple[]> {
     try {
+      console.log('[Temples Service] Finding all temples...');
       const result = await this.templesRepository.find({
         relations: ['devices', 'categories'],
       });
+      console.log('[Temples Service] Found', result?.length || 0, 'temples');
       return result || [];
     } catch (error) {
-      console.error('Error in findAll temples:', error);
+      console.error('[Temples Service] Error in findAll:', error);
+      console.error('[Temples Service] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
       // Return empty array instead of throwing to prevent 500 errors
       return [];
     }
