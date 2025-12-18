@@ -19,8 +19,20 @@ export default function TemplesTab() {
       console.log('[Temples Query] Data:', response.data)
       console.log('[Temples Query] Data type:', typeof response.data)
       console.log('[Temples Query] Is array:', Array.isArray(response.data))
-      return response.data
+      
+      // Ensure we always return an array
+      const data = response.data
+      if (Array.isArray(data)) {
+        return data
+      } else if (data && typeof data === 'object') {
+        // If it's a single object, wrap it in an array
+        console.log('[Temples Query] Wrapping single object in array')
+        return [data]
+      }
+      return []
     },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 
   const createTempleMutation = useMutation({
@@ -37,10 +49,15 @@ export default function TemplesTab() {
         throw error
       }
     },
-    onSuccess: () => {
-      // Invalidate and refetch temples list to ensure we have the latest data
-      queryClient.invalidateQueries({ queryKey: ['temples'] })
-
+    onSuccess: async () => {
+      console.log('[Temple Creation] onSuccess - invalidating and refetching temples')
+      
+      // Invalidate and immediately refetch temples list to ensure we have the latest data
+      await queryClient.invalidateQueries({ queryKey: ['temples'] })
+      await queryClient.refetchQueries({ queryKey: ['temples'] })
+      
+      console.log('[Temple Creation] onSuccess - temples refetched')
+      
       setShowCreateForm(false)
       setNewTempleName('')
       setNewTempleAddress('')
