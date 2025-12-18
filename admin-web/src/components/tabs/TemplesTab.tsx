@@ -20,14 +20,29 @@ export default function TemplesTab() {
 
   const createTempleMutation = useMutation({
     mutationFn: async (data: { name: string; address?: string }) => {
-      const response = await api.post('/temples', data)
-      return response.data
+      console.log('[Temple Creation] Starting mutation with data:', data)
+      try {
+        const response = await api.post('/temples', data)
+        console.log('[Temple Creation] Success:', response.data)
+        return response.data
+      } catch (error: any) {
+        console.error('[Temple Creation] Error:', error)
+        console.error('[Temple Creation] Error response:', error.response)
+        console.error('[Temple Creation] Error message:', error.message)
+        throw error
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('[Temple Creation] onSuccess called with:', data)
       queryClient.invalidateQueries({ queryKey: ['temples'] })
       setShowCreateForm(false)
       setNewTempleName('')
       setNewTempleAddress('')
+    },
+    onError: (error: any) => {
+      console.error('[Temple Creation] onError called:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create temple'
+      alert(`Error creating temple: ${errorMessage}`)
     },
   })
 
@@ -97,9 +112,9 @@ export default function TemplesTab() {
               />
             </div>
             <button
-              onClick={() => createTempleMutation.mutate({ 
-                name: newTempleName, 
-                address: newTempleAddress || undefined 
+              onClick={() => createTempleMutation.mutate({
+                name: newTempleName,
+                address: newTempleAddress || undefined
               })}
               disabled={!newTempleName || createTempleMutation.isPending}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
@@ -142,11 +157,10 @@ export default function TemplesTab() {
                       <div className="text-sm text-gray-600">{temple.address || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${
-                        temple.squareMerchantId 
-                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${temple.squareMerchantId
+                          ? 'bg-green-100 text-green-700 border border-green-200'
                           : 'bg-gray-100 text-gray-700 border border-gray-200'
-                      }`}>
+                        }`}>
                         {temple.squareMerchantId ? 'Connected' : 'Not Connected'}
                       </span>
                     </td>

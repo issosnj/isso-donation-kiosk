@@ -23,13 +23,24 @@ import { UserRole } from '../users/entities/user.entity';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class TemplesController {
-  constructor(private readonly templesService: TemplesService) {}
+  constructor(private readonly templesService: TemplesService) { }
 
   @Post()
   @Roles(UserRole.MASTER_ADMIN)
   @ApiOperation({ summary: 'Create a new temple (Master Admin only)' })
-  create(@Body() createTempleDto: CreateTempleDto) {
-    return this.templesService.create(createTempleDto);
+  async create(@Body() createTempleDto: CreateTempleDto, @CurrentUser() user: any) {
+    try {
+      console.log('[Temple Creation] Request from user:', user.email, 'Role:', user.role);
+      console.log('[Temple Creation] DTO:', createTempleDto);
+
+      const temple = await this.templesService.create(createTempleDto);
+
+      console.log('[Temple Creation] Success:', temple.id);
+      return temple;
+    } catch (error) {
+      console.error('[Temple Creation] Error:', error);
+      throw error;
+    }
   }
 
   @Get()
