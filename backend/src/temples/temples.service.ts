@@ -57,10 +57,26 @@ export class TemplesService {
   async findAll(): Promise<Temple[]> {
     try {
       console.log('[Temples Service] Finding all temples...');
+      
+      // First, try a simple count to see if there are any temples at all
+      const count = await this.templesRepository.count();
+      console.log('[Temples Service] Total temple count in database:', count);
+      
+      // Try finding without relations first
+      const templesWithoutRelations = await this.templesRepository.find();
+      console.log('[Temples Service] Found', templesWithoutRelations?.length || 0, 'temples (without relations)');
+      
+      // Now try with relations
       const result = await this.templesRepository.find({
         relations: ['devices', 'categories'],
       });
-      console.log('[Temples Service] Found', result?.length || 0, 'temples');
+      console.log('[Temples Service] Found', result?.length || 0, 'temples (with relations)');
+      
+      if (result && result.length > 0) {
+        console.log('[Temples Service] Temple IDs:', result.map(t => t.id));
+        console.log('[Temples Service] Temple names:', result.map(t => t.name));
+      }
+      
       return result || [];
     } catch (error) {
       console.error('[Temples Service] Error in findAll:', error);

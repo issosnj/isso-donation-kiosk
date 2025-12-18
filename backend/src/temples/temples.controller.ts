@@ -45,11 +45,18 @@ export class TemplesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all temples' })
-  findAll(@CurrentUser() user: any) {
+  async findAll(@CurrentUser() user: any) {
+    console.log('[Temples Controller] findAll called by user:', user.email, 'Role:', user.role);
+    
     if (user.role === UserRole.MASTER_ADMIN) {
-      return this.templesService.findAll();
+      console.log('[Temples Controller] User is MASTER_ADMIN, calling findAll service');
+      const temples = await this.templesService.findAll();
+      console.log('[Temples Controller] Returning', temples?.length || 0, 'temples');
+      return temples;
     }
+    
     // Temple Admin only sees their temple
+    console.log('[Temples Controller] User is TEMPLE_ADMIN, returning single temple:', user.templeId);
     return this.templesService.findOne(user.templeId);
   }
 
