@@ -13,14 +13,45 @@ export class TemplesService {
   ) { }
 
   async create(createTempleDto: CreateTempleDto): Promise<Temple> {
-    const temple = this.templesRepository.create(createTempleDto);
-    const savedTemple = await this.templesRepository.save(temple);
+    try {
+      console.log('[Temples Service] Creating temple with data:', createTempleDto);
+      const temple = this.templesRepository.create(createTempleDto);
+      const savedTemple = await this.templesRepository.save(temple);
+      console.log('[Temples Service] Temple saved with ID:', savedTemple.id);
 
-    // Reload with relations to match findAll structure
-    return this.templesRepository.findOne({
-      where: { id: savedTemple.id },
-      relations: ['devices', 'categories'],
-    }) || savedTemple;
+      // Reload with relations to match findAll structure
+      try {
+        const reloadedTemple = await this.templesRepository.findOne({
+          where: { id: savedTemple.id },
+          relations: ['devices', 'categories'],
+        });
+        
+        if (reloadedTemple) {
+          console.log('[Temples Service] Temple reloaded with relations');
+          return reloadedTemple;
+        } else {
+          console.log('[Temples Service] Warning: Could not reload temple, returning saved temple');
+          // Initialize empty arrays for relations to match findAll structure
+          savedTemple.devices = [];
+          savedTemple.categories = [];
+          return savedTemple;
+        }
+      } catch (reloadError) {
+        console.error('[Temples Service] Error reloading temple with relations:', reloadError);
+        // If reload fails, return saved temple with empty relations
+        savedTemple.devices = [];
+        savedTemple.categories = [];
+        return savedTemple;
+      }
+    } catch (error) {
+      console.error('[Temples Service] Error in create:', error);
+      console.error('[Temples Service] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+      throw error;
+    }
   }
 
   async findAll(): Promise<Temple[]> {
