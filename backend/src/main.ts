@@ -102,13 +102,24 @@ async function bootstrap() {
     }),
   );
 
-  // Add root route handler (before global prefix)
-  app.getHttpAdapter().get('/', (req, res) => {
-    res.redirect('/api/docs');
-  });
-
   // API prefix - set AFTER CORS
   app.setGlobalPrefix('api');
+
+  // Add root route handler (after global prefix, but handle / explicitly)
+  app.getHttpAdapter().get('/', (req, res) => {
+    res.json({
+      message: 'ISSO Donation Kiosk API',
+      version: '1.0',
+      docs: '/api/docs',
+      endpoints: {
+        auth: '/api/auth',
+        temples: '/api/temples',
+        users: '/api/users',
+        devices: '/api/devices',
+        donations: '/api/donations',
+      },
+    });
+  });
 
   // Swagger documentation
   const config = new DocumentBuilder()
