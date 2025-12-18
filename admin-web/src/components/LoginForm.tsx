@@ -25,18 +25,38 @@ export default function LoginForm() {
       router.push('/dashboard')
     } catch (err: any) {
       console.error('Login error:', err)
+      console.error('Error code:', err.code)
+      console.error('Error message:', err.message)
       console.error('Error response:', err.response)
-      console.error('Error data:', err.response?.data)
+      console.error('Error request:', err.request)
+      console.error('Error config:', err.config)
       
       let errorMessage = 'Login failed. Please check your credentials and try again.'
       
-      if (err.response?.status === 401) {
-        errorMessage = 'Invalid email or password. Please try again.'
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later or contact support.'
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message
-      } else if (err.message) {
+      // Handle network/CORS errors
+      if (!err.response && err.request) {
+        if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+          errorMessage = 'Network error: Unable to connect to the server. This may be a CORS issue. Please check your connection and try again.'
+        } else if (err.code === 'ERR_FAILED') {
+          errorMessage = 'Connection failed: The request was blocked. This may be a CORS configuration issue.'
+        } else {
+          errorMessage = `Network error: ${err.message || 'Unable to reach the server'}`
+        }
+      }
+      // Handle HTTP errors
+      else if (err.response) {
+        if (err.response.status === 401) {
+          errorMessage = 'Invalid email or password. Please try again.'
+        } else if (err.response.status === 500) {
+          errorMessage = 'Server error. Please try again later or contact support.'
+        } else if (err.response.data?.message) {
+          errorMessage = err.response.data.message
+        } else {
+          errorMessage = `Server error (${err.response.status}). Please try again.`
+        }
+      }
+      // Handle other errors
+      else if (err.message) {
         errorMessage = err.message
       }
       
