@@ -102,6 +102,11 @@ async function bootstrap() {
     }),
   );
 
+  // Add root route handler (before global prefix)
+  app.getHttpAdapter().get('/', (req, res) => {
+    res.redirect('/api/docs');
+  });
+
   // API prefix - set AFTER CORS
   app.setGlobalPrefix('api');
 
