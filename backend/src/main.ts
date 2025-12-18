@@ -9,37 +9,49 @@ async function bootstrap() {
   // Enable CORS
   const adminWebUrl = process.env.ADMIN_WEB_URL || 'http://localhost:3000';
   
+  // Build allowed origins list
+  const allowedOrigins = [
+    adminWebUrl,
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ];
+
+  console.log(`[CORS] ADMIN_WEB_URL: ${adminWebUrl}`);
+  console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+  
   app.enableCors({
     origin: (origin, callback) => {
-      const allowedOrigins = [
-        adminWebUrl,
-        'http://localhost:3000',
-        'http://localhost:3001',
-      ];
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        console.log(`[CORS] Allowing request with no origin`);
+        return callback(null, true);
+      }
 
-      // Allow all Netlify URLs (including preview deployments and custom domains)
-      const isNetlifyUrl = origin && (
-        origin.match(/https:\/\/.*\.netlify\.app$/) ||
-        origin.match(/https:\/\/.*\.netlify\.app\/$/)
-      );
+      // Check if it's a Netlify URL
+      const isNetlifyUrl = origin.match(/^https:\/\/.*\.netlify\.app\/?$/);
+      
+      // Check if it's in the allowed list
+      const isAllowed = allowedOrigins.includes(origin);
+      
+      // Log the check
+      console.log(`[CORS] Checking origin: ${origin}`);
+      console.log(`[CORS] Is Netlify URL: ${isNetlifyUrl}`);
+      console.log(`[CORS] Is in allowed list: ${isAllowed}`);
 
-      // Log CORS check for debugging (always log errors, detailed logs in dev)
-      if (!origin || allowedOrigins.includes(origin) || isNetlifyUrl) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[CORS] Allowed origin: ${origin}`);
-        }
+      if (isAllowed || isNetlifyUrl) {
+        console.log(`[CORS] ✓ Allowed origin: ${origin}`);
         callback(null, true);
       } else {
-        console.error(`[CORS] Blocked origin: ${origin}`);
-        console.error(`[CORS] ADMIN_WEB_URL: ${adminWebUrl}`);
-        console.error(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
-        console.error(`[CORS] Is Netlify URL: ${isNetlifyUrl}`);
+        console.error(`[CORS] ✗ Blocked origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Authorization'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // Global validation pipe
