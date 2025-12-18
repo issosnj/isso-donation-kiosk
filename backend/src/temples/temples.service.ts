@@ -14,7 +14,13 @@ export class TemplesService {
 
   async create(createTempleDto: CreateTempleDto): Promise<Temple> {
     const temple = this.templesRepository.create(createTempleDto);
-    return this.templesRepository.save(temple);
+    const savedTemple = await this.templesRepository.save(temple);
+    
+    // Reload with relations to match findAll structure
+    return this.templesRepository.findOne({
+      where: { id: savedTemple.id },
+      relations: ['devices', 'categories'],
+    }) || savedTemple;
   }
 
   async findAll(): Promise<Temple[]> {

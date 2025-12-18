@@ -1,4 +1,4 @@
-# ISSO Donation Kiosk System
+a# ISSO Donation Kiosk System
 
 A modern, multi-tenant donation kiosk system for temples with Square payment integration. Features a NestJS backend, Next.js admin portal, and native iOS kiosk app.
 

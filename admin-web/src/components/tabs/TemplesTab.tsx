@@ -32,20 +32,10 @@ export default function TemplesTab() {
         throw error
       }
     },
-    onSuccess: async (data) => {
-      console.log('[Temple Creation] onSuccess called with:', data)
-
-      // Optimistically update the cache with the new temple
-      queryClient.setQueryData(['temples'], (old: any) => {
-        console.log('[Temple Creation] Current temples:', old)
-        const newTemples = old ? [...old, data] : [data]
-        console.log('[Temple Creation] Updated temples:', newTemples)
-        return newTemples
-      })
-
-      // Also refetch to ensure we have the latest data
-      await queryClient.refetchQueries({ queryKey: ['temples'] })
-
+    onSuccess: () => {
+      // Invalidate and refetch temples list to ensure we have the latest data
+      queryClient.invalidateQueries({ queryKey: ['temples'] })
+      
       setShowCreateForm(false)
       setNewTempleName('')
       setNewTempleAddress('')
