@@ -7,8 +7,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
 
   // Enable CORS with explicit configuration - MUST be before global prefix
-  const adminWebUrl = process.env.ADMIN_WEB_URL || 'http://localhost:3000';
-  const corsOrigin = process.env.CORS_ORIGIN || adminWebUrl;
+  const corsOrigin = process.env.CORS_ORIGIN || process.env.ADMIN_WEB_URL || 'http://localhost:3000';
+  const adminWebUrl = process.env.ADMIN_WEB_URL || corsOrigin;
   
   // Normalize URLs (remove trailing slashes)
   const normalizeUrl = (url: string) => url.replace(/\/$/, '');
