@@ -52,39 +52,13 @@ async function bootstrap() {
     return false;
   };
 
-  // Use cors package directly for better Railway compatibility
-  const expressApp = app.getHttpAdapter().getInstance();
-  
-  // Configure CORS with cors package
-  const corsOptions = {
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      console.log(`[CORS] Checking origin: ${origin || 'none'}`);
-      const allowed = isOriginAllowed(origin);
-      console.log(`[CORS] Origin allowed: ${allowed}`);
-      if (allowed) {
-        callback(null, true);
-      } else {
-        console.error(`[CORS] ✗ Blocked origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-    exposedHeaders: ['Authorization'],
-    maxAge: 86400,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  };
-  
-  expressApp.use(cors(corsOptions));
-  
-  // Add request logging middleware
-  expressApp.use((req: any, res: any, next: any) => {
+  // Add request logging middleware BEFORE CORS
+  app.use((req: any, res: any, next: any) => {
     console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
     next();
   });
   
+  // Enable CORS using NestJS's built-in CORS (works better with Railway's proxy)
   app.enableCors({
     origin: (origin, callback) => {
       // Use the same helper function
