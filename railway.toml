@@ -1,6 +1,4 @@
 [build]
-builder = "NIXPACKS"
-
-[deploy]
-startCommand = "cd backend && npm run start:prod"
+builder = "DOCKERFILE"
+dockerfilePath = "backend/Dockerfile"
 
