@@ -13,7 +13,12 @@ export default function TemplesTab() {
   const { data: temples, isLoading, error } = useQuery({
     queryKey: ['temples'],
     queryFn: async () => {
+      console.log('[Temples Query] Fetching temples...')
       const response = await api.get('/temples')
+      console.log('[Temples Query] Response:', response)
+      console.log('[Temples Query] Data:', response.data)
+      console.log('[Temples Query] Data type:', typeof response.data)
+      console.log('[Temples Query] Is array:', Array.isArray(response.data))
       return response.data
     },
   })
@@ -35,7 +40,7 @@ export default function TemplesTab() {
     onSuccess: () => {
       // Invalidate and refetch temples list to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: ['temples'] })
-      
+
       setShowCreateForm(false)
       setNewTempleName('')
       setNewTempleAddress('')
