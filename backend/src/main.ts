@@ -51,8 +51,10 @@ async function bootstrap() {
     return false;
   };
 
-  // Add explicit CORS middleware BEFORE anything else
-  app.use((req, res, next) => {
+  // Add explicit CORS middleware BEFORE anything else - use Express directly
+  const expressApp = app.getHttpAdapter().getInstance();
+  
+  expressApp.use((req: any, res: any, next: any) => {
     const origin = req.headers.origin;
     const normalizedOrigin = origin ? normalizeUrl(origin) : undefined;
     
@@ -61,27 +63,35 @@ async function bootstrap() {
       console.log(`[REQUEST] Normalized origin: ${normalizedOrigin}`);
     }
     
-    // Handle OPTIONS preflight requests explicitly
+    // Handle OPTIONS preflight requests explicitly - MUST set headers before any other processing
     if (req.method === 'OPTIONS') {
-      console.log(`[CORS] Handling OPTIONS preflight request`);
+      console.log(`[CORS] Handling OPTIONS preflight request for path: ${req.path}`);
       
       const allowed = isOriginAllowed(origin);
       console.log(`[CORS] Origin allowed: ${allowed}`);
       
       if (allowed) {
         const allowOrigin = origin || '*';
-        res.header('Access-Control-Allow-Origin', allowOrigin);
-        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Max-Age', '86400');
+        // Set headers using res.setHeader for better compatibility
+        res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Max-Age', '86400');
         console.log(`[CORS] ✓ OPTIONS preflight allowed for origin: ${origin}`);
-        return res.status(204).send();
+        console.log(`[CORS] Response headers set:`, res.getHeaders());
+        return res.status(204).end();
       } else {
         console.error(`[CORS] ✗ OPTIONS preflight blocked for origin: ${origin}`);
         console.error(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
-        return res.status(403).send();
+        return res.status(403).end();
       }
+    }
+    
+    // For non-OPTIONS requests, set CORS headers but continue
+    if (isOriginAllowed(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
     
     next();
