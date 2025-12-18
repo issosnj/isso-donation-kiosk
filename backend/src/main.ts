@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import * as cors from 'cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
@@ -51,49 +52,36 @@ async function bootstrap() {
     return false;
   };
 
-  // Add explicit CORS middleware BEFORE anything else - use Express directly
+  // Use cors package directly for better Railway compatibility
   const expressApp = app.getHttpAdapter().getInstance();
   
-  expressApp.use((req: any, res: any, next: any) => {
-    const origin = req.headers.origin;
-    const normalizedOrigin = origin ? normalizeUrl(origin) : undefined;
-    
-    console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${origin || 'none'}`);
-    if (origin && normalizedOrigin !== origin) {
-      console.log(`[REQUEST] Normalized origin: ${normalizedOrigin}`);
-    }
-    
-    // Handle OPTIONS preflight requests explicitly - MUST set headers before any other processing
-    if (req.method === 'OPTIONS') {
-      console.log(`[CORS] Handling OPTIONS preflight request for path: ${req.path}`);
-      
+  // Configure CORS with cors package
+  const corsOptions = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      console.log(`[CORS] Checking origin: ${origin || 'none'}`);
       const allowed = isOriginAllowed(origin);
       console.log(`[CORS] Origin allowed: ${allowed}`);
-      
       if (allowed) {
-        const allowOrigin = origin || '*';
-        // Set headers using res.setHeader for better compatibility
-        res.setHeader('Access-Control-Allow-Origin', allowOrigin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Access-Control-Max-Age', '86400');
-        console.log(`[CORS] ✓ OPTIONS preflight allowed for origin: ${origin}`);
-        console.log(`[CORS] Response headers set:`, res.getHeaders());
-        return res.status(204).end();
+        callback(null, true);
       } else {
-        console.error(`[CORS] ✗ OPTIONS preflight blocked for origin: ${origin}`);
-        console.error(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
-        return res.status(403).end();
+        console.error(`[CORS] ✗ Blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
       }
-    }
-    
-    // For non-OPTIONS requests, set CORS headers but continue
-    if (isOriginAllowed(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin || '*');
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
-    
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Authorization'],
+    maxAge: 86400,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  };
+  
+  expressApp.use(cors(corsOptions));
+  
+  // Add request logging middleware
+  expressApp.use((req: any, res: any, next: any) => {
+    console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
     next();
   });
   
