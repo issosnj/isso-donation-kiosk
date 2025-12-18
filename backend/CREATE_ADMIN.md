@@ -77,7 +77,7 @@ If you don't specify environment variables, the script uses:
 
 ## After Creating Admin
 
-1. Go to your admin web: https://isso-donation-kiosk.vercel.app
+1. Go to your admin web: https://issodonationkiosk.netlify.app
 2. Login with the credentials you created
 3. Change your password (you may need to add a password change feature)
 4. Create temples and other users as needed

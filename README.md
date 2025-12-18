@@ -5,7 +5,7 @@ A modern, multi-tenant donation kiosk system for temples with Square payment int
 ## 🏗️ Architecture
 
 - **Backend**: NestJS REST API with PostgreSQL (deployed on Railway)
-- **Admin Web**: Next.js web portal for temple and master admins (deployed on Vercel)
+- **Admin Web**: Next.js web portal for temple and master admins (deployed on Netlify)
 - **Kiosk App**: Native iOS app (Swift/SwiftUI) with Square Mobile Payments SDK
 
 ## 📁 Project Structure
@@ -43,7 +43,7 @@ isso-donation-kiosk/
 - Xcode 15+ (for iOS app development)
 - Square Developer Account
 - Railway account (for backend hosting)
-- Vercel account (for frontend hosting)
+- Netlify account (for frontend hosting)
 
 ### 1. Backend Setup
 
@@ -67,7 +67,7 @@ SQUARE_APPLICATION_SECRET=your-square-app-secret
 SQUARE_ENVIRONMENT=sandbox  # or 'production'
 
 # CORS
-ADMIN_WEB_URL=http://localhost:3001
+ADMIN_WEB_URL=http://localhost:3000
 
 # Server
 PORT=3000
@@ -99,7 +99,7 @@ Run locally:
 npm run dev
 ```
 
-Admin portal will be at `http://localhost:3001`
+Admin portal will be at `http://localhost:3000` (Next.js default port)
 
 ### 3. Create Master Admin User
 
@@ -116,6 +116,10 @@ npm run seed:user
 ```
 
 You'll be prompted for email, password, name, and role.
+
+**Note**: For Railway deployment, use Railway Shell to run seed scripts:
+1. Go to Railway backend service → Shell tab
+2. Run: `npm run seed:admin` or `npm run seed:user`
 
 ## 🌐 Deployment
 
@@ -135,11 +139,12 @@ You'll be prompted for email, password, name, and role.
    - Add these variables:
      ```
      DATABASE_PUBLIC_URL=${{Postgres.DATABASE_PUBLIC_URL}}
+     # Note: DATABASE_PUBLIC_URL is preferred over DATABASE_URL for Railway
      JWT_SECRET=your-super-secret-jwt-key
      SQUARE_APPLICATION_ID=your-square-app-id
      SQUARE_APPLICATION_SECRET=your-square-app-secret
      SQUARE_ENVIRONMENT=sandbox
-     ADMIN_WEB_URL=https://your-vercel-app.vercel.app
+     ADMIN_WEB_URL=https://your-app.netlify.app
      NODE_ENV=production
      PORT=3000
      ```
@@ -154,29 +159,35 @@ You'll be prompted for email, password, name, and role.
      DATABASE_URL="your-railway-db-url" npm run seed:admin
      ```
 
-### Admin Web (Vercel)
+### Admin Web (Netlify)
 
 1. **Connect Repository**
-   - Go to [vercel.com](https://vercel.com)
+   - Go to [netlify.com](https://netlify.com)
    - Import your GitHub repository
-   - Set root directory to `admin-web`
+   - Netlify will auto-detect Next.js via `netlify.toml`
 
-2. **Configure Environment Variables**
-   - Go to Project Settings → Environment Variables
+2. **Configure Build Settings**
+   - Base Directory: `admin-web`
+   - Build Command: `npm run build` (auto-detected)
+   - Publish Directory: `out` (configured in `netlify.toml`)
+
+3. **Configure Environment Variables**
+   - Go to Site Settings → Environment Variables
    - Add:
      ```
      NEXT_PUBLIC_API_URL=https://your-railway-backend.up.railway.app/api
      ```
 
-3. **Deploy**
-   - Vercel will automatically deploy on push to main
-   - Your admin portal will be live at `https://your-app.vercel.app`
+4. **Deploy**
+   - Netlify will automatically deploy on push to main
+   - Your admin portal will be live at `https://your-app.netlify.app`
 
-4. **Update Backend CORS**
+5. **Update Backend CORS**
    - In Railway backend variables, set:
      ```
-     ADMIN_WEB_URL=https://your-vercel-app.vercel.app
+     ADMIN_WEB_URL=https://your-app.netlify.app
      ```
+   - The backend automatically allows all `*.netlify.app` URLs, but setting `ADMIN_WEB_URL` ensures proper redirects for Square OAuth
 
 ### iOS App (TestFlight/MDM)
 
@@ -308,7 +319,7 @@ npm run lint
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `DATABASE_URL` or `DATABASE_PUBLIC_URL` | PostgreSQL connection string | Yes |
+| `DATABASE_URL` or `DATABASE_PUBLIC_URL` | PostgreSQL connection string (prefer `DATABASE_PUBLIC_URL` on Railway) | Yes |
 | `JWT_SECRET` | Secret for JWT token signing | Yes |
 | `SQUARE_APPLICATION_ID` | Square application ID | Yes |
 | `SQUARE_APPLICATION_SECRET` | Square application secret | Yes |
@@ -346,6 +357,8 @@ Key entities:
 - **AuditLogs**: System audit trail
 
 See TypeORM entities in `backend/src/*/entities/` for full schema.
+
+**Note**: TypeORM `synchronize` is disabled in production. The database schema is managed through migrations or manual setup. For Railway deployments, tables are created automatically on first connection.
 
 ## 🔒 Security
 

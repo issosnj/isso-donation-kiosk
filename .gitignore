@@ -48,3 +48,5 @@ admin-web/out/
 *.db
 *.sqlite
 
+.vercel
+.env*.local

@@ -235,7 +235,7 @@ The admin portal will be available at `http://localhost:3001`
 
 ### Admin Web:
 
-1. Deploy to Vercel, Netlify, or similar:
+1. Deploy to Netlify, Railway, or similar:
 ```bash
 npm run build
 ```

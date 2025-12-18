@@ -1,40 +1,40 @@
 # Admin Web Portal - Deployment Guide
 
-## Deploy to Vercel
+## Deploy to Netlify
 
 ### Prerequisites
-- Vercel account (free tier works)
+- Netlify account (free tier works)
 - Railway backend URL
 
 ### Steps
 
 1. **Push code to GitHub** (if not already done)
    ```bash
-   git add admin-web/
+   git add admin-web/ netlify.toml
    git commit -m "Add admin web portal"
    git push
    ```
 
-2. **Import project to Vercel**
-   - Go to [vercel.com](https://vercel.com)
-   - Click "Add New Project"
-   - Import your GitHub repository
-   - Select the `admin-web` folder as the root directory
+2. **Import project to Netlify**
+   - Go to [netlify.com](https://netlify.com)
+   - Click "Add new site" → "Import an existing project"
+   - Connect to GitHub and select your repository
+   - Netlify will auto-detect Next.js via `netlify.toml`
 
 3. **Configure Environment Variables**
-   In Vercel project settings → Environment Variables, add:
+   In Netlify: Site settings → Environment variables, add:
    ```
    NEXT_PUBLIC_API_URL=https://your-app.railway.app/api
    ```
    Replace `your-app.railway.app` with your actual Railway backend URL.
 
 4. **Deploy**
-   - Vercel will automatically detect Next.js
-   - Click "Deploy"
-   - Wait for build to complete (usually 1-2 minutes)
+   - Netlify will automatically detect configuration from `netlify.toml`
+   - Click "Deploy site"
+   - Wait for build to complete (usually 2-3 minutes)
 
 5. **Access your app**
-   - Vercel will provide a URL like `https://your-app.vercel.app`
+   - Netlify will provide a URL like `https://your-app.netlify.app`
    - Update your Railway backend `ADMIN_WEB_URL` variable to this URL
 
 ## Alternative: Deploy to Railway
@@ -77,14 +77,14 @@ You can also deploy the admin web to Railway:
 ### CORS Errors
 - Ensure `ADMIN_WEB_URL` in backend matches your deployed frontend URL exactly
 - Check that the backend CORS configuration includes your frontend URL
+- Backend automatically accepts all `*.netlify.app` URLs
 
 ### API Connection Issues
-- Verify `NEXT_PUBLIC_API_URL` is set correctly in Vercel/Railway
+- Verify `NEXT_PUBLIC_API_URL` is set correctly in Netlify
 - Check that the backend is running and accessible
 - Test the API URL directly in a browser
 
 ### Build Errors
 - Check that all dependencies are in `package.json`
 - Ensure TypeScript compiles without errors
-- Review build logs for specific errors
-
+- Review build logs in Netlify dashboard for specific errors

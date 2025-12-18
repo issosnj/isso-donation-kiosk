@@ -47,26 +47,26 @@
 
 ### 2. Admin Web Portal (Next.js)
 
-#### Option A: Vercel (Recommended - Made by Next.js creators)
-- **Pros**: Free tier, automatic deployments, perfect Next.js integration, global CDN
-- **Cost**: Free for hobby, $20/month for Pro
+#### Option A: Netlify (Recommended - Currently in use)
+- **Pros**: Free tier, automatic deployments, excellent Next.js support, global CDN
+- **Cost**: Free for hobby, $19/month for Pro
 - **Setup**:
   1. Connect GitHub repo
-  2. Select `admin-web` directory
+  2. Auto-detects Next.js via `netlify.toml`
   3. Set `NEXT_PUBLIC_API_URL` environment variable
   4. Deploy automatically on every push
 
-#### Option B: Netlify
-- **Pros**: Free tier, easy setup, good performance
-- **Cost**: Free tier available
-- **Similar to Vercel**
+#### Option B: Vercel
+- **Pros**: Made by Next.js creators, excellent integration
+- **Cost**: Free for hobby, $20/month for Pro
+- **Similar to Netlify**
 
 #### Option C: Render
 - **Pros**: Same platform as backend (easier management)
 - **Cost**: Free tier available
 - **Good if you want everything in one place**
 
-**Recommended: Vercel** - Best Next.js experience and free tier is generous.
+**Recommended: Netlify** - Currently deployed, works great with Railway backend.
 
 ---
 
@@ -119,14 +119,14 @@
 ### Budget-Friendly (Starting Out)
 1. **Backend**: Render (Free tier or $7/month)
 2. **Database**: Render PostgreSQL (Free tier or $7/month)
-3. **Admin Web**: Vercel (Free)
+3. **Admin Web**: Netlify (Free)
 4. **iOS App**: TestFlight (Free)
 5. **Total**: **$0-14/month**
 
 ### Production Setup
 1. **Backend**: Railway ($20/month) or Render ($25/month)
 2. **Database**: Railway PostgreSQL (included) or Supabase ($25/month)
-3. **Admin Web**: Vercel Pro ($20/month)
+3. **Admin Web**: Netlify Pro ($19/month)
 4. **iOS App**: Kandji ($399/month) or Mosyle ($1-4/device/month)
 5. **Total**: **~$50-500/month** (depending on device count)
 
@@ -170,7 +170,7 @@
    SQUARE_ENVIRONMENT=production
    SQUARE_REDIRECT_URI=https://your-backend.railway.app/api/square/callback
    ENCRYPTION_KEY=<32 character random string>
-   ADMIN_WEB_URL=https://your-admin-web.vercel.app
+   ADMIN_WEB_URL=https://your-admin-web.netlify.app
    ```
    
    **Note**: Replace `Postgres` with your actual PostgreSQL service name in Railway.
@@ -184,19 +184,18 @@
 7. **Update Square OAuth Redirect URI**:
    - In Square Dashboard, update redirect URI to your Railway URL
 
-### Admin Web on Vercel
+### Admin Web on Netlify
 
-1. **Create Account**: https://vercel.com
+1. **Create Account**: https://netlify.com
 2. **Import Project**:
    - Connect GitHub repo
-   - Root Directory: `admin-web`
-   - Framework Preset: Next.js
+   - Netlify auto-detects Next.js via `netlify.toml`
    - Build Command: `npm run build` (auto-detected)
-   - Output Directory: `.next` (auto-detected)
+   - Publish Directory: `out` (configured in netlify.toml)
 
 3. **Environment Variables**:
    ```
-   NEXT_PUBLIC_API_URL=https://your-backend-url.onrender.com/api
+   NEXT_PUBLIC_API_URL=https://your-backend-url.railway.app/api
    ```
 
 4. **Deploy**: Automatic on every push to main branch
@@ -239,12 +238,12 @@
 
 ### Staging
 - Backend: Render/Railway staging environment
-- Admin Web: Vercel preview deployment
+- Admin Web: Netlify preview deployment
 - Database: Separate staging database
 
 ### Production
 - Backend: Render/Railway production
-- Admin Web: Vercel production
+- Admin Web: Netlify production
 - Database: Production database with backups
 
 ---
@@ -267,7 +266,7 @@
 
 ## Security Checklist
 
-- [ ] Use HTTPS everywhere (automatic with Render/Vercel)
+- [ ] Use HTTPS everywhere (automatic with Render/Netlify)
 - [ ] Strong JWT secrets (use random generator)
 - [ ] Encrypt Square tokens in database
 - [ ] Enable CORS properly (only allow admin web domain)
@@ -284,21 +283,21 @@
 ### Small Deployment (1-5 temples, 5-10 devices):
 - Backend: Render $7/month
 - Database: Render PostgreSQL $7/month
-- Admin Web: Vercel Free
+- Admin Web: Netlify Free
 - MDM: Mosyle $30/month (10 devices @ $3/device)
 - **Total: ~$44/month**
 
 ### Medium Deployment (10-20 temples, 20-50 devices):
 - Backend: Railway $20/month
 - Database: Supabase $25/month
-- Admin Web: Vercel Pro $20/month
+- Admin Web: Netlify Pro $19/month
 - MDM: Kandji $399/month
 - **Total: ~$464/month**
 
 ### Large Deployment (50+ temples, 100+ devices):
 - Backend: AWS/ECS $100/month
 - Database: AWS RDS $50/month
-- Admin Web: Vercel Pro $20/month
+- Admin Web: Netlify Pro $19/month
 - MDM: Enterprise solution $500+/month
 - **Total: ~$670+/month**
 
@@ -312,11 +311,11 @@
 # Just configure environment variables in dashboard
 ```
 
-### Vercel Deployment:
+### Netlify Deployment:
 ```bash
-cd admin-web
-vercel --prod
-# Or connect GitHub for auto-deploy
+# Automatic on git push to main
+# Or use Netlify CLI:
+netlify deploy --prod
 ```
 
 ### Database Migration:
@@ -330,7 +329,6 @@ npm run migration:run
 ## Support & Resources
 
 - Render Docs: https://render.com/docs
-- Vercel Docs: https://vercel.com/docs
+- Netlify Docs: https://docs.netlify.com
 - Railway Docs: https://docs.railway.app
 - Square Developer: https://developer.squareup.com/docs
-
