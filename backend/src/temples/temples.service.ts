@@ -32,16 +32,20 @@ export class TemplesService {
         } else {
           console.log('[Temples Service] Warning: Could not reload temple, returning saved temple');
           // Initialize empty arrays for relations to match findAll structure
-          savedTemple.devices = [];
-          savedTemple.categories = [];
-          return savedTemple;
+          return {
+            ...savedTemple,
+            devices: [],
+            categories: [],
+          };
         }
-      } catch (reloadError) {
-        console.error('[Temples Service] Error reloading temple with relations:', reloadError);
-        // If reload fails, return saved temple with empty relations
-        savedTemple.devices = [];
-        savedTemple.categories = [];
-        return savedTemple;
+      } catch (reloadError: any) {
+        console.warn('[Temples Service] Error reloading temple with relations (tables may not exist), returning saved temple:', reloadError.message);
+        // If reload fails (e.g., relation tables don't exist), return saved temple with empty relations
+        return {
+          ...savedTemple,
+          devices: [],
+          categories: [],
+        };
       }
     } catch (error) {
       console.error('[Temples Service] Error in create:', error);
@@ -66,18 +70,33 @@ export class TemplesService {
       const templesWithoutRelations = await this.templesRepository.find();
       console.log('[Temples Service] Found', templesWithoutRelations?.length || 0, 'temples (without relations)');
       
-      // Now try with relations
-      const result = await this.templesRepository.find({
-        relations: ['devices', 'categories'],
-      });
-      console.log('[Temples Service] Found', result?.length || 0, 'temples (with relations)');
-      
-      if (result && result.length > 0) {
-        console.log('[Temples Service] Temple IDs:', result.map(t => t.id));
-        console.log('[Temples Service] Temple names:', result.map(t => t.name));
+      // Now try with relations - if this fails, fall back to temples without relations
+      try {
+        const result = await this.templesRepository.find({
+          relations: ['devices', 'categories'],
+        });
+        console.log('[Temples Service] Found', result?.length || 0, 'temples (with relations)');
+        
+        if (result && result.length > 0) {
+          console.log('[Temples Service] Temple IDs:', result.map(t => t.id));
+          console.log('[Temples Service] Temple names:', result.map(t => t.name));
+        }
+        
+        return result || [];
+      } catch (relationsError: any) {
+        // If loading relations fails (e.g., tables don't exist), return temples without relations
+        console.warn('[Temples Service] Failed to load relations, returning temples without relations:', relationsError.message);
+        
+        // Initialize empty arrays for relations to match expected structure
+        const templesWithEmptyRelations = templesWithoutRelations.map(temple => ({
+          ...temple,
+          devices: [],
+          categories: [],
+        }));
+        
+        console.log('[Temples Service] Returning', templesWithEmptyRelations.length, 'temples (without relations, empty arrays added)');
+        return templesWithEmptyRelations;
       }
-      
-      return result || [];
     } catch (error) {
       console.error('[Temples Service] Error in findAll:', error);
       console.error('[Temples Service] Error details:', {
