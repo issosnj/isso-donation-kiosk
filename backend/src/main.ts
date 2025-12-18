@@ -6,7 +6,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
+  // Enable CORS with explicit configuration
   const adminWebUrl = process.env.ADMIN_WEB_URL || 'http://localhost:3000';
   
   // Build allowed origins list
@@ -19,6 +19,12 @@ async function bootstrap() {
   console.log(`[CORS] ADMIN_WEB_URL: ${adminWebUrl}`);
   console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
   console.log(`[CORS] NODE_ENV: ${process.env.NODE_ENV}`);
+
+  // Add request logging middleware
+  app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
+    next();
+  });
   
   app.enableCors({
     origin: (origin, callback) => {
@@ -57,6 +63,7 @@ async function bootstrap() {
     exposedHeaders: ['Authorization'],
     preflightContinue: false,
     optionsSuccessStatus: 204,
+    maxAge: 86400, // 24 hours
   });
 
   // Global validation pipe
