@@ -32,7 +32,18 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['devices', templeId] })
+      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
       setNewDeviceLabel('')
+    },
+  })
+
+  const deleteDeviceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/devices/${id}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices', templeId] })
+      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
     },
   })
 
@@ -72,44 +83,58 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Label</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Device Code</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Last Seen</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {devices?.map((device: any) => (
-                <tr key={device.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-semibold text-gray-900">{device.label}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-mono bg-gray-50 px-3 py-1 rounded border border-gray-200 text-gray-700">
-                      {device.deviceCode}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
-                      device.status === 'ACTIVE' 
-                        ? 'bg-green-100 text-green-700 border-green-200' 
-                        : device.status === 'PENDING' 
-                        ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                        : 'bg-gray-100 text-gray-700 border-gray-200'
-                    }`}>
-                      {device.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">
-                      {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : 'Never'}
-                    </div>
-                  </td>
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Label</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Device Code</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Last Seen</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {devices?.map((device: any) => (
+                  <tr key={device.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-gray-900">{device.label}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-mono bg-gray-50 px-3 py-1 rounded border border-gray-200 text-gray-700">
+                        {device.deviceCode}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
+                        device.status === 'ACTIVE' 
+                          ? 'bg-green-100 text-green-700 border-green-200' 
+                          : device.status === 'PENDING' 
+                          ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                          : 'bg-gray-100 text-gray-700 border-gray-200'
+                      }`}>
+                        {device.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : 'Never'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete device "${device.label}"? This action cannot be undone.`)) {
+                            deleteDeviceMutation.mutate(device.id)
+                          }
+                        }}
+                        disabled={deleteDeviceMutation.isPending}
+                        className="px-3 py-1 text-red-600 hover:text-red-700 text-xs font-medium disabled:opacity-50"
+                      >
+                        {deleteDeviceMutation.isPending ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
           </table>
         </div>
       </div>

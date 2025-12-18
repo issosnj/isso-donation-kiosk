@@ -115,6 +115,11 @@ export class DevicesService {
     await this.devicesRepository.save(device);
   }
 
+  async remove(id: string): Promise<void> {
+    const device = await this.findOne(id);
+    await this.devicesRepository.remove(device);
+  }
+
   private generateDeviceCode(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars
     let code = '';

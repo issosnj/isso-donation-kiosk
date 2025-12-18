@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   Patch,
+  Delete,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DevicesService } from './devices.service';
@@ -64,6 +65,14 @@ export class DevicesController {
   @ApiOperation({ summary: 'Update device last seen timestamp' })
   heartbeat(@Param('id') id: string) {
     return this.devicesService.updateLastSeen(id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete device' })
+  remove(@Param('id') id: string) {
+    return this.devicesService.remove(id);
   }
 }
 

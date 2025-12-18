@@ -3,9 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import api from '@/lib/api'
+import TempleEditView from './TempleEditView'
 
 export default function TemplesTab() {
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [selectedTempleId, setSelectedTempleId] = useState<string | null>(null)
   const [newTempleName, setNewTempleName] = useState('')
   const [newTempleAddress, setNewTempleAddress] = useState('')
   const queryClient = useQueryClient()
@@ -85,6 +87,16 @@ export default function TemplesTab() {
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
         Failed to load temples. Please try again.
       </div>
+    )
+  }
+
+  // If a temple is selected, show the edit view
+  if (selectedTempleId) {
+    return (
+      <TempleEditView
+        templeId={selectedTempleId}
+        onBack={() => setSelectedTempleId(null)}
+      />
     )
   }
 
@@ -172,7 +184,11 @@ export default function TemplesTab() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {temples?.map((temple: any) => (
-                  <tr key={temple.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
+                  <tr
+                    key={temple.id}
+                    onClick={() => setSelectedTempleId(temple.id)}
+                    className="hover:bg-purple-50/30 transition-colors border-b border-gray-100 cursor-pointer"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">{temple.name}</div>
                     </td>

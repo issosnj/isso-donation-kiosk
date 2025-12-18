@@ -10,6 +10,10 @@ interface CategoriesTabProps {
 
 export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   const [newCategoryName, setNewCategoryName] = useState('')
+  const [editingCategory, setEditingCategory] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editIsActive, setEditIsActive] = useState(true)
+  const [editShowOnKiosk, setEditShowOnKiosk] = useState(true)
   const queryClient = useQueryClient()
 
   const { data: categories, isLoading } = useQuery({
@@ -37,6 +41,53 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
       setNewCategoryName('')
     },
   })
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await api.patch(`/donation-categories/${id}`, data)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
+      setEditingCategory(null)
+    },
+  })
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/donation-categories/${id}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
+    },
+  })
+
+  const startEdit = (category: any) => {
+    setEditingCategory(category.id)
+    setEditName(category.name)
+    setEditIsActive(category.isActive)
+    setEditShowOnKiosk(category.showOnKiosk)
+  }
+
+  const cancelEdit = () => {
+    setEditingCategory(null)
+    setEditName('')
+    setEditIsActive(true)
+    setEditShowOnKiosk(true)
+  }
+
+  const saveEdit = () => {
+    if (editingCategory) {
+      updateCategoryMutation.mutate({
+        id: editingCategory,
+        data: {
+          name: editName,
+          isActive: editIsActive,
+          showOnKiosk: editShowOnKiosk,
+        },
+      })
+    }
+  }
 
   if (isLoading) {
     return (
@@ -90,32 +141,108 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Active</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Show on Kiosk</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {categories?.map((category: any) => (
                   <tr key={category.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">{category.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
-                        category.isActive 
-                          ? 'bg-green-100 text-green-700 border-green-200' 
-                          : 'bg-gray-100 text-gray-700 border-gray-200'
-                      }`}>
-                        {category.isActive ? 'Yes' : 'No'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
-                        category.showOnKiosk 
-                          ? 'bg-blue-100 text-blue-700 border-blue-200' 
-                          : 'bg-gray-100 text-gray-700 border-gray-200'
-                      }`}>
-                        {category.showOnKiosk ? 'Yes' : 'No'}
-                      </span>
-                    </td>
+                    {editingCategory === category.id ? (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={editIsActive}
+                              onChange={(e) => setEditIsActive(e.target.checked)}
+                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            />
+                            <span className="text-sm text-gray-700">Active</span>
+                          </label>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={editShowOnKiosk}
+                              onChange={(e) => setEditShowOnKiosk(e.target.checked)}
+                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            />
+                            <span className="text-sm text-gray-700">Show on Kiosk</span>
+                          </label>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={saveEdit}
+                              disabled={!editName || updateCategoryMutation.isPending}
+                              className="px-3 py-1 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700 disabled:opacity-50"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="px-3 py-1 border border-gray-300 text-gray-700 rounded text-xs font-medium hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-gray-900">{category.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
+                            category.isActive 
+                              ? 'bg-green-100 text-green-700 border-green-200' 
+                              : 'bg-gray-100 text-gray-700 border-gray-200'
+                          }`}>
+                            {category.isActive ? 'Yes' : 'No'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
+                            category.showOnKiosk 
+                              ? 'bg-blue-100 text-blue-700 border-blue-200' 
+                              : 'bg-gray-100 text-gray-700 border-gray-200'
+                          }`}>
+                            {category.showOnKiosk ? 'Yes' : 'No'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => startEdit(category)}
+                              className="px-3 py-1 text-purple-600 hover:text-purple-700 text-xs font-medium"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Delete "${category.name}"?`)) {
+                                  deleteCategoryMutation.mutate(category.id)
+                                }
+                              }}
+                              disabled={deleteCategoryMutation.isPending}
+                              className="px-3 py-1 text-red-600 hover:text-red-700 text-xs font-medium disabled:opacity-50"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
