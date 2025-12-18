@@ -123,6 +123,12 @@ You'll be prompted for email, password, name, and role.
 
 ## 🌐 Deployment
 
+### Current Production URLs
+
+- **Backend API**: `https://isso-donation-kiosk-production.up.railway.app`
+- **Admin Web Portal**: `https://issodonationkiosk.netlify.app`
+- **API Documentation**: `https://isso-donation-kiosk-production.up.railway.app/api/docs`
+
 ### Backend (Railway)
 
 1. **Create Railway Project**
@@ -144,6 +150,7 @@ You'll be prompted for email, password, name, and role.
      SQUARE_APPLICATION_ID=your-square-app-id
      SQUARE_APPLICATION_SECRET=your-square-app-secret
      SQUARE_ENVIRONMENT=sandbox
+     CORS_ORIGIN=https://your-app.netlify.app
      ADMIN_WEB_URL=https://your-app.netlify.app
      NODE_ENV=production
      PORT=3000
@@ -151,7 +158,8 @@ You'll be prompted for email, password, name, and role.
 
 4. **Deploy**
    - Railway will automatically deploy on push to main
-   - Get your backend URL from Railway (e.g., `https://your-app.up.railway.app`)
+   - Get your backend URL from Railway (e.g., `https://isso-donation-kiosk-production.up.railway.app`)
+   - The backend automatically handles CORS for Netlify domains
 
 5. **Create Admin User**
    - Use Railway Shell or run locally with `DATABASE_URL` set:
@@ -175,19 +183,22 @@ You'll be prompted for email, password, name, and role.
    - Go to Site Settings → Environment Variables
    - Add:
      ```
-     NEXT_PUBLIC_API_URL=https://your-railway-backend.up.railway.app/api
+     NEXT_PUBLIC_API_URL=https://isso-donation-kiosk-production.up.railway.app/api
      ```
+   - **Important**: Use the exact backend URL from Railway
 
 4. **Deploy**
    - Netlify will automatically deploy on push to main
-   - Your admin portal will be live at `https://your-app.netlify.app`
+   - Your admin portal will be live at `https://issodonationkiosk.netlify.app`
 
 5. **Update Backend CORS**
    - In Railway backend variables, set:
      ```
-     ADMIN_WEB_URL=https://your-app.netlify.app
+     CORS_ORIGIN=https://issodonationkiosk.netlify.app
+     ADMIN_WEB_URL=https://issodonationkiosk.netlify.app
      ```
-   - The backend automatically allows all `*.netlify.app` URLs, but setting `ADMIN_WEB_URL` ensures proper redirects for Square OAuth
+   - The backend automatically allows all `*.netlify.app` URLs for CORS
+   - Setting `ADMIN_WEB_URL` ensures proper redirects for Square OAuth
 
 ### iOS App (TestFlight/MDM)
 
@@ -324,7 +335,8 @@ npm run lint
 | `SQUARE_APPLICATION_ID` | Square application ID | Yes |
 | `SQUARE_APPLICATION_SECRET` | Square application secret | Yes |
 | `SQUARE_ENVIRONMENT` | `sandbox` or `production` | Yes |
-| `ADMIN_WEB_URL` | Frontend URL for CORS | Yes |
+| `CORS_ORIGIN` | Frontend URL for CORS (e.g., `https://issodonationkiosk.netlify.app`) | Yes |
+| `ADMIN_WEB_URL` | Frontend URL for Square OAuth redirects | Yes |
 | `PORT` | Server port (default: 3000) | No |
 | `NODE_ENV` | `development` or `production` | No |
 
@@ -340,7 +352,7 @@ Update `kiosk-app/ISSOKiosk/Config.swift`:
 
 ```swift
 struct Config {
-    static let apiBaseURL = "https://your-railway-backend.up.railway.app/api"
+    static let apiBaseURL = "https://isso-donation-kiosk-production.up.railway.app/api"
     static let squareApplicationId = "your-square-app-id"
     static let squareLocationId = "your-square-location-id" // Set after OAuth
 }
@@ -366,8 +378,9 @@ See TypeORM entities in `backend/src/*/entities/` for full schema.
 - Device token authentication for kiosks
 - Role-based access control (RBAC)
 - Encrypted Square credentials storage
-- CORS protection
+- CORS protection with Express-level OPTIONS handling
 - Input validation and sanitization
+- Railway proxy compatibility (handles preflight requests correctly)
 
 ## 📝 License
 

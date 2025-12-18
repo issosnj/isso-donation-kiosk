@@ -6,6 +6,9 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
 
+  // Get Express instance to handle OPTIONS at the lowest level
+  const expressApp = app.getHttpAdapter().getInstance();
+
   // Enable CORS with explicit configuration - MUST be before global prefix
   const corsOrigin = process.env.CORS_ORIGIN || process.env.ADMIN_WEB_URL || 'http://localhost:3000';
   const adminWebUrl = process.env.ADMIN_WEB_URL || corsOrigin;
@@ -51,6 +54,45 @@ async function bootstrap() {
     return false;
   };
 
+  // Handle OPTIONS requests at Express level BEFORE any other middleware (Railway proxy fix)
+  expressApp.options('*', (req: any, res: any) => {
+    const origin = req.headers.origin;
+    const allowed = isOriginAllowed(origin);
+    
+    console.log(`[OPTIONS] Preflight request to: ${req.path}`);
+    console.log(`[OPTIONS] Origin: ${origin || 'none'}`);
+    console.log(`[OPTIONS] Origin allowed: ${allowed}`);
+    
+    if (allowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      res.status(204).end();
+    } else {
+      console.error(`[OPTIONS] ✗ Blocked origin: ${origin}`);
+      res.status(403).end();
+    }
+  });
+
+  // Add /api route handler at Express level BEFORE NestJS routing
+  // This must be early to catch /api requests before they go through NestJS
+  expressApp.get('/api', (req: any, res: any) => {
+    res.json({
+      message: 'ISSO Donation Kiosk API',
+      version: '1.0',
+      docs: '/api/docs',
+      endpoints: {
+        auth: '/api/auth',
+        temples: '/api/temples',
+        users: '/api/users',
+        devices: '/api/devices',
+        donations: '/api/donations',
+      },
+    });
+  });
+
   // Add request logging middleware BEFORE CORS
   app.use((req: any, res: any, next: any) => {
     console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
@@ -93,11 +135,17 @@ async function bootstrap() {
     }),
   );
 
-  // API prefix - set AFTER CORS
+  // Add health check endpoint BEFORE global prefix (Railway needs this)
+  app.getHttpAdapter().get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // API prefix - set AFTER CORS and route handlers
   app.setGlobalPrefix('api');
 
-  // Add root route handler (after global prefix, but handle / explicitly)
-  app.getHttpAdapter().get('/', (req, res) => {
+  // Add root route handler (after global prefix, this handles / which becomes /api)
+  const adapter = app.getHttpAdapter();
+  adapter.get('/', (req, res) => {
     res.json({
       message: 'ISSO Donation Kiosk API',
       version: '1.0',
@@ -129,4 +177,5 @@ async function bootstrap() {
 }
 
 bootstrap();
+
 

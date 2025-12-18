@@ -16,8 +16,13 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 
 For production, set this to your Railway backend URL:
 ```env
-NEXT_PUBLIC_API_URL=https://your-app.railway.app/api
+NEXT_PUBLIC_API_URL=https://isso-donation-kiosk-production.up.railway.app/api
 ```
+
+**Note**: This must be set as an environment variable in Netlify:
+1. Go to Netlify Dashboard → Site Settings → Environment Variables
+2. Add `NEXT_PUBLIC_API_URL` with the value above
+3. Redeploy the site
 
 3. Run development server:
 ```bash

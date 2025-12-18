@@ -51,11 +51,24 @@ Once running, visit: `http://localhost:3000/api/docs`
 See `.env.example` for all required variables.
 
 Key variables:
-- `DB_*`: PostgreSQL connection
+- `DATABASE_URL` or `DATABASE_PUBLIC_URL`: PostgreSQL connection (prefer `DATABASE_PUBLIC_URL` on Railway)
 - `JWT_SECRET`: Secret for JWT tokens
 - `SQUARE_APPLICATION_ID`: Square app ID
 - `SQUARE_APPLICATION_SECRET`: Square app secret
 - `SQUARE_ENVIRONMENT`: `sandbox` or `production`
+- `CORS_ORIGIN`: Frontend URL for CORS (e.g., `https://issodonationkiosk.netlify.app`)
+- `ADMIN_WEB_URL`: Frontend URL for Square OAuth redirects
+- `NODE_ENV`: `development` or `production`
+- `PORT`: Server port (default: 3000)
+
+## CORS Configuration
+
+The backend automatically handles CORS for:
+- URLs specified in `CORS_ORIGIN` and `ADMIN_WEB_URL`
+- All `*.netlify.app` domains (flexible matching)
+- Local development URLs (`http://localhost:3000`, `http://localhost:3001`)
+
+OPTIONS preflight requests are handled at the Express level to work with Railway's proxy.
 
 ## API Endpoints
 
