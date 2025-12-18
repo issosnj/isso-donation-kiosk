@@ -8,37 +8,69 @@ async function bootstrap() {
 
   // Enable CORS with explicit configuration - MUST be before global prefix
   const adminWebUrl = process.env.ADMIN_WEB_URL || 'http://localhost:3000';
+  const corsOrigin = process.env.CORS_ORIGIN || adminWebUrl;
   
-  // Build allowed origins list
+  // Normalize URLs (remove trailing slashes)
+  const normalizeUrl = (url: string) => url.replace(/\/$/, '');
+  const normalizedAdminWebUrl = normalizeUrl(adminWebUrl);
+  const normalizedCorsOrigin = normalizeUrl(corsOrigin);
+  
+  // Build allowed origins list (with and without trailing slashes)
   const allowedOrigins = [
+    normalizedAdminWebUrl,
+    normalizedCorsOrigin,
     adminWebUrl,
+    corsOrigin,
     'http://localhost:3000',
     'http://localhost:3001',
-  ];
+  ].filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
 
   console.log(`[CORS] ADMIN_WEB_URL: ${adminWebUrl}`);
+  console.log(`[CORS] CORS_ORIGIN: ${corsOrigin}`);
+  console.log(`[CORS] Normalized URLs: ${normalizedAdminWebUrl}, ${normalizedCorsOrigin}`);
   console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
   console.log(`[CORS] NODE_ENV: ${process.env.NODE_ENV}`);
+
+  // Helper function to check if origin is allowed
+  const isOriginAllowed = (origin: string | undefined): boolean => {
+    if (!origin) return true; // Allow requests with no origin
+    
+    const normalizedOrigin = normalizeUrl(origin);
+    
+    // Check exact match
+    if (allowedOrigins.includes(origin) || allowedOrigins.includes(normalizedOrigin)) {
+      return true;
+    }
+    
+    // Check if it's a Netlify URL (more flexible matching)
+    const isNetlifyUrl = origin.includes('.netlify.app');
+    if (isNetlifyUrl) {
+      return true;
+    }
+    
+    return false;
+  };
 
   // Add explicit CORS middleware BEFORE anything else
   app.use((req, res, next) => {
     const origin = req.headers.origin;
+    const normalizedOrigin = origin ? normalizeUrl(origin) : undefined;
     
     console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${origin || 'none'}`);
+    if (origin && normalizedOrigin !== origin) {
+      console.log(`[REQUEST] Normalized origin: ${normalizedOrigin}`);
+    }
     
     // Handle OPTIONS preflight requests explicitly
     if (req.method === 'OPTIONS') {
       console.log(`[CORS] Handling OPTIONS preflight request`);
       
-      // Check if origin is allowed
-      const isNetlifyUrl = origin && (
-        origin.includes('.netlify.app') ||
-        origin.match(/^https?:\/\/.*\.netlify\.app/)
-      );
-      const isAllowed = !origin || allowedOrigins.includes(origin) || isNetlifyUrl;
+      const allowed = isOriginAllowed(origin);
+      console.log(`[CORS] Origin allowed: ${allowed}`);
       
-      if (isAllowed) {
-        res.header('Access-Control-Allow-Origin', origin || '*');
+      if (allowed) {
+        const allowOrigin = origin || '*';
+        res.header('Access-Control-Allow-Origin', allowOrigin);
         res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
         res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
         res.header('Access-Control-Allow-Credentials', 'true');
@@ -47,6 +79,7 @@ async function bootstrap() {
         return res.status(204).send();
       } else {
         console.error(`[CORS] ✗ OPTIONS preflight blocked for origin: ${origin}`);
+        console.error(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
         return res.status(403).send();
       }
     }
@@ -56,27 +89,14 @@ async function bootstrap() {
   
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) {
-        console.log(`[CORS] Allowing request with no origin`);
-        return callback(null, true);
-      }
-
-      // Check if it's a Netlify URL (more flexible matching)
-      const isNetlifyUrl = origin && (
-        origin.includes('.netlify.app') ||
-        origin.match(/^https?:\/\/.*\.netlify\.app/)
-      );
-      
-      // Check if it's in the allowed list
-      const isAllowed = allowedOrigins.includes(origin);
+      // Use the same helper function
+      const allowed = isOriginAllowed(origin);
       
       // Log the check (always log in production for debugging)
       console.log(`[CORS] Checking origin: ${origin}`);
-      console.log(`[CORS] Is Netlify URL: ${isNetlifyUrl}`);
-      console.log(`[CORS] Is in allowed list: ${isAllowed}`);
+      console.log(`[CORS] Origin allowed: ${allowed}`);
 
-      if (isAllowed || isNetlifyUrl) {
+      if (allowed) {
         console.log(`[CORS] ✓ Allowed origin: ${origin}`);
         callback(null, true);
       } else {
