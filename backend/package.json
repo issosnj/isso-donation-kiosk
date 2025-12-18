@@ -21,6 +21,7 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/typeorm.config.ts",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/typeorm.config.ts",
+    "migration:run:prod": "node -r ts-node/register -r tsconfig-paths/register dist/scripts/run-migrations.js",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/typeorm.config.ts",
     "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/create-master-admin.ts",
     "seed:user": "ts-node -r tsconfig-paths/register src/scripts/create-user.ts",
