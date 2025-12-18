@@ -4,9 +4,9 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { cors: false });
 
-  // Enable CORS with explicit configuration
+  // Enable CORS with explicit configuration - MUST be before global prefix
   const adminWebUrl = process.env.ADMIN_WEB_URL || 'http://localhost:3000';
   
   // Build allowed origins list
@@ -20,9 +20,37 @@ async function bootstrap() {
   console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
   console.log(`[CORS] NODE_ENV: ${process.env.NODE_ENV}`);
 
-  // Add request logging middleware
+  // Add explicit CORS middleware BEFORE anything else
   app.use((req, res, next) => {
-    console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
+    const origin = req.headers.origin;
+    
+    console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${origin || 'none'}`);
+    
+    // Handle OPTIONS preflight requests explicitly
+    if (req.method === 'OPTIONS') {
+      console.log(`[CORS] Handling OPTIONS preflight request`);
+      
+      // Check if origin is allowed
+      const isNetlifyUrl = origin && (
+        origin.includes('.netlify.app') ||
+        origin.match(/^https?:\/\/.*\.netlify\.app/)
+      );
+      const isAllowed = !origin || allowedOrigins.includes(origin) || isNetlifyUrl;
+      
+      if (isAllowed) {
+        res.header('Access-Control-Allow-Origin', origin || '*');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header('Access-Control-Max-Age', '86400');
+        console.log(`[CORS] ✓ OPTIONS preflight allowed for origin: ${origin}`);
+        return res.status(204).send();
+      } else {
+        console.error(`[CORS] ✗ OPTIONS preflight blocked for origin: ${origin}`);
+        return res.status(403).send();
+      }
+    }
+    
     next();
   });
   
@@ -74,7 +102,7 @@ async function bootstrap() {
     }),
   );
 
-  // API prefix
+  // API prefix - set AFTER CORS
   app.setGlobalPrefix('api');
 
   // Swagger documentation
