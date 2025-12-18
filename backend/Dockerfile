@@ -18,17 +18,12 @@ RUN npm run build
 # Don't prune these specific packages
 RUN npm install --save ts-node tsconfig-paths
 
+# Copy startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Expose port
 EXPOSE 3000
-
-# Create startup script that runs migrations then starts the app
-RUN echo '#!/bin/sh\n\
-set -e\n\
-echo "Running database migrations..."\n\
-node -r ts-node/register -r tsconfig-paths/register dist/scripts/run-migrations.js || echo "Migration failed or already run, continuing..."\n\
-echo "Starting application..."\n\
-exec npm run start:prod\n\
-' > /app/start.sh && chmod +x /app/start.sh
 
 # Start the application (migrations run automatically)
 CMD ["/app/start.sh"]
