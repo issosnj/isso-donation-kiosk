@@ -32,9 +32,10 @@ export default function TemplesTab() {
         throw error
       }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log('[Temple Creation] onSuccess called with:', data)
-      queryClient.invalidateQueries({ queryKey: ['temples'] })
+      // Force refetch instead of just invalidating
+      await queryClient.refetchQueries({ queryKey: ['temples'] })
       setShowCreateForm(false)
       setNewTempleName('')
       setNewTempleAddress('')
@@ -158,8 +159,8 @@ export default function TemplesTab() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${temple.squareMerchantId
-                          ? 'bg-green-100 text-green-700 border border-green-200'
-                          : 'bg-gray-100 text-gray-700 border border-gray-200'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'bg-gray-100 text-gray-700 border border-gray-200'
                         }`}>
                         {temple.squareMerchantId ? 'Connected' : 'Not Connected'}
                       </span>
