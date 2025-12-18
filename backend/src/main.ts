@@ -18,6 +18,7 @@ async function bootstrap() {
 
   console.log(`[CORS] ADMIN_WEB_URL: ${adminWebUrl}`);
   console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+  console.log(`[CORS] NODE_ENV: ${process.env.NODE_ENV}`);
   
   app.enableCors({
     origin: (origin, callback) => {
@@ -27,13 +28,16 @@ async function bootstrap() {
         return callback(null, true);
       }
 
-      // Check if it's a Netlify URL
-      const isNetlifyUrl = origin.match(/^https:\/\/.*\.netlify\.app\/?$/);
+      // Check if it's a Netlify URL (more flexible matching)
+      const isNetlifyUrl = origin && (
+        origin.includes('.netlify.app') ||
+        origin.match(/^https?:\/\/.*\.netlify\.app/)
+      );
       
       // Check if it's in the allowed list
       const isAllowed = allowedOrigins.includes(origin);
       
-      // Log the check
+      // Log the check (always log in production for debugging)
       console.log(`[CORS] Checking origin: ${origin}`);
       console.log(`[CORS] Is Netlify URL: ${isNetlifyUrl}`);
       console.log(`[CORS] Is in allowed list: ${isAllowed}`);
@@ -43,12 +47,13 @@ async function bootstrap() {
         callback(null, true);
       } else {
         console.error(`[CORS] ✗ Blocked origin: ${origin}`);
+        console.error(`[CORS] Allowed origins were: ${allowedOrigins.join(', ')}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     exposedHeaders: ['Authorization'],
     preflightContinue: false,
     optionsSuccessStatus: 204,
