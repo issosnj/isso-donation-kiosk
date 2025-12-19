@@ -24,34 +24,50 @@ struct ModernPaymentView: View {
     var body: some View {
         Group {
             if let status = paymentStatus {
-                ModernPaymentResultView(
-                    status: status,
-                    amount: amount,
-                    onDismiss: {
-                    paymentStatus = nil
-                    onComplete()
-                    }
-                )
+                // Only show result view for failures - successful payments go directly back
+                if case .failure = status {
+                    ModernPaymentResultView(
+                        status: status,
+                        amount: amount,
+                        onDismiss: {
+                            paymentStatus = nil
+                            onComplete()
+                        }
+                    )
+                } else {
+                    // Success - go directly back to home
+                    Color.clear
+                        .onAppear {
+                            // Small delay to ensure payment is complete, then return to home
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                paymentStatus = nil
+                                onComplete()
+                            }
+                        }
+                }
             } else if isProcessing {
-                ModernProcessingView(amount: amount)
+                // While processing, show nothing - Square SDK will show its own UI
+                // The SDK UI will overlay on top of this view
+                Color.black.opacity(0.01)
+                    .ignoresSafeArea()
             } else {
-                ModernPaymentReadyView(amount: amount)
+                // Initial state - start payment immediately
+                Color.black.opacity(0.01)
+                    .ignoresSafeArea()
             }
         }
         .onAppear {
             print("[PaymentView] 👁️ View appeared")
             print("[PaymentView] 📊 State - isReady: \(isReady), isProcessing: \(isProcessing)")
             
-            // Automatically start payment when view appears
-            // Square SDK will show its own UI and detect card interactions
+            // Start payment immediately - Square SDK will show its own UI
+            // No need for intermediate "Ready" screen
             if !isReady && !isProcessing {
-                print("[PaymentView] ✅ Conditions met, will start payment in 0.5s")
+                print("[PaymentView] ✅ Starting payment immediately...")
                 isReady = true
-                // Small delay to ensure view is fully loaded before starting payment
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    print("[PaymentView] ⏰ Delay complete, calling processPayment()")
-                    processPayment()
-                }
+                isProcessing = true // Set processing immediately so SDK UI shows
+                // Start payment immediately - Square SDK will present its own UI
+                processPayment()
             } else {
                 print("[PaymentView] ⚠️ Skipping payment start - isReady: \(isReady), isProcessing: \(isProcessing)")
             }
@@ -139,7 +155,15 @@ struct ModernPaymentView: View {
                                 
                                 await MainActor.run {
                                     self.isProcessing = false
-                                    self.paymentStatus = paymentResult.success ? .success : .failure(paymentResult.error ?? "Payment failed")
+                                    if paymentResult.success {
+                                        // Payment succeeded - set success status (will auto-dismiss)
+                                        print("[PaymentView] ✅ Payment succeeded, returning to home")
+                                        self.paymentStatus = .success
+                                    } else {
+                                        // Payment failed - show error
+                                        print("[PaymentView] ❌ Payment failed: \(paymentResult.error ?? "Unknown error")")
+                                        self.paymentStatus = .failure(paymentResult.error ?? "Payment failed")
+                                    }
                                 }
                             } catch {
                                 await MainActor.run {
