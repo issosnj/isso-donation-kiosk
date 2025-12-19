@@ -203,6 +203,7 @@ class SquareMobilePaymentsService: NSObject {
     }
 }
 
+// Shared response struct for backend payment processing
 struct ProcessPaymentResponse: Codable {
     let success: Bool
     let paymentId: String
