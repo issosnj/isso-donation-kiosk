@@ -32,7 +32,7 @@ struct ISSOKioskApp: App {
     private func startHeartbeat() {
         // Send heartbeat every 30 seconds when device is activated
         Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
-            Task {
+            Task { @MainActor in
                 if appState.isActivated, let deviceId = appState.deviceId {
                     do {
                         try await APIService.shared.sendHeartbeat(deviceId: deviceId)

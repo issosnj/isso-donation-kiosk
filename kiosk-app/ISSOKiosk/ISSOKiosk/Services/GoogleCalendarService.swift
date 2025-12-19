@@ -142,7 +142,7 @@ class GoogleCalendarService {
         let lines = icalString.components(separatedBy: .newlines)
         
         for line in lines {
-            var trimmed = line.trimmingCharacters(in: .whitespaces)
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
             
             // Handle line continuation (lines starting with space or tab)
             if trimmed.isEmpty {

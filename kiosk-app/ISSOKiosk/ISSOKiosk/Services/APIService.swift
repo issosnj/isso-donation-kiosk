@@ -242,7 +242,7 @@ enum APIError: LocalizedError {
             default:
                 return "Connection error (Code: \(code)). Please try again."
             }
-        case .decodingError(let error):
+        case .decodingError:
             return "Failed to process server response. Please try again."
         case .networkError(let error):
             let nsError = error as NSError
