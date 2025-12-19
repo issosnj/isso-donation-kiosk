@@ -236,6 +236,15 @@ class APIService {
         return result
     }
     
+    func getKioskCategories(templeId: String) async throws -> [DonationCategory] {
+        print("[APIService] 📡 Fetching kiosk categories for temple: \(templeId)")
+        return try await request<[DonationCategory]>(
+            endpoint: "/donation-categories/kiosk/\(templeId)",
+            method: "GET",
+            requiresAuth: true
+        )
+    }
+    
     private func encodeToDict<T: Codable>(_ value: T) throws -> [String: Any] {
         let data = try JSONEncoder().encode(value)
         return try JSONSerialization.jsonObject(with: data) as! [String: Any]

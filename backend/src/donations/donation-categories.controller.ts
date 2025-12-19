@@ -47,6 +47,12 @@ export class DonationCategoriesController {
     return this.categoriesService.findAll(user.templeId);
   }
 
+  @Get('kiosk/:templeId')
+  @ApiOperation({ summary: 'Get categories for kiosk (filtered by date/time)' })
+  async getKioskCategories(@Param('templeId') templeId: string) {
+    return this.categoriesService.findByTemple(templeId, true);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get donation category by ID' })
   findOne(@Param('id') id: string) {

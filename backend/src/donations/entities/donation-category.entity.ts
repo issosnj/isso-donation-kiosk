@@ -30,6 +30,15 @@ export class DonationCategory {
   @Column({ default: false })
   showOnKiosk: boolean;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  defaultAmount: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  showStartDate: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  showEndDate: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

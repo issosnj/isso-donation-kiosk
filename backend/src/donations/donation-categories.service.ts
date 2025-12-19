@@ -31,11 +31,21 @@ export class DonationCategoriesService {
     });
   }
 
-  async findByTemple(templeId: string): Promise<DonationCategory[]> {
-    return this.categoriesRepository.find({
-      where: { templeId },
-      order: { name: 'ASC' },
-    });
+  async findByTemple(templeId: string, forKiosk: boolean = false): Promise<DonationCategory[]> {
+    const queryBuilder = this.categoriesRepository
+      .createQueryBuilder('category')
+      .where('category.templeId = :templeId', { templeId })
+      .andWhere('category.isActive = :isActive', { isActive: true });
+
+    if (forKiosk) {
+      const now = new Date();
+      queryBuilder
+        .andWhere('category.showOnKiosk = :showOnKiosk', { showOnKiosk: true })
+        .andWhere('(category.showStartDate IS NULL OR category.showStartDate <= :now)', { now })
+        .andWhere('(category.showEndDate IS NULL OR category.showEndDate >= :now)', { now });
+    }
+
+    return queryBuilder.orderBy('category.name', 'ASC').getMany();
   }
 
   async findOne(id: string): Promise<DonationCategory> {

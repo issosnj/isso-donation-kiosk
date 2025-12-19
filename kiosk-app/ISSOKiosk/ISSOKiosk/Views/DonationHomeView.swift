@@ -33,6 +33,29 @@ struct DonationHomeView: View {
                 // Dismiss keyboard when tapping background
                 customAmountFocused = false
             }
+            .onAppear {
+                // Refresh categories when donation screen appears
+                Task {
+                    await appState.refreshCategories()
+                }
+            }
+    
+    var body: some View {
+        ZStack {
+            // Subtle gradient background (white to light blue)
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.white,
+                    Color(red: 0.95, green: 0.97, blue: 1.0)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(.all, edges: .all)
+            .onTapGesture {
+                // Dismiss keyboard when tapping background
+                customAmountFocused = false
+            }
             
             // Two-part split screen layout
             HStack(spacing: 0) {
@@ -62,7 +85,19 @@ struct DonationHomeView: View {
                                             isSelected: selectedCategory?.id == category.id,
                                             action: {
                                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                    selectedCategory = selectedCategory?.id == category.id ? nil : category
+                                                    if selectedCategory?.id == category.id {
+                                                        selectedCategory = nil
+                                                        selectedAmount = nil
+                                                        customAmount = ""
+                                                    } else {
+                                                        selectedCategory = category
+                                                        // Set default amount if category has one
+                                                        if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+                                                            selectedAmount = defaultAmount
+                                                            customAmount = ""
+                                                            customAmountFocused = false
+                                                        }
+                                                    }
                                                 }
                                             }
                                         )

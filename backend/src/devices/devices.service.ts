@@ -93,6 +93,7 @@ export class DevicesService {
     const temple = await this.templesService.findOne(device.templeId);
     const categories = await this.donationCategoriesService.findByTemple(
       device.templeId,
+      true, // forKiosk = true to filter by date/time
     );
 
     return {
@@ -105,12 +106,11 @@ export class DevicesService {
         squareLocationId: temple.squareLocationId,
         homeScreenConfig: temple.homeScreenConfig || null,
       },
-      categories: categories
-        .filter((cat) => cat.showOnKiosk && cat.isActive)
-        .map((cat) => ({
-          id: cat.id,
-          name: cat.name,
-        })),
+      categories: categories.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        defaultAmount: cat.defaultAmount,
+      })),
     };
   }
 

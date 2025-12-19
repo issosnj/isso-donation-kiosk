@@ -261,6 +261,7 @@ struct Branding: Codable {
 struct DonationCategory: Codable, Identifiable {
     let id: String
     let name: String
+    let defaultAmount: Double?
 }
 
 struct SocialMediaLink: Codable {

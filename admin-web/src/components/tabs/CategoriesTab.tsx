@@ -10,10 +10,20 @@ interface CategoriesTabProps {
 
 export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   const [newCategoryName, setNewCategoryName] = useState('')
+  const [newDefaultAmount, setNewDefaultAmount] = useState<number | ''>('')
+  const [newShowStartDate, setNewShowStartDate] = useState('')
+  const [newShowEndDate, setNewShowEndDate] = useState('')
+  const [newUseDateRange, setNewUseDateRange] = useState(false)
+  
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editIsActive, setEditIsActive] = useState(true)
   const [editShowOnKiosk, setEditShowOnKiosk] = useState(true)
+  const [editDefaultAmount, setEditDefaultAmount] = useState<number | ''>('')
+  const [editShowStartDate, setEditShowStartDate] = useState('')
+  const [editShowEndDate, setEditShowEndDate] = useState('')
+  const [editUseDateRange, setEditUseDateRange] = useState(false)
+  
   const queryClient = useQueryClient()
 
   const { data: categories, isLoading } = useQuery({
@@ -27,18 +37,25 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   })
 
   const createCategoryMutation = useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async (data: any) => {
       const response = await api.post('/donation-categories', {
         templeId,
-        name,
+        name: data.name,
         isActive: true,
         showOnKiosk: true,
+        defaultAmount: data.defaultAmount || null,
+        showStartDate: data.showStartDate || null,
+        showEndDate: data.showEndDate || null,
       })
       return response.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
       setNewCategoryName('')
+      setNewDefaultAmount('')
+      setNewShowStartDate('')
+      setNewShowEndDate('')
+      setNewUseDateRange(false)
     },
   })
 
@@ -67,6 +84,26 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     setEditName(category.name)
     setEditIsActive(category.isActive)
     setEditShowOnKiosk(category.showOnKiosk)
+    setEditDefaultAmount(category.defaultAmount || '')
+    
+    // Parse dates from ISO strings to local datetime-local format
+    if (category.showStartDate) {
+      const startDate = new Date(category.showStartDate)
+      const localStart = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000)
+      setEditShowStartDate(localStart.toISOString().slice(0, 16))
+      setEditUseDateRange(true)
+    } else {
+      setEditShowStartDate('')
+    }
+    
+    if (category.showEndDate) {
+      const endDate = new Date(category.showEndDate)
+      const localEnd = new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000)
+      setEditShowEndDate(localEnd.toISOString().slice(0, 16))
+      setEditUseDateRange(true)
+    } else {
+      setEditShowEndDate('')
+    }
   }
 
   const cancelEdit = () => {
@@ -74,6 +111,10 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     setEditName('')
     setEditIsActive(true)
     setEditShowOnKiosk(true)
+    setEditDefaultAmount('')
+    setEditShowStartDate('')
+    setEditShowEndDate('')
+    setEditUseDateRange(false)
   }
 
   const saveEdit = () => {
@@ -84,9 +125,21 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
           name: editName,
           isActive: editIsActive,
           showOnKiosk: editShowOnKiosk,
+          defaultAmount: editDefaultAmount || null,
+          showStartDate: editUseDateRange && editShowStartDate ? new Date(editShowStartDate).toISOString() : null,
+          showEndDate: editUseDateRange && editShowEndDate ? new Date(editShowEndDate).toISOString() : null,
         },
       })
     }
+  }
+  
+  const handleCreate = () => {
+    createCategoryMutation.mutate({
+      name: newCategoryName,
+      defaultAmount: newDefaultAmount || null,
+      showStartDate: newUseDateRange && newShowStartDate ? new Date(newShowStartDate).toISOString() : null,
+      showEndDate: newUseDateRange && newShowEndDate ? new Date(newShowEndDate).toISOString() : null,
+    })
   }
 
   if (isLoading) {
@@ -104,16 +157,68 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg border border-gray-200">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Category</h2>
-        <div className="flex space-x-4">
-          <input
-            type="text"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            placeholder="Category name (e.g., General, Annakut, Festival)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-          />
+        <div className="space-y-4">
+          <div className="flex space-x-4">
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Category name (e.g., General, Annakut, Festival)"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={newDefaultAmount}
+              onChange={(e) => setNewDefaultAmount(e.target.value ? parseFloat(e.target.value) : '')}
+              placeholder="Default amount (optional)"
+              className="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="newUseDateRange"
+              checked={newUseDateRange}
+              onChange={(e) => setNewUseDateRange(e.target.checked)}
+              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+            />
+            <label htmlFor="newUseDateRange" className="text-sm text-gray-700">
+              Set date/time range for when this category appears on kiosk
+            </label>
+          </div>
+          
+          {newUseDateRange && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Show Start Date/Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={newShowStartDate}
+                  onChange={(e) => setNewShowStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Show End Date/Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={newShowEndDate}
+                  onChange={(e) => setNewShowEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+            </div>
+          )}
+          
           <button
-            onClick={() => createCategoryMutation.mutate(newCategoryName)}
+            onClick={handleCreate}
             disabled={!newCategoryName || createCategoryMutation.isPending}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
           >
@@ -139,8 +244,10 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Default Amount</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Active</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Show on Kiosk</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Range</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -148,38 +255,89 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                 {categories?.map((category: any) => (
                   <tr key={category.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
                     {editingCategory === category.id ? (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                          />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={editIsActive}
-                              onChange={(e) => setEditIsActive(e.target.checked)}
-                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                            />
-                            <span className="text-sm text-gray-700">Active</span>
-                          </label>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={editShowOnKiosk}
-                              onChange={(e) => setEditShowOnKiosk(e.target.checked)}
-                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                            />
-                            <span className="text-sm text-gray-700">Show on Kiosk</span>
-                          </label>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                      <td colSpan={5} className="px-6 py-4">
+                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+                              <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Default Amount ($)</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={editDefaultAmount}
+                                onChange={(e) => setEditDefaultAmount(e.target.value ? parseFloat(e.target.value) : '')}
+                                placeholder="Optional"
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="flex space-x-4">
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={editIsActive}
+                                onChange={(e) => setEditIsActive(e.target.checked)}
+                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span className="text-sm text-gray-700">Active</span>
+                            </label>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={editShowOnKiosk}
+                                onChange={(e) => setEditShowOnKiosk(e.target.checked)}
+                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span className="text-sm text-gray-700">Show on Kiosk</span>
+                            </label>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={editUseDateRange}
+                                onChange={(e) => setEditUseDateRange(e.target.checked)}
+                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span className="text-sm text-gray-700">Use Date/Time Range</span>
+                            </label>
+                          </div>
+                          
+                          {editUseDateRange && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Show Start Date/Time
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={editShowStartDate}
+                                  onChange={(e) => setEditShowStartDate(e.target.value)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Show End Date/Time
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={editShowEndDate}
+                                  onChange={(e) => setEditShowEndDate(e.target.value)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                />
+                              </div>
+                            </div>
+                          )}
+                          
                           <div className="flex space-x-2">
                             <button
                               onClick={saveEdit}
@@ -195,12 +353,17 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                               Cancel
                             </button>
                           </div>
-                        </td>
-                      </>
+                        </div>
+                      </td>
                     ) : (
                       <>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-semibold text-gray-900">{category.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-700">
+                            {category.defaultAmount ? `$${category.defaultAmount.toFixed(2)}` : '-'}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
@@ -219,6 +382,19 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                           }`}>
                             {category.showOnKiosk ? 'Yes' : 'No'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-xs text-gray-600">
+                            {category.showStartDate && category.showEndDate ? (
+                              <div>
+                                <div>{new Date(category.showStartDate).toLocaleString()}</div>
+                                <div className="text-gray-400">to</div>
+                                <div>{new Date(category.showEndDate).toLocaleString()}</div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">Always visible</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex space-x-2">
