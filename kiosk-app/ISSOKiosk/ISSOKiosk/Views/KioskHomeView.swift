@@ -329,8 +329,3 @@ struct SocialMediaItem: Identifiable {
     let url: String
 }
 
-struct SocialMediaLink: Codable {
-    let platform: String
-    let url: String
-}
-

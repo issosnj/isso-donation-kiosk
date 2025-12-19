@@ -111,6 +111,11 @@ struct DonationCategory: Codable, Identifiable {
     let name: String
 }
 
+struct SocialMediaLink: Codable {
+    let platform: String
+    let url: String
+}
+
 struct DeviceActivationResponse: Codable {
     let deviceToken: String
     let temple: Temple
