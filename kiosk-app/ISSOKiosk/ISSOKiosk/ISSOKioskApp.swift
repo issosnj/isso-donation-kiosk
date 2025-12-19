@@ -4,6 +4,7 @@ import SquareInAppPaymentsSDK
 @main
 struct ISSOKioskApp: App {
     @StateObject private var appState = AppState()
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     init() {
         // Initialize Square SDK
@@ -21,6 +22,7 @@ struct ISSOKioskApp: App {
             ContentView()
                 .environmentObject(appState)
                 .preferredColorScheme(.light) // Force light mode for kiosk
+                .lockOrientation(.landscape) // Lock to landscape orientation
                 .onAppear {
                     startHeartbeat()
                 }
