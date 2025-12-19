@@ -49,15 +49,30 @@ class AppState: ObservableObject {
             return
         }
         
+        print("[AppState] 📡 Refreshing categories for templeId: \(templeId)")
+        
         do {
             // Fetch fresh categories from kiosk endpoint (filtered by date/time)
             let categories = try await APIService.shared.getKioskCategories(templeId: templeId)
             await MainActor.run {
                 self.categories = categories
                 print("[AppState] ✅ Categories refreshed: \(categories.count) categories")
+                if categories.isEmpty {
+                    print("[AppState] ⚠️ No categories returned - check if categories are:")
+                    print("[AppState]   1. Active (isActive = true)")
+                    print("[AppState]   2. Show on kiosk (showOnKiosk = true)")
+                    print("[AppState]   3. Within date range (if date range is set)")
+                } else {
+                    for category in categories {
+                        print("[AppState]   - \(category.name) (ID: \(category.id))")
+                    }
+                }
             }
         } catch {
             print("[AppState] ❌ Failed to refresh categories: \(error.localizedDescription)")
+            if let apiError = error as? APIError {
+                print("[AppState] ❌ API Error: \(apiError)")
+            }
         }
     }
     
@@ -86,6 +101,9 @@ class AppState: ObservableObject {
                 print("[AppState] ✅ Temple config loaded: \(temple.name)")
                 print("[AppState] ✅ Temple ID: \(temple.id)")
             }
+            
+            // Load categories after temple config is loaded
+            await refreshCategories()
             
             // Authorize Square Mobile Payments SDK if device token exists
             Task {
@@ -280,6 +298,8 @@ struct DonationCategory: Codable, Identifiable {
     let id: String
     let name: String
     let defaultAmount: Double?
+    let showStartDate: String? // ISO date string (optional, for future use)
+    let showEndDate: String? // ISO date string (optional, for future use)
 }
 
 struct SocialMediaLink: Codable {

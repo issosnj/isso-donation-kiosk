@@ -32,6 +32,8 @@ export class DonationCategoriesService {
   }
 
   async findByTemple(templeId: string, forKiosk: boolean = false): Promise<DonationCategory[]> {
+    console.log(`[DonationCategoriesService] findByTemple called for templeId: ${templeId}, forKiosk: ${forKiosk}`);
+    
     const queryBuilder = this.categoriesRepository
       .createQueryBuilder('category')
       .where('category.templeId = :templeId', { templeId })
@@ -39,13 +41,32 @@ export class DonationCategoriesService {
 
     if (forKiosk) {
       const now = new Date();
+      console.log(`[DonationCategoriesService] Filtering for kiosk, current time: ${now.toISOString()}`);
       queryBuilder
         .andWhere('category.showOnKiosk = :showOnKiosk', { showOnKiosk: true })
         .andWhere('(category.showStartDate IS NULL OR category.showStartDate <= :now)', { now })
         .andWhere('(category.showEndDate IS NULL OR category.showEndDate >= :now)', { now });
     }
 
-    return queryBuilder.orderBy('category.name', 'ASC').getMany();
+    const categories = await queryBuilder.orderBy('category.name', 'ASC').getMany();
+    console.log(`[DonationCategoriesService] Found ${categories.length} categories`);
+    
+    if (categories.length > 0) {
+      categories.forEach((cat, index) => {
+        console.log(`[DonationCategoriesService] Category ${index + 1}: ${cat.name} (ID: ${cat.id}, Active: ${cat.isActive}, ShowOnKiosk: ${cat.showOnKiosk}, StartDate: ${cat.showStartDate}, EndDate: ${cat.showEndDate})`);
+      });
+    } else {
+      console.log('[DonationCategoriesService] No categories found - checking all categories for this temple...');
+      const allCategories = await this.categoriesRepository.find({
+        where: { templeId },
+      });
+      console.log(`[DonationCategoriesService] Total categories in database: ${allCategories.length}`);
+      allCategories.forEach((cat) => {
+        console.log(`[DonationCategoriesService]   - ${cat.name}: isActive=${cat.isActive}, showOnKiosk=${cat.showOnKiosk}, showStartDate=${cat.showStartDate}, showEndDate=${cat.showEndDate}`);
+      });
+    }
+    
+    return categories;
   }
 
   async findOne(id: string): Promise<DonationCategory> {

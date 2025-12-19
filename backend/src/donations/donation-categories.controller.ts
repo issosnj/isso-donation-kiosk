@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeviceAuthGuard } from '../auth/guards/device-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CurrentDevice } from '../auth/decorators/current-device.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('donation-categories')
@@ -52,8 +53,34 @@ export class DonationCategoriesController {
   @UseGuards(DeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get categories for kiosk (filtered by date/time)' })
-  async getKioskCategories(@Param('templeId') templeId: string) {
-    return this.categoriesService.findByTemple(templeId, true);
+  async getKioskCategories(
+    @Param('templeId') templeId: string,
+    @CurrentDevice() device: any,
+  ) {
+    console.log('[DonationCategoriesController] getKioskCategories called');
+    console.log('[DonationCategoriesController] Requested templeId:', templeId);
+    console.log('[DonationCategoriesController] Device templeId:', device.templeId);
+    
+    // Ensure the device token's templeId matches the requested templeId
+    if (device.templeId !== templeId) {
+      console.error('[DonationCategoriesController] Unauthorized: device templeId does not match requested templeId');
+      throw new Error('Unauthorized access to categories for this temple.');
+    }
+    
+    const categories = await this.categoriesService.findByTemple(templeId, true);
+    console.log(`[DonationCategoriesController] Found ${categories.length} categories for kiosk`);
+    
+    // Map to only include necessary fields for kiosk
+    const mappedCategories = categories.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      defaultAmount: cat.defaultAmount,
+      showStartDate: cat.showStartDate,
+      showEndDate: cat.showEndDate,
+    }));
+    
+    console.log('[DonationCategoriesController] Returning mapped categories:', mappedCategories.length);
+    return mappedCategories;
   }
 
   @Get(':id')
