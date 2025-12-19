@@ -21,16 +21,21 @@ Great! You've set up the Xcode project and added the Square SDK. Here's what to 
 2. Select your application
 3. Copy the Application ID (starts with `sq0idp-`)
 
-### 2. Configure Bundle ID in Square Dashboard
+### 2. Configure Bundle ID and Team ID in Square Dashboard
 
 1. Go to [Square Developer Dashboard](https://developer.squareup.com/apps)
 2. Select your application
 3. Go to **Mobile** tab
-4. Add your app's Bundle ID:
+4. **Add your Bundle ID:**
    - In Xcode: Project → Target → General → Bundle Identifier
    - Copy that Bundle ID (e.g., `com.issosnj.ISSOKiosk`)
    - Paste it in Square Dashboard → Mobile → Bundle ID
-5. Save
+5. **Add your Team ID:**
+   - See `FIND_APPLE_TEAM_ID.md` for detailed instructions
+   - Quick way: In Xcode → Project → Target → Signing & Capabilities → Team
+   - The Team ID is shown in parentheses next to your team name (e.g., `ABC123XYZ`)
+   - Paste it in Square Dashboard → Mobile → Team ID
+6. Save
 
 ### 3. Test the Build
 
