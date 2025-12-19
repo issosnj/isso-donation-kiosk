@@ -19,7 +19,14 @@ export default function SquareTab({ templeId }: SquareTabProps) {
     queryKey: ['temple', templeId],
     queryFn: async () => {
       const response = await api.get(`/temples/${templeId}`)
-      return response.data
+      const templeData = response.data
+      console.log('[SquareTab] Fetched temple data:', {
+        id: templeData?.id,
+        squareMerchantId: templeData?.squareMerchantId,
+        squareAccessToken: templeData?.squareAccessToken ? 'present' : 'null/empty',
+        squareLocationId: templeData?.squareLocationId,
+      })
+      return templeData
     },
   })
 
@@ -127,6 +134,17 @@ export default function SquareTab({ templeId }: SquareTabProps) {
     temple.squareMerchantId !== '' &&
     temple.squareAccessToken !== ''
   )
+  
+  // Debug logging
+  useEffect(() => {
+    if (temple) {
+      console.log('[SquareTab] Connection status check:', {
+        squareMerchantId: temple.squareMerchantId,
+        squareAccessToken: temple.squareAccessToken ? 'present' : 'null/empty',
+        isConnected,
+      })
+    }
+  }, [temple, isConnected])
 
   return (
     <div className="space-y-6">
