@@ -13,12 +13,41 @@ struct GoogleCalendarEvent: Codable, Identifiable {
         
         var displayDate: Date? {
             if let dateTime = dateTime {
-                let formatter = ISO8601DateFormatter()
-                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                return formatter.date(from: dateTime) ?? ISO8601DateFormatter().date(from: dateTime)
+                // Try multiple date formats
+                // Format 1: 20231219T120000Z (iCal format)
+                if dateTime.count == 16 && dateTime.last == "Z" {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
+                    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                    if let date = formatter.date(from: dateTime) {
+                        return date
+                    }
+                }
+                
+                // Format 2: 20231219T120000 (no Z)
+                if dateTime.count == 15 {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyyMMdd'T'HHmmss"
+                    if let date = formatter.date(from: dateTime) {
+                        return date
+                    }
+                }
+                
+                // Format 3: ISO8601 standard
+                let isoFormatter = ISO8601DateFormatter()
+                isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                if let date = isoFormatter.date(from: dateTime) {
+                    return date
+                }
+                
+                // Format 4: ISO8601 without fractional seconds
+                isoFormatter.formatOptions = [.withInternetDateTime]
+                return isoFormatter.date(from: dateTime)
             } else if let date = date {
+                // All-day event format: 20231219
                 let formatter = DateFormatter()
-                formatter.dateFormat = "yyyy-MM-dd"
+                formatter.dateFormat = "yyyyMMdd"
+                formatter.timeZone = TimeZone.current
                 return formatter.date(from: date)
             }
             return nil
@@ -108,26 +137,64 @@ class GoogleCalendarService {
         var events: [GoogleCalendarEvent] = []
         var currentEvent: [String: String] = [:]
         var inEvent = false
+        var continuationLine: String? = nil
         
         let lines = icalString.components(separatedBy: .newlines)
         
         for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            var trimmed = line.trimmingCharacters(in: .whitespaces)
             
-            if trimmed == "BEGIN:VEVENT" {
+            // Handle line continuation (lines starting with space or tab)
+            if trimmed.isEmpty {
+                continuationLine = nil
+                continue
+            }
+            
+            if trimmed.first == " " || trimmed.first == "\t" {
+                // This is a continuation of the previous line
+                if let prevLine = continuationLine {
+                    continuationLine = prevLine + String(trimmed.dropFirst())
+                }
+                continue
+            }
+            
+            // Process the complete line (including any continuation)
+            let completeLine = continuationLine ?? trimmed
+            continuationLine = nil
+            
+            if completeLine == "BEGIN:VEVENT" {
                 inEvent = true
                 currentEvent = [:]
-            } else if trimmed == "END:VEVENT" {
+            } else if completeLine == "END:VEVENT" {
                 if inEvent, let event = parseEvent(from: currentEvent) {
                     events.append(event)
                 }
                 inEvent = false
             } else if inEvent {
-                let parts = trimmed.split(separator: ":", maxSplits: 1)
-                if parts.count == 2 {
-                    let key = String(parts[0]).uppercased()
-                    let value = String(parts[1])
-                    currentEvent[key] = value
+                // Split on first colon
+                if let colonIndex = completeLine.firstIndex(of: ":") {
+                    let keyPart = String(completeLine[..<colonIndex]).uppercased()
+                    let value = String(completeLine[completeLine.index(after: colonIndex)...])
+                    
+                    // Handle properties with parameters (e.g., DTSTART;VALUE=DATE:20231219)
+                    if keyPart.contains(";") {
+                        let parts = keyPart.split(separator: ";")
+                        let mainKey = String(parts[0])
+                        
+                        // Check for VALUE=DATE
+                        for part in parts {
+                            if part.hasPrefix("VALUE=") {
+                                let valueType = String(part.dropFirst(6))
+                                if valueType == "DATE" {
+                                    currentEvent["\(mainKey);VALUE=DATE"] = value
+                                }
+                            }
+                        }
+                        
+                        currentEvent[mainKey] = value
+                    } else {
+                        currentEvent[keyPart] = value
+                    }
                 }
             }
         }
@@ -142,17 +209,30 @@ class GoogleCalendarService {
             return nil
         }
         
-        let startDate = properties["DTSTART"] ?? ""
-        let endDate = properties["DTEND"] ?? ""
-        let description = properties["DESCRIPTION"]
+        // Extract DTSTART and DTEND, handling VALUE=DATE format
+        // Get DTSTART and DTEND values
+        var startDate = properties["DTSTART"] ?? ""
+        var endDate = properties["DTEND"] ?? ""
+        
+        // Handle VALUE=DATE format (all-day events) - takes precedence
+        if let dtstartValue = properties["DTSTART;VALUE=DATE"] {
+            startDate = dtstartValue
+        }
+        if let dtendValue = properties["DTEND;VALUE=DATE"] {
+            endDate = dtendValue
+        }
+        
+        let description = properties["DESCRIPTION"]?.replacingOccurrences(of: "\\n", with: "\n")
         
         // Parse date format (could be DATE or DATE-TIME)
         let start: GoogleCalendarEvent.EventDate
         let end: GoogleCalendarEvent.EventDate
         
         if startDate.contains("T") {
+            // Format: 20231219T120000Z or 20231219T120000
             start = GoogleCalendarEvent.EventDate(date: nil, dateTime: startDate)
         } else {
+            // Format: 20231219 (all-day event)
             start = GoogleCalendarEvent.EventDate(date: startDate, dateTime: nil)
         }
         
