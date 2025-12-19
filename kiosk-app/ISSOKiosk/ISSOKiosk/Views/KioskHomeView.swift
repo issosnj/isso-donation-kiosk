@@ -27,36 +27,45 @@ struct KioskHomeView: View {
                 VStack(spacing: 0) {
                     // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
                     Text(header1Text)
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.system(size: 32, weight: .bold))
                         .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                         .multilineTextAlignment(.center)
-                        .lineLimit(2)
+                        .lineLimit(nil)
+                        .minimumScaleFactor(0.5)
                         .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 20)
                         .padding(.vertical, 20)
                         .background(Color.white)
                     
-                    // Welcome to Temple Name
-                    if let temple = appState.temple {
-                        Text("Welcome To \(temple.name)")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                    // Under Shree NarNarayan Dev Gadi
+                    Text("Under Shree NarNarayan Dev Gadi")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.white)
+                    
+                    // Welcome to Shree Swaminarayan Hindu Temple
+                    Text("Welcome to Shree Swaminarayan Hindu Temple")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.white)
+                    
+                    // Temple Address
+                    if let temple = appState.temple, let address = temple.address, !address.isEmpty {
+                        Text(address)
+                            .font(.system(size: 18, weight: .regular))
+                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                             .multilineTextAlignment(.center)
+                            .lineLimit(2)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 8)
+                            .padding(.bottom, 16)
                             .background(Color.white)
-                        
-                        // Temple Address
-                        if let address = temple.address, !address.isEmpty {
-                            Text(address)
-                                .font(.system(size: 18, weight: .regular))
-                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .padding(.bottom, 16)
-                                .background(Color.white)
-                        }
                     }
                 }
                 
@@ -65,36 +74,93 @@ struct KioskHomeView: View {
                 // Centered content
                 VStack(spacing: 40) {
                     
-                    // Main: Two Taps To Donation Button
+                    // Main: Two Taps To Donation Button - Modern and Attractive
                     Button(action: {
-                        withAnimation {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                             navigationState.showDonationFlow = true
                         }
                     }) {
-                        VStack(spacing: 20) {
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 70))
-                                .foregroundColor(.white)
+                        VStack(spacing: 16) {
+                            // Icon with glow effect
+                            ZStack {
+                                // Glow circle
+                                Circle()
+                                    .fill(
+                                        RadialGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.white.opacity(0.3),
+                                                Color.clear
+                                            ]),
+                                            center: .center,
+                                            startRadius: 10,
+                                            endRadius: 50
+                                        )
+                                    )
+                                    .frame(width: 100, height: 100)
+                                    .blur(radius: 10)
+                                
+                                // Hand icon (representing tap/gesture)
+                                Image(systemName: "hand.tap.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.white)
+                            }
                             
-                            Text("Two Taps To Donation")
-                                .font(.system(size: 38, weight: .bold))
-                                .foregroundColor(.white)
+                            // Text with elegant styling
+                            VStack(spacing: 4) {
+                                Text("Two Taps")
+                                    .font(.system(size: 42, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Text("To Donation")
+                                    .font(.system(size: 32, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.95))
+                            }
                         }
-                        .frame(maxWidth: 600)
-                        .frame(height: 220)
+                        .frame(maxWidth: 650)
+                        .frame(height: 240)
                         .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.2, green: 0.4, blue: 0.8),
-                                    Color(red: 0.3, green: 0.5, blue: 0.9)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                            ZStack {
+                                // Base gradient
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.2, green: 0.4, blue: 0.8),
+                                        Color(red: 0.3, green: 0.5, blue: 0.9)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                
+                                // Shine effect overlay
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white.opacity(0.2),
+                                        Color.clear,
+                                        Color.clear
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            }
                         )
-                        .cornerRadius(28)
-                        .shadow(color: Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.4), radius: 20, x: 0, y: 10)
+                        .cornerRadius(32)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 32)
+                                .stroke(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.white.opacity(0.3),
+                                            Color.clear
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 2
+                                )
+                        )
+                        .shadow(color: Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5), radius: 25, x: 0, y: 12)
+                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
                     }
+                    .buttonStyle(ScaleButtonStyle())
                     .padding(.horizontal, 40)
                     
                     // Bottom: Action Buttons (placeholders that activate when data is added)
@@ -382,6 +448,15 @@ struct QRCodeDisplayView: View {
 struct SocialMediaItem: Identifiable {
     let id = UUID()
     let url: String
+}
+
+// Custom button style for donation button with scale animation
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
 }
 
 // Suggestion Box View
