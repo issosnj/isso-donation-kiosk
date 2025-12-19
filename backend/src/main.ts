@@ -56,28 +56,60 @@ async function bootstrap() {
     return false;
   };
 
-  // Handle OPTIONS requests at Express level BEFORE any other middleware (Railway proxy fix)
-  expressApp.options('*', (req: any, res: any) => {
+  // CORS middleware - MUST be first to handle all requests including OPTIONS
+  expressApp.use((req: any, res: any, next: any) => {
     const origin = req.headers.origin;
     const allowed = isOriginAllowed(origin);
     
-    console.log(`[OPTIONS] Preflight request to: ${req.path}`);
-    console.log(`[OPTIONS] Origin: ${origin || 'none'}`);
-    console.log(`[OPTIONS] Origin allowed: ${allowed}`);
-    
-    if (allowed) {
-      // Set CORS headers for preflight
-      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    // Always set CORS headers if origin is allowed
+    if (allowed && origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Max-Age', '86400');
-      console.log(`[OPTIONS] ✓ Preflight allowed for origin: ${origin}`);
-      res.status(204).end();
+    }
+    
+    // Handle OPTIONS preflight requests immediately
+    if (req.method === 'OPTIONS') {
+      console.log(`[OPTIONS] Preflight request to: ${req.path}`);
+      console.log(`[OPTIONS] Origin: ${origin || 'none'}`);
+      console.log(`[OPTIONS] Origin allowed: ${allowed}`);
+      
+      if (allowed) {
+        console.log(`[OPTIONS] ✓ Preflight allowed for origin: ${origin}`);
+        return res.status(204).end();
+      } else {
+        console.error(`[OPTIONS] ✗ Blocked origin: ${origin}`);
+        console.error(`[OPTIONS] Allowed origins: ${allowedOrigins.join(', ')}`);
+        return res.status(403).end();
+      }
+    }
+    
+    next();
+  });
+
+  // Also handle OPTIONS with explicit route (backup)
+  expressApp.options('*', (req: any, res: any) => {
+    const origin = req.headers.origin;
+    const allowed = isOriginAllowed(origin);
+    
+    console.log(`[OPTIONS ROUTE] Preflight request to: ${req.path}`);
+    console.log(`[OPTIONS ROUTE] Origin: ${origin || 'none'}`);
+    console.log(`[OPTIONS ROUTE] Origin allowed: ${allowed}`);
+    
+    if (allowed && origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      console.log(`[OPTIONS ROUTE] ✓ Preflight allowed for origin: ${origin}`);
+      return res.status(204).end();
     } else {
-      console.error(`[OPTIONS] ✗ Blocked origin: ${origin}`);
-      console.error(`[OPTIONS] Allowed origins: ${allowedOrigins.join(', ')}`);
-      res.status(403).end();
+      console.error(`[OPTIONS ROUTE] ✗ Blocked origin: ${origin}`);
+      console.error(`[OPTIONS ROUTE] Allowed origins: ${allowedOrigins.join(', ')}`);
+      return res.status(403).end();
     }
   });
 
