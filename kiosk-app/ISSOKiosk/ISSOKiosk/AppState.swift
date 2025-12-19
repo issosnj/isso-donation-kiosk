@@ -43,6 +43,24 @@ class AppState: ObservableObject {
         }
     }
     
+    func refreshCategories() async {
+        guard let templeId = extractTempleId(from: deviceToken ?? "") else {
+            print("[AppState] ⚠️ Cannot refresh categories - missing templeId")
+            return
+        }
+        
+        do {
+            // Fetch fresh categories from kiosk endpoint (filtered by date/time)
+            let categories = try await APIService.shared.getKioskCategories(templeId: templeId)
+            await MainActor.run {
+                self.categories = categories
+                print("[AppState] ✅ Categories refreshed: \(categories.count) categories")
+            }
+        } catch {
+            print("[AppState] ❌ Failed to refresh categories: \(error.localizedDescription)")
+        }
+    }
+    
     private func loadTempleConfig() async {
         // Fetch temple config from backend using templeId from JWT token
         guard let token = deviceToken,
