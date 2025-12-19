@@ -27,6 +27,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
     eventsText: '',
     googleCalendarLink: '',
     socialMedia: [] as Array<{ platform: string; url: string }>,
+    presetAmounts: [5, 10, 25, 50, 100] as number[],
   })
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
         eventsText: temple.homeScreenConfig.eventsText || '',
         googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
         socialMedia: temple.homeScreenConfig.socialMedia || [],
+        presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
       })
     }
   }, [temple])
@@ -110,6 +112,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                     eventsText: temple.homeScreenConfig.eventsText || '',
                     googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
                     socialMedia: temple.homeScreenConfig.socialMedia || [],
+                    presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
                   })
                 }
               }}
@@ -195,6 +198,60 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
           </p>
           <p className="mt-1 text-xs text-gray-400">
             To get your public link: Google Calendar → Settings → Calendar → Access permissions → Make available to public → Copy the public URL
+          </p>
+        </div>
+
+        {/* Preset Donation Amounts */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Preset Donation Amounts
+          </label>
+          <div className="space-y-3">
+            {formData.presetAmounts.map((amount, index) => (
+              <div key={index} className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600 w-12">${amount}</span>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => {
+                    const newAmounts = [...formData.presetAmounts]
+                    newAmounts[index] = parseFloat(e.target.value) || 0
+                    setFormData({ ...formData, presetAmounts: newAmounts })
+                  }}
+                  disabled={!isEditing}
+                  min="0"
+                  step="0.01"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                />
+                {isEditing && (
+                  <button
+                    onClick={() => {
+                      const newAmounts = formData.presetAmounts.filter((_, i) => i !== index)
+                      setFormData({ ...formData, presetAmounts: newAmounts })
+                    }}
+                    className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            ))}
+            {isEditing && (
+              <button
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    presetAmounts: [...formData.presetAmounts, 0],
+                  })
+                }}
+                className="w-full px-4 py-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-lg hover:border-purple-500 hover:text-purple-600 transition-colors font-medium"
+              >
+                + Add Preset Amount
+              </button>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            These amounts will appear as quick-select buttons on the donation screen. Donors can also enter a custom amount.
           </p>
         </div>
 
