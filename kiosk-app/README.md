@@ -23,7 +23,6 @@ Native iOS app for donation kiosks using Square Mobile Payments SDK with Square 
    - Select iPad as target device
    - Build and run (⌘R)
 
-**Note:** If you need to find your Apple Developer Team ID, see [FIND_APPLE_TEAM_ID.md](./FIND_APPLE_TEAM_ID.md)
 
 ## Current Status
 
@@ -136,12 +135,26 @@ Or run: `./FORCE_CLEAN_BUILD.sh`
 **Root Cause:** Old Square SDK frameworks cached in build products or device.
 
 ### Xcode Re-adds Square Packages
-If Xcode automatically adds Square packages:
+**⚠️ CRITICAL:** Xcode may automatically re-add the wrong Square SDK package (`https://github.com/square/in-app-payments-ios`). This causes the `ThreeDS_SDK.framework` crash.
+
+**DO NOT:**
+- Add any Square packages in Xcode Package Dependencies tab
+- Click "Resolve Package Versions" if Xcode suggests it
+- Accept any Xcode suggestions to add Square packages
+
+**If Xcode re-adds packages:**
 1. Close Xcode
-2. Remove packages from `project.pbxproj` (see IMPORTANT_NO_SQUARE_PACKAGES.md)
+2. Remove all Square SDK references from `project.pbxproj`:
+   - Remove `PBXBuildFile` entries for Square SDKs
+   - Remove `PBXFrameworksBuildPhase` entries
+   - Remove `packageProductDependencies`
+   - Remove `packageReferences` to `in-app-payments-ios`
+   - Remove `XCRemoteSwiftPackageReference` and `XCSwiftPackageProductDependency` sections
 3. Run `./FORCE_CLEAN_BUILD.sh`
 4. Reopen Xcode
 5. Build without resolving packages
+
+**Note:** We need the Mobile Payments SDK (different package), not In-App Payments SDK.
 
 ## Testing
 
@@ -161,8 +174,6 @@ If Xcode automatically adds Square packages:
 ## Documentation
 
 - [Square Mobile Payments SDK Guide](./MOBILE_PAYMENTS_SDK.md) - Complete SDK integration guide
-- [Important: No Square Packages](./IMPORTANT_NO_SQUARE_PACKAGES.md) - Critical warnings about package management
-- [Current Work](./CURRENT_WORK.md) - Features to work on
 - [Backend API Documentation](../README.md)
 
 ## Support
