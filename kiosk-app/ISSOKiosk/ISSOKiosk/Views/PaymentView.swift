@@ -39,29 +39,51 @@ struct ModernPaymentView: View {
             }
         }
         .onAppear {
+            print("[PaymentView] 👁️ View appeared")
+            print("[PaymentView] 📊 State - isReady: \(isReady), isProcessing: \(isProcessing)")
+            
             // Automatically start payment when view appears
             // Square SDK will show its own UI and detect card interactions
             if !isReady && !isProcessing {
+                print("[PaymentView] ✅ Conditions met, will start payment in 0.5s")
                 isReady = true
                 // Small delay to ensure view is fully loaded before starting payment
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    print("[PaymentView] ⏰ Delay complete, calling processPayment()")
                     processPayment()
                 }
+            } else {
+                print("[PaymentView] ⚠️ Skipping payment start - isReady: \(isReady), isProcessing: \(isProcessing)")
             }
         }
     }
     
     private func processPayment() {
-        guard let templeId = appState.temple?.id,
-              let deviceId = appState.deviceId else {
-            paymentStatus = .failure("Device not properly activated")
+        print("[PaymentView] 💳 processPayment() called")
+        print("[PaymentView] 📋 Checking prerequisites...")
+        
+        guard let templeId = appState.temple?.id else {
+            print("[PaymentView] ❌ Missing temple ID")
+            paymentStatus = .failure("Device not properly activated - missing temple")
             return
         }
         
+        guard let deviceId = appState.deviceId else {
+            print("[PaymentView] ❌ Missing device ID")
+            paymentStatus = .failure("Device not properly activated - missing device")
+            return
+        }
+        
+        print("[PaymentView] ✅ Prerequisites OK - templeId: \(templeId), deviceId: \(deviceId)")
+        print("[PaymentView] 💰 Amount: $\(amount)")
+        print("[PaymentView] 📦 Category: \(category?.name ?? "none")")
+        
         isProcessing = true
+        print("[PaymentView] 🔄 Starting payment flow...")
         
         Task {
             do {
+                print("[PaymentView] 📡 Step 1: Initiating donation with backend...")
                 // 1. Initiate donation
                 let donation = try await APIService.shared.initiateDonation(
                     templeId: templeId,
@@ -69,21 +91,28 @@ struct ModernPaymentView: View {
                     amount: amount,
                     categoryId: category?.id
                 )
+                print("[PaymentView] ✅ Donation initiated: \(donation.id)")
                 
                 // 2. Start payment using Square Mobile Payments SDK
                 // This will show card entry UI and detect card interactions from Square hardware
                 await MainActor.run {
+                    print("[PaymentView] 📱 Step 2: Getting UIViewController for SDK...")
                     guard let viewController = UIViewController.topViewController() else {
+                        print("[PaymentView] ❌ Failed to get top view controller")
                         self.isProcessing = false
                         self.paymentStatus = .failure("Unable to present payment interface")
                         return
                     }
+                    
+                    print("[PaymentView] ✅ Got viewController: \(type(of: viewController))")
+                    print("[PaymentView] 🚀 Step 3: Starting Square SDK payment...")
                     
                     SquarePaymentService.shared.startPayment(
                         donationId: donation.id,
                         amount: amount,
                         from: viewController
                     ) { result in
+                        print("[PaymentView] 📬 Payment result received")
                         Task {
                             do {
                                 let paymentResult: SquarePaymentService.PaymentResult
@@ -122,6 +151,8 @@ struct ModernPaymentView: View {
                     }
                 }
             } catch {
+                print("[PaymentView] ❌ Error in payment flow: \(error)")
+                print("[PaymentView] ❌ Error details: \(error.localizedDescription)")
                 await MainActor.run {
                     isProcessing = false
                     paymentStatus = .failure(error.localizedDescription)
