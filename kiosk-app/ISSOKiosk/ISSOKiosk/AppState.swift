@@ -53,18 +53,25 @@ class AppState: ObservableObject {
         
         do {
             // Fetch fresh categories from kiosk endpoint (filtered by date/time)
+            print("[AppState] 🔄 Starting category fetch...")
             let categories = try await APIService.shared.getKioskCategories(templeId: templeId)
+            print("[AppState] 📦 Received \(categories.count) categories from API")
+            
             await MainActor.run {
+                print("[AppState] 🎯 Updating categories array on main thread...")
+                print("[AppState] 📊 Current categories count before update: \(self.categories.count)")
                 self.categories = categories
-                print("[AppState] ✅ Categories refreshed: \(categories.count) categories")
+                print("[AppState] ✅ Categories array updated: \(self.categories.count) categories")
+                
                 if categories.isEmpty {
                     print("[AppState] ⚠️ No categories returned - check if categories are:")
                     print("[AppState]   1. Active (isActive = true)")
                     print("[AppState]   2. Show on kiosk (showOnKiosk = true)")
                     print("[AppState]   3. Within date range (if date range is set)")
                 } else {
-                    for category in categories {
-                        print("[AppState]   - \(category.name) (ID: \(category.id))")
+                    print("[AppState] 📋 Categories list:")
+                    for (index, category) in categories.enumerated() {
+                        print("[AppState]   \(index + 1). \(category.name) (ID: \(category.id))")
                     }
                 }
             }

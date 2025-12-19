@@ -319,6 +319,12 @@ class APIService {
                 requiresAuth: true
             )
             print("[APIService] ✅ Successfully fetched \(categories.count) categories")
+            if categories.count > 0 {
+                print("[APIService] 📋 Category details:")
+                for (index, cat) in categories.enumerated() {
+                    print("[APIService]   \(index + 1). \(cat.name) (ID: \(cat.id), defaultAmount: \(cat.defaultAmount ?? 0))")
+                }
+            }
             return categories
         } catch {
             print("[APIService] ❌ Failed to fetch categories: \(error)")

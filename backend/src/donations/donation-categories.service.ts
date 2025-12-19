@@ -53,14 +53,20 @@ export class DonationCategoriesService {
       const now = new Date();
       console.log(`[DonationCategoriesService] Filtering for kiosk, current time: ${now.toISOString()}`);
       queryBuilder
-        .andWhere('category.showOnKiosk = :showOnKiosk', { showOnKiosk: true })
-        // Date filtering: showStartDate must be NULL or <= now, showEndDate must be NULL or >= now
-        .andWhere('(category.showStartDate IS NULL OR category.showStartDate <= :now)', { now })
-        .andWhere('(category.showEndDate IS NULL OR category.showEndDate >= :now)', { now });
+        .andWhere('category.showOnKiosk = :showOnKiosk', { showOnKiosk: true });
       
-      // Log the SQL query for debugging
-      const sql = queryBuilder.getSql();
-      console.log(`[DonationCategoriesService] SQL Query: ${sql}`);
+      // Date filtering: Only apply if dates are set
+      // If showStartDate is set, it must be <= now
+      // If showEndDate is set, it must be >= now
+      // If both are NULL, category is always visible
+      queryBuilder.andWhere(
+        '(category.showStartDate IS NULL OR category.showStartDate <= :now)',
+        { now }
+      );
+      queryBuilder.andWhere(
+        '(category.showEndDate IS NULL OR category.showEndDate >= :now)',
+        { now }
+      );
     }
 
     const categories = await queryBuilder.orderBy('category.name', 'ASC').getMany();

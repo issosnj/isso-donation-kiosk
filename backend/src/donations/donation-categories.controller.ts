@@ -86,15 +86,21 @@ export class DonationCategoriesController {
     console.log(`[DonationCategoriesController] ✅ Found ${categories.length} categories after filtering`);
     
     // Map to only include necessary fields for kiosk
-    const mappedCategories = categories.map((cat) => ({
-      id: cat.id,
-      name: cat.name,
-      defaultAmount: cat.defaultAmount,
-      showStartDate: cat.showStartDate,
-      showEndDate: cat.showEndDate,
-    }));
+    const mappedCategories = categories.map((cat) => {
+      const mapped = {
+        id: cat.id,
+        name: cat.name,
+        defaultAmount: cat.defaultAmount,
+        showStartDate: cat.showStartDate,
+        showEndDate: cat.showEndDate,
+      };
+      console.log(`[DonationCategoriesController]   Mapping category: "${cat.name}" -> ${JSON.stringify(mapped)}`);
+      return mapped;
+    });
     
     console.log('[DonationCategoriesController] 📤 Returning mapped categories:', mappedCategories.length);
+    console.log('[DonationCategoriesController] 📤 Response JSON:', JSON.stringify(mappedCategories, null, 2));
+    
     if (mappedCategories.length === 0) {
       console.warn('[DonationCategoriesController] ⚠️ No categories returned - this might indicate:');
       console.warn('[DonationCategoriesController]   1. No categories exist for this temple');

@@ -35,9 +35,15 @@ struct DonationHomeView: View {
             }
             .onAppear {
                 // Refresh categories when donation screen appears
+                print("[DonationHomeView] 👁️ View appeared, current categories: \(appState.categories.count)")
                 Task {
+                    print("[DonationHomeView] 🔄 Starting category refresh...")
                     await appState.refreshCategories()
+                    print("[DonationHomeView] ✅ Category refresh completed, now have: \(appState.categories.count) categories")
                 }
+            }
+            .onChange(of: appState.categories.count) { newCount in
+                print("[DonationHomeView] 📊 Categories count changed to: \(newCount)")
             }
             
             // Two-part split screen layout
@@ -59,6 +65,13 @@ struct DonationHomeView: View {
                     
                     // Category selection
                     VStack(spacing: 20) {
+                        // Debug: Show category count
+                        if false { // Set to true for debugging
+                            Text("Categories: \(appState.categories.count)")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
                         if !appState.categories.isEmpty {
                             ScrollView {
                                 VStack(spacing: 16) {
