@@ -1,5 +1,6 @@
 import SwiftUI
-import SquareInAppPaymentsSDK
+// Temporarily comment out Square SDK import until dependencies are resolved
+// import SquareInAppPaymentsSDK
 
 @main
 struct ISSOKioskApp: App {
@@ -8,7 +9,10 @@ struct ISSOKioskApp: App {
     
     init() {
         print("🚀 ISSOKioskApp initializing...")
-        // Initialize Square SDK
+        // Temporarily disable Square SDK initialization until dependencies are resolved
+        // The Square SDK requires ThreeDS_SDK.framework which is missing
+        // This will be re-enabled once Square SDK is properly configured
+        /*
         if let appId = Bundle.main.object(forInfoDictionaryKey: "SQUARE_APPLICATION_ID") as? String,
            !appId.isEmpty && appId != "YOUR_SQUARE_APPLICATION_ID" {
             SQIPInAppPaymentsSDK.squareApplicationID = appId
@@ -16,6 +20,8 @@ struct ISSOKioskApp: App {
         } else {
             print("⚠️ Warning: Square Application ID not configured in Info.plist")
         }
+        */
+        print("⚠️ Square SDK initialization temporarily disabled (missing ThreeDS_SDK dependency)")
         print("✅ ISSOKioskApp initialization complete")
     }
     
