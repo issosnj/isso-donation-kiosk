@@ -67,6 +67,22 @@ export class DevicesController {
     return this.devicesService.updateLastSeen(id);
   }
 
+  @Patch(':id/deactivate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Deactivate device (allows code reuse)' })
+  deactivate(@Param('id') id: string) {
+    return this.devicesService.deactivate(id);
+  }
+
+  @Patch(':id/reactivate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reactivate device (reset to pending status)' })
+  reactivate(@Param('id') id: string) {
+    return this.devicesService.reactivate(id);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()

@@ -69,21 +69,25 @@ export class DevicesService {
   async activate(activateDeviceDto: ActivateDeviceDto) {
     const device = await this.findByDeviceCode(activateDeviceDto.deviceCode);
     
-    if (device.status !== DeviceStatus.PENDING) {
-      throw new UnauthorizedException('Device already activated');
+    // Allow reactivation: devices can be activated if PENDING, ACTIVE, or INACTIVE
+    // This allows reusing the same code when app is deleted or tablet is replaced
+    if (device.status === DeviceStatus.PENDING || 
+        device.status === DeviceStatus.ACTIVE || 
+        device.status === DeviceStatus.INACTIVE) {
+      // Generate new device token (invalidate old token)
+      const deviceToken = this.jwtService.sign({
+        deviceId: device.id,
+        templeId: device.templeId,
+        type: 'device',
+      });
+
+      device.deviceToken = deviceToken;
+      device.status = DeviceStatus.ACTIVE;
+      device.lastSeenAt = new Date();
+      await this.devicesRepository.save(device);
+    } else {
+      throw new UnauthorizedException('Device cannot be activated');
     }
-
-    // Generate device token
-    const deviceToken = this.jwtService.sign({
-      deviceId: device.id,
-      templeId: device.templeId,
-      type: 'device',
-    });
-
-    device.deviceToken = deviceToken;
-    device.status = DeviceStatus.ACTIVE;
-    device.lastSeenAt = new Date();
-    await this.devicesRepository.save(device);
 
     // Get temple config
     const temple = await this.templesService.findOne(device.templeId);
@@ -119,6 +123,19 @@ export class DevicesService {
   async remove(id: string): Promise<void> {
     const device = await this.findOne(id);
     await this.devicesRepository.remove(device);
+  }
+
+  async deactivate(id: string): Promise<Device> {
+    const device = await this.findOne(id);
+    device.status = DeviceStatus.INACTIVE;
+    device.deviceToken = null; // Clear token to force reactivation
+    return this.devicesRepository.save(device);
+  }
+
+  async reactivate(id: string): Promise<Device> {
+    const device = await this.findOne(id);
+    device.status = DeviceStatus.PENDING; // Set to pending so it can be activated again
+    return this.devicesRepository.save(device);
   }
 
   private generateDeviceCode(): string {

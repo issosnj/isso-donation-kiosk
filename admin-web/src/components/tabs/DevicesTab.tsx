@@ -47,6 +47,26 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
     },
   })
 
+  const deactivateDeviceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.patch(`/devices/${id}/deactivate`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices', templeId] })
+      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+    },
+  })
+
+  const reactivateDeviceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.patch(`/devices/${id}/reactivate`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices', templeId] })
+      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+    },
+  })
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-8">
@@ -120,17 +140,44 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => {
-                          if (confirm(`Delete device "${device.label}"? This action cannot be undone.`)) {
-                            deleteDeviceMutation.mutate(device.id)
-                          }
-                        }}
-                        disabled={deleteDeviceMutation.isPending}
-                        className="px-3 py-1 text-red-600 hover:text-red-700 text-xs font-medium disabled:opacity-50"
-                      >
-                        {deleteDeviceMutation.isPending ? 'Deleting...' : 'Delete'}
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        {device.status === 'ACTIVE' ? (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Deactivate device "${device.label}"? The device code can be reused on a new tablet.`)) {
+                                deactivateDeviceMutation.mutate(device.id)
+                              }
+                            }}
+                            disabled={deactivateDeviceMutation.isPending}
+                            className="px-3 py-1 text-orange-600 hover:text-orange-700 text-xs font-medium disabled:opacity-50"
+                            title="Deactivate to allow code reuse on new tablet"
+                          >
+                            {deactivateDeviceMutation.isPending ? 'Deactivating...' : 'Deactivate'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              reactivateDeviceMutation.mutate(device.id)
+                            }}
+                            disabled={reactivateDeviceMutation.isPending}
+                            className="px-3 py-1 text-blue-600 hover:text-blue-700 text-xs font-medium disabled:opacity-50"
+                            title="Reset device to allow activation with same code"
+                          >
+                            {reactivateDeviceMutation.isPending ? 'Reactivating...' : 'Reactivate'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete device "${device.label}"? This action cannot be undone.`)) {
+                              deleteDeviceMutation.mutate(device.id)
+                            }
+                          }}
+                          disabled={deleteDeviceMutation.isPending}
+                          className="px-3 py-1 text-red-600 hover:text-red-700 text-xs font-medium disabled:opacity-50"
+                        >
+                          {deleteDeviceMutation.isPending ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
