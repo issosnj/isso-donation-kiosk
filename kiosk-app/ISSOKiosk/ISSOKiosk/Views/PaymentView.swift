@@ -28,8 +28,8 @@ struct ModernPaymentView: View {
                     status: status,
                     amount: amount,
                     onDismiss: {
-                        paymentStatus = nil
-                        onComplete()
+                    paymentStatus = nil
+                    onComplete()
                     }
                 )
             } else if isProcessing {
@@ -39,7 +39,7 @@ struct ModernPaymentView: View {
                     amount: amount,
                     onCardDetected: {
                         withAnimation {
-                            processPayment()
+                        processPayment()
                         }
                     }
                 )
@@ -207,8 +207,17 @@ struct ModernPaymentReadyView: View {
                 pulseAnimation = true
             }
             
-            // TODO: Initialize Square SDK here and wait for card detection
-            // When Square SDK detects card, call onCardDetected()
+            // SIMULATION MODE: Auto-detect "card" after 3 seconds for testing
+            // In real implementation, Square SDK will handle card detection
+            Task {
+                // Wait for card detection simulation
+                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                
+                // Simulate card detection - trigger payment processing
+                await MainActor.run {
+                    onCardDetected()
+                }
+            }
         }
     }
 }
@@ -276,13 +285,13 @@ struct ModernPaymentProcessingView: View {
                 .opacity(appearAnimation ? 1.0 : 0.0)
                 
                 VStack(spacing: 15) {
-                    Text("Ready to Process Payment")
+            Text("Ready to Process Payment")
                         .font(.system(size: 38, weight: .bold))
                         .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
-                    
-                        Text("$\(String(format: "%.2f", amount))")
+            
+            Text("$\(String(format: "%.2f", amount))")
                         .font(.system(size: 72, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
@@ -296,8 +305,8 @@ struct ModernPaymentProcessingView: View {
                         )
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
-                    
-                    Text("Tap or insert your card")
+            
+            Text("Tap or insert your card")
                         .font(.system(size: 22, weight: .medium))
                         .foregroundColor(.gray)
                         .opacity(appearAnimation ? 1.0 : 0.0)
@@ -305,11 +314,11 @@ struct ModernPaymentProcessingView: View {
                 }
                 
                 // Start payment button
-                Button(action: onStart) {
+            Button(action: onStart) {
                     HStack(spacing: 15) {
                         Image(systemName: "play.circle.fill")
                             .font(.system(size: 28))
-                        Text("Start Payment")
+                Text("Start Payment")
                             .font(.system(size: 24, weight: .semibold))
                     }
                     .foregroundColor(.white)
@@ -401,11 +410,11 @@ struct ModernProcessingView: View {
                 }
                 
                 VStack(spacing: 15) {
-                    Text("Processing Payment...")
+            Text("Processing Payment...")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                    
-                    Text("$\(String(format: "%.2f", amount))")
+            
+            Text("$\(String(format: "%.2f", amount))")
                         .font(.system(size: 56, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
@@ -417,8 +426,8 @@ struct ModernProcessingView: View {
                                 endPoint: .trailing
                             )
                         )
-                    
-                    Text("Please wait")
+            
+            Text("Please wait")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(.gray)
                 }
@@ -454,7 +463,7 @@ struct ModernPaymentResultView: View {
             )
             .ignoresSafeArea()
             
-            VStack(spacing: 40) {
+        VStack(spacing: 40) {
                 // Result icon with animation
                 ZStack {
                     // Glow effect
@@ -490,30 +499,30 @@ struct ModernPaymentResultView: View {
                         .offset(y: appearAnimation ? 0 : 20)
                     
                     if case .success = status {
-                        Text("Your donation of $\(String(format: "%.2f", amount)) has been processed successfully.")
+                Text("Your donation of $\(String(format: "%.2f", amount)) has been processed successfully.")
                             .font(.system(size: 22, weight: .regular))
                             .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
                             .opacity(appearAnimation ? 1.0 : 0.0)
                             .offset(y: appearAnimation ? 0 : 20)
                     } else if case .failure(let error) = status {
                         Text(error)
                             .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
                             .opacity(appearAnimation ? 1.0 : 0.0)
                             .offset(y: appearAnimation ? 0 : 20)
                     }
-                }
-                
+            }
+            
                 // Action button
-                Button(action: onDismiss) {
+            Button(action: onDismiss) {
                     HStack(spacing: 12) {
                         Image(systemName: status == .success ? "checkmark.circle.fill" : "arrow.clockwise")
                             .font(.system(size: 24))
-                        Text(status == .success ? "Done" : "Try Again")
+                Text(status == .success ? "Done" : "Try Again")
                             .font(.system(size: 24, weight: .semibold))
                     }
                     .foregroundColor(.white)
