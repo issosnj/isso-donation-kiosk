@@ -550,7 +550,7 @@ struct SuggestionBoxView: View {
                 await MainActor.run {
                     isSubmitting = false
                     if let apiError = error as? APIError {
-                        errorMessage = apiError.userFacingMessage
+                        errorMessage = apiError.localizedDescription
                     } else {
                         errorMessage = "Failed to submit suggestion. Please try again."
                     }
