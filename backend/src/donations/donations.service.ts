@@ -121,56 +121,65 @@ export class DonationsService {
 
   async getStats(templeId?: string, startDate?: Date, endDate?: Date) {
     try {
-      // Helper function to build base query conditions
-      const buildBaseQuery = () => {
-        const query = this.donationsRepository
-          .createQueryBuilder('donation')
-          .where('donation.status = :status', { status: DonationStatus.SUCCEEDED });
+      console.log('[Donations Service] getStats called with:', { templeId, startDate, endDate });
 
-        if (templeId) {
-          query.andWhere('donation.templeId = :templeId', { templeId });
-        }
+      // Build query conditions
+      const queryBuilder = this.donationsRepository
+        .createQueryBuilder('donation')
+        .where('donation.status = :status', { status: DonationStatus.SUCCEEDED });
 
-        if (startDate && endDate) {
-          query.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
-            startDate,
-            endDate,
-          });
-        }
+      if (templeId) {
+        queryBuilder.andWhere('donation.templeId = :templeId', { templeId });
+      }
 
-        return query;
-      };
+      if (startDate && endDate) {
+        queryBuilder.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        });
+      }
 
-      // Get total amount
-      const totalQuery = buildBaseQuery();
-      const totalResult = await totalQuery
-        .select('COALESCE(SUM(donation.amount), 0)', 'total')
+      // Get count first (simpler query)
+      const count = await queryBuilder.getCount();
+      console.log('[Donations Service] Count:', count);
+
+      // Get total amount - use CAST to ensure numeric type
+      const totalResult = await queryBuilder
+        .select('COALESCE(SUM(CAST(donation.amount AS DECIMAL)), 0)', 'total')
         .getRawOne();
 
-      // Get count
-      const countQuery = buildBaseQuery();
-      const count = await countQuery.getCount();
+      console.log('[Donations Service] Total result:', totalResult);
 
       // Safely parse the total
       let totalAmount = 0;
-      if (totalResult && totalResult.total !== null && totalResult.total !== undefined) {
-        const parsed = parseFloat(String(totalResult.total));
-        totalAmount = isNaN(parsed) ? 0 : parsed;
+      if (totalResult) {
+        const totalValue = totalResult.total;
+        if (totalValue !== null && totalValue !== undefined) {
+          // Handle both string and number types
+          const value = typeof totalValue === 'string' ? totalValue : String(totalValue);
+          const parsed = parseFloat(value);
+          totalAmount = isNaN(parsed) ? 0 : parsed;
+        }
       }
+
+      console.log('[Donations Service] Returning stats:', { total: totalAmount, count });
 
       return {
         total: totalAmount,
         count: count || 0,
       };
-    } catch (error) {
-      console.error('Error in getStats:', error);
-      console.error('Error details:', {
-        message: error?.message,
-        stack: error?.stack,
+    } catch (error: any) {
+      console.error('[Donations Service] Error in getStats:', error);
+      console.error('[Donations Service] Error message:', error?.message);
+      console.error('[Donations Service] Error stack:', error?.stack);
+      console.error('[Donations Service] Error details:', {
         templeId,
         startDate,
         endDate,
+        errorName: error?.name,
+        errorCode: error?.code,
       });
+      
       // Return default stats instead of throwing
       return {
         total: 0,
