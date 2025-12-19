@@ -51,7 +51,6 @@ struct ContentView: View {
         .onAppear {
             print("ContentView appeared - isActivated: \(appState.isActivated)")
         }
-        }
     }
     
     private func setupIdleTimer() {
