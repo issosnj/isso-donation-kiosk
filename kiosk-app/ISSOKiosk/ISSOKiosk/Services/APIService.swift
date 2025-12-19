@@ -212,12 +212,24 @@ class APIService {
         print("[APIService] 📡 Fetching temple: \(templeId)")
         print("[APIService] 📡 Endpoint: /temples/\(templeId)")
         print("[APIService] 📡 Base URL: \(baseURL)")
+        print("[APIService] 📡 Device token available: \(deviceToken != nil)")
         
-        let result: Temple = try await request<Temple>(
-            endpoint: "/temples/\(templeId)",
-            method: "GET",
-            requiresAuth: false // Temple data is public
-        )
+        // Try with auth first (device token), fallback to no auth if needed
+        let result: Temple
+        do {
+            result = try await request<Temple>(
+                endpoint: "/temples/\(templeId)",
+                method: "GET",
+                requiresAuth: true // Try with device token first
+            )
+        } catch {
+            print("[APIService] ⚠️ Request with auth failed, trying without auth...")
+            result = try await request<Temple>(
+                endpoint: "/temples/\(templeId)",
+                method: "GET",
+                requiresAuth: false
+            )
+        }
         
         print("[APIService] ✅ Temple fetched successfully: \(result.name)")
         return result
