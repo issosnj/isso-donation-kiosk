@@ -12,7 +12,7 @@ class SquarePaymentService {
     
     // Set to true to use simulation mode (dummy transactions)
     // Set to false to use real backend Square API integration
-    private let useSimulation = true
+    private let useSimulation = false // Changed to false - Square SDK is now set up
     
     private init() {}
     
