@@ -16,7 +16,14 @@ According to [Square's documentation](https://developer.squareup.com/docs/mobile
 ### DO NOT Add Wrong SDK
 **⚠️ CRITICAL:** Do NOT add `https://github.com/square/in-app-payments-ios` package. This is the In-App Payments SDK (wrong) and causes `ThreeDS_SDK.framework` crashes.
 
-See [IMPORTANT_NO_SQUARE_PACKAGES.md](./IMPORTANT_NO_SQUARE_PACKAGES.md) for details.
+**If Xcode re-adds packages:**
+1. Close Xcode
+2. Remove all Square SDK references from `project.pbxproj`
+3. Run `./FORCE_CLEAN_BUILD.sh`
+4. Reopen Xcode
+5. Build without resolving packages
+
+See README.md troubleshooting section for details.
 
 ## Current Status
 
