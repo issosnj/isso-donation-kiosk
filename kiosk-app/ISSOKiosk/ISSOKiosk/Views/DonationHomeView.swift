@@ -10,125 +10,90 @@ struct DonationHomeView: View {
     @State private var showingPayment = false
     @State private var donorName: String?
     @State private var donorEmail: String?
-    @State private var isCustomAmountFocused = false
     @FocusState private var customAmountFocused: Bool
     
-    // Modern preset amounts
-    let presetAmounts: [Double] = [5, 10, 25, 100]
+    // Preset amounts matching reference
+    let presetAmounts: [Double] = [5, 10, 25, 50]
     
     var body: some View {
         ZStack {
-            // Modern gradient background
+            // Subtle gradient background (white to light blue)
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color(red: 0.92, green: 0.96, blue: 1.0),
-                    Color(red: 0.88, green: 0.94, blue: 1.0)
+                    Color.white,
+                    Color(red: 0.95, green: 0.97, blue: 1.0)
                 ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                startPoint: .top,
+                endPoint: .bottom
             )
             .ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Top section with logo and title
-                    VStack(spacing: 20) {
-                        // Logo/Icon with animation
-                        Group {
-                            if let temple = appState.temple {
-                                if let logoUrl = temple.logoUrl, !logoUrl.isEmpty {
-                                    AsyncImage(url: URL(string: logoUrl)) { image in
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                    } placeholder: {
-                                        Image(systemName: "building.2.fill")
-                                            .font(.system(size: 60))
-                                            .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                    }
-                                    .frame(height: 80)
-                                    .cornerRadius(12)
-                                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                } else {
-                                    Image(systemName: "building.2.fill")
-                                        .font(.system(size: 60))
-                                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                }
-                            }
-                        }
-                        .scaleEffect(1.0)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: appState.temple?.id)
-                        
-                        // Main title with fade-in
-                        Text("Make a Donation")
-                            .font(.system(size: 52, weight: .bold))
-                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                            .multilineTextAlignment(.center)
-                            .opacity(1.0)
-                        
-                        // Descriptive text
-                        VStack(spacing: 8) {
-                            Text("Help us continue what we do best.")
-                                .font(.system(size: 22, weight: .regular))
-                                .foregroundColor(Color(red: 0.2, green: 0.3, blue: 0.6))
-                            Text("Your gift will go a long way.")
-                                .font(.system(size: 22, weight: .regular))
-                                .foregroundColor(Color(red: 0.2, green: 0.3, blue: 0.6))
-                        }
+            VStack(spacing: 0) {
+                Spacer()
+                
+                // Centered content
+                VStack(spacing: 30) {
+                    // Title
+                    Text("Make a Donation")
+                        .font(.system(size: 44, weight: .bold))
+                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                         .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 60)
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 50)
                     
-                    // Preset amount buttons with smooth animations
-                    VStack(spacing: 20) {
-                        HStack(spacing: 20) {
-                            ForEach(presetAmounts, id: \.self) { amount in
-                                AnimatedAmountButton(
-                                    amount: amount,
-                                    isSelected: selectedAmount == amount,
-                                    action: {
-                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                            selectedAmount = amount
-                                            customAmount = ""
-                                            isCustomAmountFocused = false
-                                            customAmountFocused = false
-                                        }
+                    // Descriptive text
+                    VStack(spacing: 8) {
+                        Text("Tap an amount to give by card or digital wallet.")
+                            .font(.system(size: 20, weight: .regular))
+                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                        Text("Every gift makes a difference.")
+                            .font(.system(size: 20, weight: .regular))
+                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                    }
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                    
+                    // Preset amount buttons - 4 in a row
+                    HStack(spacing: 16) {
+                        ForEach(presetAmounts, id: \.self) { amount in
+                            CleanAmountButton(
+                                amount: amount,
+                                isSelected: selectedAmount == amount,
+                                action: {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        selectedAmount = amount
+                                        customAmount = ""
+                                        customAmountFocused = false
                                     }
-                                )
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 40)
+                    
+                    // Custom amount field
+                    CleanCustomAmountField(
+                        text: $customAmount,
+                        isActive: selectedAmount == nil,
+                        isFocused: $customAmountFocused,
+                        onTap: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                selectedAmount = nil
+                                customAmountFocused = true
                             }
                         }
-                        .padding(.horizontal, 40)
-                        
-                        // Custom amount input with smooth transitions
-                        AnimatedCustomAmountField(
-                            text: $customAmount,
-                            isActive: selectedAmount == nil,
-                            isFocused: $customAmountFocused,
-                            onTap: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    selectedAmount = nil
-                                    isCustomAmountFocused = true
-                                }
-                            }
-                        )
-                        .padding(.horizontal, 40)
-                    }
-                    .padding(.bottom, 40)
+                    )
+                    .padding(.horizontal, 40)
                     
-                    // Categories with smooth animations
+                    // Categories (if available) - more subtle
                     if !appState.categories.isEmpty {
-                        VStack(spacing: 15) {
+                        VStack(spacing: 12) {
                             Text("Category (Optional)")
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
                             
                             ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 15) {
+                                HStack(spacing: 12) {
                                     ForEach(appState.categories) { category in
-                                        AnimatedCategoryButton(
+                                        CleanCategoryButton(
                                             category: category,
                                             isSelected: selectedCategory?.id == category.id,
                                             action: {
@@ -142,68 +107,37 @@ struct DonationHomeView: View {
                                 .padding(.horizontal, 40)
                             }
                         }
-                        .padding(.bottom, 30)
+                        .padding(.top, 10)
                     }
                     
-                    // Continue button with pulse animation when ready
+                    // Continue button
                     Button(action: {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             showingDetails = true
                         }
                     }) {
-                        HStack(spacing: 12) {
-                            if hasValidAmount {
-                                Image(systemName: "arrow.right.circle.fill")
-                                    .font(.system(size: 24))
-                            }
-                            Text("Continue")
-                                .font(.system(size: 26, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 22)
-                        .background(
-                            Group {
-                                if hasValidAmount {
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.2, green: 0.4, blue: 0.8),
-                                            Color(red: 0.3, green: 0.5, blue: 0.9)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                } else {
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.gray.opacity(0.4),
-                                            Color.gray.opacity(0.5)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                }
-                            }
-                        )
-                        .cornerRadius(18)
-                        .shadow(
-                            color: hasValidAmount 
-                                ? Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.4)
-                                : Color.clear,
-                            radius: hasValidAmount ? 12 : 0,
-                            x: 0,
-                            y: 6
-                        )
+                        Text("Continue")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(
+                                hasValidAmount 
+                                    ? Color(red: 0.2, green: 0.4, blue: 0.8)
+                                    : Color.gray.opacity(0.4)
+                            )
+                            .cornerRadius(12)
                     }
                     .disabled(!hasValidAmount)
-                    .scaleEffect(hasValidAmount ? 1.0 : 0.98)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: hasValidAmount)
                     .padding(.horizontal, 40)
-                    .padding(.bottom, 60)
+                    .padding(.top, 20)
                 }
+                .frame(maxWidth: 600) // Limit width for better centering on large screens
+                
+                Spacer()
             }
             
-            // Home button with animation
+            // Home button in top left
             VStack {
                 HStack {
                     Button(action: {
@@ -215,25 +149,15 @@ struct DonationHomeView: View {
                             Image(systemName: "house.fill")
                             Text("Home")
                         }
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                        .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.2, green: 0.4, blue: 0.8),
-                                    Color(red: 0.3, green: 0.5, blue: 0.9)
-                                ]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.white)
+                        .cornerRadius(10)
+                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
                     .padding()
-                    .scaleEffect(1.0)
                     Spacer()
                 }
                 Spacer()
@@ -291,8 +215,8 @@ struct DonationHomeView: View {
     }
 }
 
-// Animated amount button with smooth selection
-struct AnimatedAmountButton: View {
+// Clean, simple amount button matching reference
+struct CleanAmountButton: View {
     let amount: Double
     let isSelected: Bool
     let action: () -> Void
@@ -300,59 +224,24 @@ struct AnimatedAmountButton: View {
     var body: some View {
         Button(action: action) {
             Text("$\(Int(amount))")
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 85)
+                .frame(height: 70)
                 .background(
-                    Group {
-                        if isSelected {
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.2, green: 0.4, blue: 0.8),
-                                    Color(red: 0.3, green: 0.5, blue: 0.9)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        } else {
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.25, green: 0.45, blue: 0.85),
-                                    Color(red: 0.2, green: 0.4, blue: 0.8)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        }
-                    }
+                    isSelected 
+                        ? Color(red: 0.2, green: 0.4, blue: 0.8)
+                        : Color(red: 0.2, green: 0.4, blue: 0.8)
                 )
-                .cornerRadius(18)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(
-                            isSelected 
-                                ? Color.white.opacity(0.6)
-                                : Color.clear,
-                            lineWidth: isSelected ? 4 : 0
-                        )
-                )
-                .shadow(
-                    color: isSelected 
-                        ? Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5)
-                        : Color.black.opacity(0.15),
-                    radius: isSelected ? 12 : 6,
-                    x: 0,
-                    y: isSelected ? 6 : 3
-                )
+                .cornerRadius(12)
         }
         .scaleEffect(isSelected ? 1.05 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
 }
 
-// Smooth custom amount field
-struct AnimatedCustomAmountField: View {
+// Clean custom amount field
+struct CleanCustomAmountField: View {
     @Binding var text: String
     let isActive: Bool
     @FocusState.Binding var isFocused: Bool
@@ -360,19 +249,18 @@ struct AnimatedCustomAmountField: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 Text("$")
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundColor(isActive ? Color(red: 0.2, green: 0.4, blue: 0.8) : .gray)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(.gray)
                 
                 if isActive {
                     TextField("Custom Amount", text: $text)
                         .keyboardType(.decimalPad)
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
                         .focused($isFocused)
                         .onChange(of: text) { newValue in
-                            // Filter to only allow numbers and decimal point
                             let filtered = newValue.filter { "0123456789.".contains($0) }
                             if filtered != newValue {
                                 text = filtered
@@ -380,30 +268,22 @@ struct AnimatedCustomAmountField: View {
                         }
                 } else {
                     Text("Custom Amount")
-                        .font(.system(size: 26, weight: .semibold))
+                        .font(.system(size: 20, weight: .medium))
                         .foregroundColor(.gray)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 85)
+            .frame(height: 70)
             .background(Color.white)
-            .cornerRadius(18)
+            .cornerRadius(12)
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: 12)
                     .stroke(
                         isActive 
-                            ? Color(red: 0.2, green: 0.4, blue: 0.8)
-                            : Color.gray.opacity(0.3),
-                        lineWidth: isActive ? 3 : 2
+                            ? Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5)
+                            : Color.gray.opacity(0.2),
+                        lineWidth: isActive ? 2 : 1
                     )
-            )
-            .shadow(
-                color: isActive 
-                    ? Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.3)
-                    : Color.black.opacity(0.08),
-                radius: isActive ? 8 : 4,
-                x: 0,
-                y: isActive ? 4 : 2
             )
         }
         .scaleEffect(isActive ? 1.02 : 1.0)
@@ -411,8 +291,8 @@ struct AnimatedCustomAmountField: View {
     }
 }
 
-// Animated category button
-struct AnimatedCategoryButton: View {
+// Clean category button
+struct CleanCategoryButton: View {
     let category: DonationCategory
     let isSelected: Bool
     let action: () -> Void
@@ -420,46 +300,27 @@ struct AnimatedCategoryButton: View {
     var body: some View {
         Button(action: action) {
             Text(category.name)
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(isSelected ? .white : Color(red: 0.1, green: 0.2, blue: 0.5))
-                .padding(.horizontal, 26)
-                .padding(.vertical, 16)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(isSelected ? .white : Color(red: 0.3, green: 0.3, blue: 0.4))
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
                 .background(
-                    Group {
-                        if isSelected {
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.2, green: 0.4, blue: 0.8),
-                                    Color(red: 0.3, green: 0.5, blue: 0.9)
-                                ]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        } else {
-                            Color.white
-                        }
-                    }
+                    isSelected 
+                        ? Color(red: 0.2, green: 0.4, blue: 0.8)
+                        : Color.white
                 )
-                .cornerRadius(28)
+                .cornerRadius(20)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 28)
+                    RoundedRectangle(cornerRadius: 20)
                         .stroke(
                             isSelected 
                                 ? Color.clear
                                 : Color.gray.opacity(0.3),
-                            lineWidth: 1.5
+                            lineWidth: 1
                         )
                 )
-                .shadow(
-                    color: isSelected 
-                        ? Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.3)
-                        : Color.black.opacity(0.05),
-                    radius: isSelected ? 6 : 2,
-                    x: 0,
-                    y: isSelected ? 3 : 1
-                )
         }
-        .scaleEffect(isSelected ? 1.08 : 1.0)
+        .scaleEffect(isSelected ? 1.05 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
 }
