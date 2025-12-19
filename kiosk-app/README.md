@@ -11,22 +11,20 @@ Native iOS app for donation kiosks using Square Mobile Payments SDK.
 
 ## Setup
 
-1. **Create/Open Project**
-   - **If you don't have `ISSOKiosk.xcodeproj` yet**: See `CREATE_XCODE_PROJECT.md` to create it
-   - **If you already have the project**:
-     ```bash
-     cd kiosk-app
-     open ISSOKiosk.xcodeproj
-     ```
+1. **Open Project**
+   ```bash
+   cd kiosk-app/ISSOKiosk
+   open ISSOKiosk.xcodeproj
+   ```
 
 2. **Configure API URL**
    - The `Config.swift` file is already set to production API
    - URL: `https://isso-donation-kiosk-production.up.railway.app/api`
 
-3. **Configure Square Mobile Payments SDK**
-   - See [SQUARE_SDK_INTEGRATION.md](./SQUARE_SDK_INTEGRATION.md) for detailed instructions
-   - Add Square Application ID to `Info.plist`
-   - Configure bundle ID in Square Developer Dashboard
+3. **Square Integration** (After Apple Developer approval)
+   - See [NEXT_STEPS.md](./NEXT_STEPS.md) for Square setup
+   - See [SQUARE_SDK_INTEGRATION.md](./SQUARE_SDK_INTEGRATION.md) for detailed SDK integration
+   - See [CURRENT_WORK.md](./CURRENT_WORK.md) for features to work on now
 
 4. **Build and Run**
    - Connect iPad to Mac
