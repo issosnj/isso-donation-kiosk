@@ -24,11 +24,13 @@ export class SquareService {
     const normalizedRedirectUri = redirectUri.endsWith('/') ? redirectUri.slice(0, -1) : redirectUri;
     
     const state = Buffer.from(JSON.stringify({ templeId })).toString('base64');
-    const oauthUrl = `https://squareup.com/oauth2/authorize?client_id=${applicationId}&response_type=code&scope=PAYMENTS_READ+PAYMENTS_WRITE+MERCHANT_PROFILE_READ&state=${state}&redirect_uri=${encodeURIComponent(normalizedRedirectUri)}`;
+    const encodedRedirectUri = encodeURIComponent(normalizedRedirectUri);
+    const oauthUrl = `https://squareup.com/oauth2/authorize?client_id=${applicationId}&response_type=code&scope=PAYMENTS_READ+PAYMENTS_WRITE+MERCHANT_PROFILE_READ&state=${state}&redirect_uri=${encodedRedirectUri}`;
     
     console.log('[Square Service] Generated OAuth URL for temple:', templeId);
     console.log('[Square Service] Redirect URI (exact):', JSON.stringify(normalizedRedirectUri));
-    console.log('[Square Service] Redirect URI in URL:', encodeURIComponent(normalizedRedirectUri));
+    console.log('[Square Service] Redirect URI (encoded):', encodedRedirectUri);
+    console.log('[Square Service] Full OAuth URL (first 200 chars):', oauthUrl.substring(0, 200) + '...');
     
     return oauthUrl;
   }
@@ -53,6 +55,8 @@ export class SquareService {
     // Normalize redirect URI - remove trailing slash if present
     const normalizedRedirectUri = redirectUri.endsWith('/') ? redirectUri.slice(0, -1) : redirectUri;
     console.log('[Square Service] Normalized Redirect URI:', JSON.stringify(normalizedRedirectUri));
+    console.log('[Square Service] Redirect URI length:', normalizedRedirectUri.length);
+    console.log('[Square Service] Redirect URI characters:', normalizedRedirectUri.split('').map(c => c.charCodeAt(0)).join(','));
 
     const requestBody = {
       client_id: applicationId,
