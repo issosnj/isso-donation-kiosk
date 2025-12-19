@@ -12,26 +12,9 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Background color - should be visible if view renders
-            Color.red.opacity(0.5)
+            // Background color
+            Color.white
                 .ignoresSafeArea()
-            
-            // Test view to verify rendering - make it very visible
-            VStack(spacing: 20) {
-                Text("TEST - ContentView is rendering")
-                    .font(.system(size: 40, weight: .bold))
-                    .foregroundColor(.blue)
-                    .padding(40)
-                    .background(Color.yellow)
-                    .cornerRadius(20)
-                
-                Text("App State: \(appState.isActivated ? "Activated" : "Not Activated")")
-                    .font(.title)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.black)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             
             if appState.isActivated {
                 // Activated state
@@ -65,10 +48,6 @@ struct ContentView: View {
                 DeviceActivationView()
                     .environmentObject(appState)
             }
-        }
-        .onAppear {
-            print("✅ ContentView appeared - isActivated: \(appState.isActivated)")
-            print("✅ AppState object: \(appState)")
         }
     }
     

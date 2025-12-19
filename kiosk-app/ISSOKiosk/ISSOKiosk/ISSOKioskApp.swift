@@ -8,21 +8,10 @@ struct ISSOKioskApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     init() {
-        print("🚀 ISSOKioskApp initializing...")
-        // Temporarily disable Square SDK initialization until dependencies are resolved
+        // Square SDK initialization temporarily disabled
         // The Square SDK requires ThreeDS_SDK.framework which is missing
         // This will be re-enabled once Square SDK is properly configured
-        /*
-        if let appId = Bundle.main.object(forInfoDictionaryKey: "SQUARE_APPLICATION_ID") as? String,
-           !appId.isEmpty && appId != "YOUR_SQUARE_APPLICATION_ID" {
-            SQIPInAppPaymentsSDK.squareApplicationID = appId
-            print("✅ Square SDK initialized with Application ID: \(appId.prefix(8))...")
-        } else {
-            print("⚠️ Warning: Square Application ID not configured in Info.plist")
-        }
-        */
-        print("⚠️ Square SDK initialization temporarily disabled (missing ThreeDS_SDK dependency)")
-        print("✅ ISSOKioskApp initialization complete")
+        // For now, payment processing uses a placeholder service
     }
     
     var body: some Scene {
@@ -32,7 +21,6 @@ struct ISSOKioskApp: App {
                 .preferredColorScheme(.light) // Force light mode for kiosk
                 .lockOrientation(.landscape) // Lock to landscape orientation
                 .onAppear {
-                    print("✅ WindowGroup onAppear - starting heartbeat")
                     startHeartbeat()
                 }
         }

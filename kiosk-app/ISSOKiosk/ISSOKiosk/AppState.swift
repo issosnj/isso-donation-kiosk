@@ -32,7 +32,6 @@ class AppState: ObservableObject {
     
     private func loadStoredCredentials() {
         if let token = keychain.load(forKey: "deviceToken") {
-            print("✅ Found stored device token")
             self.deviceToken = token
             self.deviceId = extractDeviceId(from: token)
             self.isActivated = true
@@ -40,8 +39,6 @@ class AppState: ObservableObject {
             Task {
                 await loadTempleConfig()
             }
-        } else {
-            print("ℹ️ No stored device token found")
         }
     }
     
