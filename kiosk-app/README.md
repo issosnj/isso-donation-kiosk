@@ -1,6 +1,6 @@
 # ISSO Donation Kiosk - iOS App
 
-Native iOS app for donation kiosks using Square Mobile Payments SDK.
+Native iOS app for donation kiosks using Square Mobile Payments SDK with Square Stand hardware.
 
 ## Requirements
 
@@ -8,8 +8,9 @@ Native iOS app for donation kiosks using Square Mobile Payments SDK.
 - Xcode 15.0+
 - Swift 5.9+
 - iPad (optimized for kiosk use)
+- Square Stand hardware (for payment processing)
 
-## Setup
+## Quick Start
 
 1. **Open Project**
    ```bash
@@ -17,56 +18,40 @@ Native iOS app for donation kiosks using Square Mobile Payments SDK.
    open ISSOKiosk.xcodeproj
    ```
 
-2. **Configure API URL**
-   - The `Config.swift` file is already set to production API
-   - URL: `https://isso-donation-kiosk-production.up.railway.app/api`
-
-3. **Square Integration** (After Apple Developer approval)
-   - See [SQUARE_SDK_INTEGRATION.md](./SQUARE_SDK_INTEGRATION.md) for complete Square setup guide
-   - See [FIND_APPLE_TEAM_ID.md](./FIND_APPLE_TEAM_ID.md) for Team ID instructions
-   - See [CURRENT_WORK.md](./CURRENT_WORK.md) for features to work on while waiting
-
-4. **Build and Run**
+2. **Build and Run**
    - Connect iPad to Mac
    - Select iPad as target device
    - Build and run (⌘R)
 
-## Features
-
-✅ **Device Activation**
-- Enter 8-character device code
-- Automatic token storage in Keychain
-- Device ID extraction from JWT token
-
-✅ **Donation Flow**
-- Preset amount buttons ($11, $21, $51, $101, $251)
-- Custom amount input
-- Category selection (from temple configuration)
-- Optional donor name and email
-
-✅ **Payment Processing**
-- Integration ready for Square Mobile Payments SDK
-- Payment status handling (success/failure)
-- Donation completion with Square payment ID
-
-✅ **Device Management**
-- Automatic heartbeat every 30 seconds
-- Device status tracking
-- Token persistence
-
-✅ **UI/UX**
-- Optimized for iPad (large touch targets)
-- Modern, clean interface
-- Temple branding support (logo, colors)
-- Responsive layout
-
 ## Current Status
 
-- ✅ Device activation working
-- ✅ Donation flow UI complete
-- ✅ API integration complete
-- ✅ Device heartbeat implemented
-- ⚠️ Square SDK integration pending (see SQUARE_SDK_INTEGRATION.md)
+### ✅ Completed
+- Device activation with 8-character device code
+- Modern donation flow UI with preset amounts and custom input
+- Category selection from temple configuration
+- Optional donor name and email collection
+- Payment processing (backend-only, temporary)
+- Device heartbeat every 30 seconds
+- Token persistence in Keychain
+- Temple branding support (logo, colors, custom messages)
+- Home screen with configurable headers and quick actions
+- Anonymous suggestion box
+- Google Calendar integration for events
+- QR code scanning for device activation
+- Landscape orientation lock
+- Idle timer (returns to home after inactivity)
+
+### ⏳ In Progress
+- Square Mobile Payments SDK integration (waiting for package URL)
+- Real-time payment processing with Square Stand hardware
+
+### 📋 Architecture
+- **AppState**: Manages app-wide state (device token, temple, categories)
+- **APIService**: Handles all backend API calls
+- **SquareMobilePaymentsService**: Mobile Payments SDK integration (ready for implementation)
+- **SquarePaymentService**: Payment flow coordinator
+- **KeychainHelper**: Secure token storage
+- **Views**: SwiftUI views for each screen
 
 ## Configuration
 
@@ -77,53 +62,92 @@ static let apiBaseURL = "https://isso-donation-kiosk-production.up.railway.app/a
 ```
 
 ### Square Configuration
-1. Add Square Application ID to `Info.plist`:
+1. **Square Application ID** (already in `Info.plist`):
    ```xml
    <key>SQUARE_APPLICATION_ID</key>
-   <string>sq0idp-YOUR_APP_ID</string>
+   <string>sq0idp-Xtwux6dvJ58KrKW0amhoMQ</string>
    ```
 
-2. Configure bundle ID in Square Developer Dashboard
+2. **Required Permissions** (already added to `Info.plist`):
+   - Location (`NSLocationWhenInUseUsageDescription`)
+   - Bluetooth (`NSBluetoothAlwaysUsageDescription`)
+   - Microphone (`NSMicrophoneUsageDescription`)
 
-3. Integrate Square Mobile Payments SDK (see SQUARE_SDK_INTEGRATION.md)
+3. **Bundle ID**: `com.mitpatel.ISSOKiosk`
+4. **Team ID**: `CAL45S6TSM`
 
 ## App Flow
 
 1. **Device Activation**
-   - User enters 8-character device code
+   - User enters 8-character device code (or scans QR code)
    - App activates with backend
    - Receives device token and temple configuration
+   - Auto-authorizes Square Mobile Payments SDK (when available)
 
-2. **Donation Selection**
-   - User selects preset amount or enters custom amount
+2. **Home Screen**
+   - Displays temple name and address
+   - "Two Taps To Donation" button
+   - Quick actions: WhatsApp, Events, Social Media, Suggestions
+   - Returns to home after idle timeout
+
+3. **Donation Selection**
+   - User selects preset amount ($5, $10, $25, $100) or enters custom amount
    - Optionally selects donation category
    - Clicks "Continue"
 
-3. **Donation Details**
+4. **Donation Details**
    - User reviews donation summary
    - Optionally enters name and email
-   - Clicks "Tap or Insert Card to Donate"
+   - Clicks "Ready for Payment"
 
-4. **Payment Processing**
+5. **Payment Processing**
    - App initiates donation with backend
-   - Processes payment via Square SDK
-   - Completes donation with payment result
-   - Shows success/failure screen
+   - Mobile Payments SDK shows payment UI
+   - Customer taps/chips card on Square Stand
+   - SDK processes payment directly
+   - App shows success/failure screen
 
-## Architecture
+## Square Mobile Payments SDK
 
-- **AppState**: Manages app-wide state (device token, temple, categories)
-- **APIService**: Handles all backend API calls
-- **SquarePaymentService**: Placeholder for Square SDK integration
-- **KeychainHelper**: Secure token storage
-- **Views**: SwiftUI views for each screen
+**⚠️ Important:** See [MOBILE_PAYMENTS_SDK.md](./MOBILE_PAYMENTS_SDK.md) for complete integration guide.
+
+**Current Status:**
+- Backend ready (OAuth scope includes `PAYMENTS_WRITE_IN_PERSON`)
+- Backend endpoint provides Square credentials
+- iOS app structure ready
+- ⏳ Waiting for Mobile Payments SDK package URL from Square
+
+**⚠️ Critical:** Do NOT add `https://github.com/square/in-app-payments-ios` package. See [IMPORTANT_NO_SQUARE_PACKAGES.md](./IMPORTANT_NO_SQUARE_PACKAGES.md).
+
+## Troubleshooting
+
+### ThreeDS_SDK Crash
+If you see `Library not loaded: @rpath/ThreeDS_SDK.framework/ThreeDS_SDK`:
+
+1. **Delete app from iPad** (removes old frameworks)
+2. **Clean build folder** in Xcode (Shift+Cmd+K)
+3. **Delete Derived Data** (Xcode → Settings → Locations → Derived Data)
+4. **Rebuild** (Cmd+R)
+
+Or run: `./FORCE_CLEAN_BUILD.sh`
+
+**Root Cause:** Old Square SDK frameworks cached in build products or device.
+
+### Xcode Re-adds Square Packages
+If Xcode automatically adds Square packages:
+1. Close Xcode
+2. Remove packages from `project.pbxproj` (see IMPORTANT_NO_SQUARE_PACKAGES.md)
+3. Run `./FORCE_CLEAN_BUILD.sh`
+4. Reopen Xcode
+5. Build without resolving packages
 
 ## Testing
 
 1. Create a device in admin portal
 2. Get the 8-character device code
-3. Enter code in app to activate
-4. Test donation flow (Square SDK integration needed for real payments)
+3. Enter code in app to activate (or scan QR code)
+4. Test donation flow
+5. Payment processing requires Square Stand hardware and Mobile Payments SDK
 
 ## Deployment
 
@@ -134,6 +158,14 @@ static let apiBaseURL = "https://isso-donation-kiosk-production.up.railway.app/a
 
 ## Documentation
 
-- [Square SDK Integration Guide](./SQUARE_SDK_INTEGRATION.md)
+- [Square Mobile Payments SDK Guide](./MOBILE_PAYMENTS_SDK.md) - Complete SDK integration guide
+- [Important: No Square Packages](./IMPORTANT_NO_SQUARE_PACKAGES.md) - Critical warnings about package management
+- [Current Work](./CURRENT_WORK.md) - Features to work on
 - [Backend API Documentation](../README.md)
 
+## Support
+
+For issues or questions:
+- Check troubleshooting section above
+- Review Square Mobile Payments SDK documentation
+- Check backend API status
