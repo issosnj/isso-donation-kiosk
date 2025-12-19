@@ -7,13 +7,22 @@ class AppNavigationState: ObservableObject {
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
-    @StateObject private var idleTimer = IdleTimer.shared
+    @ObservedObject private var idleTimer = IdleTimer.shared
     @StateObject private var navigationState = AppNavigationState()
     
     var body: some View {
         ZStack {
             Color.white
                 .ignoresSafeArea()
+            
+            // Debug text to verify view is rendering
+            VStack {
+                Text("App State: \(appState.isActivated ? "Activated" : "Not Activated")")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .padding()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             
             if appState.isActivated {
                 // Debug: Activated state

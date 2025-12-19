@@ -2,7 +2,7 @@ import SwiftUI
 
 struct DeviceActivationView: View {
     @EnvironmentObject var appState: AppState
-    @StateObject private var networkMonitor = NetworkMonitor.shared
+    @ObservedObject private var networkMonitor = NetworkMonitor.shared
     @State private var deviceCode = ""
     @State private var isActivating = false
     @State private var errorMessage: String?
