@@ -72,6 +72,11 @@ class AppState: ObservableObject {
             print("[AppState] ❌ Failed to refresh categories: \(error.localizedDescription)")
             if let apiError = error as? APIError {
                 print("[AppState] ❌ API Error: \(apiError)")
+                print("[AppState] ❌ API Error description: \(apiError.localizedDescription)")
+            }
+            // Clear categories on error to show empty state
+            await MainActor.run {
+                self.categories = []
             }
         }
     }

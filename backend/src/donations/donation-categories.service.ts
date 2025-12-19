@@ -15,8 +15,18 @@ export class DonationCategoriesService {
   async create(
     createCategoryDto: CreateDonationCategoryDto,
   ): Promise<DonationCategory> {
-    const category = this.categoriesRepository.create(createCategoryDto);
-    return this.categoriesRepository.save(category);
+    // Ensure defaults are set if not provided
+    const categoryData = {
+      ...createCategoryDto,
+      isActive: createCategoryDto.isActive ?? true,
+      showOnKiosk: createCategoryDto.showOnKiosk ?? true, // Default to true for new categories
+    };
+    
+    console.log('[DonationCategoriesService] Creating category with data:', categoryData);
+    const category = this.categoriesRepository.create(categoryData);
+    const saved = await this.categoriesRepository.save(category);
+    console.log('[DonationCategoriesService] Category created:', saved.id, saved.name, 'showOnKiosk:', saved.showOnKiosk);
+    return saved;
   }
 
   async findAll(templeId?: string): Promise<DonationCategory[]> {

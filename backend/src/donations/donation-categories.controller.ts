@@ -59,16 +59,18 @@ export class DonationCategoriesController {
   ) {
     console.log('[DonationCategoriesController] getKioskCategories called');
     console.log('[DonationCategoriesController] Requested templeId:', templeId);
-    console.log('[DonationCategoriesController] Device templeId:', device.templeId);
+    console.log('[DonationCategoriesController] Device templeId:', device?.templeId);
+    console.log('[DonationCategoriesController] Device ID:', device?.deviceId);
     
     // Ensure the device token's templeId matches the requested templeId
-    if (device.templeId !== templeId) {
+    if (!device || device.templeId !== templeId) {
       console.error('[DonationCategoriesController] Unauthorized: device templeId does not match requested templeId');
+      console.error('[DonationCategoriesController] Device object:', JSON.stringify(device, null, 2));
       throw new Error('Unauthorized access to categories for this temple.');
     }
     
     const categories = await this.categoriesService.findByTemple(templeId, true);
-    console.log(`[DonationCategoriesController] Found ${categories.length} categories for kiosk`);
+    console.log(`[DonationCategoriesController] Found ${categories.length} categories after filtering`);
     
     // Map to only include necessary fields for kiosk
     const mappedCategories = categories.map((cat) => ({
@@ -80,6 +82,13 @@ export class DonationCategoriesController {
     }));
     
     console.log('[DonationCategoriesController] Returning mapped categories:', mappedCategories.length);
+    if (mappedCategories.length === 0) {
+      console.warn('[DonationCategoriesController] ⚠️ No categories returned - this might indicate:');
+      console.warn('[DonationCategoriesController]   1. No categories exist for this temple');
+      console.warn('[DonationCategoriesController]   2. Categories exist but isActive = false');
+      console.warn('[DonationCategoriesController]   3. Categories exist but showOnKiosk = false');
+      console.warn('[DonationCategoriesController]   4. Categories exist but are outside date range');
+    }
     return mappedCategories;
   }
 
