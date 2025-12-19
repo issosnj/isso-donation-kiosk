@@ -471,7 +471,6 @@ struct CalendarGridView: View {
     var body: some View {
         let calendar = Calendar.current
         let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
-        let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart)!
         let firstWeekday = calendar.component(.weekday, from: monthStart) - 1
         let daysInMonth = calendar.range(of: .day, in: .month, for: date)!.count
         

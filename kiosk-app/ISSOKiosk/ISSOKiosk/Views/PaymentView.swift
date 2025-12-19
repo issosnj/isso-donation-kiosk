@@ -65,7 +65,7 @@ struct PaymentView: View {
                 )
                 
                 // 3. Complete donation
-                try await APIService.shared.completeDonation(
+                _ = try await APIService.shared.completeDonation(
                     donationId: donation.id,
                     squarePaymentId: paymentResult.paymentId ?? "",
                     status: paymentResult.success ? "SUCCEEDED" : "FAILED",
