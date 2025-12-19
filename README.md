@@ -386,6 +386,42 @@ See TypeORM entities in `backend/src/*/entities/` for full schema.
 - Input validation and sanitization
 - Railway proxy compatibility (handles preflight requests correctly)
 
+## 🔧 Troubleshooting
+
+### Backend Issues
+
+**Service not accessible:**
+- Verify backend service has a public domain in Railway Settings → Networking
+- Check Railway logs for errors
+- Ensure all required environment variables are set
+
+**CORS errors:**
+- Verify `CORS_ORIGIN` and `ADMIN_WEB_URL` match frontend URL
+- Backend automatically allows all `*.netlify.app` domains
+- Check that `NEXT_PUBLIC_API_URL` in frontend matches backend URL
+
+**Database connection issues:**
+- Verify `DATABASE_PUBLIC_URL` is set correctly in Railway
+- Use `DATABASE_PUBLIC_URL` (not `DATABASE_URL`) for Railway deployments
+- Check Railway PostgreSQL service is running
+
+**Square Integration Issues:**
+- See [SQUARE_SETUP.md](./SQUARE_SETUP.md) for setup guide
+- See [SQUARE_VERIFICATION.md](./SQUARE_VERIFICATION.md) for verification checklist
+- Verify redirect URI matches exactly (no trailing slash, HTTPS only)
+
+### Testing Endpoints
+
+**Health Check:**
+```bash
+curl https://isso-donation-kiosk-production.up.railway.app/health
+```
+
+**API Root:**
+```bash
+curl https://isso-donation-kiosk-production.up.railway.app/api
+```
+
 ## 📝 License
 
 Private - ISSO Donation Kiosk System
