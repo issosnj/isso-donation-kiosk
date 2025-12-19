@@ -123,49 +123,48 @@ export class DonationsService {
     try {
       console.log('[Donations Service] getStats called with:', { templeId, startDate, endDate });
 
-      // Build query conditions
-      const queryBuilder = this.donationsRepository
-        .createQueryBuilder('donation')
-        .where('donation.status = :status', { status: DonationStatus.SUCCEEDED });
-
+      // Build base query conditions
+      const whereConditions: any = { status: DonationStatus.SUCCEEDED };
       if (templeId) {
-        queryBuilder.andWhere('donation.templeId = :templeId', { templeId });
+        whereConditions.templeId = templeId;
       }
 
+      // Build date filter if provided
+      const dateFilter: any = {};
       if (startDate && endDate) {
-        queryBuilder.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
-          startDate,
-          endDate,
-        });
+        dateFilter.createdAt = Between(startDate, endDate);
       }
 
-      // Get count first (simpler query)
-      const count = await queryBuilder.getCount();
-      console.log('[Donations Service] Count:', count);
+      // Get all succeeded donations matching criteria
+      const donations = await this.donationsRepository.find({
+        where: {
+          ...whereConditions,
+          ...dateFilter,
+        },
+        select: ['amount'],
+      });
 
-      // Get total amount - use CAST to ensure numeric type
-      const totalResult = await queryBuilder
-        .select('COALESCE(SUM(CAST(donation.amount AS DECIMAL)), 0)', 'total')
-        .getRawOne();
+      console.log('[Donations Service] Found donations:', donations.length);
 
-      console.log('[Donations Service] Total result:', totalResult);
-
-      // Safely parse the total
+      // Calculate total and count in JavaScript
+      const count = donations.length;
       let totalAmount = 0;
-      if (totalResult) {
-        const totalValue = totalResult.total;
-        if (totalValue !== null && totalValue !== undefined) {
-          // Handle both string and number types
-          const value = typeof totalValue === 'string' ? totalValue : String(totalValue);
-          const parsed = parseFloat(value);
-          totalAmount = isNaN(parsed) ? 0 : parsed;
+
+      for (const donation of donations) {
+        if (donation.amount) {
+          const amount = typeof donation.amount === 'string' 
+            ? parseFloat(donation.amount) 
+            : Number(donation.amount);
+          if (!isNaN(amount)) {
+            totalAmount += amount;
+          }
         }
       }
 
       console.log('[Donations Service] Returning stats:', { total: totalAmount, count });
 
       return {
-        total: totalAmount,
+        total: Math.round(totalAmount * 100) / 100, // Round to 2 decimal places
         count: count || 0,
       };
     } catch (error: any) {
