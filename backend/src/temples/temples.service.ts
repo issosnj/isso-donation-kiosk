@@ -157,14 +157,25 @@ export class TemplesService {
     
     // Use update() method to ensure null values are saved
     if (isDisconnecting) {
-      await this.templesRepository.update(id, {
+      console.log('[Temples Service] Executing update() with null values...');
+      const updateResult = await this.templesRepository.update(id, {
         squareMerchantId: null,
         squareAccessToken: null,
         squareRefreshToken: null,
         squareLocationId: null,
       });
-      // Reload to get updated entity
-      const saved = await this.findOne(id);
+      console.log('[Temples Service] Update result:', updateResult);
+      
+      // Use query builder to get fresh data (bypass any cache)
+      const saved = await this.templesRepository
+        .createQueryBuilder('temple')
+        .where('temple.id = :id', { id })
+        .getOne();
+      
+      if (!saved) {
+        throw new NotFoundException(`Temple with ID ${id} not found`);
+      }
+      
       console.log('[Temples Service] After save - Square fields:', {
         squareMerchantId: saved.squareMerchantId ? 'present' : 'null',
         squareAccessToken: saved.squareAccessToken ? 'present' : 'null',

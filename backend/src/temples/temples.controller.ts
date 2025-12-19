@@ -80,6 +80,14 @@ export class TemplesController {
     if (user.role === UserRole.TEMPLE_ADMIN && user.templeId !== id) {
       throw new Error('Unauthorized');
     }
+    console.log('[Temples Controller] Update request received:', {
+      id,
+      updateDto: {
+        ...updateTempleDto,
+        squareAccessToken: (updateTempleDto as any).squareAccessToken === null ? 'null' : 'not null',
+        squareMerchantId: (updateTempleDto as any).squareMerchantId === null ? 'null' : 'not null',
+      },
+    });
     return this.templesService.update(id, updateTempleDto);
   }
 
