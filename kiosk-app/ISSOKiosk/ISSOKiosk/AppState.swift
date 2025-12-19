@@ -86,6 +86,7 @@ class AppState: ObservableObject {
 struct Temple: Codable {
     let id: String
     let name: String
+    let address: String?
     let logoUrl: String?
     let branding: Branding?
     let squareLocationId: String?

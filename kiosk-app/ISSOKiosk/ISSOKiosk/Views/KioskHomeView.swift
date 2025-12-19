@@ -10,121 +10,149 @@ struct KioskHomeView: View {
     
     var body: some View {
         ZStack {
-            // Background
-            Color(.systemBackground)
-                .ignoresSafeArea()
+            // Modern gradient background
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.white,
+                    Color(red: 0.95, green: 0.97, blue: 1.0)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Top: Temple Name
-                if let temple = appState.temple {
-                    VStack(spacing: 10) {
-                        if let logoUrl = temple.logoUrl, !logoUrl.isEmpty {
-                            AsyncImage(url: URL(string: logoUrl)) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                            } placeholder: {
-                                Image(systemName: "building.2")
-                                    .font(.system(size: 50))
-                                    .foregroundColor(.gray)
+                Spacer()
+                
+                // Centered content
+                VStack(spacing: 40) {
+                    // Headers (configurable by admin)
+                    if let temple = appState.temple {
+                        VStack(spacing: 12) {
+                            // Header 1 (default: "Welcome to Temple Name")
+                            Text(header1Text)
+                                .font(.system(size: 36, weight: .bold))
+                                .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                                .multilineTextAlignment(.center)
+                            
+                            // Header 2 (default: address)
+                            if let header2 = header2Text, !header2.isEmpty {
+                                Text(header2)
+                                    .font(.system(size: 22, weight: .regular))
+                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                                    .multilineTextAlignment(.center)
                             }
-                            .frame(height: 80)
-                            .cornerRadius(8)
                         }
-                        
-                        Text(temple.name)
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundColor(.primary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 40)
-                    .padding(.horizontal, 40)
-                }
-                
-                Spacer()
-                
-                // Main: Click to Donate Button
-                Button(action: {
-                    withAnimation {
-                        navigationState.showDonationFlow = true
-                    }
-                }) {
-                    VStack(spacing: 15) {
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.white)
-                        
-                        Text("Click to Donate")
-                            .font(.system(size: 42, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 200)
-                    .background(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.blue,
-                                Color.blue.opacity(0.8)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .cornerRadius(24)
-                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-                }
-                .padding(.horizontal, 60)
-                .padding(.vertical, 40)
-                
-                Spacer()
-                
-                // Bottom: Action Buttons
-                VStack(spacing: 20) {
-                    // Join WhatsApp
-                    if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
-                        ActionButton(
-                            icon: "message.fill",
-                            title: "Join WhatsApp",
-                            color: Color.green
-                        ) {
-                            showWhatsAppQR = true
-                        }
-                    }
-                    
-                    // Upcoming Events/Upvas
-                    let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
-                    let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
-                    let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
-                    
-                    if hasGoogleCalendar || hasLocalEvents || hasEventsText {
-                        ActionButton(
-                            icon: "calendar",
-                            title: "Upcoming Events",
-                            color: Color.orange
-                        ) {
-                            showEvents = true
-                        }
-                    }
-                    
-                    // Social Media
-                    if let socialMedia = appState.temple?.homeScreenConfig?.socialMedia, !socialMedia.isEmpty {
-                        SocialMediaSection(socialMedia: socialMedia) { url in
-                            showSocialMediaQR = url
-                        }
-                    }
-                }
-                .padding(.horizontal, 40)
-                .padding(.bottom, 40)
-                
-                // Custom Message at Bottom
-                if let customMessage = appState.temple?.homeScreenConfig?.customMessage, !customMessage.isEmpty {
-                    Text(customMessage)
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
-                        .padding(.bottom, 30)
+                        .padding(.top, 20)
+                    }
+                    
+                    // Main: Two Taps To Donation Button
+                    Button(action: {
+                        withAnimation {
+                            navigationState.showDonationFlow = true
+                        }
+                    }) {
+                        VStack(spacing: 20) {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 70))
+                                .foregroundColor(.white)
+                            
+                            Text("Two Taps To Donation")
+                                .font(.system(size: 38, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: 600)
+                        .frame(height: 220)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color(red: 0.2, green: 0.4, blue: 0.8),
+                                    Color(red: 0.3, green: 0.5, blue: 0.9)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .cornerRadius(28)
+                        .shadow(color: Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.4), radius: 20, x: 0, y: 10)
+                    }
+                    .padding(.horizontal, 40)
+                    
+                    // Bottom: Action Buttons (placeholders that activate when data is added)
+                    VStack(spacing: 16) {
+                        // Join WhatsApp (placeholder until admin adds link)
+                        if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
+                            ModernActionButton(
+                                icon: "message.fill",
+                                title: "Join WhatsApp",
+                                color: Color(red: 0.18, green: 0.64, blue: 0.33),
+                                isActive: true
+                            ) {
+                                showWhatsAppQR = true
+                            }
+                        } else {
+                            ModernActionButton(
+                                icon: "message.fill",
+                                title: "Join WhatsApp",
+                                color: Color.gray.opacity(0.3),
+                                isActive: false
+                            ) {
+                                // Placeholder - inactive
+                            }
+                        }
+                        
+                        // Upcoming Events/Upvas (placeholder until admin adds data)
+                        let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
+                        let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
+                        let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
+                        let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
+                        
+                        if hasEvents {
+                            ModernActionButton(
+                                icon: "calendar",
+                                title: "Upcoming Events",
+                                color: Color(red: 1.0, green: 0.58, blue: 0.0),
+                                isActive: true
+                            ) {
+                                showEvents = true
+                            }
+                        } else {
+                            ModernActionButton(
+                                icon: "calendar",
+                                title: "Upcoming Events",
+                                color: Color.gray.opacity(0.3),
+                                isActive: false
+                            ) {
+                                // Placeholder - inactive
+                            }
+                        }
+                        
+                        // Social Media (placeholder until admin adds links)
+                        if let socialMedia = appState.temple?.homeScreenConfig?.socialMedia, !socialMedia.isEmpty {
+                            ModernSocialMediaSection(socialMedia: socialMedia) { url in
+                                showSocialMediaQR = url
+                            }
+                        } else {
+                            ModernSocialMediaPlaceholder()
+                        }
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.top, 20)
+                    
+                    // Custom Message at Bottom (if configured)
+                    if let customMessage = appState.temple?.homeScreenConfig?.customMessage, !customMessage.isEmpty {
+                        Text(customMessage)
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                            .padding(.top, 20)
+                    }
                 }
+                .frame(maxWidth: 800) // Limit width for better centering
+                
+                Spacer()
             }
         }
         .sheet(isPresented: $showWhatsAppQR) {
@@ -146,34 +174,65 @@ struct KioskHomeView: View {
             QRCodeDisplayView(url: item.url, title: "Social Media")
         }
     }
+    
+    // Computed properties for headers with defaults
+    private var header1Text: String {
+        if let temple = appState.temple {
+            // Check if admin configured header1 in homeScreenConfig
+            // For now, use default: "Welcome to Temple Name"
+            return "Welcome to \(temple.name)"
+        }
+        return "Welcome"
+    }
+    
+    private var header2Text: String? {
+        if let temple = appState.temple {
+            // Check if admin configured header2 in homeScreenConfig
+            // For now, use default: address
+            return temple.address
+        }
+        return nil
+    }
 }
 
-struct ActionButton: View {
+// Modern action button with active/inactive states
+struct ModernActionButton: View {
     let icon: String
     let title: String
     let color: Color
+    let isActive: Bool
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 15) {
                 Image(systemName: icon)
-                    .font(.system(size: 24))
-                    .foregroundColor(.white)
+                    .font(.system(size: 26))
+                    .foregroundColor(isActive ? .white : .gray)
                 
                 Text(title)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(.white)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(isActive ? .white : .gray)
+                
+                if !isActive {
+                    Spacer()
+                    Text("Coming Soon")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.gray.opacity(0.7))
+                }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
-            .background(color)
-            .cornerRadius(16)
+            .padding(.vertical, 20)
+            .background(isActive ? color : Color.gray.opacity(0.2))
+            .cornerRadius(18)
+            .opacity(isActive ? 1.0 : 0.6)
         }
+        .disabled(!isActive)
     }
 }
 
-struct SocialMediaSection: View {
+// Modern social media section
+struct ModernSocialMediaSection: View {
     let socialMedia: [SocialMediaLink]
     let onTap: (String) -> Void
     
@@ -181,12 +240,12 @@ struct SocialMediaSection: View {
         VStack(spacing: 12) {
             Text("Social Media")
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.primary)
+                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
             
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 20) {
+                HStack(spacing: 16) {
                     ForEach(socialMedia, id: \.platform) { link in
-                        SocialMediaButton(link: link) {
+                        ModernSocialMediaButton(link: link) {
                             onTap(link.url)
                         }
                     }
@@ -197,7 +256,50 @@ struct SocialMediaSection: View {
     }
 }
 
-struct SocialMediaButton: View {
+// Modern social media placeholder
+struct ModernSocialMediaPlaceholder: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            Text("Social Media")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+            
+            HStack(spacing: 16) {
+                ForEach(["facebook", "instagram", "youtube"], id: \.self) { platform in
+                    VStack(spacing: 8) {
+                        Image(systemName: iconForPlatform(platform))
+                            .font(.system(size: 32))
+                            .foregroundColor(.gray.opacity(0.5))
+                        
+                        Text(platform.capitalized)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.gray.opacity(0.5))
+                    }
+                    .frame(width: 100, height: 100)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                }
+            }
+            .padding(.horizontal, 20)
+            .opacity(0.5)
+        }
+    }
+    
+    private func iconForPlatform(_ platform: String) -> String {
+        switch platform.lowercased() {
+        case "facebook": return "f.circle.fill"
+        case "instagram": return "camera.fill"
+        case "youtube": return "play.circle.fill"
+        default: return "link"
+        }
+    }
+}
+
+struct ModernSocialMediaButton: View {
     let link: SocialMediaLink
     let action: () -> Void
     
@@ -205,16 +307,17 @@ struct SocialMediaButton: View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Image(systemName: iconForPlatform(link.platform))
-                    .font(.system(size: 32))
+                    .font(.system(size: 36))
                     .foregroundColor(.white)
                 
                 Text(link.platform.capitalized)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
             }
-            .frame(width: 100, height: 100)
+            .frame(width: 110, height: 110)
             .background(colorForPlatform(link.platform))
-            .cornerRadius(16)
+            .cornerRadius(18)
+            .shadow(color: colorForPlatform(link.platform).opacity(0.3), radius: 8, x: 0, y: 4)
         }
     }
     
@@ -241,6 +344,7 @@ struct SocialMediaButton: View {
     }
 }
 
+// Keep existing helper views
 struct QRCodeDisplayView: View {
     let url: String
     let title: String
@@ -305,31 +409,12 @@ struct QRCodeDisplayView: View {
     }
 }
 
-struct EventsView: View {
-    let eventsText: String
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                Text(eventsText)
-                    .font(.system(size: 20))
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .navigationTitle("Upcoming Events/Upvas")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
+struct SocialMediaItem: Identifiable {
+    let id = UUID()
+    let url: String
 }
 
+// Keep all existing event views unchanged
 struct UnifiedCalendarEventsView: View {
     let googleCalendarLink: String?
     let localEvents: [LocalEvent]?
@@ -347,7 +432,6 @@ struct UnifiedCalendarEventsView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // View Toggle
                 Picker("View", selection: $selectedView) {
                     Text("Calendar").tag(CalendarViewType.calendar)
                     Text("List").tag(CalendarViewType.list)
@@ -419,7 +503,6 @@ struct CalendarMonthView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Month Navigation
                 HStack {
                     Button(action: { currentDate = Calendar.current.date(byAdding: .month, value: -1, to: currentDate) ?? currentDate }) {
                         Image(systemName: "chevron.left")
@@ -437,14 +520,12 @@ struct CalendarMonthView: View {
                 }
                 .padding()
                 
-                // Calendar Grid
                 CalendarGridView(
                     date: currentDate,
                     googleEvents: googleEvents,
                     localEvents: localEvents
                 )
                 
-                // Events Text (if provided)
                 if let text = eventsText, !text.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Additional Information")
@@ -475,7 +556,6 @@ struct CalendarGridView: View {
         let daysInMonth = calendar.range(of: .day, in: .month, for: date)!.count
         
         VStack(spacing: 8) {
-            // Weekday headers
             HStack(spacing: 0) {
                 ForEach(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], id: \.self) { day in
                     Text(day)
@@ -485,15 +565,12 @@ struct CalendarGridView: View {
                 }
             }
             
-            // Calendar days
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                // Empty cells for days before month start
                 ForEach(0..<firstWeekday, id: \.self) { _ in
                     Color.clear
                         .aspectRatio(1, contentMode: .fit)
                 }
                 
-                // Days of the month
                 ForEach(1...daysInMonth, id: \.self) { day in
                     let dayDate = calendar.date(byAdding: .day, value: day - 1, to: monthStart)!
                     let dayEvents = getEventsForDate(dayDate)
@@ -526,23 +603,18 @@ struct CalendarGridView: View {
     
     private func getEventsForDate(_ date: Date) -> [Any] {
         var events: [Any] = []
-        
-        // Add Google Calendar events
         for event in googleEvents {
             if let eventDate = event.start.displayDate,
                Calendar.current.isDate(eventDate, inSameDayAs: date) {
                 events.append(event)
             }
         }
-        
-        // Add local events
         for event in localEvents {
             if let eventDate = parseDate(event.date),
                Calendar.current.isDate(eventDate, inSameDayAs: date) {
                 events.append(event)
             }
         }
-        
         return events
     }
     
@@ -561,7 +633,6 @@ struct EventsListView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // Combine and sort all events
                 let allEvents = combineAndSortEvents()
                 
                 if allEvents.isEmpty {
@@ -583,7 +654,6 @@ struct EventsListView: View {
                     }
                 }
                 
-                // Events Text (if provided)
                 if let text = eventsText, !text.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Additional Information")
@@ -604,19 +674,12 @@ struct EventsListView: View {
     
     private func combineAndSortEvents() -> [Any] {
         var allEvents: [Any] = []
-        
-        // Add Google Calendar events
         allEvents.append(contentsOf: googleEvents)
-        
-        // Add local events
         for localEvent in localEvents {
-            if let date = parseDate(localEvent.date),
-               date >= Date() {
+            if let date = parseDate(localEvent.date), date >= Date() {
                 allEvents.append(localEvent)
             }
         }
-        
-        // Sort by date
         return allEvents.sorted { event1, event2 in
             let date1 = getDate(for: event1)
             let date2 = getDate(for: event2)
@@ -637,6 +700,58 @@ struct EventsListView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.date(from: dateString)
+    }
+}
+
+struct EventCard: View {
+    let event: GoogleCalendarEvent
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let date = event.start.displayDate {
+                HStack {
+                    Image(systemName: "calendar")
+                        .foregroundColor(.blue)
+                    Text(formatDate(date))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+            }
+            
+            Text(event.summary)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.primary)
+            
+            if let description = event.description, !description.isEmpty {
+                Text(description)
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            }
+            
+            if let endDate = event.end.displayDate, let startDate = event.start.displayDate {
+                if endDate != startDate {
+                    HStack {
+                        Image(systemName: "clock")
+                            .foregroundColor(.gray)
+                        Text("Until \(formatDate(endDate))")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 
@@ -706,147 +821,3 @@ struct LocalEventCard: View {
         return formatter.string(from: date)
     }
 }
-
-struct CalendarEventsView: View {
-    let calendarUrl: String
-    @Environment(\.dismiss) var dismiss
-    @State private var events: [GoogleCalendarEvent] = []
-    @State private var isLoading = true
-    @State private var errorMessage: String?
-    
-    var body: some View {
-        NavigationView {
-            Group {
-                if isLoading {
-                    VStack(spacing: 20) {
-                        ProgressView()
-                        Text("Loading events...")
-                            .font(.system(size: 18))
-                            .foregroundColor(.secondary)
-                    }
-                } else if let error = errorMessage {
-                    VStack(spacing: 20) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 50))
-                            .foregroundColor(.orange)
-                        Text("Unable to load events")
-                            .font(.system(size: 20, weight: .semibold))
-                        Text(error)
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                } else if events.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 50))
-                            .foregroundColor(.gray)
-                        Text("No upcoming events")
-                            .font(.system(size: 20, weight: .semibold))
-                        Text("Check back later for upcoming events")
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
-                    }
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(events) { event in
-                                EventCard(event: event)
-                            }
-                        }
-                        .padding()
-                    }
-                }
-            }
-            .navigationTitle("Upcoming Events")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-            .task {
-                await loadEvents()
-            }
-        }
-    }
-    
-    private func loadEvents() async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            let fetchedEvents = try await GoogleCalendarService.shared.fetchUpcomingEvents(from: calendarUrl, limit: 20)
-            await MainActor.run {
-                self.events = fetchedEvents
-                self.isLoading = false
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-                self.isLoading = false
-            }
-        }
-    }
-}
-
-struct EventCard: View {
-    let event: GoogleCalendarEvent
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let date = event.start.displayDate {
-                HStack {
-                    Image(systemName: "calendar")
-                        .foregroundColor(.blue)
-                    Text(formatDate(date))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
-                }
-            }
-            
-            Text(event.summary)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.primary)
-            
-            if let description = event.description, !description.isEmpty {
-                Text(description)
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-                    .lineLimit(3)
-            }
-            
-            if let endDate = event.end.displayDate, let startDate = event.start.displayDate {
-                if endDate != startDate {
-                    HStack {
-                        Image(systemName: "clock")
-                            .foregroundColor(.gray)
-                        Text("Until \(formatDate(endDate))")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-}
-
-struct SocialMediaItem: Identifiable {
-    let id = UUID()
-    let url: String
-}
-
