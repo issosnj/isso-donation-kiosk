@@ -34,8 +34,9 @@ class AppState: ObservableObject {
         if let token = keychain.load(forKey: "deviceToken") {
             self.deviceToken = token
             self.deviceId = extractDeviceId(from: token)
-            self.isActivated = true
-            // Load temple and categories from API
+            // Don't set isActivated to true until we verify the token is still valid
+            // Load temple and categories from API first
+            APIService.shared.setDeviceToken(token)
             Task {
                 await loadTempleConfig()
             }
@@ -43,8 +44,17 @@ class AppState: ObservableObject {
     }
     
     private func loadTempleConfig() async {
-        // This would load temple config using device token
-        // For now, we'll load it during activation
+        // For now, we can't fetch temple config separately
+        // The temple data is only returned during activation
+        // So if we have a stored token, we'll assume activation is valid
+        // and set isActivated to true
+        // In the future, we could add a /devices/me endpoint to fetch current config
+        
+        // Set activated immediately on main thread to ensure UI renders
+        // The UI should handle nil temple gracefully
+        await MainActor.run {
+            self.isActivated = true
+        }
     }
     
     // Extract device ID from JWT token payload

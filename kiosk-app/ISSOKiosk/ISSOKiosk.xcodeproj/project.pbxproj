@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B9EC64132EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC64122EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK */; };
+		B9EC64152EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC64142EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +41,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B9EC64152EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK in Frameworks */,
+				B9EC64132EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -81,6 +85,8 @@
 			);
 			name = ISSOKiosk;
 			packageProductDependencies = (
+				B9EC64122EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK */,
+				B9EC64142EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK */,
 			);
 			productName = ISSOKiosk;
 			productReference = B94A27FD2EF4DEAD005A3BBE /* ISSOKiosk.app */;
@@ -111,6 +117,7 @@
 			mainGroup = B94A27F42EF4DEAD005A3BBE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				B9EC64112EF5BE7100F9F2A4 /* XCRemoteSwiftPackageReference "in-app-payments-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B94A27FE2EF4DEAD005A3BBE /* Products */;
@@ -366,9 +373,27 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		B9EC64112EF5BE7100F9F2A4 /* XCRemoteSwiftPackageReference "in-app-payments-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/square/in-app-payments-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.5;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		B9EC64122EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B9EC64112EF5BE7100F9F2A4 /* XCRemoteSwiftPackageReference "in-app-payments-ios" */;
+			productName = SquareBuyerVerificationSDK;
+		};
+		B9EC64142EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B9EC64112EF5BE7100F9F2A4 /* XCRemoteSwiftPackageReference "in-app-payments-ios" */;
+			productName = SquareInAppPaymentsSDK;
+		};
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B94A27F52EF4DEAD005A3BBE /* Project object */;

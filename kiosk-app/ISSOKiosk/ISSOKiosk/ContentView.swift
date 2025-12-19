@@ -12,7 +12,7 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Background color
+            // Background color - always show immediately
             Color.white
                 .ignoresSafeArea()
             
