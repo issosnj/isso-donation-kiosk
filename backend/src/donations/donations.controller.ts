@@ -58,7 +58,7 @@ export class DonationsController {
     // Update donation with payment result
     await this.donationsService.complete(processPaymentDto.donationId, {
       squarePaymentId: result.paymentId,
-      status: result.status === 'COMPLETED' ? 'SUCCEEDED' : 'FAILED',
+      status: result.status === 'COMPLETED' ? DonationStatus.SUCCEEDED : DonationStatus.FAILED,
     });
 
     return {
@@ -86,7 +86,7 @@ export class DonationsController {
     if (result.completed && result.paymentId) {
       await this.donationsService.complete(donationId, {
         squarePaymentId: result.paymentId,
-        status: result.status === 'COMPLETED' ? 'SUCCEEDED' : 'FAILED',
+        status: result.status === 'COMPLETED' ? DonationStatus.SUCCEEDED : DonationStatus.FAILED,
       });
     }
 

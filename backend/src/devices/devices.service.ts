@@ -71,23 +71,23 @@ export class DevicesService {
     
     // Allow reactivation: devices can be activated if PENDING, ACTIVE, or INACTIVE
     // This allows reusing the same code when app is deleted or tablet is replaced
-    if (device.status === DeviceStatus.PENDING || 
-        device.status === DeviceStatus.ACTIVE || 
-        device.status === DeviceStatus.INACTIVE) {
-      // Generate new device token (invalidate old token)
-      const deviceToken = this.jwtService.sign({
-        deviceId: device.id,
-        templeId: device.templeId,
-        type: 'device',
-      });
-
-      device.deviceToken = deviceToken;
-      device.status = DeviceStatus.ACTIVE;
-      device.lastSeenAt = new Date();
-      await this.devicesRepository.save(device);
-    } else {
+    if (!(device.status === DeviceStatus.PENDING || 
+          device.status === DeviceStatus.ACTIVE || 
+          device.status === DeviceStatus.INACTIVE)) {
       throw new UnauthorizedException('Device cannot be activated');
     }
+
+    // Generate new device token (invalidate old token)
+    const deviceToken = this.jwtService.sign({
+      deviceId: device.id,
+      templeId: device.templeId,
+      type: 'device',
+    });
+
+    device.deviceToken = deviceToken;
+    device.status = DeviceStatus.ACTIVE;
+    device.lastSeenAt = new Date();
+    await this.devicesRepository.save(device);
 
     // Get temple config
     const temple = await this.templesService.findOne(device.templeId);
