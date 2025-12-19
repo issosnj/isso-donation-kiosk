@@ -137,7 +137,7 @@ struct ModernPaymentProcessingView: View {
                     // Card icon
                     Image(systemName: "creditcard.fill")
                         .font(.system(size: 120))
-                        .foregroundColor(
+                        .foregroundStyle(
                             LinearGradient(
                                 gradient: Gradient(colors: [
                                     Color(red: 0.2, green: 0.4, blue: 0.8),
@@ -288,7 +288,7 @@ struct ModernProcessingView: View {
                     
                     Text("$\(String(format: "%.2f", amount))")
                         .font(.system(size: 56, weight: .bold))
-                        .foregroundColor(
+                        .foregroundStyle(
                             LinearGradient(
                                 gradient: Gradient(colors: [
                                     Color(red: 0.2, green: 0.4, blue: 0.8),
