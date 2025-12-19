@@ -12,8 +12,8 @@ import CoreBluetooth
 // ⚠️ REQUIREMENT: Kiosk must be ATTENDED (in line of sight, during business hours, with trained staff)
 // See: https://developer.squareup.com/docs/mobile-payments-sdk#requirements-and-limitations
 
-// Temporarily removed PaymentManagerDelegate until LCRCore framework is fixed
-class SquareMobilePaymentsService: NSObject {
+// SquareMobilePaymentsService handles in-person payments with Square Stand
+class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     static let shared = SquareMobilePaymentsService()
     
     private var isAuthorized = false
@@ -126,45 +126,52 @@ class SquareMobilePaymentsService: NSObject {
         completion: @escaping (Result<PaymentResult, Error>) -> Void
     ) {
         guard isAuthorized else {
+            print("[SquareMobilePayments] ❌ SDK not authorized")
             completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "SDK not authorized. Call authorize() first."
             ])))
             return
         }
         
+        guard let accessToken = self.accessToken, let locationId = self.locationId else {
+            print("[SquareMobilePayments] ❌ Missing credentials")
+            completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Square credentials not available"
+            ])))
+            return
+        }
+        
         self.currentPaymentCompletion = completion
         
-        // TODO: Re-enable when LCRCore framework issue is fixed
+        print("[SquareMobilePayments] 💳 Starting payment: $\(amount) for donation \(donationId)")
+        print("[SquareMobilePayments] 📍 Location ID: \(locationId)")
+        
         // Create payment parameters
-        // let amountMoney = Money(amount: UInt(amount * 100), currency: .USD)
-        // let paymentParameters = PaymentParameters(
-        //     paymentAttemptID: donationId,
-        //     amountMoney: amountMoney,
-        //     processingMode: .onlineOnly
-        // )
-        //
-        // let promptParameters = PromptParameters(
-        //     mode: .default,
-        //     additionalMethods: .all
-        // )
-        //
-        // let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
-        //     paymentParameters,
-        //     promptParameters: promptParameters,
-        //     from: viewController,
-        //     delegate: self
-        // )
+        let amountMoney = Money(amount: UInt(amount * 100), currency: .USD)
+        let paymentParameters = PaymentParameters(
+            paymentAttemptID: donationId,
+            amountMoney: amountMoney,
+            processingMode: .onlineOnly
+        )
         
-        // Temporary: Process through backend until SDK is fixed
-        print("[SquareMobilePayments] Payment requested: $\(amount) for donation \(donationId)")
-        print("[SquareMobilePayments] SDK temporarily disabled - processing through backend")
+        let promptParameters = PromptParameters(
+            mode: .default,
+            additionalMethods: .all
+        )
         
-        Task {
-            await processPaymentThroughBackend(
-                amount: amount,
-                donationId: donationId,
-                completion: completion
-            )
+        // Start payment - this will automatically detect Square Stand
+        print("[SquareMobilePayments] 🔍 Detecting Square Stand hardware...")
+        let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
+            paymentParameters,
+            promptParameters: promptParameters,
+            from: viewController,
+            delegate: self
+        )
+        
+        if let handle = paymentHandle {
+            print("[SquareMobilePayments] ✅ Payment started, handle: \(handle)")
+        } else {
+            print("[SquareMobilePayments] ⚠️ Payment handle is nil")
         }
     }
     
@@ -230,49 +237,60 @@ class SquareMobilePaymentsService: NSObject {
         }
     }
     
-    // MARK: - PaymentManagerDelegate (Temporarily Disabled)
+    // MARK: - PaymentManagerDelegate
     
-    // TODO: Re-enable when LCRCore framework issue is fixed
-    // func paymentManager(_ paymentManager: PaymentManager, didFinish payment: Payment) {
-    //     // Payment succeeded
-    //     // Extract payment ID - try common property names
-    //     var paymentId: String? = nil
-    //     
-    //     // Try different ways to access the payment ID based on SDK structure
-    //     // The Payment protocol might have different implementations
-    //     if let onlinePayment = payment as? OnlinePayment {
-    //         paymentId = onlinePayment.id
-    //     } else if let offlinePayment = payment as? OfflinePayment {
-    //         // Offline payments may not have an ID until processed online
-    //         paymentId = offlinePayment.id
-    //     }
-    //     
-    //     // If still nil, we'll use the paymentAttemptID from when we started the payment
-    //     // This is stored in the donationId parameter we passed
-    //     print("[SquareMobilePayments] Payment succeeded")
-    //     let result = PaymentResult(
-    //         success: true,
-    //         paymentId: paymentId, // May be nil for offline payments
-    //         error: nil
-    //     )
-    //     currentPaymentCompletion?(.success(result))
-    //     currentPaymentCompletion = nil
-    // }
-    //
-    // func paymentManager(_ paymentManager: PaymentManager, didFail payment: Payment, withError error: Error) {
-    //     print("[SquareMobilePayments] Payment failed: \(error.localizedDescription)")
-    //     currentPaymentCompletion?(.failure(error))
-    //     currentPaymentCompletion = nil
-    // }
-    //
-    // func paymentManager(_ paymentManager: PaymentManager, didCancel payment: Payment) {
-    //     print("[SquareMobilePayments] Payment cancelled by user")
-    //     let error = NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
-    //         NSLocalizedDescriptionKey: "Payment was cancelled by user"
-    //     ])
-    //     currentPaymentCompletion?(.failure(error))
-    //     currentPaymentCompletion = nil
-    // }
+    func paymentManager(_ paymentManager: PaymentManager, didFinish payment: Payment) {
+        print("[SquareMobilePayments] ✅ Payment succeeded!")
+        
+        // Extract payment ID - try different payment types
+        var paymentId: String? = nil
+        
+        if let onlinePayment = payment as? OnlinePayment {
+            paymentId = onlinePayment.id
+            print("[SquareMobilePayments] Online payment ID: \(paymentId ?? "nil")")
+        } else if let offlinePayment = payment as? OfflinePayment {
+            paymentId = offlinePayment.id
+            print("[SquareMobilePayments] Offline payment ID: \(paymentId ?? "nil")")
+        } else {
+            print("[SquareMobilePayments] ⚠️ Unknown payment type")
+        }
+        
+        let result = PaymentResult(
+            success: true,
+            paymentId: paymentId,
+            error: nil
+        )
+        
+        currentPaymentCompletion?(.success(result))
+        currentPaymentCompletion = nil
+    }
+    
+    func paymentManager(_ paymentManager: PaymentManager, didFail payment: Payment, withError error: Error) {
+        print("[SquareMobilePayments] ❌ Payment failed: \(error.localizedDescription)")
+        print("[SquareMobilePayments] Error details: \(error)")
+        
+        // Check if it's a hardware detection error
+        let errorDescription = error.localizedDescription.lowercased()
+        if errorDescription.contains("reader") || errorDescription.contains("hardware") || errorDescription.contains("stand") {
+            print("[SquareMobilePayments] ⚠️ This appears to be a Square Stand connection issue")
+            print("[SquareMobilePayments] 💡 Please check:")
+            print("[SquareMobilePayments]    1. iPad is securely inserted into Square Stand")
+            print("[SquareMobilePayments]    2. Stand is powered on")
+            print("[SquareMobilePayments]    3. Settings > General > About shows 'Square Stand'")
+        }
+        
+        currentPaymentCompletion?(.failure(error))
+        currentPaymentCompletion = nil
+    }
+    
+    func paymentManager(_ paymentManager: PaymentManager, didCancel payment: Payment) {
+        print("[SquareMobilePayments] 🚫 Payment cancelled by user")
+        let error = NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
+            NSLocalizedDescriptionKey: "Payment was cancelled by user"
+        ])
+        currentPaymentCompletion?(.failure(error))
+        currentPaymentCompletion = nil
+    }
 }
 
 // Temporary response struct for backend payment processing
