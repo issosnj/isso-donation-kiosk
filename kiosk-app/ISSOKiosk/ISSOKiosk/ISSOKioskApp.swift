@@ -1,5 +1,6 @@
 import SwiftUI
-import SquareInAppPaymentsSDK
+// TODO: Import Mobile Payments SDK when package is added
+// import SquareMobilePaymentsSDK  // This is the correct SDK for Square Stand
 
 @main
 struct ISSOKioskApp: App {
@@ -7,14 +8,17 @@ struct ISSOKioskApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     init() {
-        // Initialize Square Mobile Payments SDK for in-person payments
-        if let appId = Bundle.main.object(forInfoDictionaryKey: "SQUARE_APPLICATION_ID") as? String {
-            SQIPInAppPaymentsSDK.squareApplicationID = appId
-            print("[Square SDK] Initialized with Application ID: \(appId.prefix(8))...")
-        } else {
-            print("[Square SDK] Warning: SQUARE_APPLICATION_ID not found in Info.plist")
-        }
+        // TODO: Initialize Mobile Payments SDK when package is added
+        // Mobile Payments SDK requires:
+        // 1. OAuth access token (from backend - temple's Square access token)
+        // 2. Location ID (from temple configuration)
+        // 3. AuthorizationManager.authorize() call
+        //
+        // Reference: https://developer.squareup.com/docs/mobile-payments-sdk/ios
+        
         print("[App] ISSO Donation Kiosk initialized")
+        print("[App] NOTE: Mobile Payments SDK integration pending")
+        print("[App] Current implementation uses backend payment processing")
     }
     
     var body: some Scene {

@@ -19,7 +19,8 @@ class SquareCardReader: NSObject, SQIPCardEntryViewControllerDelegate {
         let error: String?
     }
     
-    // Start payment flow - shows card entry UI and listens for card interactions
+    // Start payment flow using Mobile Payments SDK
+    // This will use PaymentManager to take payment directly with Square Stand
     func startPayment(
         amount: Double,
         donationId: String,
@@ -29,51 +30,24 @@ class SquareCardReader: NSObject, SQIPCardEntryViewControllerDelegate {
         self.currentDonationId = donationId
         self.paymentCompletion = completion
         
-        // Create card entry view controller
-        let cardEntryViewController = SQIPCardEntryViewController()
-        cardEntryViewController.delegate = self
+        // TODO: Implement with Mobile Payments SDK
+        // 1. Get OAuth access token from backend (temple's Square access token)
+        // 2. Authorize SDK with AuthorizationManager
+        // 3. Use PaymentManager to take payment
+        // 4. PaymentManager will handle Square Stand interaction automatically
+        // 5. Return payment result in completion handler
         
-        // Configure for in-person payments (tap/chip)
-        // The SDK will automatically detect Square hardware and use it
-        
-        // Present the card entry view
-        // Note: This needs to be presented from a UIViewController
-        // We'll need to get the root view controller from the app
-        DispatchQueue.main.async {
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let rootViewController = windowScene.windows.first?.rootViewController {
-                rootViewController.present(cardEntryViewController, animated: true)
-            }
+        // TEMPORARY: For now, process through backend with manual flow
+        // This will be replaced with Mobile Payments SDK PaymentManager
+        Task {
+            await processPaymentThroughBackend()
         }
     }
     
-    // MARK: - SQIPCardEntryViewControllerDelegate
-    
-    func cardEntryViewController(_ cardEntryViewController: SQIPCardEntryViewController, didCompleteWith cardDetails: SQIPCardDetails) {
-        // Card was entered - now process payment
-        print("[SquareCardReader] Card entered, processing payment...")
-        
-        // Dismiss card entry view
-        cardEntryViewController.dismiss(animated: true) {
-            // Process payment through backend
-            Task {
-                await self.processPaymentWithCard(cardDetails: cardDetails)
-            }
-        }
-    }
-    
-    func cardEntryViewController(_ cardEntryViewController: SQIPCardEntryViewController, didFailWith error: Error) {
-        // Card entry failed
-        print("[SquareCardReader] Card entry failed: \(error.localizedDescription)")
-        
-        cardEntryViewController.dismiss(animated: true) {
-            self.paymentCompletion?(.failure(error))
-        }
-    }
-    
-    private func processPaymentWithCard(cardDetails: SQIPCardDetails) async {
-        // Process payment through backend using the card nonce
-        // The backend will use Square Payments API to charge the card
+    // Temporary implementation - will be replaced with Mobile Payments SDK
+    private func processPaymentThroughBackend() async {
+        // Temporary: Process payment through backend
+        // In final implementation, Mobile Payments SDK PaymentManager will handle this
         
         guard let url = URL(string: "\(Config.apiBaseURL)/donations/process-payment") else {
             paymentCompletion?(.failure(NSError(domain: "SquareCardReader", code: -1, userInfo: [
@@ -97,7 +71,8 @@ class SquareCardReader: NSObject, SQIPCardEntryViewControllerDelegate {
             "donationId": currentDonationId,
             "amount": currentAmount,
             "idempotencyKey": "\(currentDonationId)-\(Date().timeIntervalSince1970)",
-            "sourceId": cardDetails.nonce // Card nonce from Square SDK
+            // Note: Mobile Payments SDK doesn't use nonces - it processes payment directly
+            // This is temporary until we implement Mobile Payments SDK
         ]
         
         do {
