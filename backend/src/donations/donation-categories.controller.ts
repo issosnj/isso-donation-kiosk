@@ -87,10 +87,17 @@ export class DonationCategoriesController {
     
     // Map to only include necessary fields for kiosk
     const mappedCategories = categories.map((cat) => {
+      // Convert defaultAmount from decimal to number (TypeORM returns decimals as strings)
+      const defaultAmount = cat.defaultAmount != null 
+        ? (typeof cat.defaultAmount === 'string' 
+            ? parseFloat(cat.defaultAmount) 
+            : Number(cat.defaultAmount))
+        : null;
+      
       const mapped = {
         id: cat.id,
         name: cat.name,
-        defaultAmount: cat.defaultAmount,
+        defaultAmount: defaultAmount,
         // Convert Date objects to ISO strings for iOS compatibility
         showStartDate: cat.showStartDate ? cat.showStartDate.toISOString() : null,
         showEndDate: cat.showEndDate ? cat.showEndDate.toISOString() : null,
