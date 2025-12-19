@@ -143,20 +143,34 @@ export class DonationsService {
 
       // Get total amount
       const totalQuery = buildBaseQuery();
-      const total = await totalQuery
-        .select('SUM(donation.amount)', 'total')
+      const totalResult = await totalQuery
+        .select('COALESCE(SUM(donation.amount), 0)', 'total')
         .getRawOne();
 
       // Get count
       const countQuery = buildBaseQuery();
       const count = await countQuery.getCount();
 
+      // Safely parse the total
+      let totalAmount = 0;
+      if (totalResult && totalResult.total !== null && totalResult.total !== undefined) {
+        const parsed = parseFloat(String(totalResult.total));
+        totalAmount = isNaN(parsed) ? 0 : parsed;
+      }
+
       return {
-        total: parseFloat(total?.total || '0') || 0,
+        total: totalAmount,
         count: count || 0,
       };
     } catch (error) {
       console.error('Error in getStats:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        templeId,
+        startDate,
+        endDate,
+      });
       // Return default stats instead of throwing
       return {
         total: 0,

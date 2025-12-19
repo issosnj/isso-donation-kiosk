@@ -68,17 +68,27 @@ export class DonationsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get donation statistics' })
-  getStats(
+  async getStats(
     @CurrentUser() user: any,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const templeId = user.role === UserRole.MASTER_ADMIN ? undefined : user.templeId;
-    return this.donationsService.getStats(
-      templeId,
-      startDate ? new Date(startDate) : undefined,
-      endDate ? new Date(endDate) : undefined,
-    );
+    try {
+      const templeId = user.role === UserRole.MASTER_ADMIN ? undefined : user.templeId;
+      const stats = await this.donationsService.getStats(
+        templeId,
+        startDate ? new Date(startDate) : undefined,
+        endDate ? new Date(endDate) : undefined,
+      );
+      return stats;
+    } catch (error) {
+      console.error('[Donations Controller] Error in getStats:', error);
+      // Return default stats on error
+      return {
+        total: 0,
+        count: 0,
+      };
+    }
   }
 
   @Get(':id')
