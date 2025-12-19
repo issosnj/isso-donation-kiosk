@@ -111,7 +111,6 @@
 			mainGroup = B94A27F42EF4DEAD005A3BBE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				B9EC64112EF5BE7100F9F2A4 /* XCRemoteSwiftPackageReference "in-app-payments-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B94A27FE2EF4DEAD005A3BBE /* Products */;
