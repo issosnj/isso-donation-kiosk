@@ -64,8 +64,14 @@ struct ModernPaymentView: View {
             // For now, we'll wait for actual Square SDK integration
             // The payment will only process when Square SDK detects a card
             
-            // Simulate waiting for card - in real implementation, Square SDK will handle this
-            // For now, we'll just show the ready state and wait
+            // SIMULATION MODE: Auto-detect "card" after 3 seconds for testing
+            // In real implementation, Square SDK will handle card detection
+            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+            
+            // Simulate card detection - trigger payment processing
+            await MainActor.run {
+                onCardDetected()
+            }
         }
     }
     
