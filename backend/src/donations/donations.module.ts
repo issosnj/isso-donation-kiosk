@@ -15,7 +15,7 @@ import { SquareModule } from '../square/square.module';
     TypeOrmModule.forFeature([Donation, DonationCategory]),
     TemplesModule,
     forwardRef(() => DevicesModule),
-    SquareModule,
+    forwardRef(() => SquareModule),
   ],
   controllers: [DonationsController, DonationCategoriesController],
   providers: [DonationsService, DonationCategoriesService],
