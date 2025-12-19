@@ -18,6 +18,70 @@ struct DonationHomeView: View {
         appState.temple?.homeScreenConfig?.presetAmounts ?? [5, 10, 25, 50, 100]
     }
     
+    // Button colors from backend config, with defaults
+    var buttonColors: ButtonColors {
+        appState.temple?.homeScreenConfig?.buttonColors ?? ButtonColors(
+            categorySelected: nil,
+            categoryUnselected: nil,
+            amountSelected: nil,
+            amountUnselected: nil
+        )
+    }
+    
+    // Helper to convert hex string to Color
+    func colorFromHex(_ hex: String?, defaultColor: Color = Color(red: 0.2, green: 0.4, blue: 0.8)) -> Color {
+        guard let hex = hex, !hex.isEmpty else {
+            return defaultColor
+        }
+        
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        
+        // Handle 3-character hex codes (e.g., #336 -> #3366CC)
+        if hexSanitized.count == 3 {
+            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
+        }
+        
+        guard hexSanitized.count == 6 else {
+            return defaultColor
+        }
+        
+        var rgb: UInt64 = 0
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else {
+            return defaultColor
+        }
+        
+        let r = Double((rgb & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgb & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgb & 0x0000FF) / 255.0
+        
+        return Color(red: r, green: g, blue: b)
+    }
+    
+    // Get colors with defaults
+    var categorySelectedColor: Color {
+        colorFromHex(buttonColors.categorySelected)
+    }
+    
+    var categoryUnselectedColor: Color {
+        let baseColor = colorFromHex(buttonColors.categoryUnselected)
+        // If unselected color is same as selected, apply opacity
+        if buttonColors.categoryUnselected == buttonColors.categorySelected {
+            return baseColor.opacity(0.7)
+        }
+        return baseColor
+    }
+    
+    var amountSelectedColor: Color {
+        colorFromHex(buttonColors.amountSelected)
+    }
+    
+    var amountUnselectedColor: Color {
+        colorFromHex(buttonColors.amountUnselected)
+    }
+    
     var body: some View {
         ZStack {
             // Subtle gradient background (white to light blue)
@@ -80,6 +144,8 @@ struct DonationHomeView: View {
                                         CleanCategoryButton(
                                             category: category,
                                             isSelected: selectedCategory?.id == category.id,
+                                            selectedColor: categorySelectedColor,
+                                            unselectedColor: categoryUnselectedColor,
                                             action: {
                                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                                     if selectedCategory?.id == category.id {
@@ -239,6 +305,8 @@ struct DonationHomeView: View {
                                                 CleanAmountButton(
                                                     amount: amount,
                                                     isSelected: selectedAmount == amount,
+                                                    selectedColor: amountSelectedColor,
+                                                    unselectedColor: amountUnselectedColor,
                                                     action: {
                                                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                                             selectedAmount = amount
@@ -276,6 +344,8 @@ struct DonationHomeView: View {
                                                 CleanAmountButton(
                                                     amount: amount,
                                                     isSelected: selectedAmount == amount,
+                                                    selectedColor: amountSelectedColor,
+                                                    unselectedColor: amountUnselectedColor,
                                                     action: {
                                                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                                             selectedAmount = amount
@@ -448,19 +518,19 @@ struct DonationHomeView: View {
 struct CleanAmountButton: View {
     let amount: Double
     let isSelected: Bool
+    let selectedColor: Color
+    let unselectedColor: Color
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
-                Text("$\(Int(amount))")
+            Text("$\(Int(amount))")
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 70)
                 .background(
-                    isSelected 
-                        ? Color(red: 0.2, green: 0.4, blue: 0.8)
-                        : Color(red: 0.2, green: 0.4, blue: 0.8)
+                    isSelected ? selectedColor : unselectedColor
                 )
                 .cornerRadius(12)
         }
@@ -528,12 +598,14 @@ struct CleanCustomAmountField: View {
 struct CleanCategoryButton: View {
     let category: DonationCategory
     let isSelected: Bool
+    let selectedColor: Color
+    let unselectedColor: Color
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
-            Text(category.name)
+                Text(category.name)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.white)
                     .lineLimit(2)
@@ -548,9 +620,7 @@ struct CleanCategoryButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: 70)
             .background(
-                isSelected 
-                    ? Color(red: 0.2, green: 0.4, blue: 0.8)
-                    : Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.7)
+                isSelected ? selectedColor : unselectedColor
             )
             .cornerRadius(12)
         }

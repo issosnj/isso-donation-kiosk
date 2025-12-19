@@ -48,28 +48,34 @@ export class Temple {
     secondaryColor?: string;
   };
 
-  @Column({ type: 'json', nullable: true })
-  homeScreenConfig: {
-    idleTimeoutSeconds?: number;
-    customMessage?: string;
-    whatsAppLink?: string;
-    eventsText?: string; // Deprecated - use localEvents instead
-    googleCalendarLink?: string;
-    localEvents?: Array<{
-      id: string;
-      title: string;
-      description?: string;
-      date: string; // ISO date string (YYYY-MM-DD)
-      startTime?: string; // Optional time (HH:mm)
-      endTime?: string; // Optional time (HH:mm)
-      isAllDay?: boolean;
-    }>;
-    socialMedia?: Array<{
-      platform: string;
-      url: string;
-    }>;
-    presetAmounts?: number[]; // Preset donation amounts (e.g., [5, 10, 25, 50, 100])
-  };
+    @Column({ type: 'json', nullable: true })
+    homeScreenConfig: {
+      idleTimeoutSeconds?: number;
+      customMessage?: string;
+      whatsAppLink?: string;
+      eventsText?: string; // Deprecated - use localEvents instead
+      googleCalendarLink?: string;
+      localEvents?: Array<{
+        id: string;
+        title: string;
+        description?: string;
+        date: string; // ISO date string (YYYY-MM-DD)
+        startTime?: string; // Optional time (HH:mm)
+        endTime?: string; // Optional time (HH:mm)
+        isAllDay?: boolean;
+      }>;
+      socialMedia?: Array<{
+        platform: string;
+        url: string;
+      }>;
+      presetAmounts?: number[]; // Preset donation amounts (e.g., [5, 10, 25, 50, 100])
+      buttonColors?: {
+        categorySelected?: string; // Hex color for selected category buttons
+        categoryUnselected?: string; // Hex color for unselected category buttons
+        amountSelected?: string; // Hex color for selected amount buttons
+        amountUnselected?: string; // Hex color for unselected amount buttons
+      };
+    };
 
   @OneToMany(() => Device, (device) => device.temple)
   devices: Device[];

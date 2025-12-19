@@ -28,6 +28,17 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
     googleCalendarLink: '',
     socialMedia: [] as Array<{ platform: string; url: string }>,
     presetAmounts: [5, 10, 25, 50, 100] as number[],
+    buttonColors: {
+      categorySelected: '#3366CC',
+      categoryUnselected: '#3366CC',
+      amountSelected: '#3366CC',
+      amountUnselected: '#3366CC',
+    } as {
+      categorySelected?: string;
+      categoryUnselected?: string;
+      amountSelected?: string;
+      amountUnselected?: string;
+    },
   })
 
   useEffect(() => {
@@ -40,6 +51,12 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
         googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
         socialMedia: temple.homeScreenConfig.socialMedia || [],
         presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
+        buttonColors: temple.homeScreenConfig.buttonColors || {
+          categorySelected: '#3366CC',
+          categoryUnselected: '#3366CC',
+          amountSelected: '#3366CC',
+          amountUnselected: '#3366CC',
+        },
       })
     }
   }, [temple])
@@ -113,6 +130,12 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                     googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
                     socialMedia: temple.homeScreenConfig.socialMedia || [],
                     presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
+                    buttonColors: temple.homeScreenConfig.buttonColors || {
+                      categorySelected: '#3366CC',
+                      categoryUnselected: '#3366CC',
+                      amountSelected: '#3366CC',
+                      amountUnselected: '#3366CC',
+                    },
                   })
                 }
               }}
@@ -253,6 +276,168 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
           <p className="mt-2 text-xs text-gray-500">
             These amounts will appear as quick-select buttons on the donation screen. Donors can also enter a custom amount.
           </p>
+        </div>
+
+        {/* Button Colors */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Button Colors
+          </label>
+          <p className="text-xs text-gray-500 mb-4">
+            Customize the colors for category and amount selection buttons
+          </p>
+          
+          <div className="grid grid-cols-2 gap-4">
+            {/* Category Colors */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-700">Category Buttons</h4>
+              
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Selected Category Color
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="color"
+                    value={formData.buttonColors.categorySelected || '#3366CC'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      buttonColors: {
+                        ...formData.buttonColors,
+                        categorySelected: e.target.value,
+                      },
+                    })}
+                    disabled={!isEditing}
+                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <input
+                    type="text"
+                    value={formData.buttonColors.categorySelected || '#3366CC'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      buttonColors: {
+                        ...formData.buttonColors,
+                        categorySelected: e.target.value,
+                      },
+                    })}
+                    disabled={!isEditing}
+                    placeholder="#3366CC"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Unselected Category Color
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="color"
+                    value={formData.buttonColors.categoryUnselected || '#3366CC'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      buttonColors: {
+                        ...formData.buttonColors,
+                        categoryUnselected: e.target.value,
+                      },
+                    })}
+                    disabled={!isEditing}
+                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <input
+                    type="text"
+                    value={formData.buttonColors.categoryUnselected || '#3366CC'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      buttonColors: {
+                        ...formData.buttonColors,
+                        categoryUnselected: e.target.value,
+                      },
+                    })}
+                    disabled={!isEditing}
+                    placeholder="#3366CC"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Amount Colors */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-700">Amount Buttons</h4>
+              
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Selected Amount Color
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="color"
+                    value={formData.buttonColors.amountSelected || '#3366CC'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      buttonColors: {
+                        ...formData.buttonColors,
+                        amountSelected: e.target.value,
+                      },
+                    })}
+                    disabled={!isEditing}
+                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <input
+                    type="text"
+                    value={formData.buttonColors.amountSelected || '#3366CC'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      buttonColors: {
+                        ...formData.buttonColors,
+                        amountSelected: e.target.value,
+                      },
+                    })}
+                    disabled={!isEditing}
+                    placeholder="#3366CC"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Unselected Amount Color
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="color"
+                    value={formData.buttonColors.amountUnselected || '#3366CC'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      buttonColors: {
+                        ...formData.buttonColors,
+                        amountUnselected: e.target.value,
+                      },
+                    })}
+                    disabled={!isEditing}
+                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <input
+                    type="text"
+                    value={formData.buttonColors.amountUnselected || '#3366CC'}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      buttonColors: {
+                        ...formData.buttonColors,
+                        amountUnselected: e.target.value,
+                      },
+                    })}
+                    disabled={!isEditing}
+                    placeholder="#3366CC"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Note about Events Calendar */}

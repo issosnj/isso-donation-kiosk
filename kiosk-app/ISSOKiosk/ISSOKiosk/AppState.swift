@@ -289,6 +289,14 @@ struct HomeScreenConfig: Codable {
     let localEvents: [LocalEvent]?
     let socialMedia: [SocialMediaLink]?
     let presetAmounts: [Double]? // Preset donation amounts configured by admin
+    let buttonColors: ButtonColors? // Button color customization
+}
+
+struct ButtonColors: Codable {
+    let categorySelected: String? // Hex color for selected category buttons
+    let categoryUnselected: String? // Hex color for unselected category buttons
+    let amountSelected: String? // Hex color for selected amount buttons
+    let amountUnselected: String? // Hex color for unselected amount buttons
 }
 
 struct LocalEvent: Codable, Identifiable {
