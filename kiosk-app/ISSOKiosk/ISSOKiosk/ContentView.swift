@@ -12,20 +12,12 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
+            // Background color - should be visible if view renders
             Color.white
                 .ignoresSafeArea()
             
-            // Debug text to verify view is rendering
-            VStack {
-                Text("App State: \(appState.isActivated ? "Activated" : "Not Activated")")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .padding()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            
             if appState.isActivated {
-                // Debug: Activated state
+                // Activated state
                 ZStack {
                     // Always show home screen as base
                     KioskHomeView()
@@ -52,13 +44,14 @@ struct ContentView: View {
                     }
                 }
             } else {
-                // Debug: Not activated - showing activation view
+                // Not activated - showing activation view
                 DeviceActivationView()
                     .environmentObject(appState)
             }
         }
         .onAppear {
-            print("ContentView appeared - isActivated: \(appState.isActivated)")
+            print("✅ ContentView appeared - isActivated: \(appState.isActivated)")
+            print("✅ AppState object: \(appState)")
         }
     }
     

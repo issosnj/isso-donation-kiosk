@@ -31,14 +31,21 @@ class AppState: ObservableObject {
     }
     
     private func loadStoredCredentials() {
-        if let token = keychain.load(forKey: "deviceToken") {
-            self.deviceToken = token
-            self.deviceId = extractDeviceId(from: token)
-            self.isActivated = true
-            // Load temple and categories from API
-            Task {
-                await loadTempleConfig()
+        do {
+            if let token = keychain.load(forKey: "deviceToken") {
+                print("✅ Found stored device token")
+                self.deviceToken = token
+                self.deviceId = extractDeviceId(from: token)
+                self.isActivated = true
+                // Load temple and categories from API
+                Task {
+                    await loadTempleConfig()
+                }
+            } else {
+                print("ℹ️ No stored device token found")
             }
+        } catch {
+            print("❌ Error loading stored credentials: \(error)")
         }
     }
     
