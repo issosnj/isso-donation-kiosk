@@ -123,6 +123,7 @@ struct ModernPaymentReadyView: View {
     let onCardDetected: () -> Void
     @State private var appearAnimation = false
     @State private var pulseAnimation = false
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
         ZStack {
@@ -184,6 +185,31 @@ struct ModernPaymentReadyView: View {
                 Spacer()
             }
             .padding(40)
+            
+            // Cancel button (top left)
+            VStack {
+                HStack {
+                    Button(action: {
+                        withAnimation {
+                            dismiss()
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "xmark")
+                            Text("Cancel")
+                        }
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color(red: 0.1, green: 0.1, blue: 0.1))
+                        .cornerRadius(10)
+                    }
+                    .padding()
+                    Spacer()
+                }
+                Spacer()
+            }
         }
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
