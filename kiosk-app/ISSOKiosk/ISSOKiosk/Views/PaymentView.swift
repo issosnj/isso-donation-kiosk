@@ -12,7 +12,7 @@ struct PaymentView: View {
     @State private var paymentStatus: PaymentStatus?
     @Environment(\.dismiss) var dismiss
     
-    enum PaymentStatus {
+    enum PaymentStatus: Equatable {
         case success
         case failure(String)
     }
