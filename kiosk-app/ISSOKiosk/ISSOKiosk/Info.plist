@@ -50,5 +50,8 @@
 	</array>
 	<key>SQUARE_APPLICATION_ID</key>
 	<string>sq0idp-Xtwux6dvJ58KrKW0amhoMQ</string>
+	<!-- Camera permission for QR code scanning -->
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is required to scan device code QR codes for activation.</string>
 </dict>
 </plist>
