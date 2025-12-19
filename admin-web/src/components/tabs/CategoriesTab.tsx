@@ -362,7 +362,9 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-700">
-                            {category.defaultAmount != null ? `$${Number(category.defaultAmount).toFixed(2)}` : 'N/A'}
+                            {category.defaultAmount != null && !isNaN(Number(category.defaultAmount)) 
+                              ? `$${Number(category.defaultAmount).toFixed(2)}` 
+                              : 'N/A'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
