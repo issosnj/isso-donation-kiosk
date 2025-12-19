@@ -82,22 +82,42 @@ export default function SquareTab({ templeId }: SquareTabProps) {
 
   const disconnectSquareMutation = useMutation({
     mutationFn: async () => {
-      await api.patch(`/temples/${templeId}`, {
+      console.log('[SquareTab] Disconnecting Square...')
+      const response = await api.patch(`/temples/${templeId}`, {
         squareMerchantId: null,
         squareAccessToken: null,
         squareRefreshToken: null,
         squareLocationId: null,
       })
+      console.log('[SquareTab] Disconnect response:', {
+        squareMerchantId: response.data?.squareMerchantId,
+        squareAccessToken: response.data?.squareAccessToken ? 'present' : 'null/empty',
+        squareLocationId: response.data?.squareLocationId,
+      })
+      return response.data
     },
-    onSuccess: async () => {
-      // Invalidate queries first
-      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
-      queryClient.invalidateQueries({ queryKey: ['temples'] })
+    onSuccess: async (updatedTemple) => {
+      console.log('[SquareTab] Disconnect successful, updated temple:', {
+        squareMerchantId: updatedTemple?.squareMerchantId,
+        squareAccessToken: updatedTemple?.squareAccessToken ? 'present' : 'null/empty',
+      })
       
-      // Force immediate refetch and wait for it to complete
+      // Aggressively clear cache
+      queryClient.removeQueries({ queryKey: ['temple', templeId] })
+      queryClient.removeQueries({ queryKey: ['temples'] })
+      
+      // Update cache directly with the response data
+      queryClient.setQueryData(['temple', templeId], updatedTemple)
+      
+      // Wait a bit then refetch to ensure we have latest data
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Force immediate refetch
       await queryClient.refetchQueries({ 
         queryKey: ['temple', templeId],
-        exact: true 
+      })
+      await queryClient.refetchQueries({ 
+        queryKey: ['temples'],
       })
       
       setSuccessMessage('Square account disconnected successfully')
