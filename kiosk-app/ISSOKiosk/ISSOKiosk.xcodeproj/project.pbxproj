@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B9EC64132EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC64122EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK */; };
 		B9EC64152EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC64142EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK */; };
 /* End PBXBuildFile section */
 
@@ -42,7 +41,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				B9EC64152EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK in Frameworks */,
-				B9EC64132EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,7 +83,6 @@
 			);
 			name = ISSOKiosk;
 			packageProductDependencies = (
-				B9EC64122EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK */,
 				B9EC64142EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK */,
 			);
 			productName = ISSOKiosk;
@@ -384,11 +381,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		B9EC64122EF5BE7100F9F2A4 /* SquareBuyerVerificationSDK */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = B9EC64112EF5BE7100F9F2A4 /* XCRemoteSwiftPackageReference "in-app-payments-ios" */;
-			productName = SquareBuyerVerificationSDK;
-		};
 		B9EC64142EF5BE7100F9F2A4 /* SquareInAppPaymentsSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B9EC64112EF5BE7100F9F2A4 /* XCRemoteSwiftPackageReference "in-app-payments-ios" */;
