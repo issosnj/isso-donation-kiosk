@@ -13,8 +13,17 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             // Background color - should be visible if view renders
-            Color.white
+            Color.red.opacity(0.3)
                 .ignoresSafeArea()
+            
+            // Test view to verify rendering
+            VStack {
+                Text("TEST - ContentView is rendering")
+                    .font(.largeTitle)
+                    .foregroundColor(.blue)
+                    .padding()
+                    .background(Color.yellow)
+            }
             
             if appState.isActivated {
                 // Activated state
