@@ -18,7 +18,7 @@ struct ModernPaymentView: View {
     @State private var paymentStatus: PaymentStatus?
     @State private var appearAnimation = false
     @State private var cardPulse = false
-    @State private var hasStarted = false
+    @State private var isReady = false
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -35,9 +35,9 @@ struct ModernPaymentView: View {
             } else if isProcessing {
                 ModernProcessingView(amount: amount)
             } else {
-                ModernPaymentProcessingView(
+                ModernPaymentReadyView(
                     amount: amount,
-                    onStart: {
+                    onCardDetected: {
                         withAnimation {
                             processPayment()
                         }
@@ -46,16 +46,26 @@ struct ModernPaymentView: View {
             }
         }
         .onAppear {
-            // Automatically start payment processing when view appears
-            if !hasStarted {
-                hasStarted = true
-                // Small delay to ensure view is fully rendered
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation {
-                        processPayment()
-                    }
-                }
+            // Show ready state when view appears
+            // Payment will only process when Square SDK detects card interaction
+            if !isReady {
+                isReady = true
+                // Initialize Square SDK and wait for card reader
+                initializePaymentReader()
             }
+        }
+    }
+    
+    private func initializePaymentReader() {
+        // Initialize Square SDK and set up card reader
+        // The SDK will call onCardDetected when a card is tapped/inserted
+        Task {
+            // TODO: Initialize Square SDK card reader here
+            // For now, we'll wait for actual Square SDK integration
+            // The payment will only process when Square SDK detects a card
+            
+            // Simulate waiting for card - in real implementation, Square SDK will handle this
+            // For now, we'll just show the ready state and wait
         }
     }
     
@@ -103,6 +113,90 @@ struct ModernPaymentView: View {
                     paymentStatus = .failure(error.localizedDescription)
                 }
             }
+        }
+    }
+}
+
+// Modern payment ready view - shows waiting for card
+struct ModernPaymentReadyView: View {
+    let amount: Double
+    let onCardDetected: () -> Void
+    @State private var appearAnimation = false
+    @State private var pulseAnimation = false
+    
+    var body: some View {
+        ZStack {
+            // Dark background matching Square terminal
+            Color.black
+                .ignoresSafeArea()
+            
+            VStack(spacing: 50) {
+                Spacer()
+                
+                // Contactless payment icon with pulse
+                ZStack {
+                    // Pulsing glow effect
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.4),
+                                    Color.clear
+                                ]),
+                                center: .center,
+                                startRadius: 20,
+                                endRadius: 120
+                            )
+                        )
+                        .frame(width: 240, height: 240)
+                        .scaleEffect(pulseAnimation ? 1.2 : 1.0)
+                        .opacity(pulseAnimation ? 0.3 : 0.6)
+                    
+                    // Contactless icon
+                    Image(systemName: "wave.3.right")
+                        .font(.system(size: 80))
+                        .foregroundColor(.white)
+                }
+                .scaleEffect(appearAnimation ? 1.0 : 0.5)
+                .opacity(appearAnimation ? 1.0 : 0.0)
+                
+                VStack(spacing: 20) {
+                    Text("Ready for Payment")
+                        .font(.system(size: 42, weight: .bold))
+                        .foregroundColor(.white)
+                        .opacity(appearAnimation ? 1.0 : 0.0)
+                        .offset(y: appearAnimation ? 0 : 20)
+                    
+                    Text("$\(String(format: "%.2f", amount))")
+                        .font(.system(size: 72, weight: .bold))
+                        .foregroundColor(.white)
+                        .opacity(appearAnimation ? 1.0 : 0.0)
+                        .offset(y: appearAnimation ? 0 : 20)
+                    
+                    Text("Tap or insert your card")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(.gray)
+                        .opacity(appearAnimation ? 1.0 : 0.0)
+                        .offset(y: appearAnimation ? 0 : 20)
+                        .padding(.top, 10)
+                }
+                
+                Spacer()
+            }
+            .padding(40)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+                appearAnimation = true
+            }
+            
+            // Continuous pulse animation
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                pulseAnimation = true
+            }
+            
+            // TODO: Initialize Square SDK here and wait for card detection
+            // When Square SDK detects card, call onCardDetected()
         }
     }
 }
