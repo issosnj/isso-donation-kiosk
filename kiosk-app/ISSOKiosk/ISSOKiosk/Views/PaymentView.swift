@@ -185,12 +185,12 @@ struct PaymentResultView: View {
             }
             
             Button(action: onDismiss) {
-                Text(status == .success ? "Done" : "Try Again")
+                Text(status == PaymentView.PaymentStatus.success ? "Done" : "Try Again")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 20)
-                    .background(status == .success ? Color.green : Color.blue)
+                    .background(status == PaymentView.PaymentStatus.success ? Color.green : Color.blue)
                     .cornerRadius(16)
             }
             .padding(.horizontal, 40)
@@ -198,7 +198,7 @@ struct PaymentResultView: View {
         .padding()
         .onAppear {
             // Auto-dismiss after 5 seconds on success
-            if status == .success {
+            if case .success = status {
                 autoDismissTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
                     onDismiss()
                 }
