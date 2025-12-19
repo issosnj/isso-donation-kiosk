@@ -187,6 +187,80 @@ export class SquareService {
     }
   }
 
+  async processPayment(
+    templeId: string,
+    donationId: string,
+    amount: number,
+    idempotencyKey?: string,
+  ): Promise<{ paymentId: string; status: string }> {
+    // Get temple with Square access token
+    const temple = await this.templesService.findOne(templeId);
+    
+    if (!temple.squareAccessToken) {
+      throw new Error('Square not connected for this temple. Please connect Square in the admin portal.');
+    }
+
+    if (!temple.squareLocationId) {
+      throw new Error('Square location not configured for this temple.');
+    }
+
+    // Decrypt access token (if encrypted) - for now assuming it's stored as-is
+    const accessToken = temple.squareAccessToken;
+    const locationId = temple.squareLocationId;
+
+    // Convert amount to cents (Square API uses cents)
+    const amountMoney = {
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: temple.defaultCurrency || 'USD',
+    };
+
+    // Create payment request
+    const paymentRequest = {
+      source_id: 'EXTERNAL', // For Square Terminal/Kiosk, this will be set by the hardware
+      idempotency_key: idempotencyKey || `${donationId}-${Date.now()}`,
+      amount_money: amountMoney,
+      location_id: locationId,
+      autocomplete: true, // Auto-complete payment
+    };
+
+    console.log('[Square Service] Processing payment:', {
+      donationId,
+      amount: amountMoney.amount,
+      currency: amountMoney.currency,
+      locationId,
+    });
+
+    // Call Square Payments API
+    const response = await fetch('https://connect.squareup.com/v2/payments', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Square-Version': '2023-10-18',
+      },
+      body: JSON.stringify(paymentRequest),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('[Square Service] Payment processing failed:', error);
+      throw new Error(`Square payment failed: ${error.errors?.[0]?.detail || JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    const payment = data.payment;
+    
+    console.log('[Square Service] Payment processed successfully:', {
+      paymentId: payment.id,
+      status: payment.status,
+    });
+
+    return {
+      paymentId: payment.id,
+      status: payment.status,
+    };
+  }
+
   // Square client methods can be added here if needed in the future
   // Currently using direct fetch calls for OAuth and API interactions
 }

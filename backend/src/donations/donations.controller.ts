@@ -11,6 +11,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DonationsService } from './donations.service';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
+import { ProcessPaymentDto } from './dto/process-payment.dto';
+import { SquareService } from '../square/square.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -20,7 +22,10 @@ import { UserRole } from '../users/entities/user.entity';
 @ApiTags('donations')
 @Controller('donations')
 export class DonationsController {
-  constructor(private readonly donationsService: DonationsService) {}
+  constructor(
+    private readonly donationsService: DonationsService,
+    private readonly squareService: SquareService,
+  ) {}
 
   @Post('initiate')
   @UseGuards(JwtAuthGuard)
@@ -28,6 +33,38 @@ export class DonationsController {
   @ApiOperation({ summary: 'Initiate a donation (device endpoint)' })
   initiate(@Body() initiateDonationDto: InitiateDonationDto) {
     return this.donationsService.initiate(initiateDonationDto);
+  }
+
+  @Post('process-payment')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Process Square payment for a donation (device endpoint)' })
+  async processPayment(
+    @Body() processPaymentDto: ProcessPaymentDto,
+    @CurrentUser() user: any,
+  ) {
+    // Get donation to find temple
+    const donation = await this.donationsService.findOne(processPaymentDto.donationId);
+    
+    // Process payment through Square
+    const result = await this.squareService.processPayment(
+      donation.templeId,
+      processPaymentDto.donationId,
+      processPaymentDto.amount,
+      processPaymentDto.idempotencyKey,
+    );
+
+    // Update donation with payment result
+    await this.donationsService.complete(processPaymentDto.donationId, {
+      squarePaymentId: result.paymentId,
+      status: result.status === 'COMPLETED' ? 'SUCCEEDED' : 'FAILED',
+    });
+
+    return {
+      success: result.status === 'COMPLETED',
+      paymentId: result.paymentId,
+      status: result.status,
+    };
   }
 
   @Post(':id/complete')

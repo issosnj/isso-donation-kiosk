@@ -88,8 +88,9 @@ struct ModernPaymentView: View {
                     categoryId: category?.id
                 )
                 
-                // 2. Process payment with Square Mobile Payments SDK
+                // 2. Process payment through backend (backend handles Square API)
                 let paymentResult = try await SquarePaymentService.shared.processPayment(
+                    donationId: donation.id,
                     amount: amount,
                     locationId: appState.temple?.squareLocationId ?? ""
                 )

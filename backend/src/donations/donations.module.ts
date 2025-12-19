@@ -8,12 +8,14 @@ import { DonationCategoriesService } from './donation-categories.service';
 import { DonationCategoriesController } from './donation-categories.controller';
 import { TemplesModule } from '../temples/temples.module';
 import { DevicesModule } from '../devices/devices.module';
+import { SquareModule } from '../square/square.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Donation, DonationCategory]),
     TemplesModule,
     forwardRef(() => DevicesModule),
+    SquareModule,
   ],
   controllers: [DonationsController, DonationCategoriesController],
   providers: [DonationsService, DonationCategoriesService],
