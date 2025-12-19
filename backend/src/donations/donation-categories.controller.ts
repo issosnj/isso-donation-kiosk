@@ -13,6 +13,7 @@ import { DonationCategoriesService } from './donation-categories.service';
 import { CreateDonationCategoryDto } from './dto/create-donation-category.dto';
 import { UpdateDonationCategoryDto } from './dto/update-donation-category.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { DeviceAuthGuard } from '../auth/guards/device-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
@@ -48,6 +49,8 @@ export class DonationCategoriesController {
   }
 
   @Get('kiosk/:templeId')
+  @UseGuards(DeviceAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get categories for kiosk (filtered by date/time)' })
   async getKioskCategories(@Param('templeId') templeId: string) {
     return this.categoriesService.findByTemple(templeId, true);
