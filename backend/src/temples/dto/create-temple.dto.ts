@@ -43,6 +43,15 @@ export class CreateTempleDto {
     whatsAppLink?: string;
     eventsText?: string;
     googleCalendarLink?: string;
+    localEvents?: Array<{
+      id: string;
+      title: string;
+      description?: string;
+      date: string;
+      startTime?: string;
+      endTime?: string;
+      isAllDay?: boolean;
+    }>;
     socialMedia?: Array<{
       platform: string;
       url: string;

@@ -97,9 +97,20 @@ struct HomeScreenConfig: Codable {
     let idleTimeoutSeconds: Int? // Time in seconds before returning to home
     let customMessage: String?
     let whatsAppLink: String?
-    let eventsText: String?
+    let eventsText: String? // Deprecated
     let googleCalendarLink: String?
+    let localEvents: [LocalEvent]?
     let socialMedia: [SocialMediaLink]?
+}
+
+struct LocalEvent: Codable, Identifiable {
+    let id: String
+    let title: String
+    let description: String?
+    let date: String // ISO date string (YYYY-MM-DD)
+    let startTime: String?
+    let endTime: String?
+    let isAllDay: Bool?
 }
 
 struct Branding: Codable {

@@ -53,8 +53,17 @@ export class Temple {
     idleTimeoutSeconds?: number;
     customMessage?: string;
     whatsAppLink?: string;
-    eventsText?: string;
+    eventsText?: string; // Deprecated - use localEvents instead
     googleCalendarLink?: string;
+    localEvents?: Array<{
+      id: string;
+      title: string;
+      description?: string;
+      date: string; // ISO date string (YYYY-MM-DD)
+      startTime?: string; // Optional time (HH:mm)
+      endTime?: string; // Optional time (HH:mm)
+      isAllDay?: boolean;
+    }>;
     socialMedia?: Array<{
       platform: string;
       url: string;

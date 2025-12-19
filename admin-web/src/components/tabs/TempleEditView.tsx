@@ -14,7 +14,7 @@ interface TempleEditViewProps {
 }
 
 export default function TempleEditView({ templeId, onBack }: TempleEditViewProps) {
-  const [activeTab, setActiveTab] = useState<'info' | 'devices' | 'categories' | 'square' | 'kiosk'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'devices' | 'categories' | 'square' | 'events' | 'kiosk'>('info')
   const [isEditing, setIsEditing] = useState(false)
   const queryClient = useQueryClient()
 
@@ -112,6 +112,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
     { id: 'devices', label: 'Devices' },
     { id: 'categories', label: 'Categories' },
     { id: 'square', label: 'Square' },
+    { id: 'events', label: 'Events Calendar' },
     { id: 'kiosk', label: 'Kiosk Home' },
   ]
 
@@ -365,10 +366,11 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
           </div>
         )}
 
-        {activeTab === 'devices' && <DevicesTab templeId={templeId} />}
-        {activeTab === 'categories' && <CategoriesTab templeId={templeId} />}
-        {activeTab === 'square' && <SquareTab templeId={templeId} />}
-        {activeTab === 'kiosk' && <KioskHomeTab templeId={templeId} />}
+              {activeTab === 'devices' && <DevicesTab templeId={templeId} />}
+              {activeTab === 'categories' && <CategoriesTab templeId={templeId} />}
+              {activeTab === 'square' && <SquareTab templeId={templeId} />}
+              {activeTab === 'events' && <EventsCalendarTab templeId={templeId} />}
+              {activeTab === 'kiosk' && <KioskHomeTab templeId={templeId} />}
       </div>
     </div>
   )

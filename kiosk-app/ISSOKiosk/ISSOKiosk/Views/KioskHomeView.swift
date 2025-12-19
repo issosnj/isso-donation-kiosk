@@ -92,18 +92,14 @@ struct KioskHomeView: View {
                     }
                     
                     // Upcoming Events/Upvas
-                    if let googleCalendarLink = appState.temple?.homeScreenConfig?.googleCalendarLink, !googleCalendarLink.isEmpty {
+                    let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
+                    let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
+                    let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
+                    
+                    if hasGoogleCalendar || hasLocalEvents || hasEventsText {
                         ActionButton(
                             icon: "calendar",
                             title: "Upcoming Events",
-                            color: Color.orange
-                        ) {
-                            showEvents = true
-                        }
-                    } else if let eventsText = appState.temple?.homeScreenConfig?.eventsText, !eventsText.isEmpty {
-                        ActionButton(
-                            icon: "calendar",
-                            title: "Upcoming Events/Upvas",
                             color: Color.orange
                         ) {
                             showEvents = true
@@ -137,11 +133,11 @@ struct KioskHomeView: View {
             }
         }
         .sheet(isPresented: $showEvents) {
-            if let googleCalendarLink = appState.temple?.homeScreenConfig?.googleCalendarLink, !googleCalendarLink.isEmpty {
-                CalendarEventsView(calendarUrl: googleCalendarLink)
-            } else if let eventsText = appState.temple?.homeScreenConfig?.eventsText {
-                EventsView(eventsText: eventsText)
-            }
+            UnifiedCalendarEventsView(
+                googleCalendarLink: appState.temple?.homeScreenConfig?.googleCalendarLink,
+                localEvents: appState.temple?.homeScreenConfig?.localEvents,
+                eventsText: appState.temple?.homeScreenConfig?.eventsText
+            )
         }
         .sheet(item: Binding(
             get: { showSocialMediaQR.map { SocialMediaItem(url: $0) } },
@@ -331,6 +327,384 @@ struct EventsView: View {
                 }
             }
         }
+    }
+}
+
+struct UnifiedCalendarEventsView: View {
+    let googleCalendarLink: String?
+    let localEvents: [LocalEvent]?
+    let eventsText: String?
+    @Environment(\.dismiss) var dismiss
+    @State private var googleEvents: [GoogleCalendarEvent] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+    @State private var selectedView: CalendarViewType = .calendar
+    
+    enum CalendarViewType {
+        case calendar, list
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // View Toggle
+                Picker("View", selection: $selectedView) {
+                    Text("Calendar").tag(CalendarViewType.calendar)
+                    Text("List").tag(CalendarViewType.list)
+                }
+                .pickerStyle(.segmented)
+                .padding()
+                
+                if selectedView == .calendar {
+                    CalendarMonthView(
+                        googleEvents: googleEvents,
+                        localEvents: localEvents ?? [],
+                        eventsText: eventsText
+                    )
+                } else {
+                    EventsListView(
+                        googleEvents: googleEvents,
+                        localEvents: localEvents ?? [],
+                        eventsText: eventsText
+                    )
+                }
+            }
+            .navigationTitle("Upcoming Events")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                await loadGoogleEvents()
+            }
+        }
+    }
+    
+    private func loadGoogleEvents() async {
+        guard let calendarUrl = googleCalendarLink, !calendarUrl.isEmpty else {
+            await MainActor.run {
+                self.isLoading = false
+            }
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let fetchedEvents = try await GoogleCalendarService.shared.fetchUpcomingEvents(from: calendarUrl, limit: 50)
+            await MainActor.run {
+                self.googleEvents = fetchedEvents
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
+            }
+        }
+    }
+}
+
+struct CalendarMonthView: View {
+    let googleEvents: [GoogleCalendarEvent]
+    let localEvents: [LocalEvent]
+    let eventsText: String?
+    @State private var currentDate = Date()
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // Month Navigation
+                HStack {
+                    Button(action: { currentDate = Calendar.current.date(byAdding: .month, value: -1, to: currentDate) ?? currentDate }) {
+                        Image(systemName: "chevron.left")
+                            .font(.title2)
+                    }
+                    Spacer()
+                    Text(currentDate, style: .date)
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    Spacer()
+                    Button(action: { currentDate = Calendar.current.date(byAdding: .month, value: 1, to: currentDate) ?? currentDate }) {
+                        Image(systemName: "chevron.right")
+                            .font(.title2)
+                    }
+                }
+                .padding()
+                
+                // Calendar Grid
+                CalendarGridView(
+                    date: currentDate,
+                    googleEvents: googleEvents,
+                    localEvents: localEvents
+                )
+                
+                // Events Text (if provided)
+                if let text = eventsText, !text.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Additional Information")
+                            .font(.headline)
+                        Text(text)
+                            .font(.body)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    .padding()
+                }
+            }
+        }
+    }
+}
+
+struct CalendarGridView: View {
+    let date: Date
+    let googleEvents: [GoogleCalendarEvent]
+    let localEvents: [LocalEvent]
+    
+    var body: some View {
+        let calendar = Calendar.current
+        let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
+        let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart)!
+        let firstWeekday = calendar.component(.weekday, from: monthStart) - 1
+        let daysInMonth = calendar.range(of: .day, in: .month, for: date)!.count
+        
+        VStack(spacing: 8) {
+            // Weekday headers
+            HStack(spacing: 0) {
+                ForEach(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], id: \.self) { day in
+                    Text(day)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            // Calendar days
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+                // Empty cells for days before month start
+                ForEach(0..<firstWeekday, id: \.self) { _ in
+                    Color.clear
+                        .aspectRatio(1, contentMode: .fit)
+                }
+                
+                // Days of the month
+                ForEach(1...daysInMonth, id: \.self) { day in
+                    let dayDate = calendar.date(byAdding: .day, value: day - 1, to: monthStart)!
+                    let dayEvents = getEventsForDate(dayDate)
+                    
+                    VStack(spacing: 2) {
+                        Text("\(day)")
+                            .font(.caption)
+                            .fontWeight(isToday(dayDate) ? .bold : .regular)
+                            .foregroundColor(isToday(dayDate) ? .blue : .primary)
+                        
+                        if !dayEvents.isEmpty {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(1, contentMode: .fit)
+                    .background(isToday(dayDate) ? Color.blue.opacity(0.1) : Color.clear)
+                    .cornerRadius(8)
+                }
+            }
+        }
+        .padding()
+    }
+    
+    private func isToday(_ date: Date) -> Bool {
+        Calendar.current.isDateInToday(date)
+    }
+    
+    private func getEventsForDate(_ date: Date) -> [Any] {
+        var events: [Any] = []
+        
+        // Add Google Calendar events
+        for event in googleEvents {
+            if let eventDate = event.start.displayDate,
+               Calendar.current.isDate(eventDate, inSameDayAs: date) {
+                events.append(event)
+            }
+        }
+        
+        // Add local events
+        for event in localEvents {
+            if let eventDate = parseDate(event.date),
+               Calendar.current.isDate(eventDate, inSameDayAs: date) {
+                events.append(event)
+            }
+        }
+        
+        return events
+    }
+    
+    private func parseDate(_ dateString: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: dateString)
+    }
+}
+
+struct EventsListView: View {
+    let googleEvents: [GoogleCalendarEvent]
+    let localEvents: [LocalEvent]
+    let eventsText: String?
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Combine and sort all events
+                let allEvents = combineAndSortEvents()
+                
+                if allEvents.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 50))
+                            .foregroundColor(.gray)
+                        Text("No upcoming events")
+                            .font(.system(size: 20, weight: .semibold))
+                    }
+                    .padding()
+                } else {
+                    ForEach(allEvents.indices, id: \.self) { index in
+                        if let googleEvent = allEvents[index] as? GoogleCalendarEvent {
+                            EventCard(event: googleEvent)
+                        } else if let localEvent = allEvents[index] as? LocalEvent {
+                            LocalEventCard(event: localEvent)
+                        }
+                    }
+                }
+                
+                // Events Text (if provided)
+                if let text = eventsText, !text.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Additional Information")
+                            .font(.headline)
+                        Text(text)
+                            .font(.body)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    .padding()
+                }
+            }
+            .padding()
+        }
+    }
+    
+    private func combineAndSortEvents() -> [Any] {
+        var allEvents: [Any] = []
+        
+        // Add Google Calendar events
+        allEvents.append(contentsOf: googleEvents)
+        
+        // Add local events
+        for localEvent in localEvents {
+            if let date = parseDate(localEvent.date),
+               date >= Date() {
+                allEvents.append(localEvent)
+            }
+        }
+        
+        // Sort by date
+        return allEvents.sorted { event1, event2 in
+            let date1 = getDate(for: event1)
+            let date2 = getDate(for: event2)
+            return date1 < date2
+        }
+    }
+    
+    private func getDate(for event: Any) -> Date {
+        if let googleEvent = event as? GoogleCalendarEvent {
+            return googleEvent.start.displayDate ?? Date.distantFuture
+        } else if let localEvent = event as? LocalEvent {
+            return parseDate(localEvent.date) ?? Date.distantFuture
+        }
+        return Date.distantFuture
+    }
+    
+    private func parseDate(_ dateString: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: dateString)
+    }
+}
+
+struct LocalEventCard: View {
+    let event: LocalEvent
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let date = parseDate(event.date) {
+                HStack {
+                    Image(systemName: "calendar")
+                        .foregroundColor(.blue)
+                    Text(formatDate(date))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+            }
+            
+            Text(event.title)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.primary)
+            
+            if let description = event.description, !description.isEmpty {
+                Text(description)
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            }
+            
+            if let startTime = event.startTime {
+                HStack {
+                    Image(systemName: "clock")
+                        .foregroundColor(.gray)
+                    if event.isAllDay == true {
+                        Text("All Day")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("\(startTime)")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                        if let endTime = event.endTime {
+                            Text(" - \(endTime)")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private func parseDate(_ dateString: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: dateString)
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
     }
 }
 

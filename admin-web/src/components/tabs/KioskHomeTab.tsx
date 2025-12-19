@@ -198,21 +198,11 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
           </p>
         </div>
 
-        {/* Events/Upvas Text */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Upcoming Events/Upvas (Manual Text)
-          </label>
-          <textarea
-            value={formData.eventsText}
-            onChange={(e) => setFormData({ ...formData, eventsText: e.target.value })}
-            disabled={!isEditing}
-            rows={6}
-            placeholder="Enter upcoming events, upvas, or announcements (alternative to Google Calendar)..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Use this if you prefer to manually enter events instead of using Google Calendar
+        {/* Note about Events Calendar */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800">
+            <strong>Events Management:</strong> Use the "Events Calendar" tab to add and manage events.
+            Events from Google Calendar are automatically synced when a calendar link is provided above.
           </p>
         </div>
 
