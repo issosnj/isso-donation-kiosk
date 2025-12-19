@@ -18,28 +18,17 @@ struct ModernDonationDetailsView: View {
             Color.black
                 .ignoresSafeArea()
             
-            HStack(spacing: 0) {
-                // Left side: Payment details (dark theme)
-                VStack(alignment: .leading, spacing: 0) {
-                    // Top: "All payment options"
-                    HStack {
-                        Text("All payment options")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.gray)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.top, 40)
-                    .padding(.bottom, 20)
-                    
+            VStack(spacing: 0) {
+                Spacer()
+                
+                // Centered content
+                VStack(spacing: 40) {
                     // Large amount display
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(spacing: 8) {
                         Text("$\(String(format: "%.2f", amount))")
-                            .font(.system(size: 64, weight: .bold))
+                            .font(.system(size: 72, weight: .bold))
                             .foregroundColor(.white)
                     }
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 30)
                     
                     // Donation summary (dark card)
                     VStack(alignment: .leading, spacing: 16) {
@@ -83,10 +72,9 @@ struct ModernDonationDetailsView: View {
                     .padding(30)
                     .background(Color(red: 0.1, green: 0.1, blue: 0.1))
                     .cornerRadius(12)
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 30)
+                    .frame(maxWidth: 500)
                     
-                    // Optional information section (collapsible)
+                    // Optional information section
                     VStack(alignment: .leading, spacing: 20) {
                         Text("Optional Information")
                             .font(.system(size: 18, weight: .medium))
@@ -140,58 +128,7 @@ struct ModernDonationDetailsView: View {
                                 )
                         }
                     }
-                    .padding(.horizontal, 40)
-                    
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
-                
-                // Right side: Payment instructions (dark theme)
-                VStack(spacing: 40) {
-                    Spacer()
-                    
-                    // Contactless payment symbol
-                    VStack(spacing: 30) {
-                        // Contactless icon on terminal frame (white icon)
-                        Image(systemName: "wave.3.right")
-                            .font(.system(size: 40))
-                            .foregroundColor(.white)
-                            .padding(.bottom, 20)
-                        
-                        // Payment options - visual indicators
-                        VStack(spacing: 20) {
-                            // Tap option
-                            HStack(spacing: 12) {
-                                Text("Tap")
-                                    .font(.system(size: 24, weight: .semibold))
-                                    .foregroundColor(.white)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                            .background(Color(red: 0.2, green: 0.4, blue: 0.8))
-                            .cornerRadius(12)
-                            
-                            // Insert option
-                            HStack(spacing: 12) {
-                                Text("Insert")
-                                    .font(.system(size: 24, weight: .semibold))
-                                    .foregroundColor(.white)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                            .background(Color(red: 0.2, green: 0.4, blue: 0.8))
-                            .cornerRadius(12)
-                        }
-                        .padding(.horizontal, 40)
-                    }
-                    
-                    Spacer()
+                    .frame(maxWidth: 500)
                     
                     // Ready for payment button
                     Button(action: {
@@ -210,16 +147,15 @@ struct ModernDonationDetailsView: View {
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundColor(.white)
                         }
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: 500)
                         .padding(.vertical, 18)
                         .background(Color(red: 0.2, green: 0.4, blue: 0.8))
                         .cornerRadius(12)
                     }
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 40)
                 }
-                .frame(maxWidth: .infinity)
-                .background(Color.black)
+                .padding(.horizontal, 40)
+                
+                Spacer()
             }
             
             // Cancel button (top left)
