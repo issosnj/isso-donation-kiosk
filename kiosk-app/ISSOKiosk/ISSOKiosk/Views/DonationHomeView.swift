@@ -8,8 +8,8 @@ struct DonationHomeView: View {
     @State private var selectedCategory: DonationCategory?
     @State private var showingDetails = false
     @State private var showingPayment = false
-    @State private var donorName: String = ""
-    @State private var donorEmail: String = ""
+    @State private var donorName: String?
+    @State private var donorEmail: String?
     
     let presetAmounts: [Double] = [11, 21, 51, 101, 251]
     
@@ -205,8 +205,8 @@ struct DonationHomeView: View {
                         selectedAmount = nil
                         customAmount = ""
                         selectedCategory = nil
-                        donorName = ""
-                        donorEmail = ""
+                        donorName = nil
+                        donorEmail = nil
                     }
                 )
             }
