@@ -18,6 +18,7 @@ struct ModernPaymentView: View {
     @State private var paymentStatus: PaymentStatus?
     @State private var appearAnimation = false
     @State private var cardPulse = false
+    @State private var hasStarted = false
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -42,6 +43,18 @@ struct ModernPaymentView: View {
                         }
                     }
                 )
+            }
+        }
+        .onAppear {
+            // Automatically start payment processing when view appears
+            if !hasStarted {
+                hasStarted = true
+                // Small delay to ensure view is fully rendered
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation {
+                        processPayment()
+                    }
+                }
             }
         }
     }
