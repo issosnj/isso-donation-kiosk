@@ -11,8 +11,12 @@ struct ContentView: View {
     @StateObject private var navigationState = AppNavigationState()
     
     var body: some View {
-        Group {
+        ZStack {
+            Color.white
+                .ignoresSafeArea()
+            
             if appState.isActivated {
+                // Debug: Activated state
                 ZStack {
                     // Always show home screen as base
                     KioskHomeView()
@@ -39,8 +43,14 @@ struct ContentView: View {
                     }
                 }
             } else {
+                // Debug: Not activated - showing activation view
                 DeviceActivationView()
+                    .environmentObject(appState)
             }
+        }
+        .onAppear {
+            print("ContentView appeared - isActivated: \(appState.isActivated)")
+        }
         }
     }
     

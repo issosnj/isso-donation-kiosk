@@ -13,10 +13,14 @@ struct DeviceActivationView: View {
     private let maxRetries = 3
     
     var body: some View {
-        VStack(spacing: 50) {
-            Image(systemName: "qrcode.viewfinder")
-                .font(.system(size: 120))
-                .foregroundColor(.blue)
+        ZStack {
+            Color.white
+                .ignoresSafeArea()
+            
+            VStack(spacing: 50) {
+                Image(systemName: "qrcode.viewfinder")
+                    .font(.system(size: 120))
+                    .foregroundColor(.blue)
             
             VStack(spacing: 15) {
                 Text("Enter Device Code")
@@ -155,8 +159,9 @@ struct DeviceActivationView: View {
                 }
             }
             .disabled(deviceCode.count != 8 || isActivating || !networkMonitor.isConnected)
+            }
+            .padding(40)
         }
-        .padding(40)
         .sheet(isPresented: $showQRScanner) {
             QRCodeScannerView(scannedCode: $scannedCode)
         }
