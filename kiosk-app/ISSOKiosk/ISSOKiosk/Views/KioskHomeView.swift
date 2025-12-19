@@ -29,18 +29,20 @@ struct KioskHomeView: View {
                 VStack(spacing: 40) {
                     // Headers (configurable by admin)
                     VStack(spacing: 12) {
-                        // Header 1 (default: "Welcome to Temple Name")
+                        // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
                         Text(header1Text)
-                            .font(.system(size: 36, weight: .bold))
+                            .font(.system(size: 32, weight: .bold))
                             .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                             .multilineTextAlignment(.center)
+                            .lineLimit(3)
                         
-                        // Header 2 (default: address)
+                        // Header 2 (default: "Welcome to Temple Name" and address)
                         if let header2 = header2Text, !header2.isEmpty {
                             Text(header2)
                                 .font(.system(size: 22, weight: .regular))
                                 .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                                 .multilineTextAlignment(.center)
+                                .lineLimit(2)
                         }
                     }
                     .padding(.horizontal, 40)
@@ -216,19 +218,24 @@ struct KioskHomeView: View {
     
     // Computed properties for headers with defaults
     private var header1Text: String {
-        if let temple = appState.temple {
-            // Check if admin configured header1 in homeScreenConfig
-            // For now, use default: "Welcome to Temple Name"
-            return "Welcome to \(temple.name)"
-        }
-        return "Welcome"
+        // Default Header 1 for all kiosks
+        return "International Swaminarayan Satsang Organization (ISSO)"
     }
     
     private var header2Text: String? {
         if let temple = appState.temple {
-            // Check if admin configured header2 in homeScreenConfig
-            // For now, use default: address
-            return temple.address
+            // Header 2: "Welcome to Temple Name" and address
+            var header2Parts: [String] = []
+            
+            // Add "Welcome to Temple Name"
+            header2Parts.append("Welcome to \(temple.name)")
+            
+            // Add address if available
+            if let address = temple.address, !address.isEmpty {
+                header2Parts.append(address)
+            }
+            
+            return header2Parts.joined(separator: "\n")
         }
         return nil
     }
