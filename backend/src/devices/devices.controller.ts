@@ -13,8 +13,10 @@ import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { ActivateDeviceDto } from './dto/activate-device.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { DeviceAuthGuard } from '../auth/guards/device-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CurrentDevice } from '../auth/decorators/current-device.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('devices')
@@ -68,12 +70,12 @@ export class DevicesController {
   }
 
   @Get('square-credentials')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(DeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Square credentials for Mobile Payments SDK (device endpoint)' })
-  async getSquareCredentials(@CurrentUser() user: any) {
-    // Extract deviceId from JWT token (device tokens have deviceId in payload)
-    const deviceId = user.deviceId || user.sub;
+  async getSquareCredentials(@CurrentDevice() device: any) {
+    // Device token has deviceId in payload
+    const deviceId = device.deviceId;
     return this.devicesService.getSquareCredentials(deviceId);
   }
 

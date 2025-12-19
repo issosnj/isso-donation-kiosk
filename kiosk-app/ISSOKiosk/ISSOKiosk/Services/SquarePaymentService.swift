@@ -17,13 +17,14 @@ class SquarePaymentService {
     }
     
     // Start payment flow using Square Mobile Payments SDK
-    // This will show card entry UI and detect card interactions from Square hardware
+    // This will use PaymentManager to take payment directly with Square Stand
     func startPayment(
         donationId: String,
         amount: Double,
         completion: @escaping (Result<PaymentResult, Error>) -> Void
     ) {
-        SquareCardReader.shared.startPayment(
+        // Use Mobile Payments SDK service
+        SquareMobilePaymentsService.shared.takePayment(
             amount: amount,
             donationId: donationId,
             completion: completion
