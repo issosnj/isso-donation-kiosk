@@ -25,6 +25,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
     customMessage: '',
     whatsAppLink: '',
     eventsText: '',
+    googleCalendarLink: '',
     socialMedia: [] as Array<{ platform: string; url: string }>,
   })
 
@@ -35,6 +36,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
         customMessage: temple.homeScreenConfig.customMessage || '',
         whatsAppLink: temple.homeScreenConfig.whatsAppLink || '',
         eventsText: temple.homeScreenConfig.eventsText || '',
+        googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
         socialMedia: temple.homeScreenConfig.socialMedia || [],
       })
     }
@@ -106,6 +108,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                     customMessage: temple.homeScreenConfig.customMessage || '',
                     whatsAppLink: temple.homeScreenConfig.whatsAppLink || '',
                     eventsText: temple.homeScreenConfig.eventsText || '',
+                    googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
                     socialMedia: temple.homeScreenConfig.socialMedia || [],
                   })
                 }
@@ -174,19 +177,43 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
           <p className="mt-1 text-xs text-gray-500">QR code will be generated automatically</p>
         </div>
 
+        {/* Google Calendar Link */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Google Calendar Public Link
+          </label>
+          <input
+            type="url"
+            value={formData.googleCalendarLink}
+            onChange={(e) => setFormData({ ...formData, googleCalendarLink: e.target.value })}
+            disabled={!isEditing}
+            placeholder="https://calendar.google.com/calendar/embed?src=..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Get your public calendar link from Google Calendar settings. The kiosk will display upcoming events from this calendar.
+          </p>
+          <p className="mt-1 text-xs text-gray-400">
+            To get your public link: Google Calendar → Settings → Calendar → Access permissions → Make available to public → Copy the public URL
+          </p>
+        </div>
+
         {/* Events/Upvas Text */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Upcoming Events/Upvas
+            Upcoming Events/Upvas (Manual Text)
           </label>
           <textarea
             value={formData.eventsText}
             onChange={(e) => setFormData({ ...formData, eventsText: e.target.value })}
             disabled={!isEditing}
             rows={6}
-            placeholder="Enter upcoming events, upvas, or announcements..."
+            placeholder="Enter upcoming events, upvas, or announcements (alternative to Google Calendar)..."
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
           />
+          <p className="mt-1 text-xs text-gray-500">
+            Use this if you prefer to manually enter events instead of using Google Calendar
+          </p>
         </div>
 
         {/* Social Media */}

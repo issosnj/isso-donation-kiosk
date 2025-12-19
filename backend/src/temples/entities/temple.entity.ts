@@ -54,6 +54,7 @@ export class Temple {
     customMessage?: string;
     whatsAppLink?: string;
     eventsText?: string;
+    googleCalendarLink?: string;
     socialMedia?: Array<{
       platform: string;
       url: string;
