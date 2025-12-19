@@ -26,8 +26,9 @@ struct ISSOKioskApp: App {
             ContentView()
                 .environmentObject(appState)
                 .preferredColorScheme(.light) // Force light mode for kiosk
-                .lockOrientation(.landscape) // Lock to landscape orientation
                 .onAppear {
+                    // Lock orientation immediately on app launch
+                    OrientationLock.lockOrientation(.landscape, andRotateTo: .landscapeLeft)
                     startHeartbeat()
                 }
         }

@@ -16,7 +16,12 @@ struct ModernDonationDetailsView: View {
         ZStack {
             // Dark background matching Square terminal
             Color.black
-                .ignoresSafeArea()
+                .ignoresSafeArea(.all, edges: .all)
+                .onTapGesture {
+                    // Dismiss keyboard when tapping background
+                    nameFocused = false
+                    emailFocused = false
+                }
             
             VStack(spacing: 0) {
                 Spacer()

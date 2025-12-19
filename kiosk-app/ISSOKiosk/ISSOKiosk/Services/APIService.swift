@@ -42,6 +42,11 @@ class APIService {
         }
         
         guard (200...299).contains(httpResponse.statusCode) else {
+            // Try to parse error message from response body
+            if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let message = errorData["message"] as? String {
+                throw APIError.serverError(message)
+            }
             throw APIError.httpError(httpResponse.statusCode)
         }
         

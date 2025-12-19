@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SquareMobilePaymentsSDK
 
 class AppState: ObservableObject {
     @Published var isActivated = false
@@ -34,9 +35,8 @@ class AppState: ObservableObject {
         if let token = keychain.load(forKey: "deviceToken") {
             self.deviceToken = token
             self.deviceId = extractDeviceId(from: token)
-            // Don't set isActivated to true until we verify the token is still valid
-            // Load temple and categories from API first
             APIService.shared.setDeviceToken(token)
+            // Load temple config asynchronously
             Task {
                 await loadTempleConfig()
             }
@@ -57,7 +57,7 @@ class AppState: ObservableObject {
         }
         
         // Authorize Square Mobile Payments SDK if device token exists
-        if let token = deviceToken {
+        if deviceToken != nil {
             Task {
                 await authorizeSquareSDK()
             }
@@ -83,6 +83,45 @@ class AppState: ObservableObject {
     }
     
     private func authorizeSquareSDK() async {
+        // Step 2: Verify SDK is available
+        let sdk = MobilePaymentsSDK.shared
+        print("[AppState] ✅ Square Mobile Payments SDK is available")
+        
+        // Step 5: Request required permissions first
+        print("[AppState] Requesting location and Bluetooth permissions...")
+        
+        // Request location permission
+        let locationGranted = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            PermissionsManager.shared.requestLocationPermission { granted in
+                if granted {
+                    print("[AppState] ✅ Location permission granted")
+                } else {
+                    print("[AppState] ⚠️ Location permission denied - payments may fail")
+                }
+                continuation.resume(returning: granted)
+            }
+        }
+        
+        // Request Bluetooth permission
+        let bluetoothGranted = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            PermissionsManager.shared.requestBluetoothPermission { granted in
+                if granted {
+                    print("[AppState] ✅ Bluetooth permission granted")
+                } else {
+                    print("[AppState] ⚠️ Bluetooth permission denied - contactless payments may fail")
+                }
+                continuation.resume(returning: granted)
+            }
+        }
+        
+        // Log final permission status
+        if locationGranted && bluetoothGranted {
+            print("[AppState] ✅ All required permissions granted")
+        } else {
+            print("[AppState] ⚠️ Some permissions were denied - Square SDK may have limited functionality")
+        }
+        
+        // Step 4: Authorize SDK with credentials from backend
         do {
             // Get Square credentials from backend
             let credentials = try await APIService.shared.getSquareCredentials()
@@ -94,15 +133,25 @@ class AppState: ObservableObject {
                     locationId: credentials.locationId
                 ) { error in
                     if let error = error {
-                        print("[AppState] Failed to authorize Square SDK: \(error.localizedDescription)")
+                        print("[AppState] ❌ Failed to authorize Square SDK: \(error.localizedDescription)")
                     } else {
-                        print("[AppState] Square Mobile Payments SDK authorized successfully")
+                        print("[AppState] ✅ Square Mobile Payments SDK authorized successfully")
                     }
                     continuation.resume()
                 }
             }
         } catch {
-            print("[AppState] Failed to get Square credentials: \(error.localizedDescription)")
+            let errorMessage: String
+            if let apiError = error as? APIError {
+                errorMessage = apiError.localizedDescription
+            } else {
+                errorMessage = error.localizedDescription
+            }
+            print("[AppState] ❌ Failed to get Square credentials: \(errorMessage)")
+            print("[AppState] This usually means:")
+            print("[AppState]   1. The temple hasn't connected Square in the admin portal, OR")
+            print("[AppState]   2. The device token is invalid/expired, OR")
+            print("[AppState]   3. The backend API is unavailable")
             // Don't block app - Square SDK authorization can happen later
         }
     }

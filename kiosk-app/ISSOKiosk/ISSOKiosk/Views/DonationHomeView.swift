@@ -26,7 +26,11 @@ struct DonationHomeView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .ignoresSafeArea()
+            .ignoresSafeArea(.all, edges: .all)
+            .onTapGesture {
+                // Dismiss keyboard when tapping background
+                customAmountFocused = false
+            }
             
             VStack(spacing: 0) {
                 Spacer()

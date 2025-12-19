@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B9EC68A62EF5E1F500F9F2A4 /* MockReaderUI in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC68A52EF5E1F500F9F2A4 /* MockReaderUI */; };
+		B9EC68A82EF5E1F500F9F2A4 /* SquareMobilePaymentsSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC68A72EF5E1F500F9F2A4 /* SquareMobilePaymentsSDK */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +41,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B9EC68A62EF5E1F500F9F2A4 /* MockReaderUI in Frameworks */,
+				B9EC68A82EF5E1F500F9F2A4 /* SquareMobilePaymentsSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -49,6 +53,7 @@
 			isa = PBXGroup;
 			children = (
 				B94A27FF2EF4DEAD005A3BBE /* ISSOKiosk */,
+				B9EC68AB2EF5E3AE00F9F2A4 /* Frameworks */,
 				B94A27FE2EF4DEAD005A3BBE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,6 +66,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B9EC68AB2EF5E3AE00F9F2A4 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -71,6 +83,7 @@
 				B94A27F92EF4DEAD005A3BBE /* Sources */,
 				B94A27FA2EF4DEAD005A3BBE /* Frameworks */,
 				B94A27FB2EF4DEAD005A3BBE /* Resources */,
+				B9EC68B02EF5E20000F9F2A4 /* Run Script */,
 			);
 			buildRules = (
 			);
@@ -81,6 +94,8 @@
 			);
 			name = ISSOKiosk;
 			packageProductDependencies = (
+				B9EC68A52EF5E1F500F9F2A4 /* MockReaderUI */,
+				B9EC68A72EF5E1F500F9F2A4 /* SquareMobilePaymentsSDK */,
 			);
 			productName = ISSOKiosk;
 			productReference = B94A27FD2EF4DEAD005A3BBE /* ISSOKiosk.app */;
@@ -111,6 +126,7 @@
 			mainGroup = B94A27F42EF4DEAD005A3BBE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				B9EC68A42EF5E1F500F9F2A4 /* XCRemoteSwiftPackageReference "mobile-payments-sdk-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B94A27FE2EF4DEAD005A3BBE /* Products */;
@@ -131,6 +147,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		B9EC68B02EF5E20000F9F2A4 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nFRAMEWORKS=\"${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\n\"${FRAMEWORKS}/SquareMobilePaymentsSDK.framework/setup\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		B94A27F92EF4DEAD005A3BBE /* Sources */ = {
@@ -180,7 +217,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -243,7 +280,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -366,9 +403,27 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		B9EC68A42EF5E1F500F9F2A4 /* XCRemoteSwiftPackageReference "mobile-payments-sdk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/square/mobile-payments-sdk-ios";
+			requirement = {
+				kind = exactVersion;
+				version = 2.0.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		B9EC68A52EF5E1F500F9F2A4 /* MockReaderUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B9EC68A42EF5E1F500F9F2A4 /* XCRemoteSwiftPackageReference "mobile-payments-sdk-ios" */;
+			productName = MockReaderUI;
+		};
+		B9EC68A72EF5E1F500F9F2A4 /* SquareMobilePaymentsSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B9EC68A42EF5E1F500F9F2A4 /* XCRemoteSwiftPackageReference "mobile-payments-sdk-ios" */;
+			productName = SquareMobilePaymentsSDK;
+		};
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B94A27F52EF4DEAD005A3BBE /* Project object */;

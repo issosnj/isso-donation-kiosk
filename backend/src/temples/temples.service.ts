@@ -122,8 +122,34 @@ export class TemplesService {
 
   async update(id: string, updateTempleDto: UpdateTempleDto): Promise<Temple> {
     const temple = await this.findOne(id);
-    Object.assign(temple, updateTempleDto);
-    return this.templesRepository.save(temple);
+    
+    // Handle Square disconnection - explicitly set to null if any Square field is null
+    const updateDto = updateTempleDto as any;
+    if (updateDto.squareMerchantId === null || 
+        updateDto.squareAccessToken === null || 
+        updateDto.squareRefreshToken === null) {
+      console.log('[Temples Service] Disconnecting Square for temple:', id);
+      temple.squareMerchantId = null;
+      temple.squareAccessToken = null;
+      temple.squareRefreshToken = null;
+      temple.squareLocationId = null;
+      
+      // Still update other fields if provided
+      if (updateDto.name !== undefined) temple.name = updateDto.name;
+      if (updateDto.address !== undefined) temple.address = updateDto.address;
+      if (updateDto.timezone !== undefined) temple.timezone = updateDto.timezone;
+      if (updateDto.defaultCurrency !== undefined) temple.defaultCurrency = updateDto.defaultCurrency;
+      if (updateDto.logoUrl !== undefined) temple.logoUrl = updateDto.logoUrl;
+      if (updateDto.branding !== undefined) temple.branding = updateDto.branding;
+      if (updateDto.homeScreenConfig !== undefined) temple.homeScreenConfig = updateDto.homeScreenConfig;
+    } else {
+      // Normal update - assign all fields
+      Object.assign(temple, updateTempleDto);
+    }
+    
+    const saved = await this.templesRepository.save(temple);
+    console.log('[Temples Service] Temple updated, Square connected:', !!saved.squareAccessToken);
+    return saved;
   }
 
   async remove(id: string): Promise<void> {

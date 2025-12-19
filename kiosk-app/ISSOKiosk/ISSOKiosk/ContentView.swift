@@ -14,9 +14,14 @@ struct ContentView: View {
         ZStack {
             // Background color - always show immediately
             Color.white
-                .ignoresSafeArea()
+                .ignoresSafeArea(.all)
             
-            if appState.isActivated {
+            // Show loading state while checking activation
+            if !appState.isActivated && appState.deviceToken != nil {
+                // Loading state - checking stored credentials
+                ProgressView()
+                    .scaleEffect(1.5)
+            } else if appState.isActivated {
                 // Activated state
                 ZStack {
                     // Always show home screen as base

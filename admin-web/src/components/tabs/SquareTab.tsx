@@ -82,9 +82,12 @@ export default function SquareTab({ templeId }: SquareTabProps) {
         squareLocationId: null,
       })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
-      queryClient.invalidateQueries({ queryKey: ['temples'] })
+    onSuccess: async () => {
+      // Invalidate and immediately refetch to update UI
+      await queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+      await queryClient.invalidateQueries({ queryKey: ['temples'] })
+      // Force refetch to ensure UI updates immediately
+      await queryClient.refetchQueries({ queryKey: ['temple', templeId] })
       setSuccessMessage('Square account disconnected successfully')
       setTimeout(() => setSuccessMessage(null), 5000)
     },
@@ -110,7 +113,8 @@ export default function SquareTab({ templeId }: SquareTabProps) {
     )
   }
 
-  const isConnected = !!temple?.squareMerchantId
+  // Check if Square is connected - must have both merchant ID and access token
+  const isConnected = !!(temple?.squareMerchantId && temple?.squareAccessToken)
 
   return (
     <div className="space-y-6">

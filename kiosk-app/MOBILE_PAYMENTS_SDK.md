@@ -60,16 +60,19 @@ See README.md troubleshooting section for details.
 
 ## Next Steps
 
-1. **Find Mobile Payments SDK Package URL**
-   - Check Square Developer Portal
-   - Documentation: https://developer.squareup.com/docs/mobile-payments-sdk/ios
-   - It will be DIFFERENT from `in-app-payments-ios`
+1. **✅ Found Mobile Payments SDK Package URL**
+   - **Package URL**: `https://github.com/square/mobile-payments-sdk-ios`
+   - **Version**: `2.3.1` (or latest)
+   - **Product**: `SquareMobilePaymentsSDK`
+   - ⚠️ **NOT** `https://github.com/square/in-app-payments-ios` (that's the wrong SDK)
 
 2. **Add Package to Xcode**
    - Open project in Xcode
-   - Project → Package Dependencies → Add Package
-   - Enter the Mobile Payments SDK URL
-   - Select the correct product (not SquareInAppPaymentsSDK)
+   - **File** → **Add Package Dependencies...**
+   - Enter URL: `https://github.com/square/mobile-payments-sdk-ios`
+   - Select version: `2.3.1` (or "Up to Next Major Version")
+   - Select product: **`SquareMobilePaymentsSDK`** (NOT SquareInAppPaymentsSDK)
+   - Add to target: **ISSOKiosk**
 
 3. **Add Required Run Script**
    - Target → Build Phases → + → New Run Script Phase
