@@ -77,11 +77,13 @@ export class SquareController {
         locations[0]?.id,
       );
 
-      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL');
-      res.redirect(`${adminWebUrl}/temples/${templeId}/square?success=true`);
-    } catch (error) {
-      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL');
-      res.redirect(`${adminWebUrl}/temples/square?error=${encodeURIComponent(error.message)}`);
+      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://issodonationkiosk.netlify.app';
+      // Redirect to dashboard with success message - user can navigate to temple edit view
+      res.redirect(`${adminWebUrl}/dashboard?squareConnected=true&templeId=${templeId}`);
+    } catch (error: any) {
+      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://issodonationkiosk.netlify.app';
+      // Redirect to dashboard with error message
+      res.redirect(`${adminWebUrl}/dashboard?squareError=${encodeURIComponent(error.message || 'Connection failed')}`);
     }
   }
 
