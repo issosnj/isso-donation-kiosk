@@ -56,9 +56,8 @@ class AppState: ObservableObject {
             self.isActivated = true
         }
         
-        // Authorize Square Mobile Payments SDK if Square is connected
-        if let templeId = extractTempleId(from: deviceToken ?? ""),
-           let token = deviceToken {
+        // Authorize Square Mobile Payments SDK if device token exists
+        if let token = deviceToken {
             Task {
                 await authorizeSquareSDK()
             }
