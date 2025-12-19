@@ -119,13 +119,24 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
 
   const saveEdit = () => {
     if (editingCategory) {
+      // Convert defaultAmount to number or null
+      let defaultAmountValue: number | null = null;
+      if (editDefaultAmount !== '' && editDefaultAmount != null) {
+        const numValue = typeof editDefaultAmount === 'string' 
+          ? parseFloat(editDefaultAmount) 
+          : Number(editDefaultAmount);
+        if (!isNaN(numValue)) {
+          defaultAmountValue = numValue;
+        }
+      }
+      
       updateCategoryMutation.mutate({
         id: editingCategory,
         data: {
           name: editName,
           isActive: editIsActive,
           showOnKiosk: editShowOnKiosk,
-          defaultAmount: editDefaultAmount || null,
+          defaultAmount: defaultAmountValue,
           showStartDate: editUseDateRange && editShowStartDate ? new Date(editShowStartDate).toISOString() : null,
           showEndDate: editUseDateRange && editShowEndDate ? new Date(editShowEndDate).toISOString() : null,
         },
@@ -134,9 +145,20 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   }
   
   const handleCreate = () => {
+    // Convert defaultAmount to number or null
+    let defaultAmountValue: number | null = null;
+    if (newDefaultAmount !== '' && newDefaultAmount != null) {
+      const numValue = typeof newDefaultAmount === 'string' 
+        ? parseFloat(newDefaultAmount) 
+        : Number(newDefaultAmount);
+      if (!isNaN(numValue)) {
+        defaultAmountValue = numValue;
+      }
+    }
+    
     createCategoryMutation.mutate({
       name: newCategoryName,
-      defaultAmount: newDefaultAmount || null,
+      defaultAmount: defaultAmountValue,
       showStartDate: newUseDateRange && newShowStartDate ? new Date(newShowStartDate).toISOString() : null,
       showEndDate: newUseDateRange && newShowEndDate ? new Date(newShowEndDate).toISOString() : null,
     })
