@@ -296,3 +296,32 @@ struct Donation: Codable {
     let status: String
 }
 
+// Suggestion submission
+struct SubmitSuggestionRequest: Codable {
+    let templeId: String
+    let deviceId: String
+    let suggestion: String
+}
+
+struct SubmitSuggestionResponse: Codable {
+    let id: String
+    let message: String
+}
+
+extension APIService {
+    func submitSuggestion(templeId: String, deviceId: String, suggestion: String) async throws -> SubmitSuggestionResponse {
+        let body: [String: Any] = [
+            "templeId": templeId,
+            "deviceId": deviceId,
+            "suggestion": suggestion
+        ]
+        
+        return try await request(
+            endpoint: "/suggestions",
+            method: "POST",
+            body: body,
+            requiresAuth: true
+        )
+    }
+}
+

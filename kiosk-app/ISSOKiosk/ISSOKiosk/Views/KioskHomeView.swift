@@ -7,6 +7,7 @@ struct KioskHomeView: View {
     @State private var showWhatsAppQR = false
     @State private var showEvents = false
     @State private var showSocialMediaQR: String? = nil
+    @State private var showSuggestionBox = false
     
     var body: some View {
         ZStack {
@@ -159,6 +160,16 @@ struct KioskHomeView: View {
                                             }
                                         }
                                     }
+                                    
+                                    // Suggestion Box (always available)
+                                    ModernQuickActionButton(
+                                        icon: "text.bubble.fill",
+                                        title: "Suggestions",
+                                        color: Color(red: 0.5, green: 0.3, blue: 0.8),
+                                        isActive: true
+                                    ) {
+                                        showSuggestionBox = true
+                                    }
                                 }
                                 .padding(.horizontal, 20)
                             }
@@ -199,6 +210,9 @@ struct KioskHomeView: View {
             set: { showSocialMediaQR = $0?.url }
         )) { item in
             QRCodeDisplayView(url: item.url, title: "Social Media")
+        }
+        .sheet(isPresented: $showSuggestionBox) {
+            SuggestionBoxView()
         }
     }
     
@@ -346,6 +360,204 @@ struct QRCodeDisplayView: View {
 struct SocialMediaItem: Identifiable {
     let id = UUID()
     let url: String
+}
+
+// Suggestion Box View
+struct SuggestionBoxView: View {
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var appState: AppState
+    @State private var suggestionText = ""
+    @State private var isSubmitting = false
+    @State private var showSuccess = false
+    @State private var errorMessage: String?
+    @FocusState private var isTextFocused: Bool
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // Background
+                Color(red: 0.98, green: 0.98, blue: 0.99)
+                    .ignoresSafeArea()
+                
+                if showSuccess {
+                    // Success view
+                    VStack(spacing: 30) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 80))
+                            .foregroundColor(Color(red: 0.18, green: 0.64, blue: 0.33))
+                        
+                        Text("Thank You!")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                        
+                        Text("Your anonymous suggestion has been submitted.")
+                            .font(.system(size: 18))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                        
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            Text("Done")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: 300)
+                                .padding(.vertical, 16)
+                                .background(Color(red: 0.5, green: 0.3, blue: 0.8))
+                                .cornerRadius(12)
+                        }
+                        .padding(.top, 20)
+                    }
+                } else {
+                    // Form view
+                    ScrollView {
+                        VStack(spacing: 30) {
+                            // Header
+                            VStack(spacing: 12) {
+                                Image(systemName: "text.bubble.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(Color(red: 0.5, green: 0.3, blue: 0.8))
+                                
+                                Text("Anonymous Suggestion Box")
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                                
+                                Text("Share your thoughts, ideas, or feedback anonymously")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .padding(.top, 40)
+                            .padding(.horizontal, 40)
+                            
+                            // Suggestion text field
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Your Suggestion")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                                
+                                ZStack(alignment: .topLeading) {
+                                    if suggestionText.isEmpty {
+                                        Text("Type your suggestion here...")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(.gray.opacity(0.6))
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 16)
+                                    }
+                                    
+                                    TextEditor(text: $suggestionText)
+                                        .font(.system(size: 16))
+                                        .frame(minHeight: 200)
+                                        .focused($isTextFocused)
+                                        .padding(8)
+                                        .background(Color.white)
+                                        .cornerRadius(12)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(
+                                                    isTextFocused 
+                                                        ? Color(red: 0.5, green: 0.3, blue: 0.8)
+                                                        : Color.gray.opacity(0.3),
+                                                    lineWidth: isTextFocused ? 2 : 1
+                                                )
+                                        )
+                                }
+                                
+                                Text("Your suggestion is completely anonymous")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 40)
+                            
+                            // Error message
+                            if let error = errorMessage {
+                                Text(error)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.red)
+                                    .padding(.horizontal, 40)
+                            }
+                            
+                            // Submit button
+                            Button(action: {
+                                submitSuggestion()
+                            }) {
+                                HStack(spacing: 12) {
+                                    if isSubmitting {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    } else {
+                                        Image(systemName: "paperplane.fill")
+                                            .font(.system(size: 18))
+                                    }
+                                    Text(isSubmitting ? "Submitting..." : "Submit Suggestion")
+                                        .font(.system(size: 18, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                                .background(
+                                    suggestionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting
+                                        ? Color.gray.opacity(0.4)
+                                        : Color(red: 0.5, green: 0.3, blue: 0.8)
+                                )
+                                .cornerRadius(12)
+                            }
+                            .disabled(suggestionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
+                            .padding(.horizontal, 40)
+                            .padding(.bottom, 40)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Suggestion Box")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func submitSuggestion() {
+        let trimmedSuggestion = suggestionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedSuggestion.isEmpty,
+              let templeId = appState.temple?.id,
+              let deviceId = appState.deviceId else {
+            errorMessage = "Please enter a suggestion"
+            return
+        }
+        
+        isSubmitting = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                _ = try await APIService.shared.submitSuggestion(
+                    templeId: templeId,
+                    deviceId: deviceId,
+                    suggestion: trimmedSuggestion
+                )
+                
+                await MainActor.run {
+                    isSubmitting = false
+                    showSuccess = true
+                }
+            } catch {
+                await MainActor.run {
+                    isSubmitting = false
+                    if let apiError = error as? APIError {
+                        errorMessage = apiError.userFacingMessage
+                    } else {
+                        errorMessage = "Failed to submit suggestion. Please try again."
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Keep all existing event views unchanged
