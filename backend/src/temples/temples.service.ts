@@ -138,14 +138,23 @@ export class TemplesService {
     squareRefreshToken: string,
     squareLocationId?: string,
   ): Promise<Temple> {
+    console.log('[Temples Service] updateSquareCredentials called for temple:', id);
+    console.log('[Temples Service] Merchant ID:', squareMerchantId);
+    console.log('[Temples Service] Location ID:', squareLocationId || 'not provided');
+    
     const temple = await this.findOne(id);
+    console.log('[Temples Service] Temple found:', temple.name);
+    
     temple.squareMerchantId = squareMerchantId;
     temple.squareAccessToken = squareAccessToken;
     temple.squareRefreshToken = squareRefreshToken;
     if (squareLocationId) {
       temple.squareLocationId = squareLocationId;
     }
-    return this.templesRepository.save(temple);
+    
+    const savedTemple = await this.templesRepository.save(temple);
+    console.log('[Temples Service] Square credentials saved, merchant ID:', savedTemple.squareMerchantId);
+    return savedTemple;
   }
 }
 

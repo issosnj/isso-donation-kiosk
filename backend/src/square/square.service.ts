@@ -25,6 +25,15 @@ export class SquareService {
     const applicationSecret = this.configService.get<string>('SQUARE_APPLICATION_SECRET');
     const redirectUri = this.configService.get<string>('SQUARE_REDIRECT_URI');
 
+    console.log('[Square Service] Exchanging code for token');
+    console.log('[Square Service] Application ID:', applicationId ? 'present' : 'missing');
+    console.log('[Square Service] Application Secret:', applicationSecret ? 'present' : 'missing');
+    console.log('[Square Service] Redirect URI:', redirectUri);
+
+    if (!applicationId || !applicationSecret || !redirectUri) {
+      throw new Error('Square configuration missing: SQUARE_APPLICATION_ID, SQUARE_APPLICATION_SECRET, or SQUARE_REDIRECT_URI not set');
+    }
+
     const response = await fetch('https://connect.squareup.com/oauth2/token', {
       method: 'POST',
       headers: {
@@ -42,14 +51,17 @@ export class SquareService {
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('[Square Service] Token exchange failed:', JSON.stringify(error));
       throw new Error(`Square OAuth error: ${JSON.stringify(error)}`);
     }
 
     const data = await response.json();
+    console.log('[Square Service] Token exchange successful');
     return data;
   }
 
   async getMerchantInfo(accessToken: string): Promise<any> {
+    console.log('[Square Service] Fetching merchant info...');
     const response = await fetch('https://connect.squareup.com/v2/merchants', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -58,14 +70,18 @@ export class SquareService {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get merchant info');
+      const errorText = await response.text();
+      console.error('[Square Service] Failed to get merchant info, status:', response.status, 'error:', errorText);
+      throw new Error(`Failed to get merchant info: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('[Square Service] Merchant info retrieved, merchant count:', data.merchant?.length || 0);
     return data.merchant[0];
   }
 
   async getLocations(accessToken: string): Promise<any[]> {
+    console.log('[Square Service] Fetching locations...');
     const response = await fetch('https://connect.squareup.com/v2/locations', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -74,10 +90,13 @@ export class SquareService {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get locations');
+      const errorText = await response.text();
+      console.error('[Square Service] Failed to get locations, status:', response.status, 'error:', errorText);
+      throw new Error(`Failed to get locations: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('[Square Service] Locations retrieved, count:', data.locations?.length || 0);
     return data.locations || [];
   }
 

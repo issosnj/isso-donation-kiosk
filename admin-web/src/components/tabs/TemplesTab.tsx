@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import api from '@/lib/api'
 import TempleEditView from './TempleEditView'
 
@@ -11,6 +11,17 @@ export default function TemplesTab() {
   const [newTempleName, setNewTempleName] = useState('')
   const [newTempleAddress, setNewTempleAddress] = useState('')
   const queryClient = useQueryClient()
+
+  // Check if we should auto-open a temple (e.g., after Square connection)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const openTempleId = sessionStorage.getItem('openTempleId')
+      if (openTempleId && !selectedTempleId) {
+        setSelectedTempleId(openTempleId)
+        sessionStorage.removeItem('openTempleId')
+      }
+    }
+  }, [selectedTempleId])
 
   const { data: temples, isLoading, error } = useQuery({
     queryKey: ['temples'],
