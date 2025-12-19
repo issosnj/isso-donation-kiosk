@@ -15,12 +15,12 @@ struct ModernDonationDetailsView: View {
     
     var body: some View {
         ZStack {
-            // Clean white background
-            Color.white
+            // Dark background matching Square terminal
+            Color.black
                 .ignoresSafeArea()
             
             HStack(spacing: 0) {
-                // Left side: Payment details
+                // Left side: Payment details (dark theme)
                 VStack(alignment: .leading, spacing: 0) {
                     // Top: "All payment options"
                     HStack {
@@ -35,55 +35,54 @@ struct ModernDonationDetailsView: View {
                     
                     // Large amount display
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Pay")
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundColor(.gray)
                         Text("$\(String(format: "%.2f", amount))")
                             .font(.system(size: 64, weight: .bold))
-                            .foregroundColor(.black)
+                            .foregroundColor(.white)
                     }
                     .padding(.horizontal, 40)
                     .padding(.bottom, 30)
                     
-                    // Donation summary
+                    // Donation summary (dark card)
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Text("Donation")
                                 .font(.system(size: 18, weight: .regular))
-                                .foregroundColor(.black)
+                                .foregroundColor(.white)
                             Spacer()
                             Text("$\(String(format: "%.2f", amount))")
                                 .font(.system(size: 18, weight: .regular))
-                                .foregroundColor(.black)
+                                .foregroundColor(.white)
                         }
                         
                         if let category = category {
                             Divider()
+                                .background(Color.gray.opacity(0.3))
                             HStack {
                                 Text("Category")
                                     .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.white)
                                 Spacer()
                                 Text(category.name)
                                     .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.white)
                             }
                         }
                         
                         Divider()
+                            .background(Color.gray.opacity(0.3))
                         
                         HStack {
                             Text("Total")
                                 .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(.black)
+                                .foregroundColor(.white)
                             Spacer()
                             Text("$\(String(format: "%.2f", amount))")
                                 .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(.black)
+                                .foregroundColor(.white)
                         }
                     }
                     .padding(30)
-                    .background(Color(red: 0.98, green: 0.98, blue: 0.98))
+                    .background(Color(red: 0.1, green: 0.1, blue: 0.1))
                     .cornerRadius(12)
                     .padding(.horizontal, 40)
                     .padding(.bottom, 30)
@@ -102,15 +101,16 @@ struct ModernDonationDetailsView: View {
                             TextField("Enter your name", text: $donorName)
                                 .focused($nameFocused)
                                 .font(.system(size: 18))
+                                .foregroundColor(.white)
                                 .padding(16)
-                                .background(Color(red: 0.98, green: 0.98, blue: 0.98))
+                                .background(Color(red: 0.1, green: 0.1, blue: 0.1))
                                 .cornerRadius(10)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
                                         .stroke(
                                             nameFocused 
                                                 ? Color(red: 0.2, green: 0.4, blue: 0.8)
-                                                : Color.gray.opacity(0.2),
+                                                : Color.gray.opacity(0.3),
                                             lineWidth: nameFocused ? 2 : 1
                                         )
                                 )
@@ -126,15 +126,16 @@ struct ModernDonationDetailsView: View {
                                 .keyboardType(.emailAddress)
                                 .autocapitalization(.none)
                                 .font(.system(size: 18))
+                                .foregroundColor(.white)
                                 .padding(16)
-                                .background(Color(red: 0.98, green: 0.98, blue: 0.98))
+                                .background(Color(red: 0.1, green: 0.1, blue: 0.1))
                                 .cornerRadius(10)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
                                         .stroke(
                                             emailFocused 
                                                 ? Color(red: 0.2, green: 0.4, blue: 0.8)
-                                                : Color.gray.opacity(0.2),
+                                                : Color.gray.opacity(0.3),
                                             lineWidth: emailFocused ? 2 : 1
                                         )
                                 )
@@ -146,40 +147,21 @@ struct ModernDonationDetailsView: View {
                 }
                 .frame(maxWidth: .infinity)
                 
-                // Right side: Payment instructions
+                // Right side: Payment instructions (dark theme)
                 VStack(spacing: 40) {
                     Spacer()
                     
                     // Contactless payment symbol
-                    VStack(spacing: 20) {
-                        // Contactless icon - vertical lines matching reference
-                        ZStack {
-                            Circle()
-                                .fill(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                .frame(width: 140, height: 140)
-                            
-                            // Vertical lines icon (matching reference)
-                            VStack(spacing: 6) {
-                                HStack(spacing: 6) {
-                                    ForEach(0..<3) { _ in
-                                        RoundedRectangle(cornerRadius: 3)
-                                            .fill(Color.white)
-                                            .frame(width: 6, height: 32)
-                                    }
-                                }
-                                HStack(spacing: 6) {
-                                    ForEach(0..<3) { _ in
-                                        RoundedRectangle(cornerRadius: 3)
-                                            .fill(Color.white)
-                                            .frame(width: 6, height: 32)
-                                    }
-                                }
-                            }
-                        }
+                    VStack(spacing: 30) {
+                        // Contactless icon on terminal frame (white icon)
+                        Image(systemName: "wave.3.right")
+                            .font(.system(size: 40))
+                            .foregroundColor(.white)
+                            .padding(.bottom, 20)
                         
-                        // Payment options - visual indicators only
-                        VStack(spacing: 30) {
-                            // Tap option - visual indicator
+                        // Payment options - visual indicators
+                        VStack(spacing: 20) {
+                            // Tap option
                             HStack(spacing: 12) {
                                 Text("Tap")
                                     .font(.system(size: 24, weight: .semibold))
@@ -193,7 +175,7 @@ struct ModernDonationDetailsView: View {
                             .background(Color(red: 0.2, green: 0.4, blue: 0.8))
                             .cornerRadius(12)
                             
-                            // Insert option - visual indicator
+                            // Insert option
                             HStack(spacing: 12) {
                                 Text("Insert")
                                     .font(.system(size: 24, weight: .semibold))
@@ -213,10 +195,10 @@ struct ModernDonationDetailsView: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
-                .background(Color(red: 0.98, green: 0.98, blue: 0.98))
+                .background(Color.black)
             }
             
-            // Cancel button
+            // Cancel button (top left)
             VStack {
                 HStack {
                     Button(action: {
@@ -232,9 +214,8 @@ struct ModernDonationDetailsView: View {
                         .foregroundColor(.gray)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(Color.white)
+                        .background(Color(red: 0.1, green: 0.1, blue: 0.1))
                         .cornerRadius(10)
-                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
                     .padding()
                     Spacer()
