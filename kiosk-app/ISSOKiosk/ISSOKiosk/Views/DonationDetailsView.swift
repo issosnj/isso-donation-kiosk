@@ -151,26 +151,26 @@ struct ModernDonationDetailsView: View {
                     
                     // Contactless payment symbol
                     VStack(spacing: 20) {
-                        // Contactless icon
+                        // Contactless icon - vertical lines matching reference
                         ZStack {
                             Circle()
                                 .fill(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                .frame(width: 120, height: 120)
+                                .frame(width: 140, height: 140)
                             
-                            // Contactless payment symbol (curved lines)
-                            VStack(spacing: 8) {
-                                HStack(spacing: 4) {
+                            // Vertical lines icon (matching reference)
+                            VStack(spacing: 6) {
+                                HStack(spacing: 6) {
                                     ForEach(0..<3) { _ in
-                                        RoundedRectangle(cornerRadius: 2)
+                                        RoundedRectangle(cornerRadius: 3)
                                             .fill(Color.white)
-                                            .frame(width: 4, height: 20)
+                                            .frame(width: 6, height: 32)
                                     }
                                 }
-                                HStack(spacing: 4) {
+                                HStack(spacing: 6) {
                                     ForEach(0..<3) { _ in
-                                        RoundedRectangle(cornerRadius: 2)
+                                        RoundedRectangle(cornerRadius: 3)
                                             .fill(Color.white)
-                                            .frame(width: 4, height: 16)
+                                            .frame(width: 6, height: 32)
                                     }
                                 }
                             }
@@ -225,7 +225,7 @@ struct ModernDonationDetailsView: View {
                     
                     Spacer()
                 }
-                .frame(width: 400)
+                .frame(maxWidth: .infinity)
                 .background(Color(red: 0.98, green: 0.98, blue: 0.98))
             }
             

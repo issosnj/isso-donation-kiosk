@@ -163,7 +163,7 @@ struct DonationHomeView: View {
                 Spacer()
             }
         }
-        .sheet(isPresented: $showingDetails) {
+        .fullScreenCover(isPresented: $showingDetails) {
             ModernDonationDetailsView(
                 amount: currentAmount,
                 category: selectedCategory,
