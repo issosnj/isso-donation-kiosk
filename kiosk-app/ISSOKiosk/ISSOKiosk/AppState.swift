@@ -24,10 +24,9 @@ class AppState: ObservableObject {
             self.isActivated = true
             
             // Extract device ID from JWT token
-            if let token = response.deviceToken {
-                self.deviceId = extractDeviceId(from: token)
-                keychain.save(token, forKey: "deviceToken")
-            }
+            let token = response.deviceToken
+            self.deviceId = extractDeviceId(from: token)
+            keychain.save(token, forKey: "deviceToken")
         }
     }
     
