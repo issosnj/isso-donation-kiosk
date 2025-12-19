@@ -66,13 +66,14 @@ class SquareCardReader: NSObject, SQIPCardEntryViewControllerDelegate {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         
-        // Create request body with card nonce
+        // Create request body
+        // Note: Mobile Payments SDK doesn't use nonces - PaymentManager processes payment directly
+        // This temporary flow processes through backend without hardware interaction
         let body: [String: Any] = [
             "donationId": currentDonationId,
             "amount": currentAmount,
-            "idempotencyKey": "\(currentDonationId)-\(Date().timeIntervalSince1970)",
-            // Note: Mobile Payments SDK doesn't use nonces - it processes payment directly
-            // This is temporary until we implement Mobile Payments SDK
+            "idempotencyKey": "\(currentDonationId)-\(Date().timeIntervalSince1970)"
+            // No sourceId - backend will use Terminal API or other method
         ]
         
         do {
