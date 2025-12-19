@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ProcessPaymentDto {
@@ -8,12 +8,13 @@ export class ProcessPaymentDto {
 
   @ApiProperty()
   @IsNumber()
+  @Min(0.01)
   amount: number;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  sourceId?: string; // For Square Terminal API - card reader source ID
+  sourceId?: string; // Card nonce from Square Mobile Payments SDK
 
   @ApiProperty({ required: false })
   @IsOptional()

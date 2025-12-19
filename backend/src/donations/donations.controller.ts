@@ -38,7 +38,7 @@ export class DonationsController {
   @Post('process-payment')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create Square Terminal checkout for Kiosk hardware (device endpoint)' })
+  @ApiOperation({ summary: 'Process Square payment with card nonce from Mobile Payments SDK (device endpoint)' })
   async processPayment(
     @Body() processPaymentDto: ProcessPaymentDto,
     @CurrentUser() user: any,
@@ -46,21 +46,25 @@ export class DonationsController {
     // Get donation to find temple
     const donation = await this.donationsService.findOne(processPaymentDto.donationId);
     
-    // Create Terminal checkout - the Kiosk hardware will automatically pick this up
+    // Process payment through Square (with card nonce if provided)
     const result = await this.squareService.processPayment(
       donation.templeId,
       processPaymentDto.donationId,
       processPaymentDto.amount,
       processPaymentDto.idempotencyKey,
+      processPaymentDto.sourceId, // Card nonce from Mobile Payments SDK
     );
 
-    // Store checkout ID in donation for polling
-    // Don't complete donation yet - wait for Terminal to process payment
+    // Update donation with payment result
+    await this.donationsService.complete(processPaymentDto.donationId, {
+      squarePaymentId: result.paymentId,
+      status: result.status === 'COMPLETED' ? 'SUCCEEDED' : 'FAILED',
+    });
 
     return {
-      checkoutId: result.checkoutId,
+      success: result.status === 'COMPLETED',
+      paymentId: result.paymentId,
       status: result.status,
-      message: 'Checkout created. Terminal hardware will process payment when card is detected.',
     };
   }
 

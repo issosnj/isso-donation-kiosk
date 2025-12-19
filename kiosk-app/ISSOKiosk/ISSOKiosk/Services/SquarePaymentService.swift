@@ -1,18 +1,12 @@
 import Foundation
+import SquareInAppPaymentsSDK
 
-// Square Payment Service - processes payments through backend
-// The backend handles Square API integration with stored OAuth tokens
-// For Square Kiosk hardware, payments are processed server-side
-// 
-// SIMULATION MODE: Until Square Mobile SDK is set up, this simulates
-// Square Kiosk hardware interactions for testing
+// Square Payment Service - uses Mobile Payments SDK for in-person payments
+// The SDK handles card detection from Square hardware (tap/chip)
+// Payment is processed through backend with card nonce
 
 class SquarePaymentService {
     static let shared = SquarePaymentService()
-    
-    // Set to true to use simulation mode (dummy transactions)
-    // Set to false to use real backend Square API integration
-    private let useSimulation = false // Changed to false - Square SDK is now set up
     
     private init() {}
     
@@ -22,22 +16,18 @@ class SquarePaymentService {
         let error: String?
     }
     
-    struct CheckoutResult {
-        let checkoutId: String
-        let status: String
-    }
-    
-    func createCheckout(
+    // Start payment flow using Square Mobile Payments SDK
+    // This will show card entry UI and detect card interactions from Square hardware
+    func startPayment(
         donationId: String,
-        amount: Double
-    ) async throws -> CheckoutResult {
-        // Create Terminal checkout - hardware will automatically pick it up
-        return try await createTerminalCheckout(donationId: donationId, amount: amount)
-    }
-    
-    func pollCheckoutStatus(checkoutId: String, donationId: String) async throws -> PaymentResult {
-        // Poll for checkout status until completed or failed
-        return try await pollTerminalCheckout(checkoutId: checkoutId, donationId: donationId)
+        amount: Double,
+        completion: @escaping (Result<PaymentResult, Error>) -> Void
+    ) {
+        SquareCardReader.shared.startPayment(
+            amount: amount,
+            donationId: donationId,
+            completion: completion
+        )
     }
     
     // Simulate Square Kiosk hardware interaction

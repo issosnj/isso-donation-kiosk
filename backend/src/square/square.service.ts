@@ -192,7 +192,8 @@ export class SquareService {
     donationId: string,
     amount: number,
     idempotencyKey?: string,
-  ): Promise<{ checkoutId: string; paymentId?: string; status: string }> {
+    sourceId?: string, // Card nonce from Mobile Payments SDK
+  ): Promise<{ paymentId: string; status: string }> {
     // Get temple with Square access token
     const temple = await this.templesService.findOne(templeId);
     
@@ -214,52 +215,62 @@ export class SquareService {
       currency: temple.defaultCurrency || 'USD',
     };
 
-    // Create Terminal checkout request for Kiosk hardware
-    // The Terminal hardware will automatically pick up this checkout and display it
-    const checkoutRequest = {
+    // Create payment request
+    // If sourceId (card nonce) is provided, use Mobile Payments SDK flow
+    // Otherwise, fall back to Terminal API for hardware checkout
+    const paymentRequest: any = {
       idempotency_key: idempotencyKey || `${donationId}-${Date.now()}`,
-      checkout: {
-        amount_money: amountMoney,
-        reference_id: donationId, // Reference to our donation
-        note: `Donation #${donationId}`,
-      },
+      amount_money: amountMoney,
+      location_id: locationId,
+      autocomplete: true,
     };
 
-    console.log('[Square Service] Creating Terminal checkout:', {
+    // If sourceId (card nonce) is provided, use it for direct payment
+    if (sourceId) {
+      paymentRequest.source_id = sourceId;
+      console.log('[Square Service] Processing payment with card nonce (Mobile Payments SDK)');
+    } else {
+      // Fall back to Terminal API for hardware checkout
+      paymentRequest.source_id = 'EXTERNAL';
+      console.log('[Square Service] Creating Terminal checkout for hardware');
+    }
+
+    console.log('[Square Service] Processing payment:', {
       donationId,
       amount: amountMoney.amount,
       currency: amountMoney.currency,
       locationId,
+      hasSourceId: !!sourceId,
     });
 
-    // Call Square Terminal API to create checkout
-    const response = await fetch(`https://connect.squareup.com/v2/terminals/checkouts`, {
+    // Call Square Payments API
+    const response = await fetch('https://connect.squareup.com/v2/payments', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Square-Version': '2023-10-18',
       },
-      body: JSON.stringify(checkoutRequest),
+      body: JSON.stringify(paymentRequest),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('[Square Service] Terminal checkout creation failed:', error);
-      throw new Error(`Square Terminal checkout failed: ${error.errors?.[0]?.detail || JSON.stringify(error)}`);
+      console.error('[Square Service] Payment processing failed:', error);
+      throw new Error(`Square payment failed: ${error.errors?.[0]?.detail || JSON.stringify(error)}`);
     }
 
     const data = await response.json();
-    const checkout = data.checkout;
+    const payment = data.payment;
     
-    console.log('[Square Service] Terminal checkout created:', {
-      checkoutId: checkout.id,
-      status: checkout.status,
+    console.log('[Square Service] Payment processed successfully:', {
+      paymentId: payment.id,
+      status: payment.status,
     });
 
     return {
-      checkoutId: checkout.id,
-      status: checkout.status || 'PENDING',
+      paymentId: payment.id,
+      status: payment.status,
     };
   }
 

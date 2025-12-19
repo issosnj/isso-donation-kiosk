@@ -73,33 +73,49 @@ struct ModernPaymentView: View {
                     categoryId: category?.id
                 )
                 
-                // 2. Create Terminal checkout - Kiosk hardware will automatically pick it up
-                let checkout = try await SquarePaymentService.shared.createCheckout(
-                    donationId: donation.id,
-                    amount: amount
-                )
-                
-                print("[PaymentView] Terminal checkout created: \(checkout.checkoutId)")
-                print("[PaymentView] Waiting for user to tap/insert card on Kiosk hardware...")
-                
-                // 3. Poll for checkout status until user completes payment on Terminal hardware
-                let paymentResult = try await SquarePaymentService.shared.pollCheckoutStatus(
-                    checkoutId: checkout.checkoutId,
-                    donationId: donation.id
-                )
-                
-                // 4. Complete donation
-                _ = try await APIService.shared.completeDonation(
-                    donationId: donation.id,
-                    squarePaymentId: paymentResult.paymentId ?? "",
-                    status: paymentResult.success ? "SUCCEEDED" : "FAILED",
-                    donorName: donorName,
-                    donorEmail: donorEmail
-                )
-                
+                // 2. Start payment using Square Mobile Payments SDK
+                // This will show card entry UI and detect card interactions from Square hardware
                 await MainActor.run {
-                    isProcessing = false
-                    paymentStatus = paymentResult.success ? .success : .failure(paymentResult.error ?? "Payment failed")
+                    SquarePaymentService.shared.startPayment(
+                        donationId: donation.id,
+                        amount: amount
+                    ) { result in
+                        Task {
+                            do {
+                                let paymentResult: SquarePaymentService.PaymentResult
+                                
+                                switch result {
+                                case .success(let result):
+                                    paymentResult = result
+                                case .failure(let error):
+                                    await MainActor.run {
+                                        self.isProcessing = false
+                                        self.paymentStatus = .failure(error.localizedDescription)
+                                    }
+                                    return
+                                }
+                                
+                                // 3. Complete donation
+                                _ = try await APIService.shared.completeDonation(
+                                    donationId: donation.id,
+                                    squarePaymentId: paymentResult.paymentId ?? "",
+                                    status: paymentResult.success ? "SUCCEEDED" : "FAILED",
+                                    donorName: donorName,
+                                    donorEmail: donorEmail
+                                )
+                                
+                                await MainActor.run {
+                                    self.isProcessing = false
+                                    self.paymentStatus = paymentResult.success ? .success : .failure(paymentResult.error ?? "Payment failed")
+                                }
+                            } catch {
+                                await MainActor.run {
+                                    self.isProcessing = false
+                                    self.paymentStatus = .failure(error.localizedDescription)
+                                }
+                            }
+                        }
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -215,10 +231,9 @@ struct ModernPaymentReadyView: View {
                 pulseAnimation = true
             }
             
-            // Terminal checkout is created when user clicks "Ready for Payment"
-            // The Square Kiosk hardware will automatically pick up the checkout
-            // and display it. User taps/inserts card on the hardware.
-            // We poll for checkout status in processPayment()
+            // When user clicks "Ready for Payment", Square Mobile Payments SDK
+            // will show card entry UI and detect card interactions from Square hardware
+            // User can tap or insert card, and SDK will process it
         }
     }
 }

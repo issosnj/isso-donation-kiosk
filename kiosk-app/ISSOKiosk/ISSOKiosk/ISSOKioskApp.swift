@@ -1,4 +1,5 @@
 import SwiftUI
+import SquareInAppPaymentsSDK
 
 @main
 struct ISSOKioskApp: App {
@@ -6,8 +7,13 @@ struct ISSOKioskApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     init() {
-        // Square payments are processed server-side through the backend API
-        // No client-side Square SDK needed
+        // Initialize Square Mobile Payments SDK for in-person payments
+        if let appId = Bundle.main.object(forInfoDictionaryKey: "SQUARE_APPLICATION_ID") as? String {
+            SQIPInAppPaymentsSDK.squareApplicationID = appId
+            print("[Square SDK] Initialized with Application ID: \(appId.prefix(8))...")
+        } else {
+            print("[Square SDK] Warning: SQUARE_APPLICATION_ID not found in Info.plist")
+        }
         print("[App] ISSO Donation Kiosk initialized")
     }
     
