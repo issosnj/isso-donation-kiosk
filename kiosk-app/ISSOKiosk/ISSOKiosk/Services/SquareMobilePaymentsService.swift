@@ -1,6 +1,8 @@
 import Foundation
 import UIKit
 import SquareMobilePaymentsSDK
+import CoreLocation
+import CoreBluetooth
 
 // Square Mobile Payments SDK Service
 // This service handles in-person payments with Square Stand using Mobile Payments SDK
@@ -39,6 +41,8 @@ class SquareMobilePaymentsService: NSObject {
         guard MobilePaymentsSDK.shared.authorizationManager.state == .notAuthorized else {
             print("[SquareMobilePayments] Already authorized (state: \(MobilePaymentsSDK.shared.authorizationManager.state))")
             self.isAuthorized = true
+            // Check reader detection after authorization
+            checkReaderDetection()
             completion(nil)
             return
         }
@@ -55,9 +59,62 @@ class SquareMobilePaymentsService: NSObject {
             } else {
                 print("[SquareMobilePayments] ✅ Successfully authorized with location: \(locationId)")
                 self.isAuthorized = true
+                // Check reader detection after successful authorization
+                self.checkReaderDetection()
                 completion(nil)
             }
         }
+    }
+    
+    // Step 5: Test Square Stand Detection
+    // The SDK automatically detects Square Stand hardware when authorized
+    // This method checks various indicators to verify hardware detection
+    // Can be called manually or automatically after authorization
+    func checkReaderDetection() {
+        print("\n[SquareMobilePayments] ===== Testing Square Stand Detection =====")
+        
+        // 1. Check authorization state
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        print("[SquareMobilePayments] Authorization State: \(authState)")
+        
+        if authState == .authorized {
+            print("[SquareMobilePayments] ✅ SDK is authorized")
+        } else {
+            print("[SquareMobilePayments] ⚠️ SDK is not authorized (state: \(authState))")
+            print("[SquareMobilePayments] Reader detection requires authorization first")
+            return
+        }
+        
+        // 2. Check iOS system for Square Stand recognition
+        // Square Stand should appear in Settings > General > About if connected
+        print("[SquareMobilePayments] 📱 To verify Square Stand connection:")
+        print("[SquareMobilePayments]    1. Go to iPad Settings > General > About")
+        print("[SquareMobilePayments]    2. Look for 'Square Stand' in the device list")
+        print("[SquareMobilePayments]    3. If it appears, the Stand is recognized by iOS")
+        
+        // 3. Check Info.plist configuration
+        print("[SquareMobilePayments] 📋 Checking Info.plist configuration...")
+        if let protocols = Bundle.main.object(forInfoDictionaryKey: "UISupportedExternalAccessoryProtocols") as? [String] {
+            let squareProtocols = protocols.filter { $0.contains("squareup") }
+            if !squareProtocols.isEmpty {
+                print("[SquareMobilePayments] ✅ Square protocols configured: \(squareProtocols)")
+            } else {
+                print("[SquareMobilePayments] ⚠️ No Square protocols found in Info.plist")
+            }
+        } else {
+            print("[SquareMobilePayments] ⚠️ UISupportedExternalAccessoryProtocols not found in Info.plist")
+        }
+        
+        // 4. Check permissions
+        let locationStatus = CLLocationManager().authorizationStatus
+        let bluetoothStatus = CBManager.authorization
+        print("[SquareMobilePayments] 📍 Location permission: \(locationStatus == .authorizedWhenInUse || locationStatus == .authorizedAlways ? "✅ Granted" : "⚠️ Not granted")")
+        print("[SquareMobilePayments] 📡 Bluetooth permission: \(bluetoothStatus == .allowedAlways ? "✅ Granted" : "⚠️ Not granted")")
+        
+        // 5. Note: Actual hardware detection happens when starting a payment
+        print("[SquareMobilePayments] 💡 Note: Square Stand will be detected automatically when you start a payment")
+        print("[SquareMobilePayments] 💡 The SDK will show an error if no hardware is found during payment")
+        print("[SquareMobilePayments] ============================================\n")
     }
     
     // Take payment using Mobile Payments SDK PaymentManager

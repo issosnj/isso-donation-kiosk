@@ -136,6 +136,7 @@ class AppState: ObservableObject {
                         print("[AppState] ❌ Failed to authorize Square SDK: \(error.localizedDescription)")
                     } else {
                         print("[AppState] ✅ Square Mobile Payments SDK authorized successfully")
+                        // Reader detection is automatically checked after authorization
                     }
                     continuation.resume()
                 }
