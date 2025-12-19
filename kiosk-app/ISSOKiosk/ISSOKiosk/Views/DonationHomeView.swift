@@ -121,29 +121,50 @@ struct DonationHomeView: View {
                     VStack(spacing: 30) {
                         // Preset amount buttons - flexible grid based on count
                         let buttonCount = presetAmounts.count
-                        if buttonCount > 0 {
-                            if buttonCount <= 4 {
-                                // 2x2 grid for 4 or fewer
-                                VStack(spacing: 16) {
-                                    HStack(spacing: 16) {
-                                        ForEach(Array(presetAmounts.prefix(2)), id: \.self) { amount in
-                                            CleanAmountButton(
-                                                amount: amount,
-                                                isSelected: selectedAmount == amount,
-                                                action: {
-                                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                        selectedAmount = amount
-                                                        customAmount = ""
-                                                        customAmountFocused = false
+                        Group {
+                            if buttonCount > 0 {
+                                if buttonCount <= 4 {
+                                    // 2x2 grid for 4 or fewer
+                                    VStack(spacing: 16) {
+                                        HStack(spacing: 16) {
+                                            ForEach(Array(presetAmounts.prefix(2)), id: \.self) { amount in
+                                                CleanAmountButton(
+                                                    amount: amount,
+                                                    isSelected: selectedAmount == amount,
+                                                    action: {
+                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                            selectedAmount = amount
+                                                            customAmount = ""
+                                                            customAmountFocused = false
+                                                        }
                                                     }
+                                                )
+                                            }
+                                        }
+                                        
+                                        if buttonCount > 2 {
+                                            HStack(spacing: 16) {
+                                                ForEach(Array(presetAmounts.suffix(buttonCount > 2 ? buttonCount - 2 : 0)), id: \.self) { amount in
+                                                    CleanAmountButton(
+                                                        amount: amount,
+                                                        isSelected: selectedAmount == amount,
+                                                        action: {
+                                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                                selectedAmount = amount
+                                                                customAmount = ""
+                                                                customAmountFocused = false
+                                                            }
+                                                        }
+                                                    )
                                                 }
-                                            )
+                                            }
                                         }
                                     }
-                                    
-                                    if buttonCount > 2 {
-                                        HStack(spacing: 16) {
-                                            ForEach(Array(presetAmounts.suffix(buttonCount > 2 ? buttonCount - 2 : 0)), id: \.self) { amount in
+                                } else {
+                                    // Scrollable grid for more than 4
+                                    ScrollView {
+                                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                                            ForEach(presetAmounts, id: \.self) { amount in
                                                 CleanAmountButton(
                                                     amount: amount,
                                                     isSelected: selectedAmount == amount,
@@ -160,24 +181,7 @@ struct DonationHomeView: View {
                                     }
                                 }
                             } else {
-                                // Scrollable grid for more than 4
-                                ScrollView {
-                                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                                        ForEach(presetAmounts, id: \.self) { amount in
-                                            CleanAmountButton(
-                                                amount: amount,
-                                                isSelected: selectedAmount == amount,
-                                                action: {
-                                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                        selectedAmount = amount
-                                                        customAmount = ""
-                                                        customAmountFocused = false
-                                                    }
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
+                                EmptyView()
                             }
                         }
                         .padding(.horizontal, 40)
