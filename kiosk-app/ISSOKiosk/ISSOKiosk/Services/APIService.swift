@@ -313,7 +313,7 @@ class APIService {
         print("[APIService] 📡 Device token available: \(deviceToken != nil)")
         
         do {
-            let categories = try await request<[DonationCategory]>(
+            let categories: [DonationCategory] = try await request(
                 endpoint: "/donation-categories/kiosk/\(templeId)",
                 method: "GET",
                 requiresAuth: true
