@@ -38,7 +38,7 @@ export class DonationsController {
   @Post('process-payment')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Process Square payment for a donation (device endpoint)' })
+  @ApiOperation({ summary: 'Create Square Terminal checkout for Kiosk hardware (device endpoint)' })
   async processPayment(
     @Body() processPaymentDto: ProcessPaymentDto,
     @CurrentUser() user: any,
@@ -46,7 +46,7 @@ export class DonationsController {
     // Get donation to find temple
     const donation = await this.donationsService.findOne(processPaymentDto.donationId);
     
-    // Process payment through Square
+    // Create Terminal checkout - the Kiosk hardware will automatically pick this up
     const result = await this.squareService.processPayment(
       donation.templeId,
       processPaymentDto.donationId,
@@ -54,14 +54,40 @@ export class DonationsController {
       processPaymentDto.idempotencyKey,
     );
 
-    // Update donation with payment result
-    await this.donationsService.complete(processPaymentDto.donationId, {
-      squarePaymentId: result.paymentId,
-      status: result.status === 'COMPLETED' ? 'SUCCEEDED' : 'FAILED',
-    });
+    // Store checkout ID in donation for polling
+    // Don't complete donation yet - wait for Terminal to process payment
 
     return {
-      success: result.status === 'COMPLETED',
+      checkoutId: result.checkoutId,
+      status: result.status,
+      message: 'Checkout created. Terminal hardware will process payment when card is detected.',
+    };
+  }
+
+  @Get('checkout-status/:checkoutId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Check status of Terminal checkout (device endpoint)' })
+  async getCheckoutStatus(
+    @Param('checkoutId') checkoutId: string,
+    @Query('donationId') donationId: string,
+    @CurrentUser() user: any,
+  ) {
+    // Get donation to find temple
+    const donation = await this.donationsService.findOne(donationId);
+    
+    const result = await this.squareService.getCheckoutStatus(donation.templeId, checkoutId);
+
+    // If checkout is completed, update donation
+    if (result.completed && result.paymentId) {
+      await this.donationsService.complete(donationId, {
+        squarePaymentId: result.paymentId,
+        status: result.status === 'COMPLETED' ? 'SUCCEEDED' : 'FAILED',
+      });
+    }
+
+    return {
+      completed: result.completed,
       paymentId: result.paymentId,
       status: result.status,
     };

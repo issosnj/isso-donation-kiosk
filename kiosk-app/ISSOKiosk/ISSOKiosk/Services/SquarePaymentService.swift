@@ -22,19 +22,22 @@ class SquarePaymentService {
         let error: String?
     }
     
-    func processPayment(
+    struct CheckoutResult {
+        let checkoutId: String
+        let status: String
+    }
+    
+    func createCheckout(
         donationId: String,
-        amount: Double,
-        locationId: String
-    ) async throws -> PaymentResult {
-        
-        if useSimulation {
-            // SIMULATION MODE: Simulate Square Kiosk hardware
-            return try await simulateSquareKioskPayment(donationId: donationId, amount: amount)
-        } else {
-            // REAL MODE: Process payment through backend
-            return try await processRealPayment(donationId: donationId, amount: amount)
-        }
+        amount: Double
+    ) async throws -> CheckoutResult {
+        // Create Terminal checkout - hardware will automatically pick it up
+        return try await createTerminalCheckout(donationId: donationId, amount: amount)
+    }
+    
+    func pollCheckoutStatus(checkoutId: String, donationId: String) async throws -> PaymentResult {
+        // Poll for checkout status until completed or failed
+        return try await pollTerminalCheckout(checkoutId: checkoutId, donationId: donationId)
     }
     
     // Simulate Square Kiosk hardware interaction
@@ -72,11 +75,11 @@ class SquarePaymentService {
         }
     }
     
-    // Real payment processing through backend
-    private func processRealPayment(
+    // Create Terminal checkout - hardware will automatically pick it up
+    private func createTerminalCheckout(
         donationId: String,
         amount: Double
-    ) async throws -> PaymentResult {
+    ) async throws -> CheckoutResult {
         guard let url = URL(string: "\(Config.apiBaseURL)/donations/process-payment") else {
             throw NSError(domain: "SquarePaymentService", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "Invalid API URL"
@@ -112,25 +115,105 @@ class SquarePaymentService {
         
         guard (200...299).contains(httpResponse.statusCode) else {
             let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            let errorMessage = errorData?["message"] as? String ?? "Payment processing failed"
+            let errorMessage = errorData?["message"] as? String ?? "Checkout creation failed"
             throw NSError(domain: "SquarePaymentService", code: httpResponse.statusCode, userInfo: [
                 NSLocalizedDescriptionKey: errorMessage
             ])
         }
         
-        let result = try JSONDecoder().decode(ProcessPaymentResponse.self, from: data)
+        let result = try JSONDecoder().decode(CreateCheckoutResponse.self, from: data)
         
+        return CheckoutResult(
+            checkoutId: result.checkoutId,
+            status: result.status
+        )
+    }
+    
+    // Poll Terminal checkout status until completed
+    private func pollTerminalCheckout(checkoutId: String, donationId: String) async throws -> PaymentResult {
+        let maxAttempts = 60 // Poll for up to 60 seconds (1 second intervals)
+        var attempts = 0
+        
+        while attempts < maxAttempts {
+            // Wait 1 second between polls
+            if attempts > 0 {
+                try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            }
+            
+            guard let url = URL(string: "\(Config.apiBaseURL)/donations/checkout-status/\(checkoutId)?donationId=\(donationId)") else {
+                throw NSError(domain: "SquarePaymentService", code: -1, userInfo: [
+                    NSLocalizedDescriptionKey: "Invalid API URL"
+                ])
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            // Get device token for authentication
+            let keychain = KeychainHelper()
+            if let token = keychain.load(forKey: "deviceToken") {
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw NSError(domain: "SquarePaymentService", code: -1, userInfo: [
+                    NSLocalizedDescriptionKey: "Invalid response"
+                ])
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                let errorMessage = errorData?["message"] as? String ?? "Failed to check checkout status"
+                throw NSError(domain: "SquarePaymentService", code: httpResponse.statusCode, userInfo: [
+                    NSLocalizedDescriptionKey: errorMessage
+                ])
+            }
+            
+            let statusResult = try JSONDecoder().decode(CheckoutStatusResponse.self, from: data)
+            
+            // If checkout is completed, return result
+            if statusResult.completed {
+                let success = statusResult.status == "COMPLETED"
+                return PaymentResult(
+                    success: success,
+                    paymentId: statusResult.paymentId,
+                    error: success ? nil : "Payment failed"
+                )
+            }
+            
+            // If checkout was canceled, return failure
+            if statusResult.status == "CANCELED" {
+                return PaymentResult(
+                    success: false,
+                    paymentId: nil,
+                    error: "Payment was canceled"
+                )
+            }
+            
+            attempts += 1
+        }
+        
+        // Timeout - checkout took too long
         return PaymentResult(
-            success: result.success,
-            paymentId: result.paymentId,
-            error: result.success ? nil : "Payment failed"
+            success: false,
+            paymentId: nil,
+            error: "Payment timeout. Please try again."
         )
     }
 }
 
-struct ProcessPaymentResponse: Codable {
-    let success: Bool
-    let paymentId: String
+struct CreateCheckoutResponse: Codable {
+    let checkoutId: String
+    let status: String
+    let message: String?
+}
+
+struct CheckoutStatusResponse: Codable {
+    let completed: Bool
+    let paymentId: String?
     let status: String
 }
 

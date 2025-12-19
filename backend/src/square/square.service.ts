@@ -192,7 +192,7 @@ export class SquareService {
     donationId: string,
     amount: number,
     idempotencyKey?: string,
-  ): Promise<{ paymentId: string; status: string }> {
+  ): Promise<{ checkoutId: string; paymentId?: string; status: string }> {
     // Get temple with Square access token
     const temple = await this.templesService.findOne(templeId);
     
@@ -214,50 +214,93 @@ export class SquareService {
       currency: temple.defaultCurrency || 'USD',
     };
 
-    // Create payment request
-    const paymentRequest = {
-      source_id: 'EXTERNAL', // For Square Terminal/Kiosk, this will be set by the hardware
+    // Create Terminal checkout request for Kiosk hardware
+    // The Terminal hardware will automatically pick up this checkout and display it
+    const checkoutRequest = {
       idempotency_key: idempotencyKey || `${donationId}-${Date.now()}`,
-      amount_money: amountMoney,
-      location_id: locationId,
-      autocomplete: true, // Auto-complete payment
+      checkout: {
+        amount_money: amountMoney,
+        reference_id: donationId, // Reference to our donation
+        note: `Donation #${donationId}`,
+      },
     };
 
-    console.log('[Square Service] Processing payment:', {
+    console.log('[Square Service] Creating Terminal checkout:', {
       donationId,
       amount: amountMoney.amount,
       currency: amountMoney.currency,
       locationId,
     });
 
-    // Call Square Payments API
-    const response = await fetch('https://connect.squareup.com/v2/payments', {
+    // Call Square Terminal API to create checkout
+    const response = await fetch(`https://connect.squareup.com/v2/terminals/checkouts`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Square-Version': '2023-10-18',
       },
-      body: JSON.stringify(paymentRequest),
+      body: JSON.stringify(checkoutRequest),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('[Square Service] Payment processing failed:', error);
-      throw new Error(`Square payment failed: ${error.errors?.[0]?.detail || JSON.stringify(error)}`);
+      console.error('[Square Service] Terminal checkout creation failed:', error);
+      throw new Error(`Square Terminal checkout failed: ${error.errors?.[0]?.detail || JSON.stringify(error)}`);
     }
 
     const data = await response.json();
-    const payment = data.payment;
+    const checkout = data.checkout;
     
-    console.log('[Square Service] Payment processed successfully:', {
-      paymentId: payment.id,
-      status: payment.status,
+    console.log('[Square Service] Terminal checkout created:', {
+      checkoutId: checkout.id,
+      status: checkout.status,
     });
 
     return {
-      paymentId: payment.id,
-      status: payment.status,
+      checkoutId: checkout.id,
+      status: checkout.status || 'PENDING',
+    };
+  }
+
+  async getCheckoutStatus(
+    templeId: string,
+    checkoutId: string,
+  ): Promise<{ paymentId?: string; status: string; completed: boolean }> {
+    const temple = await this.templesService.findOne(templeId);
+    
+    if (!temple.squareAccessToken) {
+      throw new Error('Square not connected for this temple.');
+    }
+
+    const accessToken = temple.squareAccessToken;
+
+    // Get checkout status from Square Terminal API
+    const response = await fetch(`https://connect.squareup.com/v2/terminals/checkouts/${checkoutId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Square-Version': '2023-10-18',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('[Square Service] Failed to get checkout status:', error);
+      throw new Error(`Failed to get checkout status: ${error.errors?.[0]?.detail || JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    const checkout = data.checkout;
+    
+    // Checkout statuses: PENDING, IN_PROGRESS, COMPLETED, CANCELED
+    const isCompleted = checkout.status === 'COMPLETED';
+    const paymentId = checkout.payment_ids?.[0]; // Terminal checkout can have payment IDs when completed
+
+    return {
+      paymentId,
+      status: checkout.status,
+      completed: isCompleted,
     };
   }
 

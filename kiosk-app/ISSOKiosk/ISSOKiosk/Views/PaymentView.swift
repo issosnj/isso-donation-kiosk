@@ -73,14 +73,22 @@ struct ModernPaymentView: View {
                     categoryId: category?.id
                 )
                 
-                // 2. Process payment through backend (backend handles Square API)
-                let paymentResult = try await SquarePaymentService.shared.processPayment(
+                // 2. Create Terminal checkout - Kiosk hardware will automatically pick it up
+                let checkout = try await SquarePaymentService.shared.createCheckout(
                     donationId: donation.id,
-                    amount: amount,
-                    locationId: appState.temple?.squareLocationId ?? ""
+                    amount: amount
                 )
                 
-                // 3. Complete donation
+                print("[PaymentView] Terminal checkout created: \(checkout.checkoutId)")
+                print("[PaymentView] Waiting for user to tap/insert card on Kiosk hardware...")
+                
+                // 3. Poll for checkout status until user completes payment on Terminal hardware
+                let paymentResult = try await SquarePaymentService.shared.pollCheckoutStatus(
+                    checkoutId: checkout.checkoutId,
+                    donationId: donation.id
+                )
+                
+                // 4. Complete donation
                 _ = try await APIService.shared.completeDonation(
                     donationId: donation.id,
                     squarePaymentId: paymentResult.paymentId ?? "",
@@ -207,17 +215,10 @@ struct ModernPaymentReadyView: View {
                 pulseAnimation = true
             }
             
-            // SIMULATION MODE: Auto-detect "card" after 3 seconds for testing
-            // In real implementation, Square SDK will handle card detection
-            Task {
-                // Wait for card detection simulation
-                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                
-                // Simulate card detection - trigger payment processing
-                await MainActor.run {
-                    onCardDetected()
-                }
-            }
+            // Terminal checkout is created when user clicks "Ready for Payment"
+            // The Square Kiosk hardware will automatically pick up the checkout
+            // and display it. User taps/inserts card on the hardware.
+            // We poll for checkout status in processPayment()
         }
     }
 }
