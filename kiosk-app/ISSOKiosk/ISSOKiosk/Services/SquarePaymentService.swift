@@ -23,7 +23,7 @@ class SquarePaymentService {
         // 4. Return the payment result
         
         // For now, simulate a successful payment
-        await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+        try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
         
         // In real implementation, this would return actual Square payment result
         return PaymentResult(
