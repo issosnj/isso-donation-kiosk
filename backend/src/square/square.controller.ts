@@ -30,12 +30,26 @@ export class SquareController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Initiate Square OAuth connection' })
   async connect(@Query('templeId') templeId: string, @CurrentUser() user: any) {
+    console.log('[Square Connect] Request received for templeId:', templeId, 'by user:', user.email);
+    
     // Temple Admin can only connect their own temple
     if (user.role === 'TEMPLE_ADMIN' && user.templeId !== templeId) {
       throw new Error('Unauthorized');
     }
 
+    const applicationId = this.configService.get<string>('SQUARE_APPLICATION_ID');
+    const redirectUri = this.configService.get<string>('SQUARE_REDIRECT_URI');
+    
+    console.log('[Square Connect] Application ID:', applicationId ? 'present' : 'missing');
+    console.log('[Square Connect] Redirect URI:', redirectUri || 'missing');
+    
+    if (!applicationId || !redirectUri) {
+      console.error('[Square Connect] Missing Square configuration');
+      throw new Error('Square configuration missing. Please set SQUARE_APPLICATION_ID and SQUARE_REDIRECT_URI in Railway environment variables.');
+    }
+
     const oauthUrl = this.squareService.getOAuthUrl(templeId);
+    console.log('[Square Connect] Generated OAuth URL, redirecting user to Square');
     return { oauthUrl };
   }
 

@@ -15,9 +15,18 @@ export class SquareService {
   getOAuthUrl(templeId: string): string {
     const applicationId = this.configService.get<string>('SQUARE_APPLICATION_ID');
     const redirectUri = this.configService.get<string>('SQUARE_REDIRECT_URI');
+    
+    if (!applicationId || !redirectUri) {
+      throw new Error('Square configuration missing: SQUARE_APPLICATION_ID or SQUARE_REDIRECT_URI not set');
+    }
+    
     const state = Buffer.from(JSON.stringify({ templeId })).toString('base64');
-
-    return `https://squareup.com/oauth2/authorize?client_id=${applicationId}&response_type=code&scope=PAYMENTS_READ+PAYMENTS_WRITE+MERCHANT_PROFILE_READ&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    const oauthUrl = `https://squareup.com/oauth2/authorize?client_id=${applicationId}&response_type=code&scope=PAYMENTS_READ+PAYMENTS_WRITE+MERCHANT_PROFILE_READ&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    
+    console.log('[Square Service] Generated OAuth URL for temple:', templeId);
+    console.log('[Square Service] Redirect URI:', redirectUri);
+    
+    return oauthUrl;
   }
 
   async exchangeCodeForToken(code: string, state: string): Promise<any> {
