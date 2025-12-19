@@ -5,9 +5,14 @@ This is a step-by-step visual guide to help you add the Square In-App Payments S
 ## Step-by-Step with Screenshots
 
 ### Step 1: Open Your Project
-1. Open Finder and navigate to: `kiosk-app` folder
-2. Double-click `ISSOKiosk.xcodeproj`
-3. Wait for Xcode to open and load the project
+1. **If you have `ISSOKiosk.xcodeproj`**:
+   - Open Finder and navigate to: `kiosk-app` folder
+   - Double-click `ISSOKiosk.xcodeproj`
+   - Wait for Xcode to open and load the project
+   
+2. **If you don't have the project yet**:
+   - See `CREATE_XCODE_PROJECT.md` first to create the Xcode project
+   - Then come back here to add the Square SDK
 
 ### Step 2: Navigate to Package Dependencies
 1. In Xcode's left sidebar, click on the **blue project icon** at the very top (this is your project, not a folder)

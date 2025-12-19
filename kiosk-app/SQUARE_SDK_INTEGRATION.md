@@ -17,8 +17,8 @@ This guide will help you integrate the Square Mobile Payments SDK into the iOS k
 ### Detailed Steps:
 
 1. **Open the Project in Xcode**
-   - Navigate to the `kiosk-app` folder
-   - Double-click `ISSOKiosk.xcodeproj` to open it in Xcode
+   - **If you have `ISSOKiosk.xcodeproj`**: Double-click it to open in Xcode
+   - **If you don't have the project yet**: See `CREATE_XCODE_PROJECT.md` first to create the Xcode project
    - Wait for Xcode to fully load the project
 
 2. **Add the Package Dependency**
