@@ -1,5 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DonationsService } from './donations.service';
 import { DonationsController } from './donations.controller';
 import { Donation } from './entities/donation.entity';
@@ -16,6 +18,16 @@ import { SquareModule } from '../square/square.module';
     TemplesModule,
     forwardRef(() => DevicesModule),
     forwardRef(() => SquareModule),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: '365d', // Device tokens last a year
+        },
+      }),
+      inject: [ConfigService],
+    }),
   ],
   controllers: [DonationsController, DonationCategoriesController],
   providers: [DonationsService, DonationCategoriesService],
