@@ -26,6 +26,7 @@ class APIService {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 15.0 // 15 second timeout
         
         if requiresAuth, let token = deviceToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

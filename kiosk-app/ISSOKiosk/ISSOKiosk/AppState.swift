@@ -58,11 +58,9 @@ class AppState: ObservableObject {
         print("[AppState] 📡 API Base URL: \(Config.apiBaseURL)")
         
         do {
-            // Fetch temple data from backend with timeout
+            // Fetch temple data from backend (no timeout wrapper - let URLSession handle it)
             print("[AppState] 📡 Starting temple fetch request...")
-            let temple = try await withTimeout(seconds: 10) {
-                try await APIService.shared.getTemple(templeId: templeId)
-            }
+            let temple = try await APIService.shared.getTemple(templeId: templeId)
             
             await MainActor.run {
                 self.temple = temple
@@ -94,32 +92,6 @@ class AppState: ObservableObject {
         }
     }
     
-    // Helper to add timeout to async operations
-    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
-        return try await withThrowingTaskGroup(of: T.self) { group in
-            group.addTask {
-                try await operation()
-            }
-            
-            group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                throw TimeoutError()
-            }
-            
-            guard let result = try await group.next() else {
-                throw TimeoutError()
-            }
-            
-            group.cancelAll()
-            return result
-        }
-    }
-    
-    private struct TimeoutError: Error {
-        var localizedDescription: String {
-            "Request timed out"
-        }
-    }
     
     private func extractTempleId(from token: String) -> String? {
         let parts = token.components(separatedBy: ".")
