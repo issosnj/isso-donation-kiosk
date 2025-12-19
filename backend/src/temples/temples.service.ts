@@ -125,9 +125,11 @@ export class TemplesService {
     
     // Handle Square disconnection - explicitly set to null if any Square field is null
     const updateDto = updateTempleDto as any;
-    if (updateDto.squareMerchantId === null || 
-        updateDto.squareAccessToken === null || 
-        updateDto.squareRefreshToken === null) {
+    const isDisconnecting = updateDto.squareMerchantId === null || 
+                            updateDto.squareAccessToken === null || 
+                            updateDto.squareRefreshToken === null;
+    
+    if (isDisconnecting) {
       console.log('[Temples Service] Disconnecting Square for temple:', id);
       console.log('[Temples Service] Before update - Square fields:', {
         squareMerchantId: temple.squareMerchantId ? 'present' : 'null',
@@ -153,14 +155,27 @@ export class TemplesService {
       Object.assign(temple, updateTempleDto);
     }
     
-    const saved = await this.templesRepository.save(temple);
-    console.log('[Temples Service] After save - Square fields:', {
-      squareMerchantId: saved.squareMerchantId ? 'present' : 'null',
-      squareAccessToken: saved.squareAccessToken ? 'present' : 'null',
-      squareLocationId: saved.squareLocationId ? 'present' : 'null',
-    });
-    console.log('[Temples Service] Temple updated, Square connected:', !!saved.squareAccessToken);
-    return saved;
+    // Use update() method to ensure null values are saved
+    if (isDisconnecting) {
+      await this.templesRepository.update(id, {
+        squareMerchantId: null,
+        squareAccessToken: null,
+        squareRefreshToken: null,
+        squareLocationId: null,
+      });
+      // Reload to get updated entity
+      const saved = await this.findOne(id);
+      console.log('[Temples Service] After save - Square fields:', {
+        squareMerchantId: saved.squareMerchantId ? 'present' : 'null',
+        squareAccessToken: saved.squareAccessToken ? 'present' : 'null',
+        squareLocationId: saved.squareLocationId ? 'present' : 'null',
+      });
+      console.log('[Temples Service] Temple updated, Square connected:', !!saved.squareAccessToken);
+      return saved;
+    } else {
+      const saved = await this.templesRepository.save(temple);
+      return saved;
+    }
   }
 
   async remove(id: string): Promise<void> {
