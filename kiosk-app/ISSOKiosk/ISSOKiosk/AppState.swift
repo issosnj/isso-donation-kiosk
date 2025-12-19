@@ -55,15 +55,20 @@ class AppState: ObservableObject {
         }
         
         print("[AppState] 📡 Fetching temple config for templeId: \(templeId)")
+        print("[AppState] 📡 API Base URL: \(Config.apiBaseURL)")
         
         do {
-            // Fetch temple data from backend
-            let temple = try await APIService.shared.getTemple(templeId: templeId)
+            // Fetch temple data from backend with timeout
+            print("[AppState] 📡 Starting temple fetch request...")
+            let temple = try await withTimeout(seconds: 10) {
+                try await APIService.shared.getTemple(templeId: templeId)
+            }
             
             await MainActor.run {
                 self.temple = temple
                 self.isActivated = true
                 print("[AppState] ✅ Temple config loaded: \(temple.name)")
+                print("[AppState] ✅ Temple ID: \(temple.id)")
             }
             
             // Authorize Square Mobile Payments SDK if device token exists
@@ -71,7 +76,12 @@ class AppState: ObservableObject {
                 await authorizeSquareSDK()
             }
         } catch {
-            print("[AppState] ❌ Failed to load temple config: \(error.localizedDescription)")
+            print("[AppState] ❌ Failed to load temple config")
+            print("[AppState] ❌ Error type: \(type(of: error))")
+            print("[AppState] ❌ Error description: \(error.localizedDescription)")
+            if let apiError = error as? APIError {
+                print("[AppState] ❌ API Error details: \(apiError)")
+            }
             // Still set activated so app can function, but temple will be nil
             await MainActor.run {
                 self.isActivated = true
@@ -81,6 +91,33 @@ class AppState: ObservableObject {
             Task {
                 await authorizeSquareSDK()
             }
+        }
+    }
+    
+    // Helper to add timeout to async operations
+    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+        return try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                try await operation()
+            }
+            
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TimeoutError()
+            }
+            
+            guard let result = try await group.next() else {
+                throw TimeoutError()
+            }
+            
+            group.cancelAll()
+            return result
+        }
+    }
+    
+    private struct TimeoutError: Error {
+        var localizedDescription: String {
+            "Request timed out"
         }
     }
     

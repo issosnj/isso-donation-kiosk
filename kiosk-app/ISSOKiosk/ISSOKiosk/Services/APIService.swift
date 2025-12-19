@@ -209,11 +209,18 @@ class APIService {
     }
     
     func getTemple(templeId: String) async throws -> Temple {
-        return try await request<Temple>(
+        print("[APIService] 📡 Fetching temple: \(templeId)")
+        print("[APIService] 📡 Endpoint: /temples/\(templeId)")
+        print("[APIService] 📡 Base URL: \(baseURL)")
+        
+        let result: Temple = try await request<Temple>(
             endpoint: "/temples/\(templeId)",
             method: "GET",
             requiresAuth: false // Temple data is public
         )
+        
+        print("[APIService] ✅ Temple fetched successfully: \(result.name)")
+        return result
     }
     
     private func encodeToDict<T: Codable>(_ value: T) throws -> [String: Any] {
