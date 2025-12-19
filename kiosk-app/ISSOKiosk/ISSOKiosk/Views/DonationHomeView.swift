@@ -53,7 +53,7 @@ struct DonationHomeView: View {
                     // Header
                     VStack(spacing: 12) {
                         Text("Select Category")
-                            .font(.system(size: 36, weight: .bold))
+                                .font(.system(size: 36, weight: .bold))
                             .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                         
                         Text("Choose where your donation goes (optional)")
@@ -72,7 +72,7 @@ struct DonationHomeView: View {
                                 .foregroundColor(.gray)
                         }
                         
-                        if !appState.categories.isEmpty {
+                    if !appState.categories.isEmpty {
                             ScrollView {
                                 VStack(spacing: 16) {
                                     ForEach(appState.categories) { category in
@@ -277,25 +277,25 @@ struct DonationHomeView: View {
                                 .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                         }
                         
-                        Button(action: {
+                    Button(action: {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                showingDetails = true
+                        showingDetails = true
                             }
-                        }) {
-                            Text("Continue")
-                                .font(.system(size: 24, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 20)
+                    }) {
+                        Text("Continue")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 20)
                                 .background(
                                     hasValidAmount 
                                         ? Color(red: 0.2, green: 0.4, blue: 0.8)
                                         : Color.gray.opacity(0.4)
                                 )
                                 .cornerRadius(12)
-                        }
-                        .disabled(!hasValidAmount)
-                        .padding(.horizontal, 40)
+                    }
+                    .disabled(!hasValidAmount)
+                    .padding(.horizontal, 40)
                     }
                     .padding(.bottom, 60)
                 }
@@ -331,25 +331,25 @@ struct DonationHomeView: View {
         }
         .fullScreenCover(isPresented: $showingDetails) {
             ModernDonationDetailsView(
-                amount: currentAmount,
-                category: selectedCategory,
-                onConfirm: { name, email in
+                    amount: currentAmount,
+                    category: selectedCategory,
+                    onConfirm: { name, email in
                     withAnimation {
                         showingDetails = false
                         showingPayment = true
                         donorName = name
                         donorEmail = email
                     }
-                }
-            )
-        }
-        .fullScreenCover(isPresented: $showingPayment) {
+                    }
+                )
+            }
+            .fullScreenCover(isPresented: $showingPayment) {
             ModernPaymentView(
-                amount: currentAmount,
-                category: selectedCategory,
-                donorName: donorName,
-                donorEmail: donorEmail,
-                onComplete: {
+                    amount: currentAmount,
+                    category: selectedCategory,
+                    donorName: donorName,
+                    donorEmail: donorEmail,
+                    onComplete: {
                     withAnimation {
                         showingPayment = false
                         selectedAmount = nil
@@ -358,8 +358,8 @@ struct DonationHomeView: View {
                         donorName = nil
                         donorEmail = nil
                     }
-                }
-            )
+                    }
+                )
         }
     }
     
@@ -389,7 +389,7 @@ struct CleanAmountButton: View {
     
     var body: some View {
         Button(action: action) {
-            Text("$\(Int(amount))")
+                Text("$\(Int(amount))")
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -469,26 +469,27 @@ struct CleanCategoryButton: View {
     
     var body: some View {
         Button(action: action) {
+            VStack(spacing: 4) {
             Text(category.name)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(isSelected ? .white : Color(red: 0.3, green: 0.3, blue: 0.4))
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                    isSelected 
-                        ? Color(red: 0.2, green: 0.4, blue: 0.8)
-                        : Color.white
-                )
-                .cornerRadius(20)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(
-                            isSelected 
-                                ? Color.clear
-                                : Color.gray.opacity(0.3),
-                            lineWidth: 1
-                        )
-                )
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                
+                if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+                    Text("$\(Int(defaultAmount))")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 70)
+            .background(
+                isSelected 
+                    ? Color(red: 0.2, green: 0.4, blue: 0.8)
+                    : Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.7)
+            )
+            .cornerRadius(12)
         }
         .scaleEffect(isSelected ? 1.05 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
