@@ -240,6 +240,7 @@ struct HomeScreenConfig: Codable {
     let googleCalendarLink: String?
     let localEvents: [LocalEvent]?
     let socialMedia: [SocialMediaLink]?
+    let presetAmounts: [Double]? // Preset donation amounts configured by admin
 }
 
 struct LocalEvent: Codable, Identifiable {

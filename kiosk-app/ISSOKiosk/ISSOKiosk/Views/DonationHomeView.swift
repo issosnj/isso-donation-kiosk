@@ -12,8 +12,10 @@ struct DonationHomeView: View {
     @State private var donorEmail: String?
     @FocusState private var customAmountFocused: Bool
     
-    // Preset amounts matching reference
-    let presetAmounts: [Double] = [5, 10, 25, 50]
+    // Preset amounts from backend config, fallback to defaults
+    var presetAmounts: [Double] {
+        appState.temple?.homeScreenConfig?.presetAmounts ?? [5, 10, 25, 50, 100]
+    }
     
     var body: some View {
         ZStack {
@@ -34,7 +36,73 @@ struct DonationHomeView: View {
             
             // Two-part split screen layout
             HStack(spacing: 0) {
-                // LEFT SIDE: Amount Selection
+                // LEFT SIDE: Category/Event Selection
+                VStack(spacing: 0) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Text("Select Category")
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                        
+                        Text("Choose where your donation goes (optional)")
+                            .font(.system(size: 18, weight: .regular))
+                            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+                    }
+                    .padding(.top, 60)
+                    .padding(.bottom, 40)
+                    
+                    // Category selection
+                    VStack(spacing: 20) {
+                        if !appState.categories.isEmpty {
+                            ScrollView {
+                                VStack(spacing: 16) {
+                                    ForEach(appState.categories) { category in
+                                        CleanCategoryButton(
+                                            category: category,
+                                            isSelected: selectedCategory?.id == category.id,
+                                            action: {
+                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                    selectedCategory = selectedCategory?.id == category.id ? nil : category
+                                                }
+                                            }
+                                        )
+                                        .frame(maxWidth: .infinity)
+                                    }
+                                }
+                                .padding(.horizontal, 40)
+                            }
+                        } else {
+                            VStack(spacing: 12) {
+                                Image(systemName: "folder.fill")
+                                    .font(.system(size: 48))
+                                    .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
+                                
+                                Text("No categories available")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                
+                                Text("Categories can be added in the admin portal")
+                                    .font(.system(size: 14, weight: .regular))
+                                    .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
+                                    .multilineTextAlignment(.center)
+                            }
+                            .padding(.top, 60)
+                            .padding(.horizontal, 40)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .background(Color.white.opacity(0.5))
+                
+                // Divider
+                Rectangle()
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 2)
+                
+                // RIGHT SIDE: Amount Selection & Continue
                 VStack(spacing: 0) {
                     // Header
                     VStack(spacing: 12) {
@@ -51,37 +119,64 @@ struct DonationHomeView: View {
                     
                     // Amount selection content
                     VStack(spacing: 30) {
-                        // Preset amount buttons - 2x2 grid
-                        VStack(spacing: 16) {
-                            HStack(spacing: 16) {
-                                ForEach(Array(presetAmounts.prefix(2)), id: \.self) { amount in
-                                    CleanAmountButton(
-                                        amount: amount,
-                                        isSelected: selectedAmount == amount,
-                                        action: {
-                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                selectedAmount = amount
-                                                customAmount = ""
-                                                customAmountFocused = false
+                        // Preset amount buttons - flexible grid based on count
+                        let buttonCount = presetAmounts.count
+                        if buttonCount > 0 {
+                            if buttonCount <= 4 {
+                                // 2x2 grid for 4 or fewer
+                                VStack(spacing: 16) {
+                                    HStack(spacing: 16) {
+                                        ForEach(Array(presetAmounts.prefix(2)), id: \.self) { amount in
+                                            CleanAmountButton(
+                                                amount: amount,
+                                                isSelected: selectedAmount == amount,
+                                                action: {
+                                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                        selectedAmount = amount
+                                                        customAmount = ""
+                                                        customAmountFocused = false
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                    
+                                    if buttonCount > 2 {
+                                        HStack(spacing: 16) {
+                                            ForEach(Array(presetAmounts.suffix(buttonCount > 2 ? buttonCount - 2 : 0)), id: \.self) { amount in
+                                                CleanAmountButton(
+                                                    amount: amount,
+                                                    isSelected: selectedAmount == amount,
+                                                    action: {
+                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                            selectedAmount = amount
+                                                            customAmount = ""
+                                                            customAmountFocused = false
+                                                        }
+                                                    }
+                                                )
                                             }
                                         }
-                                    )
+                                    }
                                 }
-                            }
-                            
-                            HStack(spacing: 16) {
-                                ForEach(Array(presetAmounts.suffix(2)), id: \.self) { amount in
-                                    CleanAmountButton(
-                                        amount: amount,
-                                        isSelected: selectedAmount == amount,
-                                        action: {
-                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                selectedAmount = amount
-                                                customAmount = ""
-                                                customAmountFocused = false
-                                            }
+                            } else {
+                                // Scrollable grid for more than 4
+                                ScrollView {
+                                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                                        ForEach(presetAmounts, id: \.self) { amount in
+                                            CleanAmountButton(
+                                                amount: amount,
+                                                isSelected: selectedAmount == amount,
+                                                action: {
+                                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                        selectedAmount = amount
+                                                        customAmount = ""
+                                                        customAmountFocused = false
+                                                    }
+                                                }
+                                            )
                                         }
-                                    )
+                                    }
                                 }
                             }
                         }
@@ -114,60 +209,6 @@ struct DonationHomeView: View {
                             }
                             .padding(.top, 20)
                             .transition(.scale.combined(with: .opacity))
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
-                .background(Color.white.opacity(0.5))
-                
-                // Divider
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(width: 2)
-                
-                // RIGHT SIDE: Category & Continue
-                VStack(spacing: 0) {
-                    // Header
-                    VStack(spacing: 12) {
-                        Text("Donation Details")
-                            .font(.system(size: 36, weight: .bold))
-                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                        
-                        Text("Select a category (optional)")
-                            .font(.system(size: 18, weight: .regular))
-                            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
-                    }
-                    .padding(.top, 60)
-                    .padding(.bottom, 40)
-                    
-                    // Category selection
-                    VStack(spacing: 20) {
-                        if !appState.categories.isEmpty {
-                            ScrollView {
-                                VStack(spacing: 16) {
-                                    ForEach(appState.categories) { category in
-                                        CleanCategoryButton(
-                                            category: category,
-                                            isSelected: selectedCategory?.id == category.id,
-                                            action: {
-                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                    selectedCategory = selectedCategory?.id == category.id ? nil : category
-                                                }
-                                            }
-                                        )
-                                        .frame(maxWidth: .infinity)
-                                    }
-                                }
-                                .padding(.horizontal, 40)
-                            }
-                        } else {
-                            Text("No categories available")
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                .padding(.top, 40)
                         }
                     }
                     .frame(maxWidth: .infinity)
