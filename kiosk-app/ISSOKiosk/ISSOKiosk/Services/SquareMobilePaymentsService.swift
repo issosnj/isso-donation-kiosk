@@ -147,11 +147,13 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         print("[SquareMobilePayments] 📍 Location ID: \(locationId)")
         
         // Create payment parameters
+        // PaymentParameters requires idempotencyKey and amountMoney
         let amountMoney = Money(amount: UInt(amount * 100), currency: .USD)
+        let idempotencyKey = "\(donationId)-\(Date().timeIntervalSince1970)"
+        
         let paymentParameters = PaymentParameters(
-            paymentAttemptID: donationId,
-            amountMoney: amountMoney,
-            processingMode: .onlineOnly
+            idempotencyKey: idempotencyKey,
+            amountMoney: amountMoney
         )
         
         let promptParameters = PromptParameters(
