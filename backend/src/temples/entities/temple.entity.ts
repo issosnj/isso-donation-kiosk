@@ -68,6 +68,7 @@ export class Temple {
       platform: string;
       url: string;
     }>;
+    presetAmounts?: number[]; // Preset donation amounts (e.g., [5, 10, 25, 50, 100])
   };
 
   @OneToMany(() => Device, (device) => device.temple)
