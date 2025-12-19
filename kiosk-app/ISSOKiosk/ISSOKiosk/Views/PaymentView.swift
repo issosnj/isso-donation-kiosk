@@ -163,9 +163,9 @@ struct ModernPaymentProcessingView: View {
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
                     
-                    Text("$\(String(format: "%.2f", amount))")
+                        Text("$\(String(format: "%.2f", amount))")
                         .font(.system(size: 72, weight: .bold))
-                        .foregroundColor(
+                        .foregroundStyle(
                             LinearGradient(
                                 gradient: Gradient(colors: [
                                     Color(red: 0.2, green: 0.4, blue: 0.8),
