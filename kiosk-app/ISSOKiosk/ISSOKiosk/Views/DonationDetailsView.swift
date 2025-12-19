@@ -8,7 +8,6 @@ struct ModernDonationDetailsView: View {
     @State private var donorName = ""
     @State private var donorEmail = ""
     @State private var appearAnimation = false
-    @State private var hasStartedPayment = false
     @FocusState private var nameFocused: Bool
     @FocusState private var emailFocused: Bool
     @Environment(\.dismiss) var dismiss
@@ -193,6 +192,31 @@ struct ModernDonationDetailsView: View {
                     }
                     
                     Spacer()
+                    
+                    // Ready for payment button
+                    Button(action: {
+                        withAnimation {
+                            onConfirm(
+                                donorName.isEmpty ? nil : donorName,
+                                donorEmail.isEmpty ? nil : donorEmail
+                            )
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            Text("Ready for Payment")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(.white)
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(Color(red: 0.2, green: 0.4, blue: 0.8))
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 40)
                 }
                 .frame(maxWidth: .infinity)
                 .background(Color.black)
@@ -226,18 +250,6 @@ struct ModernDonationDetailsView: View {
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
                 appearAnimation = true
-            }
-            
-            // Automatically start payment processing after a short delay
-            // The Square card reader will handle tap/insert interactions
-            if !hasStartedPayment {
-                hasStartedPayment = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    onConfirm(
-                        donorName.isEmpty ? nil : donorName,
-                        donorEmail.isEmpty ? nil : donorEmail
-                    )
-                }
             }
         }
     }
