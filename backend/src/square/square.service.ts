@@ -35,9 +35,11 @@ export class SquareService {
     const redirectUri = this.configService.get<string>('SQUARE_REDIRECT_URI');
 
     console.log('[Square Service] Exchanging code for token');
-    console.log('[Square Service] Application ID:', applicationId ? 'present' : 'missing');
+    console.log('[Square Service] Application ID:', applicationId ? `${applicationId.substring(0, 8)}...` : 'missing');
     console.log('[Square Service] Application Secret:', applicationSecret ? 'present' : 'missing');
     console.log('[Square Service] Redirect URI:', redirectUri);
+    console.log('[Square Service] Code present:', !!code);
+    console.log('[Square Service] State present:', !!state);
 
     if (!applicationId || !applicationSecret || !redirectUri) {
       throw new Error('Square configuration missing: SQUARE_APPLICATION_ID, SQUARE_APPLICATION_SECRET, or SQUARE_REDIRECT_URI not set');
@@ -60,8 +62,27 @@ export class SquareService {
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('[Square Service] Token exchange failed:', JSON.stringify(error));
-      throw new Error(`Square OAuth error: ${JSON.stringify(error)}`);
+      console.error('[Square Service] Token exchange failed');
+      console.error('[Square Service] Status:', response.status, response.statusText);
+      console.error('[Square Service] Error response:', JSON.stringify(error, null, 2));
+      console.error('[Square Service] Request details:', {
+        applicationId: applicationId ? `${applicationId.substring(0, 8)}...` : 'missing',
+        redirectUri: redirectUri,
+        hasCode: !!code,
+        hasState: !!state,
+      });
+      
+      // Provide more helpful error messages
+      if (error.type === 'service.not_authorized') {
+        throw new Error(`Square authorization failed. Common causes:\n` +
+          `1. Redirect URI mismatch - ensure ${redirectUri} is exactly configured in Square Dashboard\n` +
+          `2. Application ID or Secret is incorrect\n` +
+          `3. Application doesn't have required permissions\n` +
+          `4. Square account doesn't have permission to authorize this app\n\n` +
+          `Error details: ${error.message || JSON.stringify(error)}`);
+      }
+      
+      throw new Error(`Square OAuth error: ${error.message || JSON.stringify(error)}`);
     }
 
     const data = await response.json();
