@@ -112,19 +112,49 @@ class APIService {
         )
     }
     
+    func sendHeartbeat(deviceId: String) async throws {
+        guard let url = URL(string: "\(baseURL)/devices/\(deviceId)/heartbeat") else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = deviceToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.httpError(httpResponse.statusCode)
+        }
+    }
+    
     func completeDonation(
         donationId: String,
         squarePaymentId: String,
-        status: String
+        status: String,
+        donorName: String? = nil,
+        donorEmail: String? = nil
     ) async throws -> Donation {
         struct Request: Codable {
             let squarePaymentId: String
             let status: String
+            let donorName: String?
+            let donorEmail: String?
         }
         
         let body = Request(
             squarePaymentId: squarePaymentId,
-            status: status
+            status: status,
+            donorName: donorName,
+            donorEmail: donorEmail
         )
         
         return try await request(

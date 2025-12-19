@@ -4,6 +4,7 @@ import Combine
 class AppState: ObservableObject {
     @Published var isActivated = false
     @Published var deviceToken: String?
+    @Published var deviceId: String?
     @Published var temple: Temple?
     @Published var categories: [DonationCategory] = []
     
@@ -22,8 +23,9 @@ class AppState: ObservableObject {
             self.categories = response.categories
             self.isActivated = true
             
-            // Store in keychain
+            // Extract device ID from JWT token
             if let token = response.deviceToken {
+                self.deviceId = extractDeviceId(from: token)
                 keychain.save(token, forKey: "deviceToken")
             }
         }
@@ -32,6 +34,7 @@ class AppState: ObservableObject {
     private func loadStoredCredentials() {
         if let token = keychain.load(forKey: "deviceToken") {
             self.deviceToken = token
+            self.deviceId = extractDeviceId(from: token)
             self.isActivated = true
             // Load temple and categories from API
             Task {
@@ -43,6 +46,41 @@ class AppState: ObservableObject {
     private func loadTempleConfig() async {
         // This would load temple config using device token
         // For now, we'll load it during activation
+    }
+    
+    // Extract device ID from JWT token payload
+    private func extractDeviceId(from token: String) -> String? {
+        let parts = token.components(separatedBy: ".")
+        guard parts.count == 3 else { return nil }
+        
+        // Decode the payload (second part)
+        guard let payloadData = base64URLDecode(parts[1]) else { return nil }
+        
+        do {
+            if let payload = try JSONSerialization.jsonObject(with: payloadData) as? [String: Any],
+               let deviceId = payload["deviceId"] as? String {
+                return deviceId
+            }
+        } catch {
+            print("Error decoding JWT payload: \(error)")
+        }
+        
+        return nil
+    }
+    
+    // Base64 URL decode helper
+    private func base64URLDecode(_ string: String) -> Data? {
+        var base64 = string
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        
+        // Add padding if needed
+        let remainder = base64.count % 4
+        if remainder > 0 {
+            base64 = base64.padding(toLength: base64.count + 4 - remainder, withPad: "=", startingAt: 0)
+        }
+        
+        return Data(base64Encoded: base64)
     }
 }
 

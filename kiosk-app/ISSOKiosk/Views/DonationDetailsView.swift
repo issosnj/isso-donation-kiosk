@@ -3,7 +3,7 @@ import SwiftUI
 struct DonationDetailsView: View {
     let amount: Double
     let category: DonationCategory?
-    let onConfirm: () -> Void
+    let onConfirm: (String?, String?) -> Void
     
     @State private var donorName = ""
     @State private var donorEmail = ""
@@ -11,64 +11,82 @@ struct DonationDetailsView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 30) {
+            VStack(spacing: 40) {
                 Text("Donation Summary")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .padding(.top)
+                    .font(.system(size: 32, weight: .bold))
+                    .padding(.top, 40)
                 
-                VStack(spacing: 15) {
+                VStack(spacing: 20) {
                     HStack {
                         Text("Amount:")
-                            .font(.headline)
+                            .font(.system(size: 22, weight: .medium))
                         Spacer()
                         Text("$\(String(format: "%.2f", amount))")
-                            .font(.title2)
-                            .fontWeight(.bold)
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(.blue)
                     }
                     
                     if let category = category {
                         HStack {
                             Text("Category:")
-                                .font(.headline)
+                                .font(.system(size: 20, weight: .medium))
                             Spacer()
                             Text(category.name)
-                                .font(.body)
+                                .font(.system(size: 20))
                         }
                     }
                 }
-                .padding()
+                .padding(30)
                 .background(Color.gray.opacity(0.1))
-                .cornerRadius(12)
-                .padding(.horizontal)
+                .cornerRadius(16)
+                .padding(.horizontal, 40)
                 
-                VStack(alignment: .leading, spacing: 15) {
+                VStack(alignment: .leading, spacing: 20) {
                     Text("Optional Information")
-                        .font(.headline)
+                        .font(.system(size: 22, weight: .semibold))
                     
-                    TextField("Name (Optional)", text: $donorName)
-                        .textFieldStyle(.roundedBorder)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Name (Optional)")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.secondary)
+                        TextField("Enter your name", text: $donorName)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 18))
+                            .padding(.vertical, 12)
+                    }
                     
-                    TextField("Email for Receipt (Optional)", text: $donorEmail)
-                        .textFieldStyle(.roundedBorder)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Email for Receipt (Optional)")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.secondary)
+                        TextField("Enter your email", text: $donorEmail)
+                            .textFieldStyle(.roundedBorder)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .font(.system(size: 18))
+                            .padding(.vertical, 12)
+                    }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 40)
                 
                 Spacer()
                 
-                Button(action: onConfirm) {
+                Button(action: {
+                    onConfirm(
+                        donorName.isEmpty ? nil : donorName,
+                        donorEmail.isEmpty ? nil : donorEmail
+                    )
+                }) {
                     Text("Tap or Insert Card to Donate")
-                        .font(.headline)
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(.vertical, 20)
                         .background(Color.blue)
-                        .cornerRadius(12)
+                        .cornerRadius(16)
                 }
-                .padding(.horizontal)
-                .padding(.bottom)
+                .padding(.horizontal, 40)
+                .padding(.bottom, 40)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
