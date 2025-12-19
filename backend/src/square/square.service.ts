@@ -25,7 +25,8 @@ export class SquareService {
     
     const state = Buffer.from(JSON.stringify({ templeId })).toString('base64');
     const encodedRedirectUri = encodeURIComponent(normalizedRedirectUri);
-    const oauthUrl = `https://squareup.com/oauth2/authorize?client_id=${applicationId}&response_type=code&scope=PAYMENTS_READ+PAYMENTS_WRITE+MERCHANT_PROFILE_READ&state=${state}&redirect_uri=${encodedRedirectUri}`;
+    // Include PAYMENTS_WRITE_IN_PERSON for Mobile Payments SDK
+    const oauthUrl = `https://squareup.com/oauth2/authorize?client_id=${applicationId}&response_type=code&scope=PAYMENTS_READ+PAYMENTS_WRITE+PAYMENTS_WRITE_IN_PERSON+MERCHANT_PROFILE_READ&state=${state}&redirect_uri=${encodedRedirectUri}`;
     
     console.log('[Square Service] Generated OAuth URL for temple:', templeId);
     console.log('[Square Service] Redirect URI (exact):', JSON.stringify(normalizedRedirectUri));

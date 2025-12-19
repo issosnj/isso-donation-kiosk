@@ -138,6 +138,27 @@ export class DevicesService {
     return this.devicesRepository.save(device);
   }
 
+  async getSquareCredentials(deviceId: string): Promise<{
+    accessToken: string;
+    locationId: string;
+  }> {
+    const device = await this.findOne(deviceId);
+    const temple = await this.templesService.findOne(device.templeId);
+
+    if (!temple.squareAccessToken) {
+      throw new Error('Square not connected for this temple. Please connect Square in the admin portal.');
+    }
+
+    if (!temple.squareLocationId) {
+      throw new Error('Square location not configured for this temple.');
+    }
+
+    return {
+      accessToken: temple.squareAccessToken,
+      locationId: temple.squareLocationId,
+    };
+  }
+
   private generateDeviceCode(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars
     let code = '';

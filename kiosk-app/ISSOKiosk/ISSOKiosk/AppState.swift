@@ -55,6 +55,50 @@ class AppState: ObservableObject {
         await MainActor.run {
             self.isActivated = true
         }
+        
+        // Authorize Square Mobile Payments SDK if Square is connected
+        if let templeId = extractTempleId(from: deviceToken ?? ""),
+           let token = deviceToken {
+            Task {
+                await authorizeSquareSDK()
+            }
+        }
+    }
+    
+    private func extractTempleId(from token: String) -> String? {
+        let parts = token.components(separatedBy: ".")
+        guard parts.count == 3 else { return nil }
+        
+        guard let payloadData = base64URLDecode(parts[1]) else { return nil }
+        
+        do {
+            if let payload = try JSONSerialization.jsonObject(with: payloadData) as? [String: Any],
+               let templeId = payload["templeId"] as? String {
+                return templeId
+            }
+        } catch {
+            print("Error decoding JWT payload: \(error)")
+        }
+        
+        return nil
+    }
+    
+    private func authorizeSquareSDK() async {
+        do {
+            // Get Square credentials from backend
+            let credentials = try await APIService.shared.getSquareCredentials()
+            
+            // Authorize Mobile Payments SDK
+            try await SquareMobilePaymentsService.shared.authorize(
+                accessToken: credentials.accessToken,
+                locationId: credentials.locationId
+            )
+            
+            print("[AppState] Square Mobile Payments SDK authorized successfully")
+        } catch {
+            print("[AppState] Failed to authorize Square SDK: \(error.localizedDescription)")
+            // Don't block app - Square SDK authorization can happen later
+        }
     }
     
     // Extract device ID from JWT token payload

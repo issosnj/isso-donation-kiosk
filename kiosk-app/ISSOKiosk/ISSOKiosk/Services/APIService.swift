@@ -323,5 +323,19 @@ extension APIService {
             requiresAuth: true
         )
     }
+    
+    func getSquareCredentials() async throws -> SquareCredentials {
+        return try await request(
+            endpoint: "/devices/square-credentials",
+            method: "GET",
+            body: nil,
+            requiresAuth: true
+        )
+    }
+}
+
+struct SquareCredentials: Codable {
+    let accessToken: String
+    let locationId: String
 }
 

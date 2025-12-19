@@ -67,6 +67,16 @@ export class DevicesController {
     return this.devicesService.updateLastSeen(id);
   }
 
+  @Get('square-credentials')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Square credentials for Mobile Payments SDK (device endpoint)' })
+  async getSquareCredentials(@CurrentUser() user: any) {
+    // Extract deviceId from JWT token (device tokens have deviceId in payload)
+    const deviceId = user.deviceId || user.sub;
+    return this.devicesService.getSquareCredentials(deviceId);
+  }
+
   @Patch(':id/deactivate')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
