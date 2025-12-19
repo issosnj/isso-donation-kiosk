@@ -23,6 +23,8 @@ Native iOS app for donation kiosks using Square Mobile Payments SDK with Square 
    - Select iPad as target device
    - Build and run (⌘R)
 
+**Note:** If you need to find your Apple Developer Team ID, see [FIND_APPLE_TEAM_ID.md](./FIND_APPLE_TEAM_ID.md)
+
 ## Current Status
 
 ### ✅ Completed
