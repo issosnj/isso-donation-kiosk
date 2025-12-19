@@ -1,5 +1,11 @@
 import SwiftUI
 
+// Payment status enum shared across payment views
+enum PaymentStatus: Equatable {
+    case success
+    case failure(String)
+}
+
 struct ModernPaymentView: View {
     let amount: Double
     let category: DonationCategory?
@@ -9,15 +15,10 @@ struct ModernPaymentView: View {
     
     @EnvironmentObject var appState: AppState
     @State private var isProcessing = false
-    @State private var paymentStatus: PaymentView.PaymentStatus?
+    @State private var paymentStatus: PaymentStatus?
     @State private var appearAnimation = false
     @State private var cardPulse = false
     @Environment(\.dismiss) var dismiss
-    
-    enum PaymentStatus: Equatable {
-        case success
-        case failure(String)
-    }
     
     var body: some View {
         Group {
@@ -315,7 +316,7 @@ struct ModernProcessingView: View {
 
 // Modern payment result view
 struct ModernPaymentResultView: View {
-    let status: PaymentView.PaymentStatus
+    let status: PaymentStatus
     let amount: Double
     let onDismiss: () -> Void
     @State private var appearAnimation = false
@@ -492,7 +493,7 @@ struct ProcessingView: View {
 }
 
 struct PaymentResultView: View {
-    let status: PaymentView.PaymentStatus
+    let status: PaymentStatus
     let amount: Double
     let onDismiss: () -> Void
     
