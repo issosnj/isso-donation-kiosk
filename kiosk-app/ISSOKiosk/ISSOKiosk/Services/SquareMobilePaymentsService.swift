@@ -148,8 +148,10 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // Create payment parameters
         // PaymentParameters requires idempotencyKey and amountMoney
+        // Idempotency key must be <= 45 characters
         let amountMoney = Money(amount: UInt(amount * 100), currency: .USD)
-        let idempotencyKey = "\(donationId)-\(Date().timeIntervalSince1970)"
+        // Use donationId (UUID, 36 chars) as idempotency key - it's already unique
+        let idempotencyKey = String(donationId.prefix(45))
         
         let paymentParameters = PaymentParameters(
             idempotencyKey: idempotencyKey,
