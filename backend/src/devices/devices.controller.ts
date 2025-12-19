@@ -74,9 +74,22 @@ export class DevicesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Square credentials for Mobile Payments SDK (device endpoint)' })
   async getSquareCredentials(@CurrentDevice() device: any) {
-    // Device token has deviceId in payload
-    const deviceId = device.deviceId;
-    return this.devicesService.getSquareCredentials(deviceId);
+    try {
+      console.log('[Devices Controller] Square credentials request from device:', device?.deviceId);
+      // Device token has deviceId in payload
+      const deviceId = device.deviceId;
+      if (!deviceId) {
+        throw new Error('Device ID not found in token');
+      }
+      const credentials = await this.devicesService.getSquareCredentials(deviceId);
+      console.log('[Devices Controller] Returning Square credentials (locationId present:', !!credentials.locationId, ')');
+      return credentials;
+    } catch (error: any) {
+      console.error('[Devices Controller] Error in getSquareCredentials:', error);
+      console.error('[Devices Controller] Error message:', error.message);
+      console.error('[Devices Controller] Error stack:', error.stack);
+      throw error;
+    }
   }
 
   @Patch(':id/deactivate')

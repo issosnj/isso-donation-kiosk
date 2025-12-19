@@ -142,21 +142,38 @@ export class DevicesService {
     accessToken: string;
     locationId: string;
   }> {
-    const device = await this.findOne(deviceId);
-    const temple = await this.templesService.findOne(device.templeId);
+    try {
+      console.log('[Devices Service] Getting Square credentials for device:', deviceId);
+      const device = await this.findOne(deviceId);
+      console.log('[Devices Service] Device found, templeId:', device.templeId);
+      
+      const temple = await this.templesService.findOne(device.templeId);
+      console.log('[Devices Service] Temple found:', temple.name);
+      console.log('[Devices Service] Square fields:', {
+        squareAccessToken: temple.squareAccessToken ? 'present' : 'null/empty',
+        squareLocationId: temple.squareLocationId ? 'present' : 'null/empty',
+      });
 
-    if (!temple.squareAccessToken) {
-      throw new Error('Square not connected for this temple. Please connect Square in the admin portal.');
+      if (!temple.squareAccessToken) {
+        console.log('[Devices Service] Square not connected - no access token');
+        throw new Error('Square not connected for this temple. Please connect Square in the admin portal.');
+      }
+
+      if (!temple.squareLocationId) {
+        console.log('[Devices Service] Square location not configured');
+        throw new Error('Square location not configured for this temple.');
+      }
+
+      console.log('[Devices Service] Returning Square credentials');
+      return {
+        accessToken: temple.squareAccessToken,
+        locationId: temple.squareLocationId,
+      };
+    } catch (error: any) {
+      console.error('[Devices Service] Error getting Square credentials:', error);
+      console.error('[Devices Service] Error stack:', error.stack);
+      throw error;
     }
-
-    if (!temple.squareLocationId) {
-      throw new Error('Square location not configured for this temple.');
-    }
-
-    return {
-      accessToken: temple.squareAccessToken,
-      locationId: temple.squareLocationId,
-    };
   }
 
   private generateDeviceCode(): string {
