@@ -27,25 +27,23 @@ struct KioskHomeView: View {
                 // Centered content
                 VStack(spacing: 40) {
                     // Headers (configurable by admin)
-                    if let temple = appState.temple {
-                        VStack(spacing: 12) {
-                            // Header 1 (default: "Welcome to Temple Name")
-                            Text(header1Text)
-                                .font(.system(size: 36, weight: .bold))
-                                .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                    VStack(spacing: 12) {
+                        // Header 1 (default: "Welcome to Temple Name")
+                        Text(header1Text)
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                            .multilineTextAlignment(.center)
+                        
+                        // Header 2 (default: address)
+                        if let header2 = header2Text, !header2.isEmpty {
+                            Text(header2)
+                                .font(.system(size: 22, weight: .regular))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                                 .multilineTextAlignment(.center)
-                            
-                            // Header 2 (default: address)
-                            if let header2 = header2Text, !header2.isEmpty {
-                                Text(header2)
-                                    .font(.system(size: 22, weight: .regular))
-                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                                    .multilineTextAlignment(.center)
-                            }
                         }
-                        .padding(.horizontal, 40)
-                        .padding(.top, 20)
                     }
+                    .padding(.horizontal, 40)
+                    .padding(.top, 20)
                     
                     // Main: Two Taps To Donation Button
                     Button(action: {
@@ -80,61 +78,90 @@ struct KioskHomeView: View {
                     .padding(.horizontal, 40)
                     
                     // Bottom: Action Buttons (placeholders that activate when data is added)
-                    VStack(spacing: 16) {
-                        // Join WhatsApp (placeholder until admin adds link)
-                        if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
-                            ModernActionButton(
-                                icon: "message.fill",
-                                title: "Join WhatsApp",
-                                color: Color(red: 0.18, green: 0.64, blue: 0.33),
-                                isActive: true
-                            ) {
-                                showWhatsAppQR = true
+                    VStack(spacing: 20) {
+                        // Quick Actions Section (WhatsApp, Events, Social Media as icons)
+                        VStack(spacing: 12) {
+                            Text("Quick Actions")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 16) {
+                                    // Join WhatsApp
+                                    if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
+                                        ModernQuickActionButton(
+                                            icon: "message.fill",
+                                            title: "WhatsApp",
+                                            color: Color(red: 0.18, green: 0.64, blue: 0.33),
+                                            isActive: true
+                                        ) {
+                                            showWhatsAppQR = true
+                                        }
+                                    } else {
+                                        ModernQuickActionButton(
+                                            icon: "message.fill",
+                                            title: "WhatsApp",
+                                            color: Color.gray.opacity(0.3),
+                                            isActive: false
+                                        ) {
+                                            // Placeholder - inactive
+                                        }
+                                    }
+                                    
+                                    // Upcoming Events
+                                    let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
+                                    let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
+                                    let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
+                                    let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
+                                    
+                                    if hasEvents {
+                                        ModernQuickActionButton(
+                                            icon: "calendar",
+                                            title: "Events",
+                                            color: Color(red: 1.0, green: 0.58, blue: 0.0),
+                                            isActive: true
+                                        ) {
+                                            showEvents = true
+                                        }
+                                    } else {
+                                        ModernQuickActionButton(
+                                            icon: "calendar",
+                                            title: "Events",
+                                            color: Color.gray.opacity(0.3),
+                                            isActive: false
+                                        ) {
+                                            // Placeholder - inactive
+                                        }
+                                    }
+                                    
+                                    // Social Media
+                                    if let socialMedia = appState.temple?.homeScreenConfig?.socialMedia, !socialMedia.isEmpty {
+                                        ForEach(socialMedia, id: \.platform) { link in
+                                            ModernQuickActionButton(
+                                                icon: iconForPlatform(link.platform),
+                                                title: link.platform.capitalized,
+                                                color: colorForPlatform(link.platform),
+                                                isActive: true
+                                            ) {
+                                                showSocialMediaQR = link.url
+                                            }
+                                        }
+                                    } else {
+                                        // Social Media placeholders
+                                        ForEach(["facebook", "instagram", "youtube"], id: \.self) { platform in
+                                            ModernQuickActionButton(
+                                                icon: iconForPlatform(platform),
+                                                title: platform.capitalized,
+                                                color: Color.gray.opacity(0.3),
+                                                isActive: false
+                                            ) {
+                                                // Placeholder - inactive
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 20)
                             }
-                        } else {
-                            ModernActionButton(
-                                icon: "message.fill",
-                                title: "Join WhatsApp",
-                                color: Color.gray.opacity(0.3),
-                                isActive: false
-                            ) {
-                                // Placeholder - inactive
-                            }
-                        }
-                        
-                        // Upcoming Events/Upvas (placeholder until admin adds data)
-                        let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
-                        let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
-                        let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
-                        let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
-                        
-                        if hasEvents {
-                            ModernActionButton(
-                                icon: "calendar",
-                                title: "Upcoming Events",
-                                color: Color(red: 1.0, green: 0.58, blue: 0.0),
-                                isActive: true
-                            ) {
-                                showEvents = true
-                            }
-                        } else {
-                            ModernActionButton(
-                                icon: "calendar",
-                                title: "Upcoming Events",
-                                color: Color.gray.opacity(0.3),
-                                isActive: false
-                            ) {
-                                // Placeholder - inactive
-                            }
-                        }
-                        
-                        // Social Media (placeholder until admin adds links)
-                        if let socialMedia = appState.temple?.homeScreenConfig?.socialMedia, !socialMedia.isEmpty {
-                            ModernSocialMediaSection(socialMedia: socialMedia) { url in
-                                showSocialMediaQR = url
-                            }
-                        } else {
-                            ModernSocialMediaPlaceholder()
                         }
                     }
                     .padding(.horizontal, 40)
@@ -195,8 +222,8 @@ struct KioskHomeView: View {
     }
 }
 
-// Modern action button with active/inactive states
-struct ModernActionButton: View {
+// Modern quick action button (icon style like social media)
+struct ModernQuickActionButton: View {
     let icon: String
     let title: String
     let color: Color
@@ -205,142 +232,49 @@ struct ModernActionButton: View {
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 15) {
+            VStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 26))
-                    .foregroundColor(isActive ? .white : .gray)
+                    .font(.system(size: 36))
+                    .foregroundColor(isActive ? .white : .gray.opacity(0.5))
                 
                 Text(title)
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(isActive ? .white : .gray)
-                
-                if !isActive {
-                    Spacer()
-                    Text("Coming Soon")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.gray.opacity(0.7))
-                }
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(isActive ? .white : .gray.opacity(0.5))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
-            .background(isActive ? color : Color.gray.opacity(0.2))
+            .frame(width: 110, height: 110)
+            .background(isActive ? color : Color.gray.opacity(0.1))
             .cornerRadius(18)
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(isActive ? Color.clear : Color.gray.opacity(0.2), lineWidth: 1)
+            )
+            .shadow(color: isActive ? color.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
             .opacity(isActive ? 1.0 : 0.6)
         }
         .disabled(!isActive)
     }
 }
 
-// Modern social media section
-struct ModernSocialMediaSection: View {
-    let socialMedia: [SocialMediaLink]
-    let onTap: (String) -> Void
-    
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("Social Media")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(socialMedia, id: \.platform) { link in
-                        ModernSocialMediaButton(link: link) {
-                            onTap(link.url)
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-        }
+// Helper functions for platform icons and colors
+func iconForPlatform(_ platform: String) -> String {
+    switch platform.lowercased() {
+    case "facebook": return "f.circle.fill"
+    case "instagram": return "camera.fill"
+    case "twitter", "x": return "at"
+    case "youtube": return "play.circle.fill"
+    case "linkedin": return "link"
+    default: return "link"
     }
 }
 
-// Modern social media placeholder
-struct ModernSocialMediaPlaceholder: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("Social Media")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-            
-            HStack(spacing: 16) {
-                ForEach(["facebook", "instagram", "youtube"], id: \.self) { platform in
-                    VStack(spacing: 8) {
-                        Image(systemName: iconForPlatform(platform))
-                            .font(.system(size: 32))
-                            .foregroundColor(.gray.opacity(0.5))
-                        
-                        Text(platform.capitalized)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.gray.opacity(0.5))
-                    }
-                    .frame(width: 100, height: 100)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                }
-            }
-            .padding(.horizontal, 20)
-            .opacity(0.5)
-        }
-    }
-    
-    private func iconForPlatform(_ platform: String) -> String {
-        switch platform.lowercased() {
-        case "facebook": return "f.circle.fill"
-        case "instagram": return "camera.fill"
-        case "youtube": return "play.circle.fill"
-        default: return "link"
-        }
-    }
-}
-
-struct ModernSocialMediaButton: View {
-    let link: SocialMediaLink
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: iconForPlatform(link.platform))
-                    .font(.system(size: 36))
-                    .foregroundColor(.white)
-                
-                Text(link.platform.capitalized)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white)
-            }
-            .frame(width: 110, height: 110)
-            .background(colorForPlatform(link.platform))
-            .cornerRadius(18)
-            .shadow(color: colorForPlatform(link.platform).opacity(0.3), radius: 8, x: 0, y: 4)
-        }
-    }
-    
-    private func iconForPlatform(_ platform: String) -> String {
-        switch platform.lowercased() {
-        case "facebook": return "f.circle.fill"
-        case "instagram": return "camera.fill"
-        case "twitter", "x": return "at"
-        case "youtube": return "play.circle.fill"
-        case "linkedin": return "link"
-        default: return "link"
-        }
-    }
-    
-    private func colorForPlatform(_ platform: String) -> Color {
-        switch platform.lowercased() {
-        case "facebook": return Color(red: 0.26, green: 0.40, blue: 0.70)
-        case "instagram": return Color(red: 0.79, green: 0.31, blue: 0.50)
-        case "twitter", "x": return Color(red: 0.11, green: 0.63, blue: 0.95)
-        case "youtube": return Color(red: 1.0, green: 0.0, blue: 0.0)
-        case "linkedin": return Color(red: 0.0, green: 0.47, blue: 0.71)
-        default: return Color.blue
-        }
+func colorForPlatform(_ platform: String) -> Color {
+    switch platform.lowercased() {
+    case "facebook": return Color(red: 0.26, green: 0.40, blue: 0.70)
+    case "instagram": return Color(red: 0.79, green: 0.31, blue: 0.50)
+    case "twitter", "x": return Color(red: 0.11, green: 0.63, blue: 0.95)
+    case "youtube": return Color(red: 1.0, green: 0.0, blue: 0.0)
+    case "linkedin": return Color(red: 0.0, green: 0.47, blue: 0.71)
+    default: return Color.blue
     }
 }
 
