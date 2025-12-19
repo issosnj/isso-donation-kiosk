@@ -54,8 +54,13 @@ export class DonationCategoriesService {
       console.log(`[DonationCategoriesService] Filtering for kiosk, current time: ${now.toISOString()}`);
       queryBuilder
         .andWhere('category.showOnKiosk = :showOnKiosk', { showOnKiosk: true })
+        // Date filtering: showStartDate must be NULL or <= now, showEndDate must be NULL or >= now
         .andWhere('(category.showStartDate IS NULL OR category.showStartDate <= :now)', { now })
         .andWhere('(category.showEndDate IS NULL OR category.showEndDate >= :now)', { now });
+      
+      // Log the SQL query for debugging
+      const sql = queryBuilder.getSql();
+      console.log(`[DonationCategoriesService] SQL Query: ${sql}`);
     }
 
     const categories = await queryBuilder.orderBy('category.name', 'ASC').getMany();

@@ -57,20 +57,33 @@ export class DonationCategoriesController {
     @Param('templeId') templeId: string,
     @CurrentDevice() device: any,
   ) {
-    console.log('[DonationCategoriesController] getKioskCategories called');
+    console.log('[DonationCategoriesController] ========== getKioskCategories called ==========');
     console.log('[DonationCategoriesController] Requested templeId:', templeId);
     console.log('[DonationCategoriesController] Device templeId:', device?.templeId);
     console.log('[DonationCategoriesController] Device ID:', device?.deviceId);
     
     // Ensure the device token's templeId matches the requested templeId
     if (!device || device.templeId !== templeId) {
-      console.error('[DonationCategoriesController] Unauthorized: device templeId does not match requested templeId');
+      console.error('[DonationCategoriesController] ❌ Unauthorized: device templeId does not match requested templeId');
       console.error('[DonationCategoriesController] Device object:', JSON.stringify(device, null, 2));
       throw new Error('Unauthorized access to categories for this temple.');
     }
     
+    // First, get ALL categories for this temple (unfiltered) for debugging
+    const allCategories = await this.categoriesService.findAll(templeId);
+    console.log(`[DonationCategoriesController] 📊 Total categories in database: ${allCategories.length}`);
+    allCategories.forEach((cat, index) => {
+      console.log(`[DonationCategoriesController]   Category ${index + 1}: "${cat.name}"`);
+      console.log(`[DonationCategoriesController]     - ID: ${cat.id}`);
+      console.log(`[DonationCategoriesController]     - isActive: ${cat.isActive}`);
+      console.log(`[DonationCategoriesController]     - showOnKiosk: ${cat.showOnKiosk}`);
+      console.log(`[DonationCategoriesController]     - showStartDate: ${cat.showStartDate || 'NULL'}`);
+      console.log(`[DonationCategoriesController]     - showEndDate: ${cat.showEndDate || 'NULL'}`);
+    });
+    
+    // Now get filtered categories
     const categories = await this.categoriesService.findByTemple(templeId, true);
-    console.log(`[DonationCategoriesController] Found ${categories.length} categories after filtering`);
+    console.log(`[DonationCategoriesController] ✅ Found ${categories.length} categories after filtering`);
     
     // Map to only include necessary fields for kiosk
     const mappedCategories = categories.map((cat) => ({
@@ -81,7 +94,7 @@ export class DonationCategoriesController {
       showEndDate: cat.showEndDate,
     }));
     
-    console.log('[DonationCategoriesController] Returning mapped categories:', mappedCategories.length);
+    console.log('[DonationCategoriesController] 📤 Returning mapped categories:', mappedCategories.length);
     if (mappedCategories.length === 0) {
       console.warn('[DonationCategoriesController] ⚠️ No categories returned - this might indicate:');
       console.warn('[DonationCategoriesController]   1. No categories exist for this temple');
@@ -89,6 +102,7 @@ export class DonationCategoriesController {
       console.warn('[DonationCategoriesController]   3. Categories exist but showOnKiosk = false');
       console.warn('[DonationCategoriesController]   4. Categories exist but are outside date range');
     }
+    console.log('[DonationCategoriesController] ========== End getKioskCategories ==========');
     return mappedCategories;
   }
 

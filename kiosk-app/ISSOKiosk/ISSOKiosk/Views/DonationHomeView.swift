@@ -90,7 +90,7 @@ struct DonationHomeView: View {
                                 .padding(.horizontal, 40)
                             }
                         } else {
-                            VStack(spacing: 12) {
+                            VStack(spacing: 16) {
                                 Image(systemName: "folder.fill")
                                     .font(.system(size: 48))
                                     .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
@@ -103,6 +103,25 @@ struct DonationHomeView: View {
                                     .font(.system(size: 14, weight: .regular))
                                     .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
                                     .multilineTextAlignment(.center)
+                                
+                                // Debug: Show refresh button
+                                Button(action: {
+                                    Task {
+                                        await appState.refreshCategories()
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "arrow.clockwise")
+                                        Text("Refresh Categories")
+                                    }
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                    .cornerRadius(8)
+                                }
+                                .padding(.top, 8)
                             }
                             .padding(.top, 60)
                             .padding(.horizontal, 40)
