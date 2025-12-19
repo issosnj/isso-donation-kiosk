@@ -161,17 +161,43 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // Start payment - this will automatically detect Square Stand
         print("[SquareMobilePayments] 🔍 Detecting Square Stand hardware...")
-        let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
-            paymentParameters,
-            promptParameters: promptParameters,
-            from: viewController,
-            delegate: self
-        )
+        print("[SquareMobilePayments] 📱 Presenting from viewController: \(type(of: viewController))")
+        print("[SquareMobilePayments] 📱 ViewController isViewLoaded: \(viewController.isViewLoaded)")
+        print("[SquareMobilePayments] 📱 ViewController viewIfLoaded: \(viewController.viewIfLoaded != nil ? "loaded" : "not loaded")")
         
-        if let handle = paymentHandle {
-            print("[SquareMobilePayments] ✅ Payment started, handle: \(handle)")
-        } else {
-            print("[SquareMobilePayments] ⚠️ Payment handle is nil")
+        // Ensure we're on the main thread and view is loaded
+        DispatchQueue.main.async {
+            // Ensure view is loaded
+            _ = viewController.view
+            
+            print("[SquareMobilePayments] 🚀 Starting Square SDK payment flow...")
+            let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
+                paymentParameters,
+                promptParameters: promptParameters,
+                from: viewController,
+                delegate: self
+            )
+            
+            if let handle = paymentHandle {
+                print("[SquareMobilePayments] ✅ Payment started successfully!")
+                print("[SquareMobilePayments] ✅ Payment handle: \(handle)")
+                print("[SquareMobilePayments] 💡 Square SDK should now show card entry UI")
+                print("[SquareMobilePayments] 💡 User can tap or insert card on Square Stand")
+                print("[SquareMobilePayments] 💡 SDK will automatically detect card interactions")
+            } else {
+                print("[SquareMobilePayments] ❌ Payment handle is nil!")
+                print("[SquareMobilePayments] ❌ SDK may not have started payment")
+                print("[SquareMobilePayments] ⚠️ Possible issues:")
+                print("[SquareMobilePayments]    1. Square Stand not connected")
+                print("[SquareMobilePayments]    2. SDK not properly authorized")
+                print("[SquareMobilePayments]    3. ViewController not ready")
+                
+                // Call completion with error
+                self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
+                    NSLocalizedDescriptionKey: "Failed to start payment. Please check Square Stand connection."
+                ])))
+                self.currentPaymentCompletion = nil
+            }
         }
     }
     

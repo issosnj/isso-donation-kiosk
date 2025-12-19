@@ -35,21 +35,18 @@ struct ModernPaymentView: View {
             } else if isProcessing {
                 ModernProcessingView(amount: amount)
             } else {
-                ModernPaymentReadyView(
-                    amount: amount,
-                    onCardDetected: {
-                        withAnimation {
-                        processPayment()
-                        }
-                    }
-                )
+                ModernPaymentReadyView(amount: amount)
             }
         }
         .onAppear {
-            // Show ready state when view appears
-            // Payment will only process when Square SDK detects card interaction
-            if !isReady {
+            // Automatically start payment when view appears
+            // Square SDK will show its own UI and detect card interactions
+            if !isReady && !isProcessing {
                 isReady = true
+                // Small delay to ensure view is fully loaded before starting payment
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    processPayment()
+                }
             }
         }
     }
@@ -135,9 +132,10 @@ struct ModernPaymentView: View {
 }
 
 // Modern payment ready view - shows waiting for card
+// Note: Payment is started automatically when this view appears
+// Square SDK will show its own UI and detect card interactions
 struct ModernPaymentReadyView: View {
     let amount: Double
-    let onCardDetected: () -> Void
     @State private var appearAnimation = false
     @State private var pulseAnimation = false
     @Environment(\.dismiss) var dismiss
@@ -238,8 +236,9 @@ struct ModernPaymentReadyView: View {
                 pulseAnimation = true
             }
             
-            // When user clicks "Ready for Payment", Square Mobile Payments SDK
-            // will show card entry UI and detect card interactions from Square hardware
+            // Note: Payment is started automatically when this view appears
+            // Square Mobile Payments SDK will show its own card entry UI
+            // and detect card interactions from Square hardware automatically
             // User can tap or insert card, and SDK will process it
         }
     }
