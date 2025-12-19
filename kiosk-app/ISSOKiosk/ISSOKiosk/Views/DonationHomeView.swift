@@ -6,6 +6,7 @@ struct DonationHomeView: View {
     @State private var selectedAmount: Double?
     @State private var customAmount: String = ""
     @State private var selectedCategory: DonationCategory?
+    @State private var quantity: Int = 1
     @State private var showingDetails = false
     @State private var showingPayment = false
     @State private var donorName: String?
@@ -85,8 +86,10 @@ struct DonationHomeView: View {
                                                         selectedCategory = nil
                                                         selectedAmount = nil
                                                         customAmount = ""
+                                                        quantity = 1
                                                     } else {
                                                         selectedCategory = category
+                                                        quantity = 1 // Reset quantity when selecting new category
                                                         // Set default amount if category has one
                                                         if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
                                                             selectedAmount = defaultAmount
@@ -374,6 +377,11 @@ struct DonationHomeView: View {
     }
     
     private var currentAmount: Double {
+        // If category with defaultAmount is selected, multiply by quantity
+        if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+            return defaultAmount * Double(quantity)
+        }
+        // Otherwise use selected amount or custom amount
         if let amount = selectedAmount {
             return amount
         }
