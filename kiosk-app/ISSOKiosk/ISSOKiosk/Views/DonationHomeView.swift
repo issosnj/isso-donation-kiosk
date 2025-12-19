@@ -253,6 +253,7 @@ struct CleanCustomAmountField: View {
                 Text("$")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundColor(.gray)
+                    .frame(width: 20, alignment: .leading)
                 
                 if isActive {
                     TextField("Custom Amount", text: $text)
@@ -260,6 +261,7 @@ struct CleanCustomAmountField: View {
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
                         .focused($isFocused)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .onChange(of: text) { newValue in
                             let filtered = newValue.filter { "0123456789.".contains($0) }
                             if filtered != newValue {
@@ -270,9 +272,11 @@ struct CleanCustomAmountField: View {
                     Text("Custom Amount")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
             .frame(height: 70)
             .background(Color.white)
             .cornerRadius(12)
