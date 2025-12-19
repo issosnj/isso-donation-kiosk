@@ -110,14 +110,24 @@ export class TemplesService {
   }
 
   async findOne(id: string): Promise<Temple> {
-    const temple = await this.templesRepository.findOne({
-      where: { id },
-      relations: ['devices', 'categories', 'donations'],
-    });
-    if (!temple) {
-      throw new NotFoundException(`Temple with ID ${id} not found`);
+    try {
+      const temple = await this.templesRepository.findOne({
+        where: { id },
+        relations: ['devices', 'categories'],
+      });
+      if (!temple) {
+        throw new NotFoundException(`Temple with ID ${id} not found`);
+      }
+      return temple;
+    } catch (error) {
+      console.error('[Temples Service] Error in findOne:', error);
+      console.error('[Temples Service] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+      throw error;
     }
-    return temple;
   }
 
   async update(id: string, updateTempleDto: UpdateTempleDto): Promise<Temple> {
