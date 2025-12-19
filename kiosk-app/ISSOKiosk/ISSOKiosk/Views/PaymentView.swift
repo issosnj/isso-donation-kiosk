@@ -76,9 +76,16 @@ struct ModernPaymentView: View {
                 // 2. Start payment using Square Mobile Payments SDK
                 // This will show card entry UI and detect card interactions from Square hardware
                 await MainActor.run {
+                    guard let viewController = UIViewController.topViewController() else {
+                        self.isProcessing = false
+                        self.paymentStatus = .failure("Unable to present payment interface")
+                        return
+                    }
+                    
                     SquarePaymentService.shared.startPayment(
                         donationId: donation.id,
-                        amount: amount
+                        amount: amount,
+                        from: viewController
                     ) { result in
                         Task {
                             do {
