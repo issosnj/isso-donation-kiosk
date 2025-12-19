@@ -111,13 +111,22 @@ export class TemplesService {
 
   async findOne(id: string): Promise<Temple> {
     try {
+      console.log('[Temples Service] Finding temple with ID:', id);
+      const startTime = Date.now();
+      
       const temple = await this.templesRepository.findOne({
         where: { id },
         relations: ['devices', 'categories'],
       });
+      
+      const queryTime = Date.now() - startTime;
+      console.log(`[Temples Service] Query completed in ${queryTime}ms`);
+      
       if (!temple) {
         throw new NotFoundException(`Temple with ID ${id} not found`);
       }
+      
+      console.log(`[Temples Service] Temple found: ${temple.name}, devices: ${temple.devices?.length || 0}, categories: ${temple.categories?.length || 0}`);
       return temple;
     } catch (error) {
       console.error('[Temples Service] Error in findOne:', error);

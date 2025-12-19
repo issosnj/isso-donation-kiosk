@@ -215,25 +215,71 @@ class APIService {
         print("[APIService] 📡 Base URL: \(baseURL)")
         print("[APIService] 📡 Device token available: \(deviceToken != nil)")
         
-        // Try with auth first (device token), fallback to no auth if needed
-        let result: Temple
-        do {
-            result = try await request<Temple>(
-                endpoint: "/temples/\(templeId)",
-                method: "GET",
-                requiresAuth: true // Try with device token first
-            )
-        } catch {
-            print("[APIService] ⚠️ Request with auth failed, trying without auth...")
-            result = try await request<Temple>(
-                endpoint: "/temples/\(templeId)",
-                method: "GET",
-                requiresAuth: false
-            )
+        guard let url = URL(string: "\(baseURL)/temples/\(templeId)") else {
+            throw APIError.invalidURL
         }
         
-        print("[APIService] ✅ Temple fetched successfully: \(result.name)")
-        return result
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30.0 // Increased timeout to 30 seconds for temple fetch
+        
+        // Try with auth first (device token), fallback to no auth if needed
+        if let token = deviceToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                // If auth failed, try without auth
+                if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                    print("[APIService] ⚠️ Request with auth failed (status: \(httpResponse.statusCode)), trying without auth...")
+                    var noAuthRequest = URLRequest(url: url)
+                    noAuthRequest.httpMethod = "GET"
+                    noAuthRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    noAuthRequest.timeoutInterval = 30.0
+                    
+                    let (noAuthData, noAuthResponse) = try await URLSession.shared.data(for: noAuthRequest)
+                    
+                    guard let noAuthHttpResponse = noAuthResponse as? HTTPURLResponse else {
+                        throw APIError.invalidResponse
+                    }
+                    
+                    guard (200...299).contains(noAuthHttpResponse.statusCode) else {
+                        if let errorData = try? JSONSerialization.jsonObject(with: noAuthData) as? [String: Any],
+                           let message = errorData["message"] as? String {
+                            throw APIError.serverError(message)
+                        }
+                        throw APIError.httpError(noAuthHttpResponse.statusCode)
+                    }
+                    
+                    let result = try JSONDecoder().decode(Temple.self, from: noAuthData)
+                    print("[APIService] ✅ Temple fetched successfully (no auth): \(result.name)")
+                    return result
+                }
+                
+                // Try to parse error message from response body
+                if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let message = errorData["message"] as? String {
+                    throw APIError.serverError(message)
+                }
+                throw APIError.httpError(httpResponse.statusCode)
+            }
+            
+            let result = try JSONDecoder().decode(Temple.self, from: data)
+            print("[APIService] ✅ Temple fetched successfully: \(result.name)")
+            return result
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.networkError(error)
+        }
     }
     
     func getKioskCategories(templeId: String) async throws -> [DonationCategory] {
