@@ -44,20 +44,40 @@ class AppState: ObservableObject {
     }
     
     private func loadTempleConfig() async {
-        // For now, we can't fetch temple config separately
-        // The temple data is only returned during activation
-        // So if we have a stored token, we'll assume activation is valid
-        // and set isActivated to true
-        // In the future, we could add a /devices/me endpoint to fetch current config
-        
-        // Set activated immediately on main thread to ensure UI renders
-        // The UI should handle nil temple gracefully
-        await MainActor.run {
-            self.isActivated = true
+        // Fetch temple config from backend using templeId from JWT token
+        guard let token = deviceToken,
+              let templeId = extractTempleId(from: token) else {
+            print("[AppState] ⚠️ Cannot load temple config - missing token or templeId")
+            await MainActor.run {
+                self.isActivated = true
+            }
+            return
         }
         
-        // Authorize Square Mobile Payments SDK if device token exists
-        if deviceToken != nil {
+        print("[AppState] 📡 Fetching temple config for templeId: \(templeId)")
+        
+        do {
+            // Fetch temple data from backend
+            let temple = try await APIService.shared.getTemple(templeId: templeId)
+            
+            await MainActor.run {
+                self.temple = temple
+                self.isActivated = true
+                print("[AppState] ✅ Temple config loaded: \(temple.name)")
+            }
+            
+            // Authorize Square Mobile Payments SDK if device token exists
+            Task {
+                await authorizeSquareSDK()
+            }
+        } catch {
+            print("[AppState] ❌ Failed to load temple config: \(error.localizedDescription)")
+            // Still set activated so app can function, but temple will be nil
+            await MainActor.run {
+                self.isActivated = true
+            }
+            
+            // Still try to authorize SDK even if temple fetch failed
             Task {
                 await authorizeSquareSDK()
             }

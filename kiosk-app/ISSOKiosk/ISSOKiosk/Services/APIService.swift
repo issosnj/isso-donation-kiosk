@@ -208,6 +208,14 @@ class APIService {
         )
     }
     
+    func getTemple(templeId: String) async throws -> Temple {
+        return try await request<Temple>(
+            endpoint: "/temples/\(templeId)",
+            method: "GET",
+            requiresAuth: false // Temple data is public
+        )
+    }
+    
     private func encodeToDict<T: Codable>(_ value: T) throws -> [String: Any] {
         let data = try JSONEncoder().encode(value)
         return try JSONSerialization.jsonObject(with: data) as! [String: Any]
