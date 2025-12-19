@@ -119,8 +119,8 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
 
   const saveEdit = () => {
     if (editingCategory) {
-      // Convert defaultAmount to number or null
-      let defaultAmountValue: number | null = null;
+      // Convert defaultAmount to number or omit if null
+      let defaultAmountValue: number | undefined = undefined;
       if (editDefaultAmount !== '' && editDefaultAmount != null) {
         const numValue = typeof editDefaultAmount === 'string' 
           ? parseFloat(editDefaultAmount) 
@@ -130,16 +130,32 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
         }
       }
       
+      // Build data object, omitting null/undefined values
+      const updateData: any = {
+        name: editName,
+        isActive: editIsActive,
+        showOnKiosk: editShowOnKiosk,
+      };
+      
+      if (defaultAmountValue !== undefined) {
+        updateData.defaultAmount = defaultAmountValue;
+      }
+      
+      if (editUseDateRange && editShowStartDate) {
+        updateData.showStartDate = new Date(editShowStartDate).toISOString();
+      } else {
+        updateData.showStartDate = null;
+      }
+      
+      if (editUseDateRange && editShowEndDate) {
+        updateData.showEndDate = new Date(editShowEndDate).toISOString();
+      } else {
+        updateData.showEndDate = null;
+      }
+      
       updateCategoryMutation.mutate({
         id: editingCategory,
-        data: {
-          name: editName,
-          isActive: editIsActive,
-          showOnKiosk: editShowOnKiosk,
-          defaultAmount: defaultAmountValue,
-          showStartDate: editUseDateRange && editShowStartDate ? new Date(editShowStartDate).toISOString() : null,
-          showEndDate: editUseDateRange && editShowEndDate ? new Date(editShowEndDate).toISOString() : null,
-        },
+        data: updateData,
       })
     }
   }

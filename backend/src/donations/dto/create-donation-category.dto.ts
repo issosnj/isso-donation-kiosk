@@ -1,4 +1,5 @@
-import { IsUUID, IsString, IsBoolean, IsOptional, IsNumber, IsDateString } from 'class-validator';
+import { IsUUID, IsString, IsBoolean, IsOptional, IsNumber, IsDateString, ValidateIf } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateDonationCategoryDto {
@@ -20,10 +21,12 @@ export class CreateDonationCategoryDto {
   @IsBoolean()
   showOnKiosk?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, nullable: true, type: Number })
   @IsOptional()
-  @IsNumber()
-  defaultAmount?: number;
+  @ValidateIf((o) => o.defaultAmount !== null && o.defaultAmount !== undefined)
+  @Type(() => Number)
+  @IsNumber({}, { message: 'defaultAmount must be a number' })
+  defaultAmount?: number | null;
 
   @ApiProperty({ required: false })
   @IsOptional()
