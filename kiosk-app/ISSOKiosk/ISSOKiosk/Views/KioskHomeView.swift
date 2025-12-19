@@ -86,8 +86,7 @@ struct KioskHomeView: View {
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                             
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
+                            HStack(spacing: 16) {
                                     // Join WhatsApp
                                     if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
                                         ModernQuickActionButton(
@@ -172,7 +171,6 @@ struct KioskHomeView: View {
                                     }
                                 }
                                 .padding(.horizontal, 20)
-                            }
                         }
                     }
                     .padding(.horizontal, 40)
