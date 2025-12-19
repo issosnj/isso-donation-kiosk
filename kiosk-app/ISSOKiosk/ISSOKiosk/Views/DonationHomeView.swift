@@ -105,6 +105,61 @@ struct DonationHomeView: View {
                                 }
                                 .padding(.horizontal, 40)
                             }
+                            
+                            // Quantity selector (shown when category with defaultAmount is selected)
+                            if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+                                VStack(spacing: 12) {
+                                    Text("Quantity")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                                    
+                                    HStack(spacing: 20) {
+                                        // Decrease button
+                                        Button(action: {
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                if quantity > 1 {
+                                                    quantity -= 1
+                                                }
+                                            }
+                                        }) {
+                                            Image(systemName: "minus.circle.fill")
+                                                .font(.system(size: 32))
+                                                .foregroundColor(quantity > 1 ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray)
+                                        }
+                                        .disabled(quantity <= 1)
+                                        
+                                        // Quantity display
+                                        Text("\(quantity)")
+                                            .font(.system(size: 36, weight: .bold))
+                                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                                            .frame(minWidth: 60)
+                                        
+                                        // Increase button
+                                        Button(action: {
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                quantity += 1
+                                            }
+                                        }) {
+                                            Image(systemName: "plus.circle.fill")
+                                                .font(.system(size: 32))
+                                                .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                        }
+                                    }
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 40)
+                                    .background(Color.white)
+                                    .cornerRadius(12)
+                                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                    
+                                    // Total amount for this category
+                                    Text("Total: $\(String(format: "%.2f", defaultAmount * Double(quantity)))")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                }
+                                .padding(.horizontal, 40)
+                                .padding(.top, 20)
+                                .transition(.scale.combined(with: .opacity))
+                            }
                         } else {
                             VStack(spacing: 16) {
                                 Image(systemName: "folder.fill")
