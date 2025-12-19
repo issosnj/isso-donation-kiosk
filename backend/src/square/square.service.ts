@@ -20,11 +20,15 @@ export class SquareService {
       throw new Error('Square configuration missing: SQUARE_APPLICATION_ID or SQUARE_REDIRECT_URI not set');
     }
     
+    // Normalize redirect URI - remove trailing slash if present
+    const normalizedRedirectUri = redirectUri.endsWith('/') ? redirectUri.slice(0, -1) : redirectUri;
+    
     const state = Buffer.from(JSON.stringify({ templeId })).toString('base64');
-    const oauthUrl = `https://squareup.com/oauth2/authorize?client_id=${applicationId}&response_type=code&scope=PAYMENTS_READ+PAYMENTS_WRITE+MERCHANT_PROFILE_READ&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    const oauthUrl = `https://squareup.com/oauth2/authorize?client_id=${applicationId}&response_type=code&scope=PAYMENTS_READ+PAYMENTS_WRITE+MERCHANT_PROFILE_READ&state=${state}&redirect_uri=${encodeURIComponent(normalizedRedirectUri)}`;
     
     console.log('[Square Service] Generated OAuth URL for temple:', templeId);
-    console.log('[Square Service] Redirect URI:', redirectUri);
+    console.log('[Square Service] Redirect URI (exact):', JSON.stringify(normalizedRedirectUri));
+    console.log('[Square Service] Redirect URI in URL:', encodeURIComponent(normalizedRedirectUri));
     
     return oauthUrl;
   }
@@ -37,7 +41,8 @@ export class SquareService {
     console.log('[Square Service] Exchanging code for token');
     console.log('[Square Service] Application ID:', applicationId ? `${applicationId.substring(0, 8)}...` : 'missing');
     console.log('[Square Service] Application Secret:', applicationSecret ? 'present' : 'missing');
-    console.log('[Square Service] Redirect URI:', redirectUri);
+    console.log('[Square Service] Redirect URI (exact):', JSON.stringify(redirectUri));
+    console.log('[Square Service] Redirect URI length:', redirectUri?.length || 0);
     console.log('[Square Service] Code present:', !!code);
     console.log('[Square Service] State present:', !!state);
 
@@ -45,19 +50,33 @@ export class SquareService {
       throw new Error('Square configuration missing: SQUARE_APPLICATION_ID, SQUARE_APPLICATION_SECRET, or SQUARE_REDIRECT_URI not set');
     }
 
+    // Normalize redirect URI - remove trailing slash if present
+    const normalizedRedirectUri = redirectUri.endsWith('/') ? redirectUri.slice(0, -1) : redirectUri;
+    console.log('[Square Service] Normalized Redirect URI:', JSON.stringify(normalizedRedirectUri));
+
+    const requestBody = {
+      client_id: applicationId,
+      client_secret: applicationSecret,
+      code,
+      redirect_uri: normalizedRedirectUri,
+      grant_type: 'authorization_code',
+    };
+
+    console.log('[Square Service] Request body (without secrets):', {
+      client_id: `${applicationId.substring(0, 8)}...`,
+      client_secret: '***',
+      code: code ? 'present' : 'missing',
+      redirect_uri: normalizedRedirectUri,
+      grant_type: 'authorization_code',
+    });
+
     const response = await fetch('https://connect.squareup.com/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Square-Version': '2023-10-18',
       },
-      body: JSON.stringify({
-        client_id: applicationId,
-        client_secret: applicationSecret,
-        code,
-        redirect_uri: redirectUri,
-        grant_type: 'authorization_code',
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
