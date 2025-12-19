@@ -50,27 +50,6 @@ struct ModernPaymentView: View {
             // Payment will only process when Square SDK detects card interaction
             if !isReady {
                 isReady = true
-                // Initialize Square SDK and wait for card reader
-                initializePaymentReader()
-            }
-        }
-    }
-    
-    private func initializePaymentReader() {
-        // Initialize Square SDK and set up card reader
-        // The SDK will call onCardDetected when a card is tapped/inserted
-        Task {
-            // TODO: Initialize Square SDK card reader here
-            // For now, we'll wait for actual Square SDK integration
-            // The payment will only process when Square SDK detects a card
-            
-            // SIMULATION MODE: Auto-detect "card" after 3 seconds for testing
-            // In real implementation, Square SDK will handle card detection
-            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-            
-            // Simulate card detection - trigger payment processing
-            await MainActor.run {
-                onCardDetected()
             }
         }
     }
