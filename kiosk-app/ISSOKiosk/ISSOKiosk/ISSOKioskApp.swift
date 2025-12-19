@@ -7,14 +7,16 @@ struct ISSOKioskApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     init() {
+        print("🚀 ISSOKioskApp initializing...")
         // Initialize Square SDK
         if let appId = Bundle.main.object(forInfoDictionaryKey: "SQUARE_APPLICATION_ID") as? String,
            !appId.isEmpty && appId != "YOUR_SQUARE_APPLICATION_ID" {
             SQIPInAppPaymentsSDK.squareApplicationID = appId
-            print("Square SDK initialized with Application ID: \(appId.prefix(8))...")
+            print("✅ Square SDK initialized with Application ID: \(appId.prefix(8))...")
         } else {
-            print("Warning: Square Application ID not configured in Info.plist")
+            print("⚠️ Warning: Square Application ID not configured in Info.plist")
         }
+        print("✅ ISSOKioskApp initialization complete")
     }
     
     var body: some Scene {
@@ -24,6 +26,7 @@ struct ISSOKioskApp: App {
                 .preferredColorScheme(.light) // Force light mode for kiosk
                 .lockOrientation(.landscape) // Lock to landscape orientation
                 .onAppear {
+                    print("✅ WindowGroup onAppear - starting heartbeat")
                     startHeartbeat()
                 }
         }
