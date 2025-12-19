@@ -23,30 +23,47 @@ struct KioskHomeView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 0) {
+                // Header at top, edge to edge
+                VStack(spacing: 0) {
+                    // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
+                    Text(header1Text)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
+                        .background(Color.white)
+                    
+                    // Welcome to Temple Name
+                    if let temple = appState.temple {
+                        Text("Welcome To \(temple.name)")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.white)
+                        
+                        // Temple Address
+                        if let address = temple.address, !address.isEmpty {
+                            Text(address)
+                                .font(.system(size: 18, weight: .regular))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .padding(.bottom, 16)
+                                .background(Color.white)
+                        }
+                    }
+                }
+                
                 Spacer()
                 
                 // Centered content
                 VStack(spacing: 40) {
-                    // Headers (configurable by admin)
-                    VStack(spacing: 12) {
-                        // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
-                        Text(header1Text)
-                            .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(3)
-                        
-                        // Header 2 (default: "Welcome to Temple Name" and address)
-                        if let header2 = header2Text, !header2.isEmpty {
-                            Text(header2)
-                                .font(.system(size: 22, weight: .regular))
-                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                        }
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.top, 20)
                     
                     // Main: Two Taps To Donation Button
                     Button(action: {
