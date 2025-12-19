@@ -6,6 +6,7 @@ import api from '@/lib/api'
 import DevicesTab from './DevicesTab'
 import CategoriesTab from './CategoriesTab'
 import SquareTab from './SquareTab'
+import EventsCalendarTab from './EventsCalendarTab'
 import KioskHomeTab from './KioskHomeTab'
 
 interface TempleEditViewProps {
