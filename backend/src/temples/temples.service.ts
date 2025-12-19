@@ -129,6 +129,12 @@ export class TemplesService {
         updateDto.squareAccessToken === null || 
         updateDto.squareRefreshToken === null) {
       console.log('[Temples Service] Disconnecting Square for temple:', id);
+      console.log('[Temples Service] Before update - Square fields:', {
+        squareMerchantId: temple.squareMerchantId ? 'present' : 'null',
+        squareAccessToken: temple.squareAccessToken ? 'present' : 'null',
+      });
+      
+      // Explicitly set to null - TypeORM needs this
       temple.squareMerchantId = null;
       temple.squareAccessToken = null;
       temple.squareRefreshToken = null;
@@ -148,6 +154,11 @@ export class TemplesService {
     }
     
     const saved = await this.templesRepository.save(temple);
+    console.log('[Temples Service] After save - Square fields:', {
+      squareMerchantId: saved.squareMerchantId ? 'present' : 'null',
+      squareAccessToken: saved.squareAccessToken ? 'present' : 'null',
+      squareLocationId: saved.squareLocationId ? 'present' : 'null',
+    });
     console.log('[Temples Service] Temple updated, Square connected:', !!saved.squareAccessToken);
     return saved;
   }
