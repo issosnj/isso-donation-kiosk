@@ -26,6 +26,7 @@ async function bootstrap() {
     corsOrigin,
     'http://localhost:3000',
     'http://localhost:3001',
+    'https://issodonationkiosk.netlify.app', // Explicitly allow Netlify domain
   ].filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
 
   console.log(`[CORS] ADMIN_WEB_URL: ${adminWebUrl}`);
@@ -45,9 +46,10 @@ async function bootstrap() {
       return true;
     }
     
-    // Check if it's a Netlify URL (more flexible matching)
-    const isNetlifyUrl = origin.includes('.netlify.app');
+    // Check if it's a Netlify URL (more flexible matching for any Netlify subdomain)
+    const isNetlifyUrl = origin.includes('.netlify.app') || origin.startsWith('https://issodonationkiosk');
     if (isNetlifyUrl) {
+      console.log(`[CORS] ✓ Allowing Netlify origin: ${origin}`);
       return true;
     }
     
@@ -64,14 +66,17 @@ async function bootstrap() {
     console.log(`[OPTIONS] Origin allowed: ${allowed}`);
     
     if (allowed) {
+      // Set CORS headers for preflight
       res.setHeader('Access-Control-Allow-Origin', origin || '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Max-Age', '86400');
+      console.log(`[OPTIONS] ✓ Preflight allowed for origin: ${origin}`);
       res.status(204).end();
     } else {
       console.error(`[OPTIONS] ✗ Blocked origin: ${origin}`);
+      console.error(`[OPTIONS] Allowed origins: ${allowedOrigins.join(', ')}`);
       res.status(403).end();
     }
   });
