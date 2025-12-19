@@ -34,25 +34,27 @@ struct DonationHomeView: View {
                     // Top section with logo and title
                     VStack(spacing: 20) {
                         // Logo/Icon with animation
-                        if let temple = appState.temple {
-                            if let logoUrl = temple.logoUrl, !logoUrl.isEmpty {
-                                AsyncImage(url: URL(string: logoUrl)) { image in
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                } placeholder: {
+                        Group {
+                            if let temple = appState.temple {
+                                if let logoUrl = temple.logoUrl, !logoUrl.isEmpty {
+                                    AsyncImage(url: URL(string: logoUrl)) { image in
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                    } placeholder: {
+                                        Image(systemName: "building.2.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                    }
+                                    .frame(height: 80)
+                                    .cornerRadius(12)
+                                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                                } else {
                                     Image(systemName: "building.2.fill")
                                         .font(.system(size: 60))
                                         .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
                                 }
-                                .frame(height: 80)
-                                .cornerRadius(12)
-                                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                            } else {
-                                Image(systemName: "building.2.fill")
-                                    .font(.system(size: 60))
-                                    .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
                             }
                         }
                         .scaleEffect(1.0)
