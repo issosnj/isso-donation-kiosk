@@ -92,7 +92,15 @@ struct KioskHomeView: View {
                     }
                     
                     // Upcoming Events/Upvas
-                    if let eventsText = appState.temple?.homeScreenConfig?.eventsText, !eventsText.isEmpty {
+                    if let googleCalendarLink = appState.temple?.homeScreenConfig?.googleCalendarLink, !googleCalendarLink.isEmpty {
+                        ActionButton(
+                            icon: "calendar",
+                            title: "Upcoming Events",
+                            color: Color.orange
+                        ) {
+                            showEvents = true
+                        }
+                    } else if let eventsText = appState.temple?.homeScreenConfig?.eventsText, !eventsText.isEmpty {
                         ActionButton(
                             icon: "calendar",
                             title: "Upcoming Events/Upvas",
@@ -129,7 +137,9 @@ struct KioskHomeView: View {
             }
         }
         .sheet(isPresented: $showEvents) {
-            if let eventsText = appState.temple?.homeScreenConfig?.eventsText {
+            if let googleCalendarLink = appState.temple?.homeScreenConfig?.googleCalendarLink, !googleCalendarLink.isEmpty {
+                CalendarEventsView(calendarUrl: googleCalendarLink)
+            } else if let eventsText = appState.temple?.homeScreenConfig?.eventsText {
                 EventsView(eventsText: eventsText)
             }
         }
@@ -321,6 +331,144 @@ struct EventsView: View {
                 }
             }
         }
+    }
+}
+
+struct CalendarEventsView: View {
+    let calendarUrl: String
+    @Environment(\.dismiss) var dismiss
+    @State private var events: [GoogleCalendarEvent] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+    
+    var body: some View {
+        NavigationView {
+            Group {
+                if isLoading {
+                    VStack(spacing: 20) {
+                        ProgressView()
+                        Text("Loading events...")
+                            .font(.system(size: 18))
+                            .foregroundColor(.secondary)
+                    }
+                } else if let error = errorMessage {
+                    VStack(spacing: 20) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 50))
+                            .foregroundColor(.orange)
+                        Text("Unable to load events")
+                            .font(.system(size: 20, weight: .semibold))
+                        Text(error)
+                            .font(.system(size: 16))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                } else if events.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 50))
+                            .foregroundColor(.gray)
+                        Text("No upcoming events")
+                            .font(.system(size: 20, weight: .semibold))
+                        Text("Check back later for upcoming events")
+                            .font(.system(size: 16))
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(events) { event in
+                                EventCard(event: event)
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            }
+            .navigationTitle("Upcoming Events")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                await loadEvents()
+            }
+        }
+    }
+    
+    private func loadEvents() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let fetchedEvents = try await GoogleCalendarService.shared.fetchUpcomingEvents(from: calendarUrl, limit: 20)
+            await MainActor.run {
+                self.events = fetchedEvents
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
+            }
+        }
+    }
+}
+
+struct EventCard: View {
+    let event: GoogleCalendarEvent
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let date = event.start.displayDate {
+                HStack {
+                    Image(systemName: "calendar")
+                        .foregroundColor(.blue)
+                    Text(formatDate(date))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+            }
+            
+            Text(event.summary)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.primary)
+            
+            if let description = event.description, !description.isEmpty {
+                Text(description)
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            }
+            
+            if let endDate = event.end.displayDate, let startDate = event.start.displayDate {
+                if endDate != startDate {
+                    HStack {
+                        Image(systemName: "clock")
+                            .foregroundColor(.gray)
+                        Text("Until \(formatDate(endDate))")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 

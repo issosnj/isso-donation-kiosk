@@ -108,11 +108,11 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
   }
 
   const tabs = [
-    { id: 'info', label: 'Basic Info', icon: '📝' },
-    { id: 'devices', label: 'Devices', icon: '📱' },
-    { id: 'categories', label: 'Categories', icon: '🏷️' },
-    { id: 'square', label: 'Square', icon: '💳' },
-    { id: 'kiosk', label: 'Kiosk Home', icon: '🏠' },
+    { id: 'info', label: 'Basic Info' },
+    { id: 'devices', label: 'Devices' },
+    { id: 'categories', label: 'Categories' },
+    { id: 'square', label: 'Square' },
+    { id: 'kiosk', label: 'Kiosk Home' },
   ]
 
   return (

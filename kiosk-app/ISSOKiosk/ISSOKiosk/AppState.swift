@@ -98,6 +98,7 @@ struct HomeScreenConfig: Codable {
     let customMessage: String?
     let whatsAppLink: String?
     let eventsText: String?
+    let googleCalendarLink: String?
     let socialMedia: [SocialMediaLink]?
 }
 
