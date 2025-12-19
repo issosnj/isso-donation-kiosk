@@ -47,28 +47,6 @@ export class DevicesController {
     return this.devicesService.findAll(user.templeId);
   }
 
-  @Get(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get device by ID' })
-  findOne(@Param('id') id: string) {
-    return this.devicesService.findOne(id);
-  }
-
-  @Post('activate')
-  @ApiOperation({ summary: 'Activate device with device code (public endpoint)' })
-  activate(@Body() activateDeviceDto: ActivateDeviceDto) {
-    return this.devicesService.activate(activateDeviceDto);
-  }
-
-  @Patch(':id/heartbeat')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update device last seen timestamp' })
-  heartbeat(@Param('id') id: string) {
-    return this.devicesService.updateLastSeen(id);
-  }
-
   @Get('square-credentials')
   @UseGuards(DeviceAuthGuard)
   @ApiBearerAuth()
