@@ -50,5 +50,14 @@
 	<!-- Camera permission for QR code scanning -->
 	<key>NSCameraUsageDescription</key>
 	<string>Camera access is required to scan device code QR codes for activation.</string>
+	<!-- Location permission for Square Mobile Payments SDK -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Square needs to know where transactions take place to reduce risk and minimize payment disputes.</string>
+	<!-- Bluetooth permission for Square Mobile Payments SDK -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Square uses Bluetooth to connect and communicate with Square readers and compatible accessories.</string>
+	<!-- Microphone permission for Square Mobile Payments SDK (magstripe readers) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Some Square readers use the microphone to communicate payment card data to your device.</string>
 </dict>
 </plist>

@@ -1,7 +1,10 @@
 import Foundation
+import UIKit
 // TODO: Import Mobile Payments SDK when package is added
-// The correct package URL needs to be found from Square's iOS documentation
 // import SquareMobilePaymentsSDK
+// 
+// Package URL: Check Square's iOS documentation for Swift Package Manager URL
+// Reference: https://developer.squareup.com/docs/mobile-payments-sdk/ios
 
 // Square Mobile Payments SDK Service
 // This service handles in-person payments with Square Stand using Mobile Payments SDK
@@ -11,14 +14,17 @@ import Foundation
 // ⚠️ REQUIREMENT: Kiosk must be ATTENDED (in line of sight, during business hours, with trained staff)
 // See: https://developer.squareup.com/docs/mobile-payments-sdk#requirements-and-limitations
 
-class SquareMobilePaymentsService {
+class SquareMobilePaymentsService: NSObject {
     static let shared = SquareMobilePaymentsService()
     
     private var isAuthorized = false
     private var accessToken: String?
     private var locationId: String?
+    private var currentPaymentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     
-    private init() {}
+    private override init() {
+        super.init()
+    }
     
     struct PaymentResult {
         let success: Bool
@@ -27,19 +33,28 @@ class SquareMobilePaymentsService {
     }
     
     // Authorize Mobile Payments SDK with OAuth access token and location ID
-    func authorize(accessToken: String, locationId: String) async throws {
+    // According to Square docs: authorizationManager.authorize() uses a completion handler
+    func authorize(accessToken: String, locationId: String, completion: @escaping (Error?) -> Void) {
         self.accessToken = accessToken
         self.locationId = locationId
         
         // TODO: Implement with Mobile Payments SDK
-        // 1. Import SquareMobilePaymentsSDK
-        // 2. Use AuthorizationManager to authorize:
-        //    let authorizationManager = AuthorizationManager()
-        //    try await authorizationManager.authorize(
-        //        accessToken: accessToken,
-        //        locationId: locationId
-        //    )
-        // 3. Set isAuthorized = true
+        // According to Square documentation:
+        // guard MobilePaymentsSDK.shared.authorizationManager.state == .notAuthorized else {
+        //     return
+        // }
+        //
+        // MobilePaymentsSDK.shared.authorizationManager.authorize(
+        //     accessToken: accessToken,
+        //     locationID: locationId
+        // ) { error in
+        //     if let authError = error {
+        //         completion(authError)
+        //         return
+        //     }
+        //     self.isAuthorized = true
+        //     completion(nil)
+        // }
         
         print("[SquareMobilePayments] Authorization requested (SDK integration pending)")
         print("[SquareMobilePayments] Access Token: \(accessToken.prefix(8))...")
@@ -47,49 +62,67 @@ class SquareMobilePaymentsService {
         
         // Temporary: Mark as authorized for now
         isAuthorized = true
+        completion(nil)
     }
     
     // Take payment using Mobile Payments SDK PaymentManager
     // This will automatically detect Square Stand and process payment when user taps/chips card
+    // 
+    // According to Square docs, we need:
+    // - PaymentParameters (amount, paymentAttemptID, processingMode)
+    // - PromptParameters (mode, additionalMethods)
+    // - A UIViewController to present from
+    // - PaymentManagerDelegate to handle results
     func takePayment(
         amount: Double,
         donationId: String,
+        from viewController: UIViewController,
         completion: @escaping (Result<PaymentResult, Error>) -> Void
     ) {
-        guard isAuthorized, let accessToken = accessToken, let locationId = locationId else {
+        guard isAuthorized else {
             completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "SDK not authorized. Call authorize() first."
             ])))
             return
         }
         
+        self.currentPaymentCompletion = completion
+        
         // TODO: Implement with Mobile Payments SDK
-        // 1. Use PaymentManager to take payment:
-        //    let paymentManager = PaymentManager()
-        //    let paymentRequest = PaymentRequest(
-        //        amount: Money(amount: Int64(amount * 100), currency: .usd),
-        //        referenceId: donationId
+        // According to Square documentation:
+        //
+        // 1. Create PaymentParameters:
+        //    let paymentParameters = PaymentParameters(
+        //        paymentAttemptID: UUID().uuidString,
+        //        amountMoney: Money(amount: Int64(amount * 100), currency: .USD),
+        //        processingMode: .onlineOnly  // or .offlineOnly, .offlinePreferred
         //    )
-        //    
-        //    paymentManager.takePayment(paymentRequest) { result in
-        //        switch result {
-        //        case .success(let payment):
-        //            completion(.success(PaymentResult(
-        //                success: true,
-        //                paymentId: payment.id,
-        //                error: nil
-        //            )))
-        //        case .failure(let error):
-        //            completion(.failure(error))
-        //        }
-        //    }
+        //
+        // 2. Create PromptParameters:
+        //    let promptParameters = PromptParameters(
+        //        mode: .default,  // or .custom for custom UI
+        //        additionalMethods: .all
+        //    )
+        //
+        // 3. Start payment:
+        //    let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
+        //        paymentParameters,
+        //        promptParameters: promptParameters,
+        //        from: viewController,
+        //        delegate: self
+        //    )
+        //
+        // 4. Implement PaymentManagerDelegate methods:
+        //    - paymentManager(_:didFinish:) - success
+        //    - paymentManager(_:didFail:withError:) - failure
+        //    - paymentManager(_:didCancel:) - canceled
         //
         // The SDK will:
         // - Automatically detect Square Stand
         // - Show payment UI
         // - Wait for user to tap/chip card
         // - Process payment
-        // - Return result
+        // - Return result via delegate
         
         print("[SquareMobilePayments] Payment requested: $\(amount) for donation \(donationId)")
         print("[SquareMobilePayments] Mobile Payments SDK integration pending")
@@ -175,4 +208,38 @@ struct ProcessPaymentResponse: Codable {
     let paymentId: String
     let status: String
 }
+
+// TODO: Implement PaymentManagerDelegate when Mobile Payments SDK is added
+// extension SquareMobilePaymentsService: PaymentManagerDelegate {
+//     func paymentManager(
+//         _ paymentManager: PaymentManager,
+//         didFinish payment: Payment
+//     ) {
+//         currentPaymentCompletion?(.success(PaymentResult(
+//             success: true,
+//             paymentId: payment.id,
+//             error: nil
+//         )))
+//         currentPaymentCompletion = nil
+//     }
+//
+//     func paymentManager(
+//         _ paymentManager: PaymentManager,
+//         didFail payment: Payment,
+//         withError error: Error
+//     ) {
+//         currentPaymentCompletion?(.failure(error))
+//         currentPaymentCompletion = nil
+//     }
+//
+//     func paymentManager(
+//         _ paymentManager: PaymentManager,
+//         didCancel payment: Payment
+//     ) {
+//         currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
+//             NSLocalizedDescriptionKey: "Payment was canceled"
+//         ])))
+//         currentPaymentCompletion = nil
+//     }
+// }
 

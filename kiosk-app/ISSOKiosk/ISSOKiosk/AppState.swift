@@ -87,15 +87,22 @@ class AppState: ObservableObject {
             // Get Square credentials from backend
             let credentials = try await APIService.shared.getSquareCredentials()
             
-            // Authorize Mobile Payments SDK
-            try await SquareMobilePaymentsService.shared.authorize(
-                accessToken: credentials.accessToken,
-                locationId: credentials.locationId
-            )
-            
-            print("[AppState] Square Mobile Payments SDK authorized successfully")
+            // Authorize Mobile Payments SDK (uses completion handler, not async/await)
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                SquareMobilePaymentsService.shared.authorize(
+                    accessToken: credentials.accessToken,
+                    locationId: credentials.locationId
+                ) { error in
+                    if let error = error {
+                        print("[AppState] Failed to authorize Square SDK: \(error.localizedDescription)")
+                    } else {
+                        print("[AppState] Square Mobile Payments SDK authorized successfully")
+                    }
+                    continuation.resume()
+                }
+            }
         } catch {
-            print("[AppState] Failed to authorize Square SDK: \(error.localizedDescription)")
+            print("[AppState] Failed to get Square credentials: \(error.localizedDescription)")
             // Don't block app - Square SDK authorization can happen later
         }
     }
