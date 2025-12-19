@@ -80,6 +80,31 @@ export default function SquareTab({ templeId }: SquareTabProps) {
     }
   }
 
+  const handleReconnectSquare = async () => {
+    if (confirm('This will disconnect your current Square connection and allow you to connect a new one. Continue?')) {
+      try {
+        // First disconnect
+        await api.patch(`/temples/${templeId}`, {
+          squareMerchantId: null,
+          squareAccessToken: null,
+          squareRefreshToken: null,
+          squareLocationId: null,
+        })
+        // Clear cache
+        queryClient.removeQueries({ queryKey: ['temple', templeId] })
+        queryClient.removeQueries({ queryKey: ['temples'] })
+        // Then connect
+        const response = await api.get('/square/connect', {
+          params: { templeId },
+        })
+        window.location.href = response.data.oauthUrl
+      } catch (error: any) {
+        console.error('Failed to reconnect Square:', error)
+        setErrorMessage(error.response?.data?.message || error.message || 'Failed to reconnect Square')
+      }
+    }
+  }
+
   const disconnectSquareMutation = useMutation({
     mutationFn: async () => {
       console.log('[SquareTab] Disconnecting Square...')
