@@ -155,7 +155,6 @@ struct DonationHomeView: View {
                 }
                 .padding(.vertical, 20)
             }
-            }
             .navigationBarHidden(true)
             .overlay(
                 // Back button to return to home

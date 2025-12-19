@@ -15,9 +15,22 @@
 		B94A27FD2EF4DEAD005A3BBE /* ISSOKiosk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ISSOKiosk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B9EC63142EF5971D00F9F2A4 /* Exceptions for "ISSOKiosk" folder in "ISSOKiosk" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B94A27FC2EF4DEAD005A3BBE /* ISSOKiosk */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B94A27FF2EF4DEAD005A3BBE /* ISSOKiosk */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B9EC63142EF5971D00F9F2A4 /* Exceptions for "ISSOKiosk" folder in "ISSOKiosk" target */,
+			);
 			path = ISSOKiosk;
 			sourceTree = "<group>";
 		};
