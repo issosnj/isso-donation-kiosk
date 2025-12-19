@@ -39,23 +39,6 @@ struct DonationHomeView: View {
                     await appState.refreshCategories()
                 }
             }
-    
-    var body: some View {
-        ZStack {
-            // Subtle gradient background (white to light blue)
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.white,
-                    Color(red: 0.95, green: 0.97, blue: 1.0)
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea(.all, edges: .all)
-            .onTapGesture {
-                // Dismiss keyboard when tapping background
-                customAmountFocused = false
-            }
             
             // Two-part split screen layout
             HStack(spacing: 0) {
