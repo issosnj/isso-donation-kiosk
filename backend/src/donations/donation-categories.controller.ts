@@ -91,8 +91,9 @@ export class DonationCategoriesController {
         id: cat.id,
         name: cat.name,
         defaultAmount: cat.defaultAmount,
-        showStartDate: cat.showStartDate,
-        showEndDate: cat.showEndDate,
+        // Convert Date objects to ISO strings for iOS compatibility
+        showStartDate: cat.showStartDate ? cat.showStartDate.toISOString() : null,
+        showEndDate: cat.showEndDate ? cat.showEndDate.toISOString() : null,
       };
       console.log(`[DonationCategoriesController]   Mapping category: "${cat.name}" -> ${JSON.stringify(mapped)}`);
       return mapped;
