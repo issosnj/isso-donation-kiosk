@@ -19,41 +19,66 @@ class APIService {
         body: [String: Any]? = nil,
         requiresAuth: Bool = true
     ) async throws -> T {
-        guard let url = URL(string: "\(baseURL)\(endpoint)") else {
+        let fullURL = "\(baseURL)\(endpoint)"
+        print("[APIService] 🌐 Request: \(method) \(fullURL)")
+        
+        guard let url = URL(string: fullURL) else {
+            print("[APIService] ❌ Invalid URL: \(fullURL)")
             throw APIError.invalidURL
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 15.0 // 15 second timeout
+        request.timeoutInterval = 30.0 // 30 second timeout (increased from 15)
         
         if requiresAuth, let token = deviceToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            print("[APIService] 🔐 Using authentication token")
+        } else if requiresAuth {
+            print("[APIService] ⚠️ Auth required but no token available")
         }
         
         if let body = body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            print("[APIService] 📦 Request body: \(body)")
         }
         
+        print("[APIService] ⏳ Starting network request...")
         let (data, response) = try await URLSession.shared.data(for: request)
+        print("[APIService] ✅ Network request completed")
         
         guard let httpResponse = response as? HTTPURLResponse else {
+            print("[APIService] ❌ Invalid response type")
             throw APIError.invalidResponse
         }
         
+        print("[APIService] 📊 HTTP Status: \(httpResponse.statusCode)")
+        print("[APIService] 📊 Response data size: \(data.count) bytes")
+        
         guard (200...299).contains(httpResponse.statusCode) else {
+            print("[APIService] ❌ HTTP Error: \(httpResponse.statusCode)")
             // Try to parse error message from response body
             if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let message = errorData["message"] as? String {
+                print("[APIService] ❌ Server error message: \(message)")
                 throw APIError.serverError(message)
+            }
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("[APIService] ❌ Response body: \(responseString)")
             }
             throw APIError.httpError(httpResponse.statusCode)
         }
         
         do {
-            return try JSONDecoder().decode(T.self, from: data)
+            let decoded = try JSONDecoder().decode(T.self, from: data)
+            print("[APIService] ✅ Successfully decoded response")
+            return decoded
         } catch {
+            print("[APIService] ❌ Decoding error: \(error)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("[APIService] ❌ Response body (for debugging): \(responseString.prefix(500))")
+            }
             throw APIError.decodingError(error)
         }
     }
@@ -284,11 +309,25 @@ class APIService {
     
     func getKioskCategories(templeId: String) async throws -> [DonationCategory] {
         print("[APIService] 📡 Fetching kiosk categories for temple: \(templeId)")
-        return try await request<[DonationCategory]>(
-            endpoint: "/donation-categories/kiosk/\(templeId)",
-            method: "GET",
-            requiresAuth: true
-        )
+        print("[APIService] 📡 Endpoint: /donation-categories/kiosk/\(templeId)")
+        print("[APIService] 📡 Device token available: \(deviceToken != nil)")
+        
+        do {
+            let categories = try await request<[DonationCategory]>(
+                endpoint: "/donation-categories/kiosk/\(templeId)",
+                method: "GET",
+                requiresAuth: true
+            )
+            print("[APIService] ✅ Successfully fetched \(categories.count) categories")
+            return categories
+        } catch {
+            print("[APIService] ❌ Failed to fetch categories: \(error)")
+            print("[APIService] ❌ Error type: \(type(of: error))")
+            if let apiError = error as? APIError {
+                print("[APIService] ❌ API Error: \(apiError.localizedDescription)")
+            }
+            throw error
+        }
     }
     
     private func encodeToDict<T: Codable>(_ value: T) throws -> [String: Any] {
