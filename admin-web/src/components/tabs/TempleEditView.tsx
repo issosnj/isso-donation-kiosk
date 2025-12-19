@@ -6,6 +6,7 @@ import api from '@/lib/api'
 import DevicesTab from './DevicesTab'
 import CategoriesTab from './CategoriesTab'
 import SquareTab from './SquareTab'
+import KioskHomeTab from './KioskHomeTab'
 
 interface TempleEditViewProps {
   templeId: string
@@ -13,7 +14,7 @@ interface TempleEditViewProps {
 }
 
 export default function TempleEditView({ templeId, onBack }: TempleEditViewProps) {
-  const [activeTab, setActiveTab] = useState<'info' | 'devices' | 'categories' | 'square'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'devices' | 'categories' | 'square' | 'kiosk'>('info')
   const [isEditing, setIsEditing] = useState(false)
   const queryClient = useQueryClient()
 
@@ -111,6 +112,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
     { id: 'devices', label: 'Devices', icon: '📱' },
     { id: 'categories', label: 'Categories', icon: '🏷️' },
     { id: 'square', label: 'Square', icon: '💳' },
+    { id: 'kiosk', label: 'Kiosk Home', icon: '🏠' },
   ]
 
   return (
@@ -367,6 +369,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
         {activeTab === 'devices' && <DevicesTab templeId={templeId} />}
         {activeTab === 'categories' && <CategoriesTab templeId={templeId} />}
         {activeTab === 'square' && <SquareTab templeId={templeId} />}
+        {activeTab === 'kiosk' && <KioskHomeTab templeId={templeId} />}
       </div>
     </div>
   )

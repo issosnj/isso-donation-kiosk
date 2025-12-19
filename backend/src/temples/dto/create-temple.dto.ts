@@ -33,5 +33,19 @@ export class CreateTempleDto {
     primaryColor?: string;
     secondaryColor?: string;
   };
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsObject()
+  homeScreenConfig?: {
+    idleTimeoutSeconds?: number;
+    customMessage?: string;
+    whatsAppLink?: string;
+    eventsText?: string;
+    socialMedia?: Array<{
+      platform: string;
+      url: string;
+    }>;
+  };
 }
 

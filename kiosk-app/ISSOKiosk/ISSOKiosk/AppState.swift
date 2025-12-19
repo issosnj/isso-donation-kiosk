@@ -90,6 +90,15 @@ struct Temple: Codable {
     let logoUrl: String?
     let branding: Branding?
     let squareLocationId: String?
+    let homeScreenConfig: HomeScreenConfig?
+}
+
+struct HomeScreenConfig: Codable {
+    let idleTimeoutSeconds: Int? // Time in seconds before returning to home
+    let customMessage: String?
+    let whatsAppLink: String?
+    let eventsText: String?
+    let socialMedia: [SocialMediaLink]?
 }
 
 struct Branding: Codable {

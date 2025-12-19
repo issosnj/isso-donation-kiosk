@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DonationHomeView: View {
     @EnvironmentObject var appState: AppState
+    let onDismiss: () -> Void
     @State private var selectedAmount: Double?
     @State private var customAmount: String = ""
     @State private var selectedCategory: DonationCategory?
@@ -156,6 +157,30 @@ struct DonationHomeView: View {
             }
             }
             .navigationBarHidden(true)
+            .overlay(
+                // Back button to return to home
+                VStack {
+                    HStack {
+                        Button(action: {
+                            onDismiss()
+                        }) {
+                            HStack {
+                                Image(systemName: "house.fill")
+                                Text("Home")
+                            }
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color.blue)
+                            .cornerRadius(12)
+                        }
+                        .padding()
+                        Spacer()
+                    }
+                    Spacer()
+                }
+            )
             .sheet(isPresented: $showingDetails) {
                 DonationDetailsView(
                     amount: currentAmount,

@@ -99,6 +99,7 @@ export class DevicesService {
         logoUrl: temple.logoUrl,
         branding: temple.branding,
         squareLocationId: temple.squareLocationId,
+        homeScreenConfig: temple.homeScreenConfig || null,
       },
       categories: categories
         .filter((cat) => cat.showOnKiosk && cat.isActive)

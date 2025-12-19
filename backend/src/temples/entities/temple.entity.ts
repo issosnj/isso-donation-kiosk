@@ -48,6 +48,18 @@ export class Temple {
     secondaryColor?: string;
   };
 
+  @Column({ type: 'json', nullable: true })
+  homeScreenConfig: {
+    idleTimeoutSeconds?: number;
+    customMessage?: string;
+    whatsAppLink?: string;
+    eventsText?: string;
+    socialMedia?: Array<{
+      platform: string;
+      url: string;
+    }>;
+  };
+
   @OneToMany(() => Device, (device) => device.temple)
   devices: Device[];
 

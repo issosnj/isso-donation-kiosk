@@ -151,6 +151,7 @@ struct PaymentResultView: View {
     let status: PaymentView.PaymentStatus
     let amount: Double
     let onDismiss: () -> Void
+    @State private var autoDismissTimer: Timer?
     
     var body: some View {
         VStack(spacing: 40) {
@@ -195,6 +196,17 @@ struct PaymentResultView: View {
             .padding(.horizontal, 40)
         }
         .padding()
+        .onAppear {
+            // Auto-dismiss after 5 seconds on success
+            if status == .success {
+                autoDismissTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                    onDismiss()
+                }
+            }
+        }
+        .onDisappear {
+            autoDismissTimer?.invalidate()
+        }
     }
 }
 
