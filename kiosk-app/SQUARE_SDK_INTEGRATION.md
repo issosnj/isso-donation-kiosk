@@ -89,12 +89,17 @@ If you encounter issues with SPM, you can use CocoaPods instead:
 
 ## Step 2: Configure Info.plist
 
-1. Open `ISSOKiosk/Info.plist`
+1. Open `ISSOKiosk/Info.plist` in Xcode
 2. Update the `SQUARE_APPLICATION_ID` value with your actual Square Application ID:
    ```xml
    <key>SQUARE_APPLICATION_ID</key>
    <string>sq0idp-YOUR_APPLICATION_ID</string>
    ```
+
+**How to find your Square Application ID:**
+1. Go to [Square Developer Dashboard](https://developer.squareup.com/apps)
+2. Select your application
+3. Copy the Application ID (starts with `sq0idp-`)
 
 ## Step 3: Initialize Square SDK in App
 
@@ -187,13 +192,23 @@ Since your backend already has Square integration with OAuth tokens, you might w
 
 This approach is often simpler for kiosk deployments. See your backend's Square service implementation.
 
-## Step 5: Configure Bundle ID in Square Dashboard
+## Step 5: Configure Bundle ID and Team ID in Square Dashboard
 
 1. Go to [Square Developer Dashboard](https://developer.squareup.com/apps)
 2. Select your application
 3. Go to **Mobile** tab
-4. Add your app's Bundle ID (e.g., `com.issosnj.issokiosk`)
-5. Save the configuration
+4. **Add your Bundle ID:**
+   - In Xcode: Project → Target → General → Bundle Identifier
+   - Copy that Bundle ID (e.g., `com.issosnj.ISSOKiosk`)
+   - Paste it in Square Dashboard → Mobile → Bundle ID
+5. **Add your Team ID:**
+   - See `FIND_APPLE_TEAM_ID.md` for detailed instructions
+   - Quick way: In Xcode → Project → Target → Signing & Capabilities → Team
+   - The Team ID is shown in parentheses next to your team name (e.g., `ABC123XYZ`)
+   - Paste it in Square Dashboard → Mobile → Team ID
+6. Save the configuration
+
+**Note:** You'll need your Apple Developer Team ID. If you don't have it yet, see `FIND_APPLE_TEAM_ID.md` for instructions.
 
 ## Step 6: Test on Device
 
@@ -208,6 +223,49 @@ This approach is often simpler for kiosk deployments. See your backend's Square 
 2. Upload to App Store Connect
 3. Distribute via TestFlight or App Store
 4. For kiosk deployment, consider using MDM (Mobile Device Management)
+
+## 📝 Payment Processing Options
+
+You have two options for processing payments:
+
+### Option A: Server-Side Processing (Recommended for Kiosk)
+
+Since your backend already has Square integration with OAuth tokens, you can process payments server-side:
+
+1. **Kiosk app** → Initiates donation with backend
+2. **Backend** → Creates payment via Square API using stored access token
+3. **Backend** → Returns payment result
+4. **Kiosk app** → Shows success/failure
+
+**Advantages:**
+- Simpler implementation
+- Uses existing backend Square integration
+- Centralized payment processing
+
+### Option B: Client-Side with Square SDK
+
+Use Square In-App Payments SDK to collect card details in the app:
+
+1. **Kiosk app** → Shows Square card entry form
+2. **Square SDK** → Tokenizes card
+3. **Kiosk app** → Sends token to backend
+4. **Backend** → Processes payment with token
+
+**Advantages:**
+- Native card entry UI
+- Works with Square Stand/Kiosk hardware
+- More control over payment flow
+
+## 🚀 Current Status
+
+The app is ready for:
+- ✅ Device activation
+- ✅ Donation flow UI
+- ✅ API integration
+- ✅ Basic functionality (can test now)
+- ⏳ Payment processing (waiting for Apple Developer approval + Square setup)
+
+**Note:** While waiting for Apple Developer approval, see `CURRENT_WORK.md` for features we can work on that don't require Square integration.
 
 ## Troubleshooting
 

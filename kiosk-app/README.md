@@ -22,9 +22,9 @@ Native iOS app for donation kiosks using Square Mobile Payments SDK.
    - URL: `https://isso-donation-kiosk-production.up.railway.app/api`
 
 3. **Square Integration** (After Apple Developer approval)
-   - See [NEXT_STEPS.md](./NEXT_STEPS.md) for Square setup
-   - See [SQUARE_SDK_INTEGRATION.md](./SQUARE_SDK_INTEGRATION.md) for detailed SDK integration
-   - See [CURRENT_WORK.md](./CURRENT_WORK.md) for features to work on now
+   - See [SQUARE_SDK_INTEGRATION.md](./SQUARE_SDK_INTEGRATION.md) for complete Square setup guide
+   - See [FIND_APPLE_TEAM_ID.md](./FIND_APPLE_TEAM_ID.md) for Team ID instructions
+   - See [CURRENT_WORK.md](./CURRENT_WORK.md) for features to work on while waiting
 
 4. **Build and Run**
    - Connect iPad to Mac
