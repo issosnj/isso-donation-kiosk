@@ -1,6 +1,8 @@
 # How to Find Your Apple Developer Team ID
 
-Square needs your Apple Developer Team ID to configure the mobile SDK. Here's how to find it:
+**Important:** Since you have Square Stand hardware, you need to use Square (not Stripe). Square requires your Apple Developer Team ID to configure the mobile SDK for Square Stand integration.
+
+Here's how to find your Team ID:
 
 ## Method 1: From Xcode (Easiest)
 
