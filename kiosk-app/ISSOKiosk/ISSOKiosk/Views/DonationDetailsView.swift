@@ -149,14 +149,45 @@ struct ModernDonationDetailsView: View {
     var body: some View {
         ZStack {
             // Background: Use same background as donation page
-            if let backgroundImage = appState.backgroundImage {
-                Image(uiImage: backgroundImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea(.all, edges: .all)
-            } else if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
-               let url = URL(string: backgroundUrl) {
-                ZStack {
+            // Background is fixed and doesn't stretch with content width
+            GeometryReader { geometry in
+                if let backgroundImage = appState.backgroundImage {
+                    Image(uiImage: backgroundImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                } else if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
+                   let url = URL(string: backgroundUrl) {
+                    ZStack {
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white,
+                                Color(red: 0.95, green: 0.97, blue: 1.0)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                Color.clear
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: geometry.size.width, height: geometry.size.height)
+                                    .clipped()
+                            case .failure:
+                                Color.clear
+                            @unknown default:
+                                Color.clear
+                            }
+                        }
+                    }
+                } else {
+                    // Default gradient background
                     LinearGradient(
                         gradient: Gradient(colors: [
                             Color.white,
@@ -165,23 +196,9 @@ struct ModernDonationDetailsView: View {
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            Color.clear
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        case .failure:
-                            Color.clear
-                        @unknown default:
-                            Color.clear
-                        }
-                    }
                 }
-                .ignoresSafeArea(.all, edges: .all)
+            }
+            .ignoresSafeArea(.all, edges: .all)
             } else {
                 // Default gradient background
                 LinearGradient(
