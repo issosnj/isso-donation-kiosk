@@ -8,6 +8,7 @@ class AppState: ObservableObject {
     @Published var deviceId: String?
     @Published var temple: Temple?
     @Published var categories: [DonationCategory] = []
+    @Published var backgroundImage: UIImage? = nil // Cached background image
     
     private let keychain = KeychainHelper()
     
@@ -55,12 +56,70 @@ class AppState: ObservableObject {
         
         do {
             let temple = try await APIService.shared.getTemple(templeId: templeId)
+            let oldBackgroundUrl = self.temple?.homeScreenConfig?.backgroundImageUrl
+            let newBackgroundUrl = temple.homeScreenConfig?.backgroundImageUrl
+            
             await MainActor.run {
                 self.temple = temple
                 print("[AppState] ✅ Temple config refreshed (including theme)")
             }
+            
+            // Preload background image if URL changed or image not cached
+            if newBackgroundUrl != oldBackgroundUrl || backgroundImage == nil {
+                await preloadBackgroundImage()
+            }
         } catch {
             print("[AppState] ❌ Failed to refresh temple config: \(error.localizedDescription)")
+        }
+    }
+    
+    func preloadBackgroundImage() async {
+        guard let backgroundUrl = temple?.homeScreenConfig?.backgroundImageUrl,
+              let url = URL(string: backgroundUrl) else {
+            await MainActor.run {
+                self.backgroundImage = nil
+            }
+            return
+        }
+        
+        print("[AppState] 🖼️ Preloading background image: \(backgroundUrl)")
+        
+        // Check cache first
+        if let cachedResponse = URLCache.shared.cachedResponse(for: URLRequest(url: url)),
+           let image = UIImage(data: cachedResponse.data) {
+            await MainActor.run {
+                self.backgroundImage = image
+            }
+            print("[AppState] ✅ Background image loaded from cache")
+            return
+        }
+        
+        // Load from network
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            // Verify it's an image
+            guard let image = UIImage(data: data) else {
+                print("[AppState] ⚠️ Invalid image data")
+                return
+            }
+            
+            // Cache the response
+            if let httpResponse = response as? HTTPURLResponse {
+                let cachedResponse = CachedURLResponse(response: httpResponse, data: data)
+                URLCache.shared.storeCachedResponse(cachedResponse, for: URLRequest(url: url))
+            }
+            
+            await MainActor.run {
+                self.backgroundImage = image
+            }
+            print("[AppState] ✅ Background image loaded and cached")
+        } catch {
+            print("[AppState] ❌ Failed to preload background image: \(error.localizedDescription)")
+            // Set to nil on error so it falls back to gradient
+            await MainActor.run {
+                self.backgroundImage = nil
+            }
         }
     }
     
@@ -134,6 +193,9 @@ class AppState: ObservableObject {
                 print("[AppState] ✅ Temple config loaded: \(temple.name)")
                 print("[AppState] ✅ Temple ID: \(temple.id)")
             }
+            
+            // Preload background image if available
+            await preloadBackgroundImage()
             
             // Load categories after temple config is loaded
             await refreshCategories()

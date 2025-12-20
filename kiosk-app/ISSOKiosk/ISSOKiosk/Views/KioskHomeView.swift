@@ -187,7 +187,13 @@ struct KioskHomeView: View {
                     HStack {
                         Spacer()
                         GoldAccentDonateButton(action: {
-                            navigationState.showDonationFlow = true
+                            // Preload background image before navigating
+                            Task {
+                                await appState.preloadBackgroundImage()
+                                await MainActor.run {
+                                    navigationState.showDonationFlow = true
+                                }
+                            }
                         })
                         Spacer()
                     }

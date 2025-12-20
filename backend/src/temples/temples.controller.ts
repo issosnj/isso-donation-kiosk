@@ -26,6 +26,7 @@ import { UserRole } from '../users/entities/user.entity';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 @ApiTags('temples')
 @Controller('temples')
@@ -190,6 +191,12 @@ export class TemplesController {
     // Remove trailing slash if present
     baseUrl = baseUrl.replace(/\/$/, '');
     const fileUrl = `${baseUrl}/uploads/backgrounds/${file.filename}`;
+
+    // Verify file exists before saving URL
+    const filePath = join(process.cwd(), 'uploads', 'backgrounds', file.filename);
+    if (!existsSync(filePath)) {
+      throw new BadRequestException('File was not saved correctly');
+    }
 
     // Update temple's homeScreenConfig with the background image URL
     const temple = await this.templesService.findOne(id);

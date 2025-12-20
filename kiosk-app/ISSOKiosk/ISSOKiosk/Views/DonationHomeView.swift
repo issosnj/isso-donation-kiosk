@@ -12,7 +12,6 @@ struct DonationHomeView: View {
     @State private var donorName: String?
     @State private var donorEmail: String?
     @FocusState private var customAmountFocused: Bool
-    @State private var backgroundImage: UIImage? = nil
     
     // Preset amounts from backend config, fallback to defaults
     var presetAmounts: [Double] {
@@ -220,8 +219,8 @@ struct DonationHomeView: View {
     
     private var backgroundGradient: some View {
         Group {
-            // Background: Custom image if available, otherwise gradient
-            if let backgroundImage = backgroundImage {
+            // Background: Use preloaded image from AppState for instant display
+            if let backgroundImage = appState.backgroundImage {
                 Image(uiImage: backgroundImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -272,30 +271,9 @@ struct DonationHomeView: View {
             customAmountFocused = false
         }
         .task {
-            // Preload background image if available for instant display
-            if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
-               let url = URL(string: backgroundUrl),
-               backgroundImage == nil {
-                // Try to load from cache first
-                if let cachedResponse = URLCache.shared.cachedResponse(for: URLRequest(url: url)),
-                   let image = UIImage(data: cachedResponse.data) {
-                    backgroundImage = image
-                } else {
-                    // Load asynchronously and cache
-                    Task {
-                        if let (data, response) = try? await URLSession.shared.data(from: url),
-                           let uiImage = UIImage(data: data) {
-                            // Cache the response
-                            if let httpResponse = response as? HTTPURLResponse {
-                                let cachedResponse = CachedURLResponse(response: httpResponse, data: data)
-                                URLCache.shared.storeCachedResponse(cachedResponse, for: URLRequest(url: url))
-                            }
-                            await MainActor.run {
-                                self.backgroundImage = uiImage
-                            }
-                        }
-                    }
-                }
+            // Ensure background image is preloaded
+            if appState.backgroundImage == nil {
+                await appState.preloadBackgroundImage()
             }
             
             // Only refresh if categories are empty to avoid unnecessary refreshes
@@ -310,24 +288,15 @@ struct DonationHomeView: View {
             // Theme was updated, view will automatically refresh due to @EnvironmentObject
             print("[DonationHomeView] Theme updated, view will refresh")
         }
-        .onChange(of: appState.temple?.homeScreenConfig?.backgroundImageUrl) { newUrl in
-            // Reset image when URL changes
-            backgroundImage = nil
-            if let urlString = newUrl, let url = URL(string: urlString) {
-                Task {
-                    if let (data, response) = try? await URLSession.shared.data(from: url),
-                       let uiImage = UIImage(data: data) {
-                        // Cache the response
-                        if let httpResponse = response as? HTTPURLResponse {
-                            let cachedResponse = CachedURLResponse(response: httpResponse, data: data)
-                            URLCache.shared.storeCachedResponse(cachedResponse, for: URLRequest(url: url))
-                        }
-                        await MainActor.run {
-                            self.backgroundImage = uiImage
-                        }
-                    }
-                }
+        .onChange(of: appState.temple?.homeScreenConfig?.backgroundImageUrl) { _ in
+            // Background URL changed, reload image
+            Task {
+                await appState.preloadBackgroundImage()
             }
+        }
+        .onChange(of: appState.backgroundImage) { _ in
+            // Background image was updated, view will refresh automatically
+            print("[DonationHomeView] Background image updated")
         }
     }
     
