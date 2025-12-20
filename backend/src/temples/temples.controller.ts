@@ -25,7 +25,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs'; // File system operations for uploads
 
 @ApiTags('temples')
 @Controller('temples')
