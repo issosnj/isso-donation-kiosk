@@ -91,5 +91,19 @@ export class CreateTempleDto {
       quantityTotalSpacing?: number;
     };
   };
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsObject()
+  receiptConfig?: {
+    fromEmail?: string;
+    fromName?: string;
+    subject?: string;
+    headerText?: string;
+    footerText?: string;
+    includeTaxId?: boolean;
+    taxId?: string;
+    customMessage?: string;
+  };
 }
 
