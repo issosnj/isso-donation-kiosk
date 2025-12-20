@@ -112,7 +112,6 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
             {config.organizationSubtitle && (
               <p className="text-sm text-gray-600 mb-2">{config.organizationSubtitle}</p>
             )}
-            <h3 className="text-lg font-semibold">{temple.name}</h3>
             {temple.address && (
               <p className="text-sm text-gray-600 mt-1">{temple.address}</p>
             )}
@@ -198,6 +197,9 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
         {config.showPaymentMethod !== false && (
           <div className="mb-6">
             <p className="text-sm text-gray-600">Payment Method: Paid by Square</p>
+            {config.showPreparedBy && config.preparedBy && (
+              <p className="text-sm text-gray-600 mt-1">Prepared by: {config.preparedBy}</p>
+            )}
           </div>
         )}
 
@@ -232,13 +234,6 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
           )}
           {config.taxExemptMessage && (
             <p className="text-xs text-center text-gray-600 mt-2">{config.taxExemptMessage}</p>
-          )}
-
-          {/* Prepared By */}
-          {config.showPreparedBy && config.preparedBy && (
-            <div className="mt-4 text-right">
-              <p className="text-sm text-gray-600">Prepared by: {config.preparedBy}</p>
-            </div>
           )}
         </div>
       </div>
