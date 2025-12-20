@@ -38,7 +38,7 @@ struct PledgeOptionView: View {
                             .font(.custom("Inter-Regular", size: 16))
                             .foregroundColor(.gray)
                     }
-                } else if let token = pledgeToken, let link = pledgePaymentLink {
+                } else if let _ = pledgeToken, let link = pledgePaymentLink {
                     // Show pledge confirmation with QR code
                     ScrollView {
                         VStack(spacing: 30) {

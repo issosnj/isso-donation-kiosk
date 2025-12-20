@@ -9,6 +9,8 @@ struct DonationHomeView: View {
     @State private var quantity: Int = 1
     @State private var showingDetails = false
     @State private var showingPayment = false
+    @State private var showingYajmanOpportunities = false
+    @State private var showingPledgeOption = false
     @State private var donorName: String?
     @State private var donorPhone: String?
     @State private var donorEmail: String?
