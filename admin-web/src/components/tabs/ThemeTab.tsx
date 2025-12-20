@@ -120,6 +120,18 @@ export default function ThemeTab() {
           donorFormMaxWidth: temple.kioskTheme.layout?.donorFormMaxWidth || 420,
           detailsCardPadding: temple.kioskTheme.layout?.detailsCardPadding || 24,
           detailsCardSpacing: temple.kioskTheme.layout?.detailsCardSpacing || 16,
+          // Donation Details Page Fonts
+          detailsAmountFontSize: temple.kioskTheme.layout?.detailsAmountFontSize || 56,
+          detailsLabelFontSize: temple.kioskTheme.layout?.detailsLabelFontSize || 18,
+          detailsInputFontSize: temple.kioskTheme.layout?.detailsInputFontSize || 18,
+          detailsButtonFontSize: temple.kioskTheme.layout?.detailsButtonFontSize || 22,
+          // Donation Details Page Colors
+          detailsAmountColor: temple.kioskTheme.layout?.detailsAmountColor || '#423232',
+          detailsTextColor: temple.kioskTheme.layout?.detailsTextColor || '#423232',
+          detailsInputBorderColor: temple.kioskTheme.layout?.detailsInputBorderColor || '#CCCCCC',
+          detailsInputFocusColor: temple.kioskTheme.layout?.detailsInputFocusColor || '#3366CC',
+          detailsButtonColor: temple.kioskTheme.layout?.detailsButtonColor || '#3366CC',
+          detailsButtonTextColor: temple.kioskTheme.layout?.detailsButtonTextColor || '#FFFFFF',
         },
       })
     }
@@ -208,6 +220,18 @@ export default function ThemeTab() {
                       donorFormMaxWidth: temple.kioskTheme.layout?.donorFormMaxWidth || 420,
                       detailsCardPadding: temple.kioskTheme.layout?.detailsCardPadding || 24,
                       detailsCardSpacing: temple.kioskTheme.layout?.detailsCardSpacing || 16,
+                      // Donation Details Page Fonts
+                      detailsAmountFontSize: temple.kioskTheme.layout?.detailsAmountFontSize || 56,
+                      detailsLabelFontSize: temple.kioskTheme.layout?.detailsLabelFontSize || 18,
+                      detailsInputFontSize: temple.kioskTheme.layout?.detailsInputFontSize || 18,
+                      detailsButtonFontSize: temple.kioskTheme.layout?.detailsButtonFontSize || 22,
+                      // Donation Details Page Colors
+                      detailsAmountColor: temple.kioskTheme.layout?.detailsAmountColor || '#423232',
+                      detailsTextColor: temple.kioskTheme.layout?.detailsTextColor || '#423232',
+                      detailsInputBorderColor: temple.kioskTheme.layout?.detailsInputBorderColor || '#CCCCCC',
+                      detailsInputFocusColor: temple.kioskTheme.layout?.detailsInputFocusColor || '#3366CC',
+                      detailsButtonColor: temple.kioskTheme.layout?.detailsButtonColor || '#3366CC',
+                      detailsButtonTextColor: temple.kioskTheme.layout?.detailsButtonTextColor || '#FFFFFF',
                     },
                   })
                 }
