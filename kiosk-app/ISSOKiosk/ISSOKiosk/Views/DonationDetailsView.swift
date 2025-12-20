@@ -42,15 +42,15 @@ struct ModernDonationDetailsView: View {
     }
     
     private var detailsPageHorizontalSpacing: CGFloat {
-        CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? 20)
+        CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? 40)
     }
     
     private var detailsPageSidePadding: CGFloat {
-        CGFloat(theme?.layout?.detailsPageSidePadding ?? 40)
+        CGFloat(theme?.layout?.detailsPageSidePadding ?? 60)
     }
     
     private var detailsPageTopPadding: CGFloat {
-        CGFloat(theme?.layout?.detailsPageTopPadding ?? 60)
+        CGFloat(theme?.layout?.detailsPageTopPadding ?? 80)
     }
     
     private var detailsPageBottomPadding: CGFloat {
@@ -58,19 +58,19 @@ struct ModernDonationDetailsView: View {
     }
     
     private var detailsCardMaxWidth: CGFloat {
-        CGFloat(theme?.layout?.detailsCardMaxWidth ?? 350)
+        CGFloat(theme?.layout?.detailsCardMaxWidth ?? 420)
     }
     
     private var donorFormMaxWidth: CGFloat {
-        CGFloat(theme?.layout?.donorFormMaxWidth ?? 350)
+        CGFloat(theme?.layout?.donorFormMaxWidth ?? 420)
     }
     
     private var detailsCardPadding: CGFloat {
-        CGFloat(theme?.layout?.detailsCardPadding ?? 20)
+        CGFloat(theme?.layout?.detailsCardPadding ?? 24)
     }
     
     private var detailsCardSpacing: CGFloat {
-        CGFloat(theme?.layout?.detailsCardSpacing ?? 12)
+        CGFloat(theme?.layout?.detailsCardSpacing ?? 16)
     }
     
     var body: some View {
@@ -135,11 +135,12 @@ struct ModernDonationDetailsView: View {
                         .frame(maxWidth: .infinity)
                     
                     // LEFT SIDE: Donation Details
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 24) {
                         // Large amount display
                         Text("$\(String(format: "%.2f", amount))")
                             .font(.custom("Inter-SemiBold", size: 56))
                             .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                            .padding(.bottom, 4)
                         
                         // Donation summary card
                         VStack(alignment: .leading, spacing: detailsCardSpacing) {
@@ -222,13 +223,14 @@ struct ModernDonationDetailsView: View {
                     .padding(.leading, detailsPageSidePadding)
                     
                     // RIGHT SIDE: Donor Information
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 20) {
                         Text(category != nil ? "Donor Information" : "Optional Information")
                             .font(.custom("Inter-SemiBold", size: 20))
                             .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                            .padding(.bottom, 4)
                         
                         // Name field
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Text(category != nil ? "Name * Required" : "Name (Optional)")
                                     .font(.custom("Inter-Regular", size: 14))
@@ -283,7 +285,7 @@ struct ModernDonationDetailsView: View {
                         }
                         
                         // Email field
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 10) {
                             Text("Email for Receipt (Optional)")
                                 .font(.custom("Inter-Regular", size: 14))
                                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
