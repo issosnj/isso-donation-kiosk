@@ -482,8 +482,60 @@ export class DonationsService {
         </html>
       `;
 
-      // For now, log the receipt email details
-      // In production, integrate with an email service (SendGrid, AWS SES, nodemailer, etc.)
+      // Check if temple has Gmail connected
+      if (temple.gmailAccessToken && temple.gmailEmail) {
+        try {
+          // Decrypt access token
+          let accessToken = this.decrypt(temple.gmailAccessToken);
+          
+          // Try to send email, refresh token if needed
+          try {
+            await this.gmailService.sendEmail(
+              accessToken,
+              donation.donorEmail,
+              subject,
+              receiptHtml,
+              temple.gmailEmail,
+              fromName,
+            );
+            console.log('[DonationsService] ✅ Receipt email sent via Gmail');
+            return;
+          } catch (error: any) {
+            // If token expired, try to refresh
+            if (error.message?.includes('invalid_grant') || error.message?.includes('401') || error.message?.includes('invalid_token')) {
+              console.log('[DonationsService] ⚠️ Access token expired, attempting refresh...');
+              if (temple.gmailRefreshToken) {
+                const refreshToken = this.decrypt(temple.gmailRefreshToken);
+                accessToken = await this.gmailService.refreshAccessToken(refreshToken);
+                
+                // Update temple with new access token
+                const encryptedToken = this.encrypt(accessToken);
+                await this.templesService.update(temple.id, {
+                  gmailAccessToken: encryptedToken,
+                });
+                
+                // Retry sending email
+                await this.gmailService.sendEmail(
+                  accessToken,
+                  donation.donorEmail,
+                  subject,
+                  receiptHtml,
+                  temple.gmailEmail,
+                  fromName,
+                );
+                console.log('[DonationsService] ✅ Receipt email sent via Gmail (after refresh)');
+                return;
+              }
+            }
+            throw error;
+          }
+        } catch (error) {
+          console.error('[DonationsService] ❌ Failed to send email via Gmail:', error);
+          // Fall through to log-only mode
+        }
+      }
+
+      // Log email details (fallback if Gmail not connected or failed)
       console.log('[DonationsService] 📧 Receipt email would be sent:', {
         from: `${fromName} <${fromEmail}>`,
         to: donation.donorEmail,
@@ -495,7 +547,7 @@ export class DonationsService {
         date: donation.createdAt,
         donorName: donation.donorName,
         donorPhone: donation.donorPhone,
-        receiptConfig: receiptConfig,
+        gmailConnected: !!temple.gmailAccessToken,
       });
 
       // TODO: Implement actual email sending using nodemailer, SendGrid, or AWS SES
