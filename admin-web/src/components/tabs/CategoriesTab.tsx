@@ -95,29 +95,55 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
 
   const moveUpMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.post(`/donation-categories/${id}/move-up`)
-      return response.data
+      console.log('[CategoriesTab] Moving category up:', id)
+      try {
+        const response = await api.post(`/donation-categories/${id}/move-up`)
+        console.log('[CategoriesTab] Move up response:', response.data)
+        return response.data
+      } catch (error: any) {
+        console.error('[CategoriesTab] Move up API error:', error)
+        console.error('[CategoriesTab] Error response:', error.response)
+        console.error('[CategoriesTab] Error status:', error.response?.status)
+        console.error('[CategoriesTab] Error data:', error.response?.data)
+        throw error
+      }
     },
     onSuccess: () => {
+      console.log('[CategoriesTab] Move up successful, invalidating queries')
       queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
     },
     onError: (error: any) => {
-      console.error('Move up error:', error)
-      alert(error.response?.data?.message || 'Failed to move category up. Please try again.')
+      console.error('[CategoriesTab] Move up mutation error:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to move category up. Please try again.'
+      console.error('[CategoriesTab] Error message:', errorMessage)
+      alert(errorMessage)
     },
   })
 
   const moveDownMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.post(`/donation-categories/${id}/move-down`)
-      return response.data
+      console.log('[CategoriesTab] Moving category down:', id)
+      try {
+        const response = await api.post(`/donation-categories/${id}/move-down`)
+        console.log('[CategoriesTab] Move down response:', response.data)
+        return response.data
+      } catch (error: any) {
+        console.error('[CategoriesTab] Move down API error:', error)
+        console.error('[CategoriesTab] Error response:', error.response)
+        console.error('[CategoriesTab] Error status:', error.response?.status)
+        console.error('[CategoriesTab] Error data:', error.response?.data)
+        throw error
+      }
     },
     onSuccess: () => {
+      console.log('[CategoriesTab] Move down successful, invalidating queries')
       queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
     },
     onError: (error: any) => {
-      console.error('Move down error:', error)
-      alert(error.response?.data?.message || 'Failed to move category down. Please try again.')
+      console.error('[CategoriesTab] Move down mutation error:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to move category down. Please try again.'
+      console.error('[CategoriesTab] Error message:', errorMessage)
+      alert(errorMessage)
     },
   })
 
@@ -529,7 +555,16 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col space-y-1">
                             <button
-                              onClick={() => moveUpMutation.mutate(category.id)}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                console.log('[CategoriesTab] Move up button clicked for category:', category.id, 'at index:', index)
+                                if (index === 0) {
+                                  console.log('[CategoriesTab] Cannot move up - already at top')
+                                  return
+                                }
+                                moveUpMutation.mutate(category.id)
+                              }}
                               disabled={index === 0 || moveUpMutation.isPending || moveDownMutation.isPending}
                               className="px-2 py-1 text-gray-600 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold"
                               title="Move up"
@@ -537,7 +572,16 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                               ↑
                             </button>
                             <button
-                              onClick={() => moveDownMutation.mutate(category.id)}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                console.log('[CategoriesTab] Move down button clicked for category:', category.id, 'at index:', index)
+                                if (index === (categories?.length || 0) - 1) {
+                                  console.log('[CategoriesTab] Cannot move down - already at bottom')
+                                  return
+                                }
+                                moveDownMutation.mutate(category.id)
+                              }}
                               disabled={index === (categories?.length || 0) - 1 || moveUpMutation.isPending || moveDownMutation.isPending}
                               className="px-2 py-1 text-gray-600 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold"
                               title="Move down"
