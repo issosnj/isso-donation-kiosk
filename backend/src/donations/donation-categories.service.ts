@@ -15,17 +15,30 @@ export class DonationCategoriesService {
   async create(
     createCategoryDto: CreateDonationCategoryDto,
   ): Promise<DonationCategory> {
+    // Get the highest displayOrder for this temple to assign the next order
+    const existingCategories = await this.categoriesRepository.find({
+      where: { templeId: createCategoryDto.templeId },
+      order: { displayOrder: 'DESC' },
+      take: 1,
+    });
+    
+    const nextDisplayOrder = existingCategories.length > 0 
+      ? existingCategories[0].displayOrder + 1 
+      : 0;
+    
     // Ensure defaults are set if not provided
     const categoryData = {
       ...createCategoryDto,
       isActive: createCategoryDto.isActive ?? true,
       showOnKiosk: createCategoryDto.showOnKiosk ?? true, // Default to true for new categories
+      displayOrder: nextDisplayOrder,
     };
     
     console.log('[DonationCategoriesService] Creating category with data:', categoryData);
+    console.log('[DonationCategoriesService] Assigning displayOrder:', nextDisplayOrder);
     const category = this.categoriesRepository.create(categoryData);
     const saved = await this.categoriesRepository.save(category);
-    console.log('[DonationCategoriesService] Category created:', saved.id, saved.name, 'showOnKiosk:', saved.showOnKiosk);
+    console.log('[DonationCategoriesService] Category created:', saved.id, saved.name, 'displayOrder:', saved.displayOrder);
     return saved;
   }
 
@@ -139,10 +152,20 @@ export class DonationCategoriesService {
       
       console.log(`[DonationCategoriesService] moveUp: Moving "${category.name}" (order: ${category.displayOrder}) up with "${previousCategory.name}" (order: ${previousCategory.displayOrder})`);
 
-      // Swap displayOrder with the category above
-      const tempOrder = category.displayOrder;
-      category.displayOrder = previousCategory.displayOrder;
-      previousCategory.displayOrder = tempOrder;
+      // If they have the same displayOrder, we need to reassign orders to ensure uniqueness
+      if (category.displayOrder === previousCategory.displayOrder) {
+        console.log(`[DonationCategoriesService] moveUp: Same displayOrder detected, reassigning orders`);
+        // Reassign all orders to ensure uniqueness
+        for (let i = 0; i < allCategories.length; i++) {
+          allCategories[i].displayOrder = i;
+        }
+        await transactionalEntityManager.save(allCategories);
+      } else {
+        // Swap displayOrder with the category above
+        const tempOrder = category.displayOrder;
+        category.displayOrder = previousCategory.displayOrder;
+        previousCategory.displayOrder = tempOrder;
+      }
 
       console.log(`[DonationCategoriesService] moveUp: After swap - "${category.name}" now has order ${category.displayOrder}, "${previousCategory.name}" now has order ${previousCategory.displayOrder}`);
 
@@ -182,10 +205,26 @@ export class DonationCategoriesService {
       
       console.log(`[DonationCategoriesService] moveDown: Moving "${category.name}" (order: ${category.displayOrder}) down with "${nextCategory.name}" (order: ${nextCategory.displayOrder})`);
 
-      // Swap displayOrder with the category below
-      const tempOrder = category.displayOrder;
-      category.displayOrder = nextCategory.displayOrder;
-      nextCategory.displayOrder = tempOrder;
+      // If they have the same displayOrder, we need to reassign orders to ensure uniqueness
+      if (category.displayOrder === nextCategory.displayOrder) {
+        console.log(`[DonationCategoriesService] moveDown: Same displayOrder detected, reassigning orders`);
+        // Reassign all orders to ensure uniqueness
+        for (let i = 0; i < allCategories.length; i++) {
+          allCategories[i].displayOrder = i;
+        }
+        // Swap the two categories in the array
+        [allCategories[currentIndex], allCategories[currentIndex + 1]] = [allCategories[currentIndex + 1], allCategories[currentIndex]];
+        // Reassign orders again after swap
+        for (let i = 0; i < allCategories.length; i++) {
+          allCategories[i].displayOrder = i;
+        }
+        await transactionalEntityManager.save(allCategories);
+      } else {
+        // Swap displayOrder with the category below
+        const tempOrder = category.displayOrder;
+        category.displayOrder = nextCategory.displayOrder;
+        nextCategory.displayOrder = tempOrder;
+      }
 
       console.log(`[DonationCategoriesService] moveDown: After swap - "${category.name}" now has order ${category.displayOrder}, "${nextCategory.name}" now has order ${nextCategory.displayOrder}`);
 
