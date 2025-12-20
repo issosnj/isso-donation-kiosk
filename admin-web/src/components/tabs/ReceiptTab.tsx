@@ -12,14 +12,34 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
+    // Email settings
     fromEmail: '',
     fromName: '',
     subject: '',
+    // Receipt header
+    organizationName: '',
+    organizationSubtitle: '',
+    headerTitle: '',
+    logoUrl: '',
+    // Contact information
+    showContactInfo: true,
+    phone: '',
+    email: '',
+    website: '',
+    // Receipt content
     headerText: '',
     footerText: '',
+    customMessage: '',
+    thankYouMessage: '',
+    // Tax information
     includeTaxId: false,
     taxId: '',
-    customMessage: '',
+    taxExemptMessage: '',
+    // Additional fields
+    showPreparedBy: false,
+    preparedBy: '',
+    showPaymentMethod: true,
+    showAmountInWords: true,
   })
 
   const { data: temple, isLoading } = useQuery({
@@ -32,15 +52,30 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
 
   useEffect(() => {
     if (temple?.receiptConfig) {
+      const config = temple.receiptConfig
       setFormData({
-        fromEmail: temple.receiptConfig.fromEmail || '',
-        fromName: temple.receiptConfig.fromName || '',
-        subject: temple.receiptConfig.subject || 'Donation Receipt - {{templeName}}',
-        headerText: temple.receiptConfig.headerText || 'Thank You for Your Donation',
-        footerText: temple.receiptConfig.footerText || 'Your donation helps support our temple',
-        includeTaxId: temple.receiptConfig.includeTaxId || false,
-        taxId: temple.receiptConfig.taxId || '',
-        customMessage: temple.receiptConfig.customMessage || '',
+        fromEmail: config.fromEmail || '',
+        fromName: config.fromName || '',
+        subject: config.subject || 'Donation Receipt - {{templeName}}',
+        organizationName: config.organizationName || '',
+        organizationSubtitle: config.organizationSubtitle || '',
+        headerTitle: config.headerTitle || '',
+        logoUrl: config.logoUrl || '',
+        showContactInfo: config.showContactInfo !== false,
+        phone: config.phone || '',
+        email: config.email || '',
+        website: config.website || '',
+        headerText: config.headerText || 'Thank You for Your Donation',
+        footerText: config.footerText || 'Your donation helps support our temple',
+        customMessage: config.customMessage || '',
+        thankYouMessage: config.thankYouMessage || '',
+        includeTaxId: config.includeTaxId || false,
+        taxId: config.taxId || '',
+        taxExemptMessage: config.taxExemptMessage || '',
+        showPreparedBy: config.showPreparedBy || false,
+        preparedBy: config.preparedBy || '',
+        showPaymentMethod: config.showPaymentMethod !== false,
+        showAmountInWords: config.showAmountInWords !== false,
       })
     }
   }, [temple])
@@ -68,15 +103,30 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
 
   const handleCancel = () => {
     if (temple?.receiptConfig) {
+      const config = temple.receiptConfig
       setFormData({
-        fromEmail: temple.receiptConfig.fromEmail || '',
-        fromName: temple.receiptConfig.fromName || '',
-        subject: temple.receiptConfig.subject || 'Donation Receipt - {{templeName}}',
-        headerText: temple.receiptConfig.headerText || 'Thank You for Your Donation',
-        footerText: temple.receiptConfig.footerText || 'Your donation helps support our temple',
-        includeTaxId: temple.receiptConfig.includeTaxId || false,
-        taxId: temple.receiptConfig.taxId || '',
-        customMessage: temple.receiptConfig.customMessage || '',
+        fromEmail: config.fromEmail || '',
+        fromName: config.fromName || '',
+        subject: config.subject || 'Donation Receipt - {{templeName}}',
+        organizationName: config.organizationName || '',
+        organizationSubtitle: config.organizationSubtitle || '',
+        headerTitle: config.headerTitle || '',
+        logoUrl: config.logoUrl || '',
+        showContactInfo: config.showContactInfo !== false,
+        phone: config.phone || '',
+        email: config.email || '',
+        website: config.website || '',
+        headerText: config.headerText || 'Thank You for Your Donation',
+        footerText: config.footerText || 'Your donation helps support our temple',
+        customMessage: config.customMessage || '',
+        thankYouMessage: config.thankYouMessage || '',
+        includeTaxId: config.includeTaxId || false,
+        taxId: config.taxId || '',
+        taxExemptMessage: config.taxExemptMessage || '',
+        showPreparedBy: config.showPreparedBy || false,
+        preparedBy: config.preparedBy || '',
+        showPaymentMethod: config.showPaymentMethod !== false,
+        showAmountInWords: config.showAmountInWords !== false,
       })
     }
     setIsEditing(false)
@@ -242,19 +292,34 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
               </label>
             </div>
             {formData.includeTaxId && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tax ID (EIN)
-                </label>
-                <input
-                  type="text"
-                  value={formData.taxId}
-                  onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="12-3456789"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tax ID (EIN)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.taxId}
+                    onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="22-2290410"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tax Exempt Message
+                  </label>
+                  <textarea
+                    value={formData.taxExemptMessage}
+                    onChange={(e) => setFormData({ ...formData, taxExemptMessage: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="ISSO (EIN#22-2290410) is recognized by IRS as 501(c)(3) tax exempt organization, please visit us at www.issousa.org"
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  />
+                </div>
+              </>
             )}
           </div>
         </div>

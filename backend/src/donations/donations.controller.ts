@@ -201,6 +201,20 @@ export class DonationsController {
     return this.donationsService.findOne(id, user);
   }
 
+  @Get(':id/receipt')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get donation receipt details for printing' })
+  async getReceipt(@Param('id') id: string, @CurrentUser() user: any) {
+    const donation = await this.donationsService.findOne(id, user);
+    // Temple is already loaded in donation relations
+    return {
+      donation,
+      temple: donation.temple,
+      receiptConfig: donation.temple?.receiptConfig || {},
+    };
+  }
+
   @Post(':id/resend-receipt')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()

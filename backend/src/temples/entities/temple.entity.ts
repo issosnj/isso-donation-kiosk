@@ -118,14 +118,39 @@ export class Temple {
 
   @Column({ type: 'json', nullable: true })
   receiptConfig: {
+    // Email settings
     fromEmail?: string; // Email address to send receipts from (e.g., "donations@temple.org")
     fromName?: string; // Name to display as sender (e.g., "ISSO Temple")
     subject?: string; // Email subject template (e.g., "Donation Receipt - {{templeName}}")
+    
+    // Receipt header
+    organizationName?: string; // Main organization name (e.g., "International Swaminarayan Satsang Organization")
+    organizationSubtitle?: string; // Subtitle/affiliation (e.g., "Under Shree NarNarayandev Gadi")
+    headerTitle?: string; // Top center title (e.g., "Shree Swaminarayan Vijaytetram")
+    logoUrl?: string; // Logo URL for receipt
+    
+    // Contact information
+    showContactInfo?: boolean; // Whether to show contact info on receipt
+    phone?: string; // Phone number
+    email?: string; // Email address
+    website?: string; // Website URL
+    
+    // Receipt content
     headerText?: string; // Header text for receipt (e.g., "Thank You for Your Donation")
     footerText?: string; // Footer text for receipt (e.g., "Your donation helps support our temple")
+    customMessage?: string; // Custom message to include in receipt
+    thankYouMessage?: string; // Thank you message (e.g., "Thank you for your kind donation, your donation may be tax deductible.")
+    
+    // Tax information
     includeTaxId?: boolean; // Whether to include tax ID in receipt
     taxId?: string; // Tax ID number (EIN) to include in receipt
-    customMessage?: string; // Custom message to include in receipt
+    taxExemptMessage?: string; // Tax exempt status message
+    
+    // Additional fields
+    showPreparedBy?: boolean; // Whether to show "Prepared by" field
+    preparedBy?: string; // Default prepared by name
+    showPaymentMethod?: boolean; // Whether to show payment method
+    showAmountInWords?: boolean; // Whether to show amount in words
   };
 
   @OneToMany(() => Device, (device) => device.temple)

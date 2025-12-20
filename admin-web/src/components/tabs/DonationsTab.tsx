@@ -265,15 +265,27 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {donation.status === 'SUCCEEDED' && donation.donorEmail && (
-                    <button
-                      onClick={() => handleResendReceipt(donation.id)}
-                      disabled={resendingId === donation.id}
-                      className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {resendingId === donation.id ? 'Sending...' : 'Resend Receipt'}
-                    </button>
-                  )}
+                  <div className="flex flex-col gap-1">
+                    {donation.status === 'SUCCEEDED' && (
+                      <a
+                        href={`/receipt/${donation.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline"
+                      >
+                        View/Print Receipt
+                      </a>
+                    )}
+                    {donation.status === 'SUCCEEDED' && donation.donorEmail && (
+                      <button
+                        onClick={() => handleResendReceipt(donation.id)}
+                        disabled={resendingId === donation.id}
+                        className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {resendingId === donation.id ? 'Sending...' : 'Resend Receipt'}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
