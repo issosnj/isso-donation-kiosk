@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Donation, DonationStatus } from './entities/donation.entity';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
@@ -123,26 +123,27 @@ export class DonationsService {
     try {
       console.log('[Donations Service] getStats called with:', { templeId, startDate, endDate });
 
-      // Build base query conditions
-      const whereConditions: any = { status: DonationStatus.SUCCEEDED };
+      // Build query builder for more control
+      const queryBuilder = this.donationsRepository.createQueryBuilder('donation')
+        .where('donation.status = :status', { status: DonationStatus.SUCCEEDED });
+
+      // Add temple filter if provided
       if (templeId) {
-        whereConditions.templeId = templeId;
+        queryBuilder.andWhere('donation.templeId = :templeId', { templeId });
       }
 
-      // Build date filter if provided
-      const dateFilter: any = {};
-      if (startDate && endDate) {
-        dateFilter.createdAt = Between(startDate, endDate);
+      // Add date filter if both dates are provided and valid
+      if (startDate && endDate && !isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+        queryBuilder.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        });
       }
 
       // Get all succeeded donations matching criteria
-      const donations = await this.donationsRepository.find({
-        where: {
-          ...whereConditions,
-          ...dateFilter,
-        },
-        select: ['amount'],
-      });
+      const donations = await queryBuilder
+        .select(['donation.amount'])
+        .getMany();
 
       console.log('[Donations Service] Found donations:', donations.length);
 
@@ -151,11 +152,11 @@ export class DonationsService {
       let totalAmount = 0;
 
       for (const donation of donations) {
-        if (donation.amount) {
+        if (donation.amount != null) {
           const amount = typeof donation.amount === 'string' 
             ? parseFloat(donation.amount) 
             : Number(donation.amount);
-          if (!isNaN(amount)) {
+          if (!isNaN(amount) && isFinite(amount)) {
             totalAmount += amount;
           }
         }
