@@ -228,6 +228,128 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
           </div>
         </div>
 
+        {/* Receipt Header */}
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Receipt Header</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Organization Name
+              </label>
+              <input
+                type="text"
+                value={formData.organizationName}
+                onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
+                disabled={!isEditing}
+                placeholder="International Swaminarayan Satsang Organization"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Organization Subtitle
+              </label>
+              <input
+                type="text"
+                value={formData.organizationSubtitle}
+                onChange={(e) => setFormData({ ...formData, organizationSubtitle: e.target.value })}
+                disabled={!isEditing}
+                placeholder="Under Shree NarNarayandev Gadi - The Original Swaminarayan Sampradaya"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Header Title (Top Center)
+              </label>
+              <input
+                type="text"
+                value={formData.headerTitle}
+                onChange={(e) => setFormData({ ...formData, headerTitle: e.target.value })}
+                disabled={!isEditing}
+                placeholder="Shree Swaminarayan Vijaytetram"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Logo URL
+              </label>
+              <input
+                type="url"
+                value={formData.logoUrl}
+                onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                disabled={!isEditing}
+                placeholder="https://example.com/logo.png"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Information */}
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="showContactInfo"
+                checked={formData.showContactInfo}
+                onChange={(e) => setFormData({ ...formData, showContactInfo: e.target.checked })}
+                disabled={!isEditing}
+                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
+              />
+              <label htmlFor="showContactInfo" className="ml-2 text-sm font-medium text-gray-700">
+                Show contact information on receipt
+              </label>
+            </div>
+            {formData.showContactInfo && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="(856) 829-4776"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="snj@issousa.org"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Website
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.website}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="www.issousa.org"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Receipt Content */}
         <div className="border-b border-gray-200 pb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Receipt Content</h3>
@@ -242,6 +364,19 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
                 onChange={(e) => setFormData({ ...formData, headerText: e.target.value })}
                 disabled={!isEditing}
                 placeholder="Thank You for Your Donation"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Thank You Message
+              </label>
+              <input
+                type="text"
+                value={formData.thankYouMessage}
+                onChange={(e) => setFormData({ ...formData, thankYouMessage: e.target.value })}
+                disabled={!isEditing}
+                placeholder="Thank you for your kind donation, your donation may be tax deductible."
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
               />
             </div>
@@ -271,6 +406,67 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Display Options */}
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Display Options</h3>
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="showAmountInWords"
+                checked={formData.showAmountInWords}
+                onChange={(e) => setFormData({ ...formData, showAmountInWords: e.target.checked })}
+                disabled={!isEditing}
+                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
+              />
+              <label htmlFor="showAmountInWords" className="ml-2 text-sm font-medium text-gray-700">
+                Show amount in words
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="showPaymentMethod"
+                checked={formData.showPaymentMethod}
+                onChange={(e) => setFormData({ ...formData, showPaymentMethod: e.target.checked })}
+                disabled={!isEditing}
+                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
+              />
+              <label htmlFor="showPaymentMethod" className="ml-2 text-sm font-medium text-gray-700">
+                Show payment method
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="showPreparedBy"
+                checked={formData.showPreparedBy}
+                onChange={(e) => setFormData({ ...formData, showPreparedBy: e.target.checked })}
+                disabled={!isEditing}
+                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
+              />
+              <label htmlFor="showPreparedBy" className="ml-2 text-sm font-medium text-gray-700">
+                Show "Prepared by" field
+              </label>
+            </div>
+            {formData.showPreparedBy && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Prepared By Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.preparedBy}
+                  onChange={(e) => setFormData({ ...formData, preparedBy: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="Vijay Patel"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                />
+              </div>
+            )}
           </div>
         </div>
 
