@@ -309,7 +309,7 @@ struct ModernDonationDetailsView: View {
                     Spacer()
                     TimeAndNetworkStatusView()
                         .padding(.trailing, 20)
-                        .padding(.top, 20)
+                        .padding(.top, 10)
                 }
                 Spacer()
             }
