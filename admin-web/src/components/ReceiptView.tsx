@@ -144,13 +144,6 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
           </div>
         </div>
 
-        {/* Header Text */}
-        {config.headerText && (
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-center">{config.headerText}</h2>
-          </div>
-        )}
-
         {/* Recipient Information */}
         <div className="mb-6">
           <p className="text-sm text-gray-600 mb-1">Received From:</p>
