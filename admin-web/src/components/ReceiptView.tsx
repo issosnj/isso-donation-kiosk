@@ -227,7 +227,7 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
           {config.includeTaxId && config.taxId && (
             <div className="text-center">
               <p className="text-xs text-gray-600">
-                {temple.name} (EIN#{config.taxId}) is recognized by IRS as 501(c)(3) tax exempt organization
+                {config.organizationName || 'This organization'} (EIN#{config.taxId}) is recognized by IRS as 501(c)(3) tax exempt organization
                 {config.website && `, please visit us at ${config.website}`}
               </p>
             </div>
