@@ -125,6 +125,15 @@ export class Temple {
       buttonSpacing?: number; // Spacing between buttons
       cornerRadius?: number; // Corner radius for buttons (e.g., 12)
       quantityTotalSpacing?: number; // Spacing between quantity and total when category selected (e.g., 24)
+      // Donation Details Page Layout
+      detailsPageHorizontalSpacing?: number; // Spacing between left and right sections (e.g., 30)
+      detailsPageSidePadding?: number; // Padding on left/right sides (e.g., 30)
+      detailsPageTopPadding?: number; // Top padding (e.g., 80)
+      detailsPageBottomPadding?: number; // Bottom padding (e.g., 40)
+      detailsCardMaxWidth?: number; // Max width for donation details card (e.g., 400)
+      donorFormMaxWidth?: number; // Max width for donor form (e.g., 400)
+      detailsCardPadding?: number; // Padding inside details card (e.g., 20)
+      detailsCardSpacing?: number; // Spacing between items in card (e.g., 12)
     };
   };
 

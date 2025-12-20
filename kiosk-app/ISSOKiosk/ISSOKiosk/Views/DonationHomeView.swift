@@ -396,6 +396,14 @@ struct DonationHomeView: View {
         }
     }
     
+    // Check if any categories have yajman opportunities (sponsorship tiers)
+    private var hasSponsorshipTiers: Bool {
+        appState.temple?.yajmanOpportunitiesEnabled == true &&
+        appState.categories.contains { category in
+            category.yajmanOpportunities != nil && !(category.yajmanOpportunities?.isEmpty ?? true)
+        }
+    }
+    
     private var categorySection: some View {
         VStack(spacing: 0) {
             // Header
@@ -404,9 +412,21 @@ struct DonationHomeView: View {
                     .font(.custom(headingFont, size: headingSize))
                     .foregroundColor(headingColor)
                 
-                Text("Choose your donation category")
-                    .font(.custom(bodyFont, size: bodySize))
-                    .foregroundColor(subtitleColor)
+                if hasSponsorshipTiers {
+                    HStack(spacing: 6) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
+                        Text("Sponsorship Tiers Available")
+                            .font(.custom(bodyFont, size: bodySize - 2))
+                            .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                    }
+                    .padding(.top, 4)
+                } else {
+                    Text("Choose your donation category")
+                        .font(.custom(bodyFont, size: bodySize))
+                        .foregroundColor(subtitleColor)
+                }
             }
             .padding(.top, categoryHeaderTopPadding)
             .padding(.bottom, 12)

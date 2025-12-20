@@ -400,6 +400,15 @@ struct ThemeLayout: Codable, Equatable {
     let buttonSpacing: Double?
     let cornerRadius: Double?
     let quantityTotalSpacing: Double?
+    // Donation Details Page Layout
+    let detailsPageHorizontalSpacing: Double?
+    let detailsPageSidePadding: Double?
+    let detailsPageTopPadding: Double?
+    let detailsPageBottomPadding: Double?
+    let detailsCardMaxWidth: Double?
+    let donorFormMaxWidth: Double?
+    let detailsCardPadding: Double?
+    let detailsCardSpacing: Double?
 }
 
 struct HomeScreenConfig: Codable {

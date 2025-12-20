@@ -36,6 +36,43 @@ struct ModernDonationDetailsView: View {
         }
     }
     
+    // Theme layout helpers
+    private var theme: KioskTheme? {
+        appState.temple?.kioskTheme
+    }
+    
+    private var detailsPageHorizontalSpacing: CGFloat {
+        CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? 30)
+    }
+    
+    private var detailsPageSidePadding: CGFloat {
+        CGFloat(theme?.layout?.detailsPageSidePadding ?? 30)
+    }
+    
+    private var detailsPageTopPadding: CGFloat {
+        CGFloat(theme?.layout?.detailsPageTopPadding ?? 80)
+    }
+    
+    private var detailsPageBottomPadding: CGFloat {
+        CGFloat(theme?.layout?.detailsPageBottomPadding ?? 40)
+    }
+    
+    private var detailsCardMaxWidth: CGFloat {
+        CGFloat(theme?.layout?.detailsCardMaxWidth ?? 400)
+    }
+    
+    private var donorFormMaxWidth: CGFloat {
+        CGFloat(theme?.layout?.donorFormMaxWidth ?? 400)
+    }
+    
+    private var detailsCardPadding: CGFloat {
+        CGFloat(theme?.layout?.detailsCardPadding ?? 20)
+    }
+    
+    private var detailsCardSpacing: CGFloat {
+        CGFloat(theme?.layout?.detailsCardSpacing ?? 12)
+    }
+    
     var body: some View {
         ZStack {
             // Background: Use same background as donation page
@@ -90,19 +127,19 @@ struct ModernDonationDetailsView: View {
             VStack(spacing: 0) {
                 // Top spacing
                 Spacer()
-                    .frame(height: 100)
+                    .frame(height: detailsPageTopPadding)
                 
                 // Main content: Left (Donation Details) and Right (Donor Info)
-                HStack(alignment: .top, spacing: 40) {
+                HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
                     // LEFT SIDE: Donation Details
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 20) {
                         // Large amount display
                         Text("$\(String(format: "%.2f", amount))")
-                            .font(.custom("Inter-SemiBold", size: 64))
+                            .font(.custom("Inter-SemiBold", size: 56))
                             .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                         
                         // Donation summary card
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: detailsCardSpacing) {
                             HStack {
                                 Text("Donation")
                                     .font(.custom("Inter-Regular", size: 18))
@@ -128,26 +165,34 @@ struct ModernDonationDetailsView: View {
                                 }
                                 
                                 // View Benefits button if category has yajman opportunities
-                                if let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
+                                // Debug: Check if opportunities exist
+                                let hasOpportunities = category.yajmanOpportunities != nil && !(category.yajmanOpportunities?.isEmpty ?? true)
+                                if hasOpportunities {
                                     Divider()
                                         .background(Color.gray.opacity(0.3))
                                     
                                     Button(action: {
+                                        print("[DonationDetailsView] ✅ View Benefits clicked for category: \(category.name)")
+                                        print("[DonationDetailsView] ✅ Opportunities count: \(category.yajmanOpportunities?.count ?? 0)")
                                         showingYajmanOpportunities = true
                                     }) {
-                                        HStack {
+                                        HStack(spacing: 8) {
                                             Image(systemName: "star.fill")
-                                                .font(.system(size: 14))
+                                                .font(.system(size: 16))
                                                 .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
                                             Text("View Benefits")
                                                 .font(.custom("Inter-Medium", size: 16))
                                                 .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                                         }
                                         .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.1))
-                                        .cornerRadius(8)
+                                        .padding(.vertical, 14)
+                                        .background(Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.15))
+                                        .cornerRadius(10)
                                     }
+                                } else {
+                                    // Debug: Log why button isn't showing
+                                    let _ = print("[DonationDetailsView] ⚠️ Category '\(category.name)' has no yajman opportunities")
+                                    let _ = print("[DonationDetailsView] ⚠️ yajmanOpportunities value: \(category.yajmanOpportunities?.debugDescription ?? "nil")")
                                 }
                             }
                             
@@ -164,17 +209,17 @@ struct ModernDonationDetailsView: View {
                                     .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                             }
                         }
-                        .padding(24)
+                        .padding(detailsCardPadding)
                         .background(Color.white)
                         .cornerRadius(12)
                         .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
-                        .frame(maxWidth: 400)
+                        .frame(maxWidth: detailsCardMaxWidth)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 40)
+                    .padding(.leading, detailsPageSidePadding)
                     
                     // RIGHT SIDE: Donor Information
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 16) {
                         Text(category != nil ? "Donor Information" : "Optional Information")
                             .font(.custom("Inter-SemiBold", size: 20))
                             .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
@@ -259,8 +304,8 @@ struct ModernDonationDetailsView: View {
                                 )
                         }
                     }
-                    .frame(maxWidth: 400)
-                    .padding(.trailing, 40)
+                    .frame(maxWidth: donorFormMaxWidth)
+                    .padding(.trailing, detailsPageSidePadding)
                 }
                 .frame(maxWidth: .infinity)
                 
@@ -290,7 +335,7 @@ struct ModernDonationDetailsView: View {
                     .cornerRadius(12)
                 }
                 .disabled(!canProceed)
-                .padding(.bottom, 40)
+                .padding(.bottom, detailsPageBottomPadding)
             }
             .onTapGesture {
                 // Dismiss keyboard when tapping background

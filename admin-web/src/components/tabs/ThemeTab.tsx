@@ -57,6 +57,15 @@ export default function ThemeTab() {
       buttonSpacing: 12,
       cornerRadius: 12,
       quantityTotalSpacing: 24,
+      // Donation Details Page Layout
+      detailsPageHorizontalSpacing: 30,
+      detailsPageSidePadding: 30,
+      detailsPageTopPadding: 80,
+      detailsPageBottomPadding: 40,
+      detailsCardMaxWidth: 400,
+      donorFormMaxWidth: 400,
+      detailsCardPadding: 20,
+      detailsCardSpacing: 12,
     },
   })
 
@@ -90,6 +99,15 @@ export default function ThemeTab() {
           buttonSpacing: temple.kioskTheme.layout?.buttonSpacing || 12,
           cornerRadius: temple.kioskTheme.layout?.cornerRadius || 12,
           quantityTotalSpacing: temple.kioskTheme.layout?.quantityTotalSpacing || 24,
+          // Donation Details Page Layout
+          detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 30,
+          detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 30,
+          detailsPageTopPadding: temple.kioskTheme.layout?.detailsPageTopPadding || 80,
+          detailsPageBottomPadding: temple.kioskTheme.layout?.detailsPageBottomPadding || 40,
+          detailsCardMaxWidth: temple.kioskTheme.layout?.detailsCardMaxWidth || 400,
+          donorFormMaxWidth: temple.kioskTheme.layout?.donorFormMaxWidth || 400,
+          detailsCardPadding: temple.kioskTheme.layout?.detailsCardPadding || 20,
+          detailsCardSpacing: temple.kioskTheme.layout?.detailsCardSpacing || 12,
         },
       })
     }
