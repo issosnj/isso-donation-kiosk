@@ -154,27 +154,9 @@ struct KioskHomeView: View {
                     }
                     
                     // Time and Network Status in top right
-                    VStack {
-                        HStack {
-                            Spacer()
-                            HStack(spacing: 12) {
-                                // Network status indicator
-                                Circle()
-                                    .fill(networkMonitor.isConnected ? Color.green : Color.red)
-                                    .frame(width: 12, height: 12)
-                                    .shadow(color: networkMonitor.isConnected ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 4)
-                                
-                                // Time display
-                                Text(timeString)
-                                    .font(.custom("Inter-Medium", size: 18))
-                                    .foregroundColor(.white)
-                                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                            }
-                            .padding(.trailing, 20)
-                            .padding(.top, 30)
-                        }
-                        Spacer()
-                    }
+                    TimeAndNetworkStatusView()
+                        .padding(.trailing, 20)
+                        .padding(.top, 20)
                 }
                 
                 Spacer()
@@ -410,6 +392,58 @@ struct KioskHomeView: View {
     
     private var timeString: String {
         Self.timeFormatter.string(from: currentTime)
+    }
+}
+
+// Reusable Time and Network Status View Component
+struct TimeAndNetworkStatusView: View {
+    @ObservedObject private var networkMonitor = NetworkMonitor.shared
+    @State private var currentTime = Date()
+    @State private var timer: Timer?
+    
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
+    
+    private var timeString: String {
+        Self.timeFormatter.string(from: currentTime)
+    }
+    
+    var body: some View {
+        VStack {
+            HStack {
+                Spacer()
+                HStack(spacing: 12) {
+                    // Network status indicator
+                    Circle()
+                        .fill(networkMonitor.isConnected ? Color.green : Color.red)
+                        .frame(width: 12, height: 12)
+                        .shadow(color: networkMonitor.isConnected ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 4)
+                    
+                    // Time display
+                    Text(timeString)
+                        .font(.custom("Inter-Medium", size: 18))
+                        .foregroundColor(.white)
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                }
+            }
+            Spacer()
+        }
+        .onAppear {
+            currentTime = Date()
+            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                currentTime = Date()
+            }
+            if let timer = timer {
+                RunLoop.current.add(timer, forMode: .common)
+            }
+        }
+        .onDisappear {
+            timer?.invalidate()
+            timer = nil
+        }
     }
     
     private var header2Text: String? {

@@ -24,38 +24,51 @@ struct ModernPaymentView: View {
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        Group {
-            if let status = paymentStatus {
-                // Only show result view for failures - successful payments go directly back
-                if case .failure = status {
-                    ModernPaymentResultView(
-                        status: status,
-                        amount: amount,
-                        onDismiss: {
-                            paymentStatus = nil
-                            onComplete()
-                        }
-                    )
-                } else {
-                    // Success - go directly back to home
-                    Color.clear
-                        .onAppear {
-                            // Small delay to ensure payment is complete, then return to home
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        ZStack {
+            Group {
+                if let status = paymentStatus {
+                    // Only show result view for failures - successful payments go directly back
+                    if case .failure = status {
+                        ModernPaymentResultView(
+                            status: status,
+                            amount: amount,
+                            onDismiss: {
                                 paymentStatus = nil
                                 onComplete()
                             }
-                        }
+                        )
+                    } else {
+                        // Success - go directly back to home
+                        Color.clear
+                            .onAppear {
+                                // Small delay to ensure payment is complete, then return to home
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                    paymentStatus = nil
+                                    onComplete()
+                                }
+                            }
+                    }
+                } else if isProcessing {
+                    // While processing, show nothing - Square SDK will show its own UI
+                    // The SDK UI will overlay on top of this view
+                    Color.black.opacity(0.01)
+                        .ignoresSafeArea()
+                } else {
+                    // Initial state - start payment immediately
+                    Color.black.opacity(0.01)
+                        .ignoresSafeArea()
                 }
-            } else if isProcessing {
-                // While processing, show nothing - Square SDK will show its own UI
-                // The SDK UI will overlay on top of this view
-                Color.black.opacity(0.01)
-                    .ignoresSafeArea()
-            } else {
-                // Initial state - start payment immediately
-                Color.black.opacity(0.01)
-                    .ignoresSafeArea()
+            }
+            
+            // Time and Network Status in top right
+            VStack {
+                HStack {
+                    Spacer()
+                    TimeAndNetworkStatusView()
+                        .padding(.trailing, 20)
+                        .padding(.top, 20)
+                }
+                Spacer()
             }
         }
         .onAppear {

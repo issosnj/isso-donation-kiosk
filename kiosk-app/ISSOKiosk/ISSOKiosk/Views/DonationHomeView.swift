@@ -184,6 +184,16 @@ struct DonationHomeView: View {
             backgroundGradient
             mainContent
             homeButtonOverlay
+            // Time and Network Status in top right
+            VStack {
+                HStack {
+                    Spacer()
+                    TimeAndNetworkStatusView()
+                        .padding(.trailing, 20)
+                        .padding(.top, 20)
+                }
+                Spacer()
+            }
         }
         .fullScreenCover(isPresented: $showingDetails) {
             ModernDonationDetailsView(
