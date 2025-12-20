@@ -108,8 +108,11 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
         throw error
       }
     },
-    onSuccess: () => {
-      console.log('[CategoriesTab] Move up successful, invalidating queries')
+    onSuccess: (data) => {
+      console.log('[CategoriesTab] Move up successful, updating cache with:', data)
+      // Update the cache directly with the new order instead of just invalidating
+      queryClient.setQueryData(['categories', templeId], data)
+      // Also invalidate to ensure we get fresh data
       queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
     },
     onError: (error: any) => {
@@ -135,8 +138,11 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
         throw error
       }
     },
-    onSuccess: () => {
-      console.log('[CategoriesTab] Move down successful, invalidating queries')
+    onSuccess: (data) => {
+      console.log('[CategoriesTab] Move down successful, updating cache with:', data)
+      // Update the cache directly with the new order instead of just invalidating
+      queryClient.setQueryData(['categories', templeId], data)
+      // Also invalidate to ensure we get fresh data
       queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
     },
     onError: (error: any) => {
