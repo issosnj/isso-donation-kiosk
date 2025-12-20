@@ -6,6 +6,7 @@ import SwiftUI
 struct ISSOKioskApp: App {
     @StateObject private var appState = AppState()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
     
     init() {
         // TODO: Initialize Mobile Payments SDK when package is added
