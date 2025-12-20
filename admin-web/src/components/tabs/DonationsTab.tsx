@@ -97,7 +97,7 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-bold text-green-600">
-                    ${donation.amount.toFixed(2)}
+                    ${Number(donation.amount).toFixed(2)}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
