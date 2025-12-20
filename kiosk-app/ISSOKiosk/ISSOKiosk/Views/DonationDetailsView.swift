@@ -42,15 +42,15 @@ struct ModernDonationDetailsView: View {
     }
     
     private var detailsPageHorizontalSpacing: CGFloat {
-        CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? 30)
+        CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? 20)
     }
     
     private var detailsPageSidePadding: CGFloat {
-        CGFloat(theme?.layout?.detailsPageSidePadding ?? 30)
+        CGFloat(theme?.layout?.detailsPageSidePadding ?? 40)
     }
     
     private var detailsPageTopPadding: CGFloat {
-        CGFloat(theme?.layout?.detailsPageTopPadding ?? 80)
+        CGFloat(theme?.layout?.detailsPageTopPadding ?? 60)
     }
     
     private var detailsPageBottomPadding: CGFloat {
@@ -58,11 +58,11 @@ struct ModernDonationDetailsView: View {
     }
     
     private var detailsCardMaxWidth: CGFloat {
-        CGFloat(theme?.layout?.detailsCardMaxWidth ?? 400)
+        CGFloat(theme?.layout?.detailsCardMaxWidth ?? 350)
     }
     
     private var donorFormMaxWidth: CGFloat {
-        CGFloat(theme?.layout?.donorFormMaxWidth ?? 400)
+        CGFloat(theme?.layout?.donorFormMaxWidth ?? 350)
     }
     
     private var detailsCardPadding: CGFloat {
@@ -215,7 +215,7 @@ struct ModernDonationDetailsView: View {
                         .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
                         .frame(maxWidth: detailsCardMaxWidth)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: detailsCardMaxWidth, alignment: .leading)
                     .padding(.leading, detailsPageSidePadding)
                     
                     // RIGHT SIDE: Donor Information
