@@ -194,7 +194,14 @@ export class SquareService {
     amount: number,
     idempotencyKey?: string,
     sourceId?: string, // Card nonce from Mobile Payments SDK
-  ): Promise<{ paymentId: string; status: string }> {
+  ): Promise<{ 
+    paymentId: string; 
+    status: string;
+    netAmount?: number;
+    squareFee?: number;
+    cardLast4?: string | null;
+    cardType?: string | null;
+  }> {
     // Get temple with Square access token
     const temple = await this.templesService.findOne(templeId);
     
