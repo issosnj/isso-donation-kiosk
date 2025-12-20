@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import api from '@/lib/api'
 
 interface KioskHomeTabProps {
@@ -42,6 +42,8 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
     backgroundImageUrl: '',
   })
   const [uploadingBackground, setUploadingBackground] = useState(false)
+  const [imageLoadError, setImageLoadError] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (temple?.homeScreenConfig) {
@@ -61,6 +63,8 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
         },
         backgroundImageUrl: temple.homeScreenConfig.backgroundImageUrl || '',
       })
+      // Reset image error state when temple data loads
+      setImageLoadError(false)
     }
   }, [temple])
 
@@ -293,72 +297,126 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
           
           {formData.backgroundImageUrl && (
             <div className="mb-3">
-              <img
-                src={formData.backgroundImageUrl}
-                alt="Background preview"
-                className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-300"
-              />
+              {imageLoadError ? (
+                <div className="w-full max-w-md h-48 rounded-lg border border-red-300 bg-red-50 flex items-center justify-center">
+                  <div className="text-center p-4">
+                    <p className="text-sm text-red-600 font-medium">Failed to load image</p>
+                    <p className="text-xs text-red-500 mt-1 break-all">URL: {formData.backgroundImageUrl}</p>
+                    <button
+                      onClick={() => setImageLoadError(false)}
+                      className="mt-2 text-xs text-red-600 hover:text-red-700 underline"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src={formData.backgroundImageUrl}
+                  alt="Background preview"
+                  className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-300"
+                  onError={() => {
+                    console.error('Failed to load background image:', formData.backgroundImageUrl)
+                    setImageLoadError(true)
+                  }}
+                  onLoad={() => setImageLoadError(false)}
+                />
+              )}
             </div>
           )}
           
           <div className="flex items-center space-x-3">
-            <label className="flex-1">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                
+                setUploadingBackground(true)
+                try {
+                  const uploadFormData = new FormData()
+                  uploadFormData.append('file', file)
                   
-                  setUploadingBackground(true)
-                  try {
-                    const uploadFormData = new FormData()
-                    uploadFormData.append('file', file)
-                    
-                    // Use the api instance which handles authentication automatically
-                    const token = localStorage.getItem('authToken')
-                    const response = await api.post(`/temples/${templeId}/upload-background`, uploadFormData, {
-                      headers: {
-                        'Content-Type': 'multipart/form-data',
-                      },
-                    })
-                    
-                    setFormData(prev => ({
-                      ...prev,
-                      backgroundImageUrl: response.data.url,
-                    }))
-                    
-                    // Update the temple data
-                    queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
-                  } catch (error: any) {
-                    console.error('Upload error:', error)
-                    const errorMessage = error.response?.data?.message || error.message || 'Failed to upload background image. Please try again.'
-                    alert(errorMessage)
-                  } finally {
-                    setUploadingBackground(false)
+                  const response = await api.post(`/temples/${templeId}/upload-background`, uploadFormData, {
+                    headers: {
+                      'Content-Type': 'multipart/form-data',
+                    },
+                  })
+                  
+                  setFormData(prev => ({
+                    ...prev,
+                    backgroundImageUrl: response.data.url,
+                  }))
+                  
+                  // Reset image error state
+                  setImageLoadError(false)
+                  
+                  // Update the temple data
+                  queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+                } catch (error: any) {
+                  console.error('Upload error:', error)
+                  const errorMessage = error.response?.data?.message || error.message || 'Failed to upload background image. Please try again.'
+                  alert(errorMessage)
+                } finally {
+                  setUploadingBackground(false)
+                  // Reset the file input so the same file can be selected again
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = ''
                   }
-                }}
-                disabled={!isEditing || uploadingBackground}
-                className="hidden"
-              />
-              <div className="px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed">
-                {uploadingBackground ? (
-                  <span className="text-sm text-gray-600">Uploading...</span>
-                ) : (
-                  <span className="text-sm text-purple-600 font-medium">
-                    {formData.backgroundImageUrl ? 'Change Background Image' : 'Upload Background Image'}
-                  </span>
-                )}
-              </div>
-            </label>
+                }
+              }}
+              disabled={!isEditing || uploadingBackground}
+              className="hidden"
+            />
+            <div
+              onClick={() => {
+                if (isEditing && !uploadingBackground && fileInputRef.current) {
+                  fileInputRef.current.click()
+                }
+              }}
+              className={`flex-1 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors ${
+                isEditing && !uploadingBackground
+                  ? 'cursor-pointer hover:border-purple-500 hover:bg-purple-50'
+                  : 'cursor-not-allowed opacity-50'
+              }`}
+            >
+              {uploadingBackground ? (
+                <span className="text-sm text-gray-600">Uploading...</span>
+              ) : (
+                <span className="text-sm text-purple-600 font-medium">
+                  {formData.backgroundImageUrl ? 'Change Background Image' : 'Upload Background Image'}
+                </span>
+              )}
+            </div>
             
             {formData.backgroundImageUrl && isEditing && (
               <button
-                onClick={() => {
+                onClick={async () => {
+                  // Clear the background image URL
                   setFormData(prev => ({
                     ...prev,
                     backgroundImageUrl: '',
                   }))
+                  
+                  // Save the change immediately
+                  try {
+                    await updateMutation.mutateAsync({
+                      ...formData,
+                      backgroundImageUrl: '',
+                    })
+                  } catch (error: any) {
+                    console.error('Error removing background:', error)
+                    alert('Failed to remove background image. Please try again.')
+                    // Revert on error
+                    if (temple?.homeScreenConfig?.backgroundImageUrl) {
+                      setFormData(prev => ({
+                        ...prev,
+                        backgroundImageUrl: temple.homeScreenConfig.backgroundImageUrl || '',
+                      }))
+                    }
+                  }
                 }}
                 className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
               >
