@@ -592,7 +592,7 @@ export default function ThemeTab() {
                     })}
                     disabled={!isEditing}
                     min="0"
-                    max="200"
+                    max="300"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
@@ -610,7 +610,7 @@ export default function ThemeTab() {
                     })}
                     disabled={!isEditing}
                     min="0"
-                    max="200"
+                    max="300"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
@@ -664,7 +664,7 @@ export default function ThemeTab() {
                     })}
                     disabled={!isEditing}
                     min="200"
-                    max="600"
+                    max="1000"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
@@ -682,7 +682,7 @@ export default function ThemeTab() {
                     })}
                     disabled={!isEditing}
                     min="200"
-                    max="600"
+                    max="1000"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
