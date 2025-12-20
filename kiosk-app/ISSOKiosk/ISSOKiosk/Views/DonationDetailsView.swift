@@ -9,6 +9,7 @@ struct ModernDonationDetailsView: View {
     @State private var donorPhone = ""
     @State private var donorEmail = ""
     @State private var appearAnimation = false
+    @State private var showingYajmanOpportunities = false
     @FocusState private var nameFocused: Bool
     @FocusState private var phoneFocused: Bool
     @FocusState private var emailFocused: Bool
@@ -84,96 +85,113 @@ struct ModernDonationDetailsView: View {
                 .ignoresSafeArea(.all, edges: .all)
             }
             
-            // Dark overlay for readability
-            Color.black.opacity(0.7)
-                .ignoresSafeArea(.all, edges: .all)
-                .onTapGesture {
-                    // Dismiss keyboard when tapping background
-                    nameFocused = false
-                    phoneFocused = false
-                    emailFocused = false
-                }
+            // No dark overlay - clean background
             
             VStack(spacing: 0) {
+                // Top spacing
                 Spacer()
+                    .frame(height: 100)
                 
-                // Centered content
-                VStack(spacing: 40) {
-                    // Large amount display
-                    VStack(spacing: 8) {
+                // Main content: Left (Donation Details) and Right (Donor Info)
+                HStack(alignment: .top, spacing: 40) {
+                    // LEFT SIDE: Donation Details
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Large amount display
                         Text("$\(String(format: "%.2f", amount))")
-                            .font(.custom("Inter-SemiBold", size: 72))
-                            .foregroundColor(.white)
-                    }
-                    
-                    // Donation summary (dark card)
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text("Donation")
-                                .font(.system(size: 18, weight: .regular))
-                                .foregroundColor(.white)
-                            Spacer()
-                            Text("$\(String(format: "%.2f", amount))")
-                                .font(.system(size: 18, weight: .regular))
-                                .foregroundColor(.white)
-                        }
+                            .font(.custom("Inter-SemiBold", size: 64))
+                            .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                         
-                        if let category = category {
+                        // Donation summary card
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Text("Donation")
+                                    .font(.custom("Inter-Regular", size: 18))
+                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                Spacer()
+                                Text("$\(String(format: "%.2f", amount))")
+                                    .font(.custom("Inter-Regular", size: 18))
+                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                            }
+                            
+                            if let category = category {
+                                Divider()
+                                    .background(Color.gray.opacity(0.3))
+                                
+                                HStack {
+                                    Text("Category")
+                                        .font(.custom("Inter-Regular", size: 18))
+                                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                    Spacer()
+                                    Text(category.name)
+                                        .font(.custom("Inter-Regular", size: 18))
+                                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                }
+                                
+                                // View Benefits button if category has yajman opportunities
+                                if let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
+                                    Divider()
+                                        .background(Color.gray.opacity(0.3))
+                                    
+                                    Button(action: {
+                                        showingYajmanOpportunities = true
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "star.fill")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
+                                            Text("View Benefits")
+                                                .font(.custom("Inter-Medium", size: 16))
+                                                .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.1))
+                                        .cornerRadius(8)
+                                    }
+                                }
+                            }
+                            
                             Divider()
                                 .background(Color.gray.opacity(0.3))
+                            
                             HStack {
-                                Text("Category")
-                                    .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(.white)
+                                Text("Total")
+                                    .font(.custom("Inter-SemiBold", size: 20))
+                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                                 Spacer()
-                                Text(category.name)
-                                    .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(.white)
+                                Text("$\(String(format: "%.2f", amount))")
+                                    .font(.custom("Inter-SemiBold", size: 20))
+                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                             }
                         }
-                        
-                        Divider()
-                            .background(Color.gray.opacity(0.3))
-                        
-                        HStack {
-                            Text("Total")
-                                .font(.custom("Inter-SemiBold", size: 20))
-                                .foregroundColor(.white)
-                            Spacer()
-                            Text("$\(String(format: "%.2f", amount))")
-                                .font(.custom("Inter-SemiBold", size: 20))
-                                .foregroundColor(.white)
-                        }
+                        .padding(24)
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+                        .frame(maxWidth: 400)
                     }
-                    .padding(30)
-                    .background(Color(red: 0.1, green: 0.1, blue: 0.1))
-                    .cornerRadius(12)
-                    .frame(maxWidth: 500)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 40)
                     
-                    // Donor information section
+                    // RIGHT SIDE: Donor Information
                     VStack(alignment: .leading, spacing: 20) {
                         Text(category != nil ? "Donor Information" : "Optional Information")
-                            .font(.custom("Inter-SemiBold", size: 18))
-                            .foregroundColor(.white)
+                            .font(.custom("Inter-SemiBold", size: 20))
+                            .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                         
                         // Name field
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text(category != nil ? "Name *" : "Name (Optional)")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
-                                if category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty {
-                                    Text("Required")
-                                        .font(.system(size: 12, weight: .regular))
-                                        .foregroundColor(.red)
-                                }
+                                Text(category != nil ? "Name * Required" : "Name (Optional)")
+                                    .font(.custom("Inter-Regular", size: 14))
+                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                             }
                             TextField("Enter your name", text: $donorName)
                                 .focused($nameFocused)
-                                .font(.system(size: 18))
-                                .foregroundColor(.white)
+                                .font(.custom("Inter-Regular", size: 18))
+                                .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                                 .padding(16)
-                                .background(Color(red: 0.1, green: 0.1, blue: 0.1).opacity(0.8))
+                                .background(Color.white)
                                 .cornerRadius(10)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
@@ -182,7 +200,7 @@ struct ModernDonationDetailsView: View {
                                                 ? Color(red: 0.2, green: 0.4, blue: 0.8)
                                                 : (category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty
                                                     ? Color.red.opacity(0.5)
-                                                    : Color.gray.opacity(0.3)),
+                                                    : Color.gray.opacity(0.2)),
                                             lineWidth: nameFocused ? 2 : 1
                                         )
                                 )
@@ -191,22 +209,17 @@ struct ModernDonationDetailsView: View {
                         // Phone field
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text(category != nil ? "Phone Number *" : "Phone Number (Optional)")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
-                                if category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty {
-                                    Text("Required")
-                                        .font(.system(size: 12, weight: .regular))
-                                        .foregroundColor(.red)
-                                }
+                                Text(category != nil ? "Phone Number * Required" : "Phone Number (Optional)")
+                                    .font(.custom("Inter-Regular", size: 14))
+                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                             }
                             TextField("Enter your phone number", text: $donorPhone)
                                 .focused($phoneFocused)
                                 .keyboardType(.phonePad)
-                                .font(.system(size: 18))
-                                .foregroundColor(.white)
+                                .font(.custom("Inter-Regular", size: 18))
+                                .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                                 .padding(16)
-                                .background(Color(red: 0.1, green: 0.1, blue: 0.1).opacity(0.8))
+                                .background(Color.white)
                                 .cornerRadius(10)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
@@ -215,7 +228,7 @@ struct ModernDonationDetailsView: View {
                                                 ? Color(red: 0.2, green: 0.4, blue: 0.8)
                                                 : (category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty
                                                     ? Color.red.opacity(0.5)
-                                                    : Color.gray.opacity(0.3)),
+                                                    : Color.gray.opacity(0.2)),
                                             lineWidth: phoneFocused ? 2 : 1
                                         )
                                 )
@@ -224,58 +237,66 @@ struct ModernDonationDetailsView: View {
                         // Email field
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Email for Receipt (Optional)")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
+                                .font(.custom("Inter-Regular", size: 14))
+                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                             TextField("Enter your email", text: $donorEmail)
                                 .focused($emailFocused)
                                 .keyboardType(.emailAddress)
                                 .autocapitalization(.none)
-                                .font(.system(size: 18))
-                                .foregroundColor(.white)
+                                .font(.custom("Inter-Regular", size: 18))
+                                .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                                 .padding(16)
-                                .background(Color(red: 0.1, green: 0.1, blue: 0.1).opacity(0.8))
+                                .background(Color.white)
                                 .cornerRadius(10)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
                                         .stroke(
                                             emailFocused 
                                                 ? Color(red: 0.2, green: 0.4, blue: 0.8)
-                                                : Color.gray.opacity(0.3),
+                                                : Color.gray.opacity(0.2),
                                             lineWidth: emailFocused ? 2 : 1
                                         )
                                 )
                         }
                     }
-                    .frame(maxWidth: 500)
-                    
-                    // Ready for payment button
-                    Button(action: {
-                        withAnimation {
-                            onConfirm(
-                                donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
-                                donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
-                                donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces)
-                            )
-                        }
-                    }) {
-                        HStack(spacing: 12) {
-                            Text("Ready for Payment")
-                                .font(.custom("Inter-Medium", size: 22))
-                                .foregroundColor(.white)
-                            Image(systemName: "arrow.right")
-                                .font(.custom("Inter-SemiBold", size: 20))
-                                .foregroundColor(.white)
-                        }
-                        .frame(maxWidth: 500)
-                        .padding(.vertical, 18)
-                        .background(canProceed ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray.opacity(0.5))
-                        .cornerRadius(12)
-                    }
-                    .disabled(!canProceed)
+                    .frame(maxWidth: 400)
+                    .padding(.trailing, 40)
                 }
-                .padding(.horizontal, 40)
+                .frame(maxWidth: .infinity)
                 
                 Spacer()
+                
+                // Ready for Payment button - centered at bottom
+                Button(action: {
+                    withAnimation {
+                        onConfirm(
+                            donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
+                            donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
+                            donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces)
+                        )
+                    }
+                }) {
+                    HStack(spacing: 12) {
+                        Text("Ready for Payment")
+                            .font(.custom("Inter-Medium", size: 22))
+                            .foregroundColor(.white)
+                        Image(systemName: "arrow.right")
+                            .font(.custom("Inter-SemiBold", size: 20))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: 500)
+                    .padding(.vertical, 18)
+                    .background(canProceed ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray.opacity(0.5))
+                    .cornerRadius(12)
+                }
+                .disabled(!canProceed)
+                .padding(.bottom, 40)
+            }
+            .onTapGesture {
+                // Dismiss keyboard when tapping background
+                nameFocused = false
+                phoneFocused = false
+                emailFocused = false
             }
             
             // Cancel button (top left)
@@ -312,6 +333,17 @@ struct ModernDonationDetailsView: View {
                         .padding(.top, 17)
                 }
                 Spacer()
+            }
+        }
+        .sheet(isPresented: $showingYajmanOpportunities) {
+            if let category = category, let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
+                YajmanOpportunitiesView(
+                    category: category,
+                    opportunities: opportunities,
+                    onDismiss: {
+                        showingYajmanOpportunities = false
+                    }
+                )
             }
         }
         .onAppear {
