@@ -63,6 +63,9 @@ export class Donation {
   @Column({ nullable: true })
   squarePaymentId: string;
 
+  @Column({ nullable: true })
+  receiptNumber: string; // Format: TempleCode - K - 0001
+
   @Column({
     type: 'enum',
     enum: DonationStatus,

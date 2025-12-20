@@ -28,6 +28,7 @@ export class DonationsService {
   ): Promise<Donation> {
     const donation = await this.donationsRepository.findOne({
       where: { id: donationId },
+      relations: ['temple'],
     });
     if (!donation) {
       throw new NotFoundException(`Donation with ID ${donationId} not found`);
@@ -45,6 +46,11 @@ export class DonationsService {
       donation.donorEmail = completeDonationDto.donorEmail;
     }
 
+    // Generate receipt number if payment succeeded and temple has a code
+    if (completeDonationDto.status === DonationStatus.SUCCEEDED && !donation.receiptNumber) {
+      donation.receiptNumber = await this.generateReceiptNumber(donation.templeId);
+    }
+
     const savedDonation = await this.donationsRepository.save(donation);
 
     // Send receipt email if email is provided and payment succeeded
@@ -58,6 +64,43 @@ export class DonationsService {
     }
 
     return savedDonation;
+  }
+
+  private async generateReceiptNumber(templeId: string): Promise<string> {
+    // Get temple to access templeCode
+    const temple = await this.templesService.findOne(templeId);
+    if (!temple || !temple.templeCode) {
+      // If no temple code, use temple ID first 4 chars
+      const fallbackCode = templeId.substring(0, 4).toUpperCase();
+      console.warn(`[DonationsService] Temple ${templeId} has no templeCode, using fallback: ${fallbackCode}`);
+    }
+
+    const templeCode = temple?.templeCode || templeId.substring(0, 4).toUpperCase();
+    const pattern = `${templeCode} - K - %`;
+
+    // Query donations with receipt numbers matching the pattern
+    const donationsWithReceipts = await this.donationsRepository
+      .createQueryBuilder('donation')
+      .where('donation.templeId = :templeId', { templeId })
+      .andWhere('donation.receiptNumber IS NOT NULL')
+      .andWhere('donation.receiptNumber LIKE :pattern', { pattern })
+      .orderBy('donation.createdAt', 'DESC')
+      .getMany();
+
+    let nextNumber = 1;
+    if (donationsWithReceipts.length > 0) {
+      // Extract the number from the last receipt number
+      const lastReceiptNumber = donationsWithReceipts[0].receiptNumber;
+      const match = lastReceiptNumber.match(/\d+$/);
+      if (match) {
+        nextNumber = parseInt(match[0], 10) + 1;
+      }
+    }
+
+    // Format: TempleCode - K - 0001
+    const receiptNumber = `${templeCode} - K - ${nextNumber.toString().padStart(4, '0')}`;
+    console.log(`[DonationsService] Generated receipt number: ${receiptNumber} for temple ${templeId}`);
+    return receiptNumber;
   }
 
   async cancel(donationId: string): Promise<Donation> {
@@ -288,6 +331,12 @@ export class DonationsService {
                   <span class="label">Donation Date:</span>
                   <span class="value">${new Date(donation.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 </div>
+                ${donation.receiptNumber ? `
+                <div class="detail-row">
+                  <span class="label">Receipt Number:</span>
+                  <span class="value" style="font-weight: bold; font-size: 18px; color: #2d3748;">${donation.receiptNumber}</span>
+                </div>
+                ` : ''}
                 <div class="detail-row">
                   <span class="label">Donation ID:</span>
                   <span class="value">${donation.id}</span>

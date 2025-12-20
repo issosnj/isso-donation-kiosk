@@ -77,6 +77,7 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Receipt #</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
@@ -93,6 +94,11 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
                   </div>
                   <div className="text-xs text-gray-500">
                     {format(new Date(donation.createdAt), 'HH:mm')}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {donation.receiptNumber || <span className="text-gray-400 italic">-</span>}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

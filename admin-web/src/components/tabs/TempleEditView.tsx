@@ -30,6 +30,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
   // Form state
   const [formData, setFormData] = useState({
     name: '',
+    templeCode: '',
     address: '',
     timezone: '',
     defaultCurrency: 'USD',
@@ -45,6 +46,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
     if (temple) {
       setFormData({
         name: temple.name || '',
+        templeCode: temple.templeCode || '',
         address: temple.address || '',
         timezone: temple.timezone || '',
         defaultCurrency: temple.defaultCurrency || 'USD',
@@ -144,6 +146,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
                   // Reset form data
                   setFormData({
                     name: temple.name || '',
+                    templeCode: temple.templeCode || '',
                     address: temple.address || '',
                     timezone: temple.timezone || '',
                     defaultCurrency: temple.defaultCurrency || 'USD',
@@ -220,6 +223,22 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
                 disabled={!isEditing}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Temple Code
+              </label>
+              <input
+                type="text"
+                value={formData.templeCode}
+                onChange={(e) => setFormData({ ...formData, templeCode: e.target.value.toUpperCase() })}
+                disabled={!isEditing}
+                placeholder="e.g., ISSO, NJ01"
+                maxLength={10}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">Used in receipt numbers (e.g., ISSO - K - 0001)</p>
             </div>
 
             <div>

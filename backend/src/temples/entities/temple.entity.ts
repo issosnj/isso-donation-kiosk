@@ -19,6 +19,9 @@ export class Temple {
   name: string;
 
   @Column({ nullable: true })
+  templeCode: string; // Code used in receipt numbers (e.g., "ISSO", "NJ01")
+
+  @Column({ nullable: true })
   address: string;
 
   @Column({ nullable: true })

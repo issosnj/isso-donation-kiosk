@@ -9,6 +9,11 @@ export class CreateTempleDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  templeCode?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @ApiProperty({ required: false })
