@@ -19,6 +19,11 @@ export class CompleteDonationDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  donorPhone?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   donorEmail?: string;
 }
 

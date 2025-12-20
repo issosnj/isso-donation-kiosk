@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { Donation, DonationStatus } from './entities/donation.entity';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
+import { TemplesService } from '../temples/temples.service';
 
 @Injectable()
 export class DonationsService {
   constructor(
     @InjectRepository(Donation)
     private donationsRepository: Repository<Donation>,
+    private templesService: TemplesService,
   ) {}
 
   async initiate(initiateDonationDto: InitiateDonationDto): Promise<Donation> {
@@ -36,11 +38,26 @@ export class DonationsService {
     if (completeDonationDto.donorName) {
       donation.donorName = completeDonationDto.donorName;
     }
+    if (completeDonationDto.donorPhone) {
+      donation.donorPhone = completeDonationDto.donorPhone;
+    }
     if (completeDonationDto.donorEmail) {
       donation.donorEmail = completeDonationDto.donorEmail;
     }
 
-    return this.donationsRepository.save(donation);
+    const savedDonation = await this.donationsRepository.save(donation);
+
+    // Send receipt email if email is provided and payment succeeded
+    if (completeDonationDto.donorEmail && completeDonationDto.status === DonationStatus.SUCCEEDED) {
+      try {
+        await this.sendReceiptEmail(savedDonation);
+      } catch (error) {
+        console.error('[DonationsService] Failed to send receipt email:', error);
+        // Don't fail the donation completion if email fails
+      }
+    }
+
+    return savedDonation;
   }
 
   async findAll(
@@ -185,6 +202,41 @@ export class DonationsService {
         total: 0,
         count: 0,
       };
+    }
+  }
+
+  private async sendReceiptEmail(donation: Donation): Promise<void> {
+    try {
+      const temple = await this.templesService.findOne(donation.templeId);
+      if (!temple || !donation.donorEmail) {
+        return;
+      }
+
+      // For now, log the receipt email details
+      // In production, integrate with an email service (SendGrid, AWS SES, etc.)
+      console.log('[DonationsService] 📧 Receipt email would be sent:', {
+        to: donation.donorEmail,
+        templeName: temple.name,
+        amount: donation.amount,
+        category: donation.category?.name || 'General Donation',
+        donationId: donation.id,
+        date: donation.createdAt,
+        donorName: donation.donorName,
+        donorPhone: donation.donorPhone,
+      });
+
+      // TODO: Implement actual email sending using nodemailer, SendGrid, or AWS SES
+      // Example with nodemailer:
+      // const transporter = nodemailer.createTransport({...});
+      // await transporter.sendMail({
+      //   from: 'donations@temple.org',
+      //   to: donation.donorEmail,
+      //   subject: `Donation Receipt - ${temple.name}`,
+      //   html: `...receipt HTML...`
+      // });
+    } catch (error) {
+      console.error('[DonationsService] Error sending receipt email:', error);
+      // Don't throw - email failure shouldn't break donation completion
     }
   }
 }

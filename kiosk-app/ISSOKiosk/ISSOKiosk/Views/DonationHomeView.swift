@@ -10,6 +10,7 @@ struct DonationHomeView: View {
     @State private var showingDetails = false
     @State private var showingPayment = false
     @State private var donorName: String?
+    @State private var donorPhone: String?
     @State private var donorEmail: String?
     @FocusState private var customAmountFocused: Bool
     
@@ -188,10 +189,11 @@ struct DonationHomeView: View {
             ModernDonationDetailsView(
                     amount: currentAmount,
                     category: selectedCategory,
-                    onConfirm: { name, email in
+                    onConfirm: { name, phone, email in
                         showingDetails = false
                         showingPayment = true
                         donorName = name
+                        donorPhone = phone
                         donorEmail = email
                     }
                 )
@@ -201,6 +203,7 @@ struct DonationHomeView: View {
                     amount: currentAmount,
                     category: selectedCategory,
                     donorName: donorName,
+                    donorPhone: donorPhone,
                     donorEmail: donorEmail,
                     onComplete: {
                     withAnimation {
@@ -210,6 +213,7 @@ struct DonationHomeView: View {
                         selectedCategory = nil
                         quantity = 1
                         donorName = nil
+                        donorPhone = nil
                         donorEmail = nil
                     }
                 }

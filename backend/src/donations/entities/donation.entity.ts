@@ -55,6 +55,9 @@ export class Donation {
   donorName: string;
 
   @Column({ nullable: true })
+  donorPhone: string;
+
+  @Column({ nullable: true })
   donorEmail: string;
 
   @Column({ nullable: true })

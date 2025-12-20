@@ -10,6 +10,7 @@ struct ModernPaymentView: View {
     let amount: Double
     let category: DonationCategory?
     let donorName: String?
+    let donorPhone: String?
     let donorEmail: String?
     let onComplete: () -> Void
     
@@ -150,6 +151,7 @@ struct ModernPaymentView: View {
                                     squarePaymentId: paymentResult.paymentId ?? "",
                                     status: paymentResult.success ? "SUCCEEDED" : "FAILED",
                                     donorName: donorName,
+                                    donorPhone: donorPhone,
                                     donorEmail: donorEmail
                                 )
                                 
@@ -666,6 +668,7 @@ struct PaymentView: View {
     let amount: Double
     let category: DonationCategory?
     let donorName: String?
+    let donorPhone: String?
     let donorEmail: String?
     let onComplete: () -> Void
     
@@ -674,6 +677,7 @@ struct PaymentView: View {
             amount: amount,
             category: category,
             donorName: donorName,
+            donorPhone: donorPhone,
             donorEmail: donorEmail,
             onComplete: onComplete
         )
