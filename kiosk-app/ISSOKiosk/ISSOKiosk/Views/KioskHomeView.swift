@@ -156,7 +156,7 @@ struct KioskHomeView: View {
                     // Time and Network Status in top right
                     TimeAndNetworkStatusView()
                         .padding(.trailing, 20)
-                        .padding(.top, 10)
+                        .padding(.top, 20)
                 }
                 
                 Spacer()
@@ -444,24 +444,6 @@ struct TimeAndNetworkStatusView: View {
             timer?.invalidate()
             timer = nil
         }
-    }
-    
-    private var header2Text: String? {
-        if let temple = appState.temple {
-            // Header 2: "Welcome to Temple Name" and address
-            var header2Parts: [String] = []
-            
-            // Add "Welcome to Temple Name"
-            header2Parts.append("Welcome to \(temple.name)")
-            
-            // Add address if available
-            if let address = temple.address, !address.isEmpty {
-                header2Parts.append(address)
-            }
-            
-            return header2Parts.joined(separator: "\n")
-        }
-        return nil
     }
 }
 
