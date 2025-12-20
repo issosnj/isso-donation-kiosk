@@ -519,6 +519,26 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                     ) : (
                       <>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={() => moveUpMutation.mutate(category.id)}
+                              disabled={index === 0 || moveUpMutation.isPending || moveDownMutation.isPending}
+                              className="px-2 py-1 text-gray-600 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold"
+                              title="Move up"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              onClick={() => moveDownMutation.mutate(category.id)}
+                              disabled={index === (categories?.length || 0) - 1 || moveUpMutation.isPending || moveDownMutation.isPending}
+                              className="px-2 py-1 text-gray-600 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold"
+                              title="Move down"
+                            >
+                              ↓
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-semibold text-gray-900">{category.name}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
