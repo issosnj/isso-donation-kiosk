@@ -384,27 +384,309 @@ export default function ThemeTab() {
           </div>
 
           {/* Layout Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-md font-semibold text-gray-900 mb-4">Layout Settings</h4>
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(formData.layout).map(([key, value]) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+          <div className="space-y-6">
+            {/* Donation Selection Page Layout */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h4 className="text-md font-semibold text-gray-900 mb-2">Donation Selection Page</h4>
+              <p className="text-xs text-gray-500 mb-4">Customize the layout of the page where users select categories and amounts</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category Box Width
                   </label>
+                  <p className="text-xs text-gray-500 mb-2">Maximum width of category buttons</p>
                   <input
                     type="number"
-                    value={value}
+                    value={formData.layout.categoryBoxMaxWidth}
                     onChange={(e) => setFormData({
                       ...formData,
-                      layout: { ...formData.layout, [key]: parseInt(e.target.value) || 0 }
+                      layout: { ...formData.layout, categoryBoxMaxWidth: parseInt(e.target.value) || 400 }
                     })}
                     disabled={!isEditing}
-                    min="0"
+                    min="200"
+                    max="600"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
-              ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amount Button Width
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Width of preset amount buttons</p>
+                  <input
+                    type="number"
+                    value={formData.layout.amountButtonWidth}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, amountButtonWidth: parseInt(e.target.value) || 120 }
+                    })}
+                    disabled={!isEditing}
+                    min="80"
+                    max="200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amount Button Height
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Height of preset amount buttons</p>
+                  <input
+                    type="number"
+                    value={formData.layout.amountButtonHeight}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, amountButtonHeight: parseInt(e.target.value) || 70 }
+                    })}
+                    disabled={!isEditing}
+                    min="40"
+                    max="120"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category Button Height
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Height of category selection buttons</p>
+                  <input
+                    type="number"
+                    value={formData.layout.categoryButtonHeight}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, categoryButtonHeight: parseInt(e.target.value) || 70 }
+                    })}
+                    disabled={!isEditing}
+                    min="40"
+                    max="120"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Top Spacing
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Space from top of screen to content</p>
+                  <input
+                    type="number"
+                    value={formData.layout.headerTopPadding}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, headerTopPadding: parseInt(e.target.value) || 120 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="300"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Section Spacing
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Space between category and amount sections</p>
+                  <input
+                    type="number"
+                    value={formData.layout.categoryAmountSectionSpacing}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, categoryAmountSectionSpacing: parseInt(e.target.value) || 40 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Button Spacing
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Space between buttons in the same section</p>
+                  <input
+                    type="number"
+                    value={formData.layout.buttonSpacing}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, buttonSpacing: parseInt(e.target.value) || 12 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Corner Radius
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Roundness of button corners</p>
+                  <input
+                    type="number"
+                    value={formData.layout.cornerRadius}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, cornerRadius: parseInt(e.target.value) || 12 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Donation Details Page Layout */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h4 className="text-md font-semibold text-gray-900 mb-2">Donation Details Page</h4>
+              <p className="text-xs text-gray-500 mb-4">Customize the layout of the page where users enter their information</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Space Between Sections
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Horizontal space between donation summary and donor form</p>
+                  <input
+                    type="number"
+                    value={formData.layout.detailsPageHorizontalSpacing}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, detailsPageHorizontalSpacing: parseInt(e.target.value) || 40 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Side Padding
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Space from screen edges to content</p>
+                  <input
+                    type="number"
+                    value={formData.layout.detailsPageSidePadding}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, detailsPageSidePadding: parseInt(e.target.value) || 60 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Top Spacing
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Space from top of screen to content</p>
+                  <input
+                    type="number"
+                    value={formData.layout.detailsPageTopPadding}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, detailsPageTopPadding: parseInt(e.target.value) || 80 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="300}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bottom Spacing
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Space from bottom of screen to payment button</p>
+                  <input
+                    type="number"
+                    value={formData.layout.detailsPageBottomPadding}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, detailsPageBottomPadding: parseInt(e.target.value) || 40 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Donation Summary Width
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Maximum width of the donation summary card</p>
+                  <input
+                    type="number"
+                    value={formData.layout.detailsCardMaxWidth}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, detailsCardMaxWidth: parseInt(e.target.value) || 420 }
+                    })}
+                    disabled={!isEditing}
+                    min="200"
+                    max="600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Donor Form Width
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Maximum width of the donor information form</p>
+                  <input
+                    type="number"
+                    value={formData.layout.donorFormMaxWidth}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, donorFormMaxWidth: parseInt(e.target.value) || 420 }
+                    })}
+                    disabled={!isEditing}
+                    min="200"
+                    max="600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Card Padding
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Internal padding inside the donation summary card</p>
+                  <input
+                    type="number"
+                    value={formData.layout.detailsCardPadding}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, detailsCardPadding: parseInt(e.target.value) || 24 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Card Item Spacing
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Space between items inside the donation summary card</p>
+                  <input
+                    type="number"
+                    value={formData.layout.detailsCardSpacing}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, detailsCardSpacing: parseInt(e.target.value) || 16 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
