@@ -215,9 +215,16 @@ struct DonationHomeView: View {
                     onConfirm: { name, phone, email in
                         showingDetails = false
                         // Check if temple has yajman opportunities enabled - show pledge option for ALL donations
-                        if appState.temple?.yajmanOpportunitiesEnabled == true {
+                        let yajmanEnabled = appState.temple?.yajmanOpportunitiesEnabled == true
+                        print("[DonationHomeView] 🔍 Yajman opportunities enabled: \(yajmanEnabled)")
+                        print("[DonationHomeView] 🔍 Temple: \(appState.temple?.name ?? "nil")")
+                        print("[DonationHomeView] 🔍 yajmanOpportunitiesEnabled value: \(appState.temple?.yajmanOpportunitiesEnabled ?? false)")
+                        
+                        if yajmanEnabled {
+                            print("[DonationHomeView] ✅ Showing pledge option")
                             showingPledgeOption = true
                         } else {
+                            print("[DonationHomeView] ⏭️ Going directly to payment (yajman not enabled)")
                             showingPayment = true
                         }
                         donorName = name
