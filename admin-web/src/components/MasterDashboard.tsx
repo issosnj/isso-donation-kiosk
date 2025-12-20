@@ -18,7 +18,7 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
       case 'temples':
         return <TemplesTab />
       case 'donations':
-        return <DonationsTab />
+        return <DonationsTab isMasterAdmin={true} />
       case 'users':
         return <UsersTab />
       case 'theme':

@@ -116,6 +116,7 @@ export class DonationsController {
   @ApiOperation({ summary: 'Get all donations' })
   findAll(
     @CurrentUser() user: any,
+    @Query('templeId') templeId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('categoryId') categoryId?: string,
@@ -128,8 +129,11 @@ export class DonationsController {
     if (status) filters.status = status;
 
     if (user.role === UserRole.MASTER_ADMIN) {
-      return this.donationsService.findAll(undefined, filters);
+      // Master admin can filter by templeId or get all temples
+      const filterTempleId = templeId || undefined;
+      return this.donationsService.findAll(filterTempleId, filters);
     }
+    // Temple admin always sees only their temple's donations
     return this.donationsService.findAll(user.templeId, filters);
   }
 

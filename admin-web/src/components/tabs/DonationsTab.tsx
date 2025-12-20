@@ -7,17 +7,41 @@ import { useState } from 'react'
 
 interface DonationsTabProps {
   templeId?: string
+  isMasterAdmin?: boolean
 }
 
-export default function DonationsTab({ templeId }: DonationsTabProps) {
+export default function DonationsTab({ templeId, isMasterAdmin = false }: DonationsTabProps) {
   const queryClient = useQueryClient()
   const [resendingId, setResendingId] = useState<string | null>(null)
+  const [selectedTempleId, setSelectedTempleId] = useState<string>('all')
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
+
+  // Fetch temples for master admin filter
+  const { data: temples } = useQuery({
+    queryKey: ['temples'],
+    queryFn: async () => {
+      const response = await api.get('/temples')
+      return Array.isArray(response.data) ? response.data : []
+    },
+    enabled: isMasterAdmin,
+  })
+
+  // Build query params
+  const queryParams: any = {}
+  if (isMasterAdmin && selectedTempleId !== 'all') {
+    queryParams.templeId = selectedTempleId
+  } else if (!isMasterAdmin && templeId) {
+    queryParams.templeId = templeId
+  }
+  if (startDate) queryParams.startDate = startDate
+  if (endDate) queryParams.endDate = endDate
 
   const { data: donations, isLoading } = useQuery({
-    queryKey: ['donations', templeId],
+    queryKey: ['donations', selectedTempleId, startDate, endDate, templeId],
     queryFn: async () => {
       const response = await api.get('/donations', {
-        params: templeId ? { templeId } : {},
+        params: queryParams,
       })
       return response.data
     },
@@ -70,13 +94,78 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
     )
   }
 
+  const showTempleColumn = isMasterAdmin && selectedTempleId === 'all'
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      {/* Filters */}
+      {(isMasterAdmin || startDate || endDate) && (
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex flex-wrap gap-4 items-end">
+            {isMasterAdmin && (
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Filter by Temple
+                </label>
+                <select
+                  value={selectedTempleId}
+                  onChange={(e) => setSelectedTempleId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="all">All Temples</option>
+                  {temples?.map((temple: any) => (
+                    <option key={temple.id} value={temple.id}>
+                      {temple.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate('')
+                  setEndDate('')
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Clear Dates
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+              {showTempleColumn && (
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Temple</th>
+              )}
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Receipt #</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
@@ -96,6 +185,13 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
                     {format(new Date(donation.createdAt), 'HH:mm')}
                   </div>
                 </td>
+                {showTempleColumn && (
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {donation.temple?.name || 'Unknown'}
+                    </div>
+                  </td>
+                )}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {donation.receiptNumber || <span className="text-gray-400 italic">-</span>}
