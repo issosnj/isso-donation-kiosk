@@ -371,6 +371,199 @@ This matches the poster's structure where tiers are clearly presented with their
 5. **Update iOS app models and UI**
 6. **Test end-to-end flow**
 
+## Pledge Feature (Pay Later)
+
+### Overview
+Allow donors to select a yajman sponsorship tier and **pledge** to pay for it later, without requiring immediate payment.
+
+### Use Cases
+- Donor wants to commit to Gold Sponsor ($4,000) but needs to pay later
+- Donor can review their pledge and pay when ready
+- Temple can track pending pledges and follow up
+
+### Data Model Changes
+
+#### Option A: Add Pledge Status to Donation (Recommended)
+Add a new donation status: `PLEDGED`
+
+```typescript
+enum DonationStatus {
+  PENDING = 'PENDING',
+  PLEDGED = 'PLEDGED',  // NEW: Pledged but not paid
+  SUCCEEDED = 'SUCCEEDED',
+  FAILED = 'FAILED',
+  CANCELED = 'CANCELED',
+  REFUNDED = 'REFUNDED',
+}
+```
+
+Add fields to track pledge information:
+```typescript
+@Column({ nullable: true })
+pledgeExpiryDate?: Date;  // Optional: when pledge expires
+
+@Column({ nullable: true })
+pledgePaymentLink?: string;  // Link to pay later (QR code or URL)
+
+@Column({ nullable: true })
+pledgeToken?: string;  // Unique token for pledge payment link
+```
+
+#### Option B: Separate Pledge Entity
+Create a separate `Pledge` entity (more complex, but cleaner separation)
+
+**Recommendation: Option A** - Simpler and keeps everything in one place.
+
+### UI/UX Flow
+
+#### On Kiosk (iOS App):
+1. User selects category (e.g., "Gold Sponsor")
+2. User sees two options:
+   - **[Pay Now]** - Proceed to payment immediately
+   - **[Pledge Now, Pay Later]** - Create pledge without payment
+3. If "Pledge Now":
+   - Collect donor information (name, phone, email - all required for pledges)
+   - Show confirmation: "You've pledged $4,000 for Gold Sponsor"
+   - Generate unique pledge link/QR code
+   - Display QR code or link for donor to save
+   - Option to email pledge confirmation with payment link
+4. If "Pay Now":
+   - Normal payment flow
+
+#### Payment Link Options:
+- **QR Code**: Display on screen, donor scans with phone
+- **Email Link**: Send email with unique payment link
+- **SMS Link**: Send SMS with payment link (if phone provided)
+- **Manual Entry**: Show pledge ID that donor can enter on website
+
+### Backend Implementation
+
+1. **New Endpoint: Create Pledge**
+   ```
+   POST /donations/pledge
+   Body: {
+     templeId, deviceId, categoryId, amount,
+     donorName, donorPhone, donorEmail
+   }
+   Response: {
+     donationId,
+     pledgeToken,
+     paymentLink,
+     qrCodeUrl
+   }
+   ```
+
+2. **New Endpoint: Pay Pledge**
+   ```
+   POST /donations/pledge/:token/pay
+   Body: { squarePaymentId, status }
+   ```
+   - Updates donation status from PLEDGED to SUCCEEDED
+   - Processes payment
+
+3. **New Endpoint: Get Pledge Details**
+   ```
+   GET /donations/pledge/:token
+   ```
+   - Returns pledge details (amount, category, donor info)
+   - Used for payment page
+
+4. **Update Donation Service**
+   - `createPledge()` - Creates donation with PLEDGED status
+   - `payPledge()` - Processes payment for existing pledge
+   - Generate unique pledge token (UUID or short code)
+
+### Admin Portal Changes
+
+1. **Donations Tab Updates**
+   - Filter by status: "Pledges" (PLEDGED status)
+   - Show pledge expiry date
+   - Show payment link
+   - "Send Reminder" button (email/SMS)
+   - "Mark as Expired" button
+
+2. **Pledge Management**
+   - View all pledges
+   - See which pledges are expiring soon
+   - Send payment reminders
+   - Cancel pledges if needed
+
+### Payment Link/QR Code Flow
+
+1. **Generate Payment Link**
+   - Format: `https://your-domain.com/pay-pledge/{pledgeToken}`
+   - Or: `https://your-domain.com/pledge/{pledgeToken}`
+
+2. **Payment Page** (New web page)
+   - Shows pledge details
+   - Amount, category, donor name
+   - Payment form (Square integration)
+   - After payment, update donation status
+
+3. **QR Code**
+   - Generate QR code with payment link
+   - Display on kiosk screen
+   - Donor scans with phone
+   - Opens payment page
+
+### Email/SMS Notifications
+
+1. **Pledge Confirmation Email**
+   - Sent immediately after pledge creation
+   - Includes:
+     - Pledge details
+     - Payment link
+     - QR code image
+     - Expiry date (if set)
+     - Instructions
+
+2. **Payment Reminder Email** (Optional)
+   - Sent X days before expiry
+   - Sent if pledge not paid after Y days
+
+3. **Payment Confirmation Email**
+   - Sent when pledge is paid
+   - Same as regular donation receipt
+
+### Questions to Consider
+
+1. **Should pledges expire?**
+   - Recommendation: Yes, set default expiry (e.g., 30 days)
+   - Admin can extend if needed
+
+2. **Can donors modify pledges?**
+   - Recommendation: No, but can cancel and create new one
+
+3. **What if donor wants to pay partial amount?**
+   - Recommendation: Not supported initially. Full amount only.
+
+4. **Can admin mark pledge as paid manually?**
+   - Recommendation: Yes, for cash/check payments
+
+5. **Should we track pledge source?**
+   - Recommendation: Yes, store deviceId to know which kiosk
+
+### Implementation Priority
+
+**Phase 1: Basic Pledge**
+- Add PLEDGED status
+- Create pledge endpoint
+- Generate payment link
+- Display QR code on kiosk
+- Basic payment page
+
+**Phase 2: Enhanced Features**
+- Email confirmation
+- Expiry dates
+- Admin reminder system
+- Pledge management UI
+
+**Phase 3: Advanced**
+- SMS notifications
+- Partial payments
+- Pledge modifications
+- Analytics/reporting
+
 ## Future Enhancements
 
 - Availability tracking (mark opportunities as sold out)
@@ -378,4 +571,6 @@ This matches the poster's structure where tiers are clearly presented with their
 - Images for opportunities
 - Recurring opportunities (same opportunity for multiple dates)
 - Opportunity scheduling/calendar integration
+- Pledge analytics and reporting
+- Automated reminder system
 
