@@ -5,6 +5,7 @@ import TemplesTab from './tabs/TemplesTab'
 import DonationsTab from './tabs/DonationsTab'
 import UsersTab from './tabs/UsersTab'
 import ThemeTab from './tabs/ThemeTab'
+import MasterReceiptsTab from './tabs/MasterReceiptsTab'
 
 interface MasterDashboardProps {
   activeTab: string
@@ -23,6 +24,8 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
         return <UsersTab />
       case 'theme':
         return <ThemeTab />
+      case 'receipts':
+        return <MasterReceiptsTab />
       default:
         return <OverviewTab />
     }

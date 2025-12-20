@@ -36,7 +36,7 @@ export default function TempleDashboard({ activeTab, templeId }: TempleDashboard
       case 'square':
         return <SquareTab templeId={templeId} />
       case 'receipts':
-        return <ReceiptTab templeId={templeId} />
+        return <ReceiptTab templeId={templeId} isMasterAdmin={false} />
       default:
         return <OverviewTab templeId={templeId} />
     }

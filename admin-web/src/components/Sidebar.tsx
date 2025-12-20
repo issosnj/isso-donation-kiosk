@@ -42,6 +42,7 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
     { id: 'donations', label: 'All Donations' },
     { id: 'users', label: 'Users' },
     { id: 'theme', label: 'Kiosk Theme' },
+    { id: 'receipts', label: 'Receipts' },
   ]
 
   const tabs = isMasterAdmin ? masterTabs : templeTabs
