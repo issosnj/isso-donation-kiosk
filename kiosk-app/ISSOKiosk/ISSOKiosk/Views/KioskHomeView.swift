@@ -108,19 +108,19 @@ struct KioskHomeView: View {
                     VStack(spacing: 0) {
                         // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller)
                         Text("Welcome to Shree Swaminarayan Hindu Temple")
-                            .font(.system(size: 36, weight: .bold))
+                            .font(.system(size: 42, weight: .bold))
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.5)
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 20)
-                            .padding(.top, 80)
+                            .padding(.top, 50)
                             .padding(.bottom, 4)
                         
                         // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
                         Text(header1Text)
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.system(size: 32, weight: .bold))
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
@@ -131,7 +131,7 @@ struct KioskHomeView: View {
                         
                         // Under Shree NarNarayan Dev Gadi
                         Text("Under Shree NarNarayan Dev Gadi")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.system(size: 20, weight: .medium))
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
@@ -140,7 +140,7 @@ struct KioskHomeView: View {
                         // Temple Address
                         if let temple = appState.temple, let address = temple.address, !address.isEmpty {
                             Text(address)
-                                .font(.system(size: 16, weight: .regular))
+                                .font(.system(size: 18, weight: .regular))
                                 .foregroundColor(colorFromHex("423232"))
                                 .multilineTextAlignment(.center)
                                 .lineLimit(2)
@@ -178,9 +178,10 @@ struct KioskHomeView: View {
                 }
                 
                 Spacer()
+                    .frame(height: 20)
                 
                 // Centered content
-                VStack(spacing: 40) {
+                VStack(spacing: 30) {
                     
                     // Main: Tap To Donate Button - Modern and Attractive (Centered)
                     HStack {
