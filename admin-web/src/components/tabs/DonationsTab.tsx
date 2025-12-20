@@ -69,6 +69,26 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     }
   }
 
+  const generateReceiptNumbersMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/donations/cleanup/generate-receipt-numbers')
+      return response.data
+    },
+    onSuccess: (data) => {
+      alert(`Successfully generated receipt numbers for ${data.updated} donations!`)
+      queryClient.invalidateQueries({ queryKey: ['donations'] })
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to generate receipt numbers')
+    },
+  })
+
+  const handleGenerateReceiptNumbers = () => {
+    if (confirm('Generate receipt numbers for all successful donations that are missing them?')) {
+      generateReceiptNumbersMutation.mutate()
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-8">
@@ -101,7 +121,8 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
       {/* Filters */}
       {(isMasterAdmin || startDate || endDate) && (
         <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex flex-wrap gap-4 items-end justify-between">
+            <div className="flex flex-wrap gap-4 items-end">
             {isMasterAdmin && (
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -152,6 +173,16 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
                 Clear Dates
+              </button>
+            )}
+            </div>
+            {isMasterAdmin && (
+              <button
+                onClick={handleGenerateReceiptNumbers}
+                disabled={generateReceiptNumbersMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generateReceiptNumbersMutation.isPending ? 'Generating...' : 'Generate Receipt Numbers'}
               </button>
             )}
           </div>
