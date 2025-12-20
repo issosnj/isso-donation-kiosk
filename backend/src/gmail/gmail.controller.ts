@@ -86,25 +86,37 @@ export class GmailController {
 
       // Exchange code for token
       const tokenData = await this.gmailService.exchangeCodeForToken(code, state);
+      console.log('[Gmail Callback] Token exchange successful, has refresh token:', !!tokenData.refresh_token);
       
       // Get user email
       const userEmail = await this.gmailService.getUserEmail(tokenData.access_token);
+      console.log('[Gmail Callback] User email:', userEmail);
 
       // Encrypt tokens before storing
       const encryptedAccessToken = this.encrypt(tokenData.access_token);
       const encryptedRefreshToken = tokenData.refresh_token 
         ? this.encrypt(tokenData.refresh_token)
         : null;
+      console.log('[Gmail Callback] Tokens encrypted, updating temple:', templeId);
 
       // Update temple with Gmail credentials
-      const temple = await this.templesService.findOne(templeId);
-      temple.gmailAccessToken = encryptedAccessToken;
-      temple.gmailRefreshToken = encryptedRefreshToken;
-      temple.gmailEmail = userEmail;
-      await this.templesService.update(templeId, {
+      const updateData = {
         gmailAccessToken: encryptedAccessToken,
         gmailRefreshToken: encryptedRefreshToken,
         gmailEmail: userEmail,
+      };
+      console.log('[Gmail Callback] Update data:', {
+        gmailEmail: updateData.gmailEmail,
+        hasAccessToken: !!updateData.gmailAccessToken,
+        hasRefreshToken: !!updateData.gmailRefreshToken,
+      });
+      
+      const updatedTemple = await this.templesService.update(templeId, updateData);
+      console.log('[Gmail Callback] Temple updated successfully:', {
+        id: updatedTemple.id,
+        gmailEmail: updatedTemple.gmailEmail,
+        hasAccessToken: !!updatedTemple.gmailAccessToken,
+        hasRefreshToken: !!updatedTemple.gmailRefreshToken,
       });
 
       const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://issodonationkiosk.netlify.app';

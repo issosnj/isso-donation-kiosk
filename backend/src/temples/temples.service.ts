@@ -140,6 +140,9 @@ export class TemplesService {
   }
 
   async update(id: string, updateTempleDto: UpdateTempleDto): Promise<Temple> {
+    console.log('[Temples Service] Update called for temple:', id);
+    console.log('[Temples Service] Update data keys:', Object.keys(updateTempleDto));
+    
     const temple = await this.findOne(id);
     
     // Handle Square disconnection - explicitly set to null if any Square field is null
@@ -147,6 +150,20 @@ export class TemplesService {
     const isDisconnecting = updateDto.squareMerchantId === null || 
                             updateDto.squareAccessToken === null || 
                             updateDto.squareRefreshToken === null;
+    
+    // Handle Gmail fields explicitly
+    if (updateDto.gmailAccessToken !== undefined) {
+      console.log('[Temples Service] Updating Gmail access token');
+      temple.gmailAccessToken = updateDto.gmailAccessToken;
+    }
+    if (updateDto.gmailRefreshToken !== undefined) {
+      console.log('[Temples Service] Updating Gmail refresh token');
+      temple.gmailRefreshToken = updateDto.gmailRefreshToken;
+    }
+    if (updateDto.gmailEmail !== undefined) {
+      console.log('[Temples Service] Updating Gmail email:', updateDto.gmailEmail);
+      temple.gmailEmail = updateDto.gmailEmail;
+    }
     
     if (isDisconnecting) {
       console.log('[Temples Service] Disconnecting Square for temple:', id);
@@ -170,8 +187,9 @@ export class TemplesService {
       if (updateDto.branding !== undefined) temple.branding = updateDto.branding;
       if (updateDto.homeScreenConfig !== undefined) temple.homeScreenConfig = updateDto.homeScreenConfig;
     } else {
-      // Normal update - assign all fields
-      Object.assign(temple, updateTempleDto);
+      // Normal update - assign all fields except Gmail (already handled above)
+      const { gmailAccessToken, gmailRefreshToken, gmailEmail, ...otherFields } = updateDto;
+      Object.assign(temple, otherFields);
     }
     
     // Use update() method to ensure null values are saved
@@ -203,7 +221,10 @@ export class TemplesService {
       console.log('[Temples Service] Temple updated, Square connected:', !!saved.squareAccessToken);
       return saved;
     } else {
+      console.log('[Temples Service] Saving temple with all updates...');
       const saved = await this.templesRepository.save(temple);
+      console.log('[Temples Service] Temple saved, Gmail email:', saved.gmailEmail);
+      console.log('[Temples Service] Gmail connected:', !!saved.gmailAccessToken);
       return saved;
     }
   }
