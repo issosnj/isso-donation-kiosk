@@ -107,6 +107,18 @@ export class TemplesController {
     return this.templesService.remove(id);
   }
 
+  // Helper function to convert Google Drive share link to direct download link
+  private convertGoogleDriveLink(url: string): string {
+    // Pattern: https://drive.google.com/file/d/{FILE_ID}/view?usp=sharing
+    const driveFileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveFileIdMatch) {
+      const fileId = driveFileIdMatch[1];
+      return `https://drive.google.com/uc?export=download&id=${fileId}`;
+    }
+    // Return original URL if it doesn't match Google Drive pattern
+    return url;
+  }
+
   @Post(':id/upload-background')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -210,6 +222,49 @@ export class TemplesController {
       message: 'Background image uploaded successfully',
       url: fileUrl,
       filename: file.filename,
+    };
+  }
+
+  @Post(':id/set-background-url')
+  @ApiOperation({ summary: 'Set background image URL (for external links like Google Drive)' })
+  async setBackgroundUrl(
+    @Param('id') id: string,
+    @Body() body: { url: string },
+    @CurrentUser() user: any,
+  ) {
+    if (user.role === UserRole.TEMPLE_ADMIN && user.templeId !== id) {
+      throw new BadRequestException('Unauthorized');
+    }
+
+    if (!body.url || typeof body.url !== 'string') {
+      throw new BadRequestException('URL is required');
+    }
+
+    // Validate URL format
+    try {
+      new URL(body.url);
+    } catch {
+      throw new BadRequestException('Invalid URL format');
+    }
+
+    // Convert Google Drive share links to direct download links
+    let imageUrl = body.url.trim();
+    if (imageUrl.includes('drive.google.com/file/d/')) {
+      imageUrl = this.convertGoogleDriveLink(imageUrl);
+    }
+
+    // Update temple's homeScreenConfig with the background image URL
+    const temple = await this.templesService.findOne(id);
+    const homeScreenConfig = temple.homeScreenConfig || {};
+    homeScreenConfig.backgroundImageUrl = imageUrl;
+
+    await this.templesService.update(id, {
+      homeScreenConfig,
+    } as UpdateTempleDto);
+
+    return {
+      message: 'Background image URL set successfully',
+      url: imageUrl,
     };
   }
 }

@@ -43,6 +43,8 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
   })
   const [uploadingBackground, setUploadingBackground] = useState(false)
   const [imageLoadError, setImageLoadError] = useState(false)
+  const [backgroundUrlInput, setBackgroundUrlInput] = useState('')
+  const [useUrlInstead, setUseUrlInstead] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -292,7 +294,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
             Kiosk Home Screen Background Image
           </label>
           <p className="text-xs text-gray-500 mb-3">
-            Upload a custom background image for the kiosk home screen. Recommended size: 1920x1080 or larger. Max file size: 10MB.
+            Upload a custom background image or provide a direct image URL (supports Google Drive links). Recommended size: 1920x1080 or larger. Max file size: 10MB.
           </p>
           
           {formData.backgroundImageUrl && (
@@ -325,105 +327,191 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
             </div>
           )}
           
-          <div className="flex items-center space-x-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                
-                setUploadingBackground(true)
-                try {
-                  const uploadFormData = new FormData()
-                  uploadFormData.append('file', file)
-                  
-                  const response = await api.post(`/temples/${templeId}/upload-background`, uploadFormData, {
-                    headers: {
-                      'Content-Type': 'multipart/form-data',
-                    },
-                  })
-                  
-                  setFormData(prev => ({
-                    ...prev,
-                    backgroundImageUrl: response.data.url,
-                  }))
-                  
-                  // Reset image error state
-                  setImageLoadError(false)
-                  
-                  // Update the temple data
-                  queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
-                } catch (error: any) {
-                  console.error('Upload error:', error)
-                  const errorMessage = error.response?.data?.message || error.message || 'Failed to upload background image. Please try again.'
-                  alert(errorMessage)
-                } finally {
-                  setUploadingBackground(false)
-                  // Reset the file input so the same file can be selected again
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = ''
-                  }
-                }
-              }}
-              disabled={!isEditing || uploadingBackground}
-              className="hidden"
-            />
-            <div
-              onClick={() => {
-                if (isEditing && !uploadingBackground && fileInputRef.current) {
-                  fileInputRef.current.click()
-                }
-              }}
-              className={`flex-1 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors ${
-                isEditing && !uploadingBackground
-                  ? 'cursor-pointer hover:border-purple-500 hover:bg-purple-50'
-                  : 'cursor-not-allowed opacity-50'
-              }`}
-            >
-              {uploadingBackground ? (
-                <span className="text-sm text-gray-600">Uploading...</span>
-              ) : (
-                <span className="text-sm text-purple-600 font-medium">
-                  {formData.backgroundImageUrl ? 'Change Background Image' : 'Upload Background Image'}
-                </span>
-              )}
+          {isEditing && (
+            <div className="mb-3">
+              <div className="flex items-center space-x-4 mb-3">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={!useUrlInstead}
+                    onChange={() => {
+                      setUseUrlInstead(false)
+                      setBackgroundUrlInput('')
+                    }}
+                    className="text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-700">Upload Image File</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={useUrlInstead}
+                    onChange={() => {
+                      setUseUrlInstead(true)
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = ''
+                      }
+                    }}
+                    className="text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-700">Use Image URL</span>
+                </label>
+              </div>
             </div>
-            
-            {formData.backgroundImageUrl && isEditing && (
-              <button
-                onClick={async () => {
-                  // Clear the background image URL
-                  setFormData(prev => ({
-                    ...prev,
-                    backgroundImageUrl: '',
-                  }))
+          )}
+          
+          {isEditing && !useUrlInstead && (
+            <div className="flex items-center space-x-3 mb-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
                   
-                  // Save the change immediately
+                  setUploadingBackground(true)
                   try {
-                    await updateMutation.mutateAsync({
-                      ...formData,
-                      backgroundImageUrl: '',
+                    const uploadFormData = new FormData()
+                    uploadFormData.append('file', file)
+                    
+                    const response = await api.post(`/temples/${templeId}/upload-background`, uploadFormData, {
+                      headers: {
+                        'Content-Type': 'multipart/form-data',
+                      },
                     })
+                    
+                    setFormData(prev => ({
+                      ...prev,
+                      backgroundImageUrl: response.data.url,
+                    }))
+                    
+                    // Reset image error state
+                    setImageLoadError(false)
+                    
+                    // Update the temple data
+                    queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
                   } catch (error: any) {
-                    console.error('Error removing background:', error)
-                    alert('Failed to remove background image. Please try again.')
-                    // Revert on error
-                    if (temple?.homeScreenConfig?.backgroundImageUrl) {
-                      setFormData(prev => ({
-                        ...prev,
-                        backgroundImageUrl: temple.homeScreenConfig.backgroundImageUrl || '',
-                      }))
+                    console.error('Upload error:', error)
+                    const errorMessage = error.response?.data?.message || error.message || 'Failed to upload background image. Please try again.'
+                    alert(errorMessage)
+                  } finally {
+                    setUploadingBackground(false)
+                    // Reset the file input so the same file can be selected again
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = ''
                     }
                   }
                 }}
-                className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
+                disabled={!isEditing || uploadingBackground}
+                className="hidden"
+              />
+              <div
+                onClick={() => {
+                  if (isEditing && !uploadingBackground && fileInputRef.current) {
+                    fileInputRef.current.click()
+                  }
+                }}
+                className={`flex-1 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors ${
+                  isEditing && !uploadingBackground
+                    ? 'cursor-pointer hover:border-purple-500 hover:bg-purple-50'
+                    : 'cursor-not-allowed opacity-50'
+                }`}
               >
-                Remove
+                {uploadingBackground ? (
+                  <span className="text-sm text-gray-600">Uploading...</span>
+                ) : (
+                  <span className="text-sm text-purple-600 font-medium">
+                    {formData.backgroundImageUrl ? 'Change Background Image' : 'Upload Background Image'}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {isEditing && useUrlInstead && (
+            <div className="mb-3 space-y-2">
+              <input
+                type="url"
+                value={backgroundUrlInput}
+                onChange={(e) => setBackgroundUrlInput(e.target.value)}
+                placeholder="https://drive.google.com/file/d/... or https://example.com/image.jpg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+              />
+              <p className="text-xs text-gray-500">
+                Enter a direct image URL or Google Drive share link. Google Drive links will be automatically converted to direct download links.
+              </p>
+              <button
+                onClick={async () => {
+                  if (!backgroundUrlInput.trim()) {
+                    alert('Please enter an image URL')
+                    return
+                  }
+                  
+                  setUploadingBackground(true)
+                  try {
+                    const response = await api.post(`/temples/${templeId}/set-background-url`, {
+                      url: backgroundUrlInput.trim(),
+                    })
+                    
+                    setFormData(prev => ({
+                      ...prev,
+                      backgroundImageUrl: response.data.url,
+                    }))
+                    
+                    setBackgroundUrlInput('')
+                    setImageLoadError(false)
+                    
+                    // Update the temple data
+                    queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+                  } catch (error: any) {
+                    console.error('Set URL error:', error)
+                    const errorMessage = error.response?.data?.message || error.message || 'Failed to set background image URL. Please try again.'
+                    alert(errorMessage)
+                  } finally {
+                    setUploadingBackground(false)
+                  }
+                }}
+                disabled={!backgroundUrlInput.trim() || uploadingBackground}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                {uploadingBackground ? 'Setting URL...' : 'Set Background URL'}
               </button>
-            )}
-          </div>
+            </div>
+          )}
+          
+          {formData.backgroundImageUrl && isEditing && (
+            <button
+              onClick={async () => {
+                // Clear the background image URL
+                setFormData(prev => ({
+                  ...prev,
+                  backgroundImageUrl: '',
+                }))
+                
+                // Save the change immediately
+                try {
+                  await updateMutation.mutateAsync({
+                    ...formData,
+                    backgroundImageUrl: '',
+                  })
+                } catch (error: any) {
+                  console.error('Error removing background:', error)
+                  alert('Failed to remove background image. Please try again.')
+                  // Revert on error
+                  if (temple?.homeScreenConfig?.backgroundImageUrl) {
+                    setFormData(prev => ({
+                      ...prev,
+                      backgroundImageUrl: temple.homeScreenConfig.backgroundImageUrl || '',
+                    }))
+                  }
+                }
+              }}
+              className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
+            >
+              Remove Background
+            </button>
+          )}
         </div>
 
         {/* Button Colors */}
