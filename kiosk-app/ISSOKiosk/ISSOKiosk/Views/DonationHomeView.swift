@@ -90,6 +90,79 @@ struct DonationHomeView: View {
         colorFromHex(buttonColors.amountUnselected)
     }
     
+    // Theme helper properties with defaults
+    var theme: KioskTheme? {
+        appState.temple?.kioskTheme
+    }
+    
+    var headingFont: String {
+        theme?.fonts?.headingFamily ?? "Inter-SemiBold"
+    }
+    
+    var headingSize: CGFloat {
+        CGFloat(theme?.fonts?.headingSize ?? 32)
+    }
+    
+    var buttonFont: String {
+        theme?.fonts?.buttonFamily ?? "Inter-Medium"
+    }
+    
+    var buttonSize: CGFloat {
+        CGFloat(theme?.fonts?.buttonSize ?? 18)
+    }
+    
+    var bodyFont: String {
+        theme?.fonts?.bodyFamily ?? "Inter-Regular"
+    }
+    
+    var bodySize: CGFloat {
+        CGFloat(theme?.fonts?.bodySize ?? 14)
+    }
+    
+    var headingColor: Color {
+        colorFromHex(theme?.colors?.headingColor, defaultColor: colorFromHex("423232"))
+    }
+    
+    var bodyTextColor: Color {
+        colorFromHex(theme?.colors?.bodyTextColor, defaultColor: Color(red: 0.5, green: 0.5, blue: 0.6))
+    }
+    
+    var subtitleColor: Color {
+        colorFromHex(theme?.colors?.subtitleColor, defaultColor: Color(red: 0.5, green: 0.5, blue: 0.6))
+    }
+    
+    var categoryBoxMaxWidth: CGFloat {
+        CGFloat(theme?.layout?.categoryBoxMaxWidth ?? 400)
+    }
+    
+    var amountButtonWidth: CGFloat {
+        CGFloat(theme?.layout?.amountButtonWidth ?? 120)
+    }
+    
+    var amountButtonHeight: CGFloat {
+        CGFloat(theme?.layout?.amountButtonHeight ?? 70)
+    }
+    
+    var categoryButtonHeight: CGFloat {
+        CGFloat(theme?.layout?.categoryButtonHeight ?? 70)
+    }
+    
+    var headerTopPadding: CGFloat {
+        CGFloat(theme?.layout?.headerTopPadding ?? 120)
+    }
+    
+    var sectionSpacing: CGFloat {
+        CGFloat(theme?.layout?.sectionSpacing ?? 40)
+    }
+    
+    var buttonSpacing: CGFloat {
+        CGFloat(theme?.layout?.buttonSpacing ?? 12)
+    }
+    
+    var cornerRadius: CGFloat {
+        CGFloat(theme?.layout?.cornerRadius ?? 12)
+    }
+    
     var body: some View {
         ZStack {
             backgroundGradient
@@ -213,6 +286,13 @@ struct DonationHomeView: View {
             if appState.categories.isEmpty {
                 await appState.refreshCategories()
             }
+            
+            // Refresh temple config to get latest theme settings
+            await appState.refreshTempleConfig()
+        }
+        .onChange(of: appState.temple?.kioskTheme) { _ in
+            // Theme was updated, view will automatically refresh due to @EnvironmentObject
+            print("[DonationHomeView] Theme updated, view will refresh")
         }
         .onChange(of: appState.temple?.homeScreenConfig?.backgroundImageUrl) { newUrl in
             // Reset image when URL changes
@@ -276,12 +356,12 @@ struct DonationHomeView: View {
             // Header
             VStack(spacing: 6) {
                 Text("Select Category")
-                    .font(.custom("Inter-SemiBold", size: 32))
-                    .foregroundColor(colorFromHex("423232"))
+                    .font(.custom(headingFont, size: headingSize))
+                    .foregroundColor(headingColor)
                 
                 Text("Choose your donation category")
-                    .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                    .font(.custom(bodyFont, size: bodySize))
+                    .foregroundColor(subtitleColor)
             }
             .padding(.top, 120)
             .padding(.bottom, 12)
@@ -322,7 +402,7 @@ struct DonationHomeView: View {
                                     }
                                 }
                             )
-                            .frame(maxWidth: 400) // Constrain width to make boxes less wide
+                            .frame(maxWidth: categoryBoxMaxWidth) // Use theme width
                         }
                     }
                     .padding(.horizontal, 16)
@@ -385,7 +465,7 @@ struct DonationHomeView: View {
                     .font(.custom("Inter-Regular", size: 14))
                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
             }
-            .padding(.top, 120)
+            .padding(.top, headerTopPadding)
             .padding(.bottom, 12)
             
             amountContent

@@ -43,6 +43,27 @@ class AppState: ObservableObject {
         }
     }
     
+    func refreshTempleConfig() async {
+        // Refresh temple config to get latest theme settings
+        guard let token = deviceToken,
+              let templeId = extractTempleId(from: token) else {
+            print("[AppState] ⚠️ Cannot refresh temple config - missing token or templeId")
+            return
+        }
+        
+        print("[AppState] 🔄 Refreshing temple config for theme updates...")
+        
+        do {
+            let temple = try await APIService.shared.getTemple(templeId: templeId)
+            await MainActor.run {
+                self.temple = temple
+                print("[AppState] ✅ Temple config refreshed (including theme)")
+            }
+        } catch {
+            print("[AppState] ❌ Failed to refresh temple config: \(error.localizedDescription)")
+        }
+    }
+    
     func refreshCategories() async {
         guard let templeId = extractTempleId(from: deviceToken ?? "") else {
             print("[AppState] ⚠️ Cannot refresh categories - missing templeId")
@@ -278,6 +299,40 @@ struct Temple: Codable {
     let branding: Branding?
     let squareLocationId: String?
     let homeScreenConfig: HomeScreenConfig?
+    let kioskTheme: KioskTheme?
+}
+
+struct KioskTheme: Codable {
+    let fonts: ThemeFonts?
+    let colors: ThemeColors?
+    let layout: ThemeLayout?
+}
+
+struct ThemeFonts: Codable {
+    let headingFamily: String?
+    let headingSize: Double?
+    let buttonFamily: String?
+    let buttonSize: Double?
+    let bodyFamily: String?
+    let bodySize: Double?
+}
+
+struct ThemeColors: Codable {
+    let headingColor: String?
+    let buttonTextColor: String?
+    let bodyTextColor: String?
+    let subtitleColor: String?
+}
+
+struct ThemeLayout: Codable {
+    let categoryBoxMaxWidth: Double?
+    let amountButtonWidth: Double?
+    let amountButtonHeight: Double?
+    let categoryButtonHeight: Double?
+    let headerTopPadding: Double?
+    let sectionSpacing: Double?
+    let buttonSpacing: Double?
+    let cornerRadius: Double?
 }
 
 struct HomeScreenConfig: Codable {
