@@ -26,7 +26,6 @@ import { UserRole } from '../users/entities/user.entity';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
 
 @ApiTags('temples')
 @Controller('temples')
