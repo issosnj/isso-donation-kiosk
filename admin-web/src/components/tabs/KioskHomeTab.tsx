@@ -139,6 +139,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                       amountSelected: '#3366CC',
                       amountUnselected: '#3366CC',
                     },
+                    backgroundImageUrl: temple.homeScreenConfig.backgroundImageUrl || '',
                   })
                 }
               }}
