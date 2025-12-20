@@ -103,6 +103,90 @@ export class DonationsService {
     return receiptNumber;
   }
 
+  async cleanupPendingDonations(): Promise<{ deleted: number }> {
+    const result = await this.donationsRepository.delete({
+      status: DonationStatus.PENDING,
+    });
+    console.log(`[DonationsService] Deleted ${result.affected || 0} pending donations`);
+    return { deleted: result.affected || 0 };
+  }
+
+  async generateReceiptNumbersForSuccessfulDonations(): Promise<{ updated: number }> {
+    // Find all successful donations without receipt numbers
+    const donations = await this.donationsRepository.find({
+      where: {
+        status: DonationStatus.SUCCEEDED,
+        receiptNumber: null as any, // TypeORM workaround for IS NULL
+      },
+      relations: ['temple'],
+    });
+
+    // Group by temple to generate sequential numbers
+    const donationsByTemple = new Map<string, typeof donations>();
+    for (const donation of donations) {
+      const templeId = donation.templeId;
+      if (!donationsByTemple.has(templeId)) {
+        donationsByTemple.set(templeId, []);
+      }
+      donationsByTemple.get(templeId)!.push(donation);
+    }
+
+    let totalUpdated = 0;
+
+    // Process each temple's donations
+    for (const [templeId, templeDonations] of donationsByTemple.entries()) {
+      // Sort by creation date to maintain chronological order
+      templeDonations.sort((a, b) => 
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+
+      // Get existing receipt numbers for this temple to find the starting number
+      const existingDonations = await this.donationsRepository
+        .createQueryBuilder('donation')
+        .where('donation.templeId = :templeId', { templeId })
+        .andWhere('donation.receiptNumber IS NOT NULL')
+        .andWhere('donation.status = :status', { status: DonationStatus.SUCCEEDED })
+        .orderBy('donation.createdAt', 'ASC')
+        .getMany();
+
+      // Find the highest receipt number
+      let nextNumber = 1;
+      if (existingDonations.length > 0) {
+        const temple = templeDonations[0].temple;
+        const templeCode = temple?.templeCode || templeId.substring(0, 4).toUpperCase();
+        const pattern = `${templeCode} - K - %`;
+        
+        const matchingReceipts = existingDonations.filter(d => 
+          d.receiptNumber && d.receiptNumber.startsWith(templeCode + ' - K - ')
+        );
+        
+        if (matchingReceipts.length > 0) {
+          const lastReceipt = matchingReceipts[matchingReceipts.length - 1].receiptNumber;
+          const match = lastReceipt?.match(/\d+$/);
+          if (match) {
+            nextNumber = parseInt(match[0], 10) + 1;
+          }
+        }
+      }
+
+      // Generate receipt numbers for each donation
+      for (const donation of templeDonations) {
+        const temple = donation.temple;
+        const templeCode = temple?.templeCode || templeId.substring(0, 4).toUpperCase();
+        const receiptNumber = `${templeCode} - K - ${nextNumber.toString().padStart(4, '0')}`;
+        
+        donation.receiptNumber = receiptNumber;
+        await this.donationsRepository.save(donation);
+        console.log(`[DonationsService] Generated receipt number ${receiptNumber} for donation ${donation.id}`);
+        nextNumber++;
+        totalUpdated++;
+      }
+    }
+
+    console.log(`[DonationsService] Generated receipt numbers for ${totalUpdated} donations`);
+    return { updated: totalUpdated };
+  }
+
   async cancel(donationId: string): Promise<Donation> {
     const donation = await this.donationsRepository.findOne({
       where: { id: donationId },

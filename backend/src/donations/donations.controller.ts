@@ -227,5 +227,27 @@ export class DonationsController {
   async cancel(@Param('id') id: string) {
     return this.donationsService.cancel(id);
   }
+
+  @Post('cleanup/pending')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete all pending donations (Master Admin only)' })
+  async cleanupPending(@CurrentUser() user: any) {
+    if (user.role !== 'MASTER_ADMIN') {
+      throw new ForbiddenException('Only master admins can perform this action');
+    }
+    return this.donationsService.cleanupPendingDonations();
+  }
+
+  @Post('cleanup/generate-receipt-numbers')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate receipt numbers for successful donations without them (Master Admin only)' })
+  async generateReceiptNumbers(@CurrentUser() user: any) {
+    if (user.role !== 'MASTER_ADMIN') {
+      throw new ForbiddenException('Only master admins can perform this action');
+    }
+    return this.donationsService.generateReceiptNumbersForSuccessfulDonations();
+  }
 }
 
