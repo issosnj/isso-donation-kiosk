@@ -72,16 +72,14 @@ class AppState: ObservableObject {
                 print("[AppState] ✅ Temple config refreshed (including theme)")
             }
             
-            // Preload background image if URL changed or image not cached
-            if newBackgroundUrl != oldBackgroundUrl || backgroundImage == nil {
-                await preloadBackgroundImage()
-            }
+            // Always reload background image when refreshing config (in case image was updated)
+            await preloadBackgroundImage(forceReload: true)
         } catch {
             print("[AppState] ❌ Failed to refresh temple config: \(error.localizedDescription)")
         }
     }
     
-    func preloadBackgroundImage() async {
+    func preloadBackgroundImage(forceReload: Bool = false) async {
         guard let backgroundUrl = temple?.homeScreenConfig?.backgroundImageUrl,
               let url = URL(string: backgroundUrl) else {
             await MainActor.run {
@@ -90,10 +88,16 @@ class AppState: ObservableObject {
             return
         }
         
-        print("[AppState] 🖼️ Preloading background image: \(backgroundUrl)")
+        print("[AppState] 🖼️ Preloading background image: \(backgroundUrl) (forceReload: \(forceReload))")
         
-        // Check cache first
-        if let cachedResponse = URLCache.shared.cachedResponse(for: URLRequest(url: url)),
+        // If force reload, clear cache first
+        if forceReload {
+            URLCache.shared.removeCachedResponse(for: URLRequest(url: url))
+            print("[AppState] 🗑️ Cleared cached background image")
+        }
+        
+        // Check cache first (unless forcing reload)
+        if !forceReload, let cachedResponse = URLCache.shared.cachedResponse(for: URLRequest(url: url)),
            let image = UIImage(data: cachedResponse.data) {
             await MainActor.run {
                 self.backgroundImage = image
@@ -104,7 +108,13 @@ class AppState: ObservableObject {
         
         // Load from network
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            // Create request with cache policy to bypass cache if force reload
+            var request = URLRequest(url: url)
+            if forceReload {
+                request.cachePolicy = .reloadIgnoringLocalCacheData
+            }
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
             
             // Verify it's an image
             guard let image = UIImage(data: data) else {
