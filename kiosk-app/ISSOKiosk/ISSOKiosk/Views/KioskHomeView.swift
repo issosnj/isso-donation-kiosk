@@ -114,7 +114,7 @@ struct KioskHomeView: View {
                     VStack(spacing: 0) {
                         // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller)
                         Text("Welcome to Shree Swaminarayan Hindu Temple")
-                            .font(.custom("Inter-SemiBold", size: 42))
+                            .font(.custom("Inter-Bold", size: 42))
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
@@ -137,7 +137,7 @@ struct KioskHomeView: View {
                         
                         // Under Shree NarNarayan Dev Gadi
                         Text("Under Shree NarNarayan Dev Gadi")
-                            .font(.custom("Inter-SemiBold", size: 20))
+                            .font(.custom("Inter-Italic", size: 20))
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
