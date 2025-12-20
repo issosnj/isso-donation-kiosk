@@ -472,6 +472,9 @@ struct Donation: Codable {
     let deviceId: String
     let amount: Double
     let status: String
+    let pledgeToken: String?
+    let pledgeExpiryDate: String?
+    let pledgePaymentLink: String?
 }
 
 // Suggestion submission
