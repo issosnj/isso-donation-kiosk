@@ -153,6 +153,7 @@ export default function ThemeTab() {
                       buttonTextColor: temple.kioskTheme.colors?.buttonTextColor || '#FFFFFF',
                       bodyTextColor: temple.kioskTheme.colors?.bodyTextColor || '#808080',
                       subtitleColor: temple.kioskTheme.colors?.subtitleColor || '#808080',
+                      quantityTotalColor: temple.kioskTheme.colors?.quantityTotalColor || '#423232',
                     },
                     layout: {
                       categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
@@ -160,9 +161,11 @@ export default function ThemeTab() {
                       amountButtonHeight: temple.kioskTheme.layout?.amountButtonHeight || 70,
                       categoryButtonHeight: temple.kioskTheme.layout?.categoryButtonHeight || 70,
                       headerTopPadding: temple.kioskTheme.layout?.headerTopPadding || 120,
+                      categoryHeaderTopPadding: temple.kioskTheme.layout?.categoryHeaderTopPadding || 120,
                       sectionSpacing: temple.kioskTheme.layout?.sectionSpacing || 40,
                       buttonSpacing: temple.kioskTheme.layout?.buttonSpacing || 12,
                       cornerRadius: temple.kioskTheme.layout?.cornerRadius || 12,
+                      quantityTotalSpacing: temple.kioskTheme.layout?.quantityTotalSpacing || 24,
                     },
                   })
                 }
