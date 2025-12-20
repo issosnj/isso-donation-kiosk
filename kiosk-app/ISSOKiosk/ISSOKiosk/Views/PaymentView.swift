@@ -76,14 +76,50 @@ struct ModernPaymentView: View {
         }
         .onDisappear {
             // If user dismisses without completing payment, cancel the donation
-            if let donationId = donationId, paymentStatus == nil {
-                print("[PaymentView] ⚠️ View dismissed without completing payment, canceling donation: \(donationId)")
-                Task {
-                    do {
-                        _ = try await APIService.shared.cancelDonation(donationId: donationId)
-                        print("[PaymentView] ✅ Donation canceled successfully")
-                    } catch {
-                        print("[PaymentView] ❌ Failed to cancel donation: \(error.localizedDescription)")
+            // Only cancel if payment hasn't been completed (no status set) or if it failed
+            if let donationId = donationId {
+                if paymentStatus == nil {
+                    // No payment status means user backed out before payment completed
+                    print("[PaymentView] ⚠️ View dismissed without completing payment, canceling donation: \(donationId)")
+                    Task {
+                        do {
+                            _ = try await APIService.shared.cancelDonation(donationId: donationId)
+                            print("[PaymentView] ✅ Donation canceled successfully")
+                        } catch {
+                            print("[PaymentView] ❌ Failed to cancel donation: \(error.localizedDescription)")
+                            // If cancel fails (e.g., already completed), try to mark as failed
+                            do {
+                                _ = try await APIService.shared.completeDonation(
+                                    donationId: donationId,
+                                    squarePaymentId: "",
+                                    status: "CANCELED",
+                                    donorName: donorName,
+                                    donorPhone: donorPhone,
+                                    donorEmail: donorEmail
+                                )
+                                print("[PaymentView] ✅ Donation marked as CANCELED via completeDonation")
+                            } catch {
+                                print("[PaymentView] ❌ Failed to update donation status: \(error.localizedDescription)")
+                            }
+                        }
+                    }
+                } else if case .failure = paymentStatus {
+                    // Payment failed - ensure donation is marked as FAILED (should already be done, but double-check)
+                    print("[PaymentView] ⚠️ View dismissed after payment failure, ensuring donation is marked as FAILED: \(donationId)")
+                    Task {
+                        do {
+                            _ = try await APIService.shared.completeDonation(
+                                donationId: donationId,
+                                squarePaymentId: "",
+                                status: "FAILED",
+                                donorName: donorName,
+                                donorPhone: donorPhone,
+                                donorEmail: donorEmail
+                            )
+                            print("[PaymentView] ✅ Donation confirmed as FAILED")
+                        } catch {
+                            print("[PaymentView] ⚠️ Donation may already be updated: \(error.localizedDescription)")
+                        }
                     }
                 }
             }
@@ -114,6 +150,7 @@ struct ModernPaymentView: View {
         print("[PaymentView] 🔄 Starting payment flow...")
         
         Task {
+            var currentDonationId: String? = nil
             do {
                 print("[PaymentView] 📡 Step 1: Initiating donation with backend...")
                 // 1. Initiate donation
@@ -126,6 +163,7 @@ struct ModernPaymentView: View {
                 print("[PaymentView] ✅ Donation initiated: \(donation.id)")
                 
                 // Store donation ID for potential cancellation
+                currentDonationId = donation.id
                 await MainActor.run {
                     self.donationId = donation.id
                 }
@@ -158,6 +196,21 @@ struct ModernPaymentView: View {
                                 case .success(let result):
                                     paymentResult = result
                                 case .failure(let error):
+                                    // Payment failed - mark donation as FAILED
+                                    print("[PaymentView] ❌ Payment failed: \(error.localizedDescription)")
+                                    do {
+                                        _ = try await APIService.shared.completeDonation(
+                                            donationId: donation.id,
+                                            squarePaymentId: "",
+                                            status: "FAILED",
+                                            donorName: donorName,
+                                            donorPhone: donorPhone,
+                                            donorEmail: donorEmail
+                                        )
+                                        print("[PaymentView] ✅ Donation marked as FAILED")
+                                    } catch {
+                                        print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
+                                    }
                                     await MainActor.run {
                                         self.isProcessing = false
                                         self.paymentStatus = .failure(error.localizedDescription)
@@ -188,6 +241,21 @@ struct ModernPaymentView: View {
                                     }
                                 }
                             } catch {
+                                // Error during payment completion - mark donation as FAILED
+                                print("[PaymentView] ❌ Error completing donation: \(error.localizedDescription)")
+                                do {
+                                    _ = try await APIService.shared.completeDonation(
+                                        donationId: donation.id,
+                                        squarePaymentId: "",
+                                        status: "FAILED",
+                                        donorName: donorName,
+                                        donorPhone: donorPhone,
+                                        donorEmail: donorEmail
+                                    )
+                                    print("[PaymentView] ✅ Donation marked as FAILED after error")
+                                } catch {
+                                    print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
+                                }
                                 await MainActor.run {
                                     self.isProcessing = false
                                     self.paymentStatus = .failure(error.localizedDescription)
@@ -199,6 +267,15 @@ struct ModernPaymentView: View {
             } catch {
                 print("[PaymentView] ❌ Error in payment flow: \(error)")
                 print("[PaymentView] ❌ Error details: \(error.localizedDescription)")
+                // If donation was initiated but payment failed to start, cancel it
+                if let donationId = currentDonationId {
+                    do {
+                        _ = try await APIService.shared.cancelDonation(donationId: donationId)
+                        print("[PaymentView] ✅ Donation canceled after payment flow error")
+                    } catch {
+                        print("[PaymentView] ⚠️ Failed to cancel donation: \(error.localizedDescription)")
+                    }
+                }
                 await MainActor.run {
                     isProcessing = false
                     paymentStatus = .failure(error.localizedDescription)

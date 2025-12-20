@@ -200,13 +200,21 @@ export class DonationsService {
       throw new NotFoundException(`Donation with ID ${donationId} not found`);
     }
 
-    // Only allow canceling if still pending
-    if (donation.status !== DonationStatus.PENDING) {
-      throw new BadRequestException('Can only cancel pending donations');
+    // Allow canceling if still pending or failed (user cancelled after failure)
+    if (donation.status === DonationStatus.SUCCEEDED) {
+      throw new BadRequestException('Cannot cancel a succeeded donation');
+    }
+
+    // If already canceled, just return it
+    if (donation.status === DonationStatus.CANCELED) {
+      return donation;
     }
 
     donation.status = DonationStatus.CANCELED;
-    return this.donationsRepository.save(donation);
+    console.log(`[DonationsService] Canceling donation ${donationId}, previous status: ${donation.status}`);
+    const saved = await this.donationsRepository.save(donation);
+    console.log(`[DonationsService] Donation ${donationId} canceled successfully, new status: ${saved.status}`);
+    return saved;
   }
 
   async findAll(
