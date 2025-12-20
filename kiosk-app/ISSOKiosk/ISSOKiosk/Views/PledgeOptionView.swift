@@ -15,6 +15,7 @@ struct PledgeOptionView: View {
     @State private var pledgePaymentLink: String?
     @State private var qrCodeImage: UIImage?
     @State private var isCreatingPledge = false
+    @State private var pledgeCreated = false
     
     var body: some View {
         NavigationView {
@@ -38,7 +39,7 @@ struct PledgeOptionView: View {
                             .font(.custom("Inter-Regular", size: 16))
                             .foregroundColor(.gray)
                     }
-                } else if let _ = pledgeToken, let link = pledgePaymentLink {
+                } else if pledgeCreated, let link = pledgePaymentLink {
                     // Show pledge confirmation with QR code
                     ScrollView {
                         VStack(spacing: 30) {

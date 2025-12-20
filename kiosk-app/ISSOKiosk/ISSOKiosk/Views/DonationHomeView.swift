@@ -214,8 +214,8 @@ struct DonationHomeView: View {
                     category: selectedCategory,
                     onConfirm: { name, phone, email in
                         showingDetails = false
-                        // Check if temple has yajman opportunities enabled
-                        if appState.temple?.yajmanOpportunitiesEnabled == true && selectedCategory != nil {
+                        // Check if temple has yajman opportunities enabled - show pledge option for ALL donations
+                        if appState.temple?.yajmanOpportunitiesEnabled == true {
                             showingPledgeOption = true
                         } else {
                             showingPayment = true
@@ -880,11 +880,16 @@ struct CleanCategoryButton: View {
                         }
                     }
                     
-                    // Show yajman opportunities indicator
+                    // Show yajman opportunities indicator - make it more visible
                     if let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
-                        Text("Includes \(opportunities.count) yajman opportunity\(opportunities.count == 1 ? "" : "ies")")
-                            .font(.custom("Inter-Regular", size: 12))
-                            .foregroundColor(.white.opacity(0.8))
+                        HStack(spacing: 4) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
+                            Text("Includes \(opportunities.count) yajman opportunity\(opportunities.count == 1 ? "" : "ies")")
+                                .font(.custom("Inter-Medium", size: 13))
+                                .foregroundColor(.white.opacity(0.95))
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
