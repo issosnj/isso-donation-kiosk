@@ -154,8 +154,14 @@ export class DonationCategoriesService {
 
       // If they have the same displayOrder, we need to reassign orders to ensure uniqueness
       if (category.displayOrder === previousCategory.displayOrder) {
-        console.log(`[DonationCategoriesService] moveUp: Same displayOrder detected, reassigning orders`);
-        // Reassign all orders to ensure uniqueness
+        console.log(`[DonationCategoriesService] moveUp: Same displayOrder detected, reassigning all orders`);
+        // First, reassign all orders to ensure uniqueness (0, 1, 2, ...)
+        for (let i = 0; i < allCategories.length; i++) {
+          allCategories[i].displayOrder = i;
+        }
+        // Swap the two categories in the array
+        [allCategories[currentIndex], allCategories[currentIndex - 1]] = [allCategories[currentIndex - 1], allCategories[currentIndex]];
+        // Reassign orders after swap
         for (let i = 0; i < allCategories.length; i++) {
           allCategories[i].displayOrder = i;
         }
@@ -165,11 +171,9 @@ export class DonationCategoriesService {
         const tempOrder = category.displayOrder;
         category.displayOrder = previousCategory.displayOrder;
         previousCategory.displayOrder = tempOrder;
+        console.log(`[DonationCategoriesService] moveUp: After swap - "${category.name}" now has order ${category.displayOrder}, "${previousCategory.name}" now has order ${previousCategory.displayOrder}`);
+        await transactionalEntityManager.save([category, previousCategory]);
       }
-
-      console.log(`[DonationCategoriesService] moveUp: After swap - "${category.name}" now has order ${category.displayOrder}, "${previousCategory.name}" now has order ${previousCategory.displayOrder}`);
-
-      await transactionalEntityManager.save([category, previousCategory]);
 
       // Return updated list
       const updatedCategories = await transactionalEntityManager.find(DonationCategory, {
