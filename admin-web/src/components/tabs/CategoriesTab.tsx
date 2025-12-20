@@ -93,6 +93,26 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     },
   })
 
+  const moveUpMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post(`/donation-categories/${id}/move-up`)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
+    },
+  })
+
+  const moveDownMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post(`/donation-categories/${id}/move-down`)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
+    },
+  })
+
   const startEdit = (category: any) => {
     setEditingCategory(category.id)
     setEditName(category.name)
@@ -321,6 +341,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Default Amount</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Active</th>
@@ -330,10 +351,10 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {categories?.map((category: any) => (
+                {categories?.map((category: any, index: number) => (
                   <tr key={category.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
                     {editingCategory === category.id ? (
-                      <td colSpan={5} className="px-6 py-4">
+                      <td colSpan={7} className="px-6 py-4">
                         <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -556,6 +577,27 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                               className="px-3 py-1 text-red-600 hover:text-red-700 text-xs font-medium disabled:opacity-50"
                             >
                               Delete
+                            </button>
+                          </div>
+                        </td>
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={() => moveUpMutation.mutate(category.id)}
+                              disabled={index === 0 || moveUpMutation.isPending || moveDownMutation.isPending}
+                              className="px-2 py-1 text-gray-600 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed text-xs"
+                              title="Move up"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              onClick={() => moveDownMutation.mutate(category.id)}
+                              disabled={index === (categories?.length || 0) - 1 || moveUpMutation.isPending || moveDownMutation.isPending}
+                              className="px-2 py-1 text-gray-600 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed text-xs"
+                              title="Move down"
+                            >
+                              ↓
                             </button>
                           </div>
                         </td>

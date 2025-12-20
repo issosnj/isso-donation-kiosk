@@ -214,17 +214,23 @@ struct DonationHomeView: View {
                     category: selectedCategory,
                     onConfirm: { name, phone, email in
                         showingDetails = false
-                        // Check if temple has yajman opportunities enabled - show pledge option for ALL donations
+                        // Show pledge option if:
+                        // 1. Temple has yajman opportunities enabled, OR
+                        // 2. Selected category has yajman opportunities
                         let yajmanEnabled = appState.temple?.yajmanOpportunitiesEnabled == true
-                        print("[DonationHomeView] 🔍 Yajman opportunities enabled: \(yajmanEnabled)")
-                        print("[DonationHomeView] 🔍 Temple: \(appState.temple?.name ?? "nil")")
-                        print("[DonationHomeView] 🔍 yajmanOpportunitiesEnabled value: \(appState.temple?.yajmanOpportunitiesEnabled ?? false)")
+                        let categoryHasOpportunities = selectedCategory?.yajmanOpportunities?.isEmpty == false
+                        let shouldShowPledge = yajmanEnabled || categoryHasOpportunities
                         
-                        if yajmanEnabled {
+                        print("[DonationHomeView] 🔍 Yajman opportunities enabled: \(yajmanEnabled)")
+                        print("[DonationHomeView] 🔍 Category has opportunities: \(categoryHasOpportunities ?? false)")
+                        print("[DonationHomeView] 🔍 Selected category: \(selectedCategory?.name ?? "nil")")
+                        print("[DonationHomeView] 🔍 Should show pledge: \(shouldShowPledge)")
+                        
+                        if shouldShowPledge {
                             print("[DonationHomeView] ✅ Showing pledge option")
                             showingPledgeOption = true
                         } else {
-                            print("[DonationHomeView] ⏭️ Going directly to payment (yajman not enabled)")
+                            print("[DonationHomeView] ⏭️ Going directly to payment (pledge not available)")
                             showingPayment = true
                         }
                         donorName = name

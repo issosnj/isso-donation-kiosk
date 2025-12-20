@@ -33,11 +33,11 @@ export class DonationCategoriesService {
     if (templeId) {
       return this.categoriesRepository.find({
         where: { templeId },
-        order: { name: 'ASC' },
+        order: { displayOrder: 'ASC', name: 'ASC' },
       });
     }
     return this.categoriesRepository.find({
-      order: { name: 'ASC' },
+      order: { displayOrder: 'ASC', name: 'ASC' },
     });
   }
 
@@ -69,7 +69,10 @@ export class DonationCategoriesService {
       );
     }
 
-    const categories = await queryBuilder.orderBy('category.name', 'ASC').getMany();
+    const categories = await queryBuilder
+      .orderBy('category.displayOrder', 'ASC')
+      .addOrderBy('category.name', 'ASC')
+      .getMany();
     console.log(`[DonationCategoriesService] Found ${categories.length} categories`);
     
     if (categories.length > 0) {
@@ -112,6 +115,66 @@ export class DonationCategoriesService {
   async remove(id: string): Promise<void> {
     const category = await this.findOne(id);
     await this.categoriesRepository.remove(category);
+  }
+
+  async moveUp(id: string, templeId: string): Promise<DonationCategory[]> {
+    const category = await this.findOne(id);
+    if (category.templeId !== templeId) {
+      throw new NotFoundException('Category not found for this temple');
+    }
+
+    // Get all categories for this temple, ordered by displayOrder
+    const allCategories = await this.categoriesRepository.find({
+      where: { templeId },
+      order: { displayOrder: 'ASC', name: 'ASC' },
+    });
+
+    const currentIndex = allCategories.findIndex((c) => c.id === id);
+    if (currentIndex <= 0) {
+      // Already at the top, nothing to do
+      return allCategories;
+    }
+
+    // Swap displayOrder with the category above
+    const previousCategory = allCategories[currentIndex - 1];
+    const tempOrder = category.displayOrder;
+    category.displayOrder = previousCategory.displayOrder;
+    previousCategory.displayOrder = tempOrder;
+
+    await this.categoriesRepository.save([category, previousCategory]);
+
+    // Return updated list
+    return this.findAll(templeId);
+  }
+
+  async moveDown(id: string, templeId: string): Promise<DonationCategory[]> {
+    const category = await this.findOne(id);
+    if (category.templeId !== templeId) {
+      throw new NotFoundException('Category not found for this temple');
+    }
+
+    // Get all categories for this temple, ordered by displayOrder
+    const allCategories = await this.categoriesRepository.find({
+      where: { templeId },
+      order: { displayOrder: 'ASC', name: 'ASC' },
+    });
+
+    const currentIndex = allCategories.findIndex((c) => c.id === id);
+    if (currentIndex < 0 || currentIndex >= allCategories.length - 1) {
+      // Already at the bottom, nothing to do
+      return allCategories;
+    }
+
+    // Swap displayOrder with the category below
+    const nextCategory = allCategories[currentIndex + 1];
+    const tempOrder = category.displayOrder;
+    category.displayOrder = nextCategory.displayOrder;
+    nextCategory.displayOrder = tempOrder;
+
+    await this.categoriesRepository.save([category, nextCategory]);
+
+    // Return updated list
+    return this.findAll(templeId);
   }
 }
 

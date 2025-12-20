@@ -144,5 +144,39 @@ export class DonationCategoriesController {
   remove(@Param('id') id: string) {
     return this.categoriesService.remove(id);
   }
+
+  @Post(':id/move-up')
+  @ApiOperation({ summary: 'Move category up in display order' })
+  moveUp(@Param('id') id: string, @CurrentUser() user: any) {
+    const templeId = user.role === UserRole.MASTER_ADMIN 
+      ? undefined 
+      : user.templeId;
+    
+    if (!templeId) {
+      // For master admin, need to get category first to find templeId
+      return this.categoriesService.findOne(id).then((category) => {
+        return this.categoriesService.moveUp(id, category.templeId);
+      });
+    }
+    
+    return this.categoriesService.moveUp(id, templeId);
+  }
+
+  @Post(':id/move-down')
+  @ApiOperation({ summary: 'Move category down in display order' })
+  moveDown(@Param('id') id: string, @CurrentUser() user: any) {
+    const templeId = user.role === UserRole.MASTER_ADMIN 
+      ? undefined 
+      : user.templeId;
+    
+    if (!templeId) {
+      // For master admin, need to get category first to find templeId
+      return this.categoriesService.findOne(id).then((category) => {
+        return this.categoriesService.moveDown(id, category.templeId);
+      });
+    }
+    
+    return this.categoriesService.moveDown(id, templeId);
+  }
 }
 

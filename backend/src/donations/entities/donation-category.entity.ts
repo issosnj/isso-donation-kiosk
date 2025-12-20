@@ -46,6 +46,9 @@ export class DonationCategory {
     description?: string;           // Optional description
   }>;
 
+  @Column({ type: 'int', default: 0 })
+  displayOrder: number;            // Order for displaying categories (lower = first)
+
   @CreateDateColumn()
   createdAt: Date;
 
