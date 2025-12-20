@@ -449,15 +449,12 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                 id="showContactInfo"
                 checked={formData.showContactInfo}
                 onChange={(e) => setFormData({ ...formData, showContactInfo: e.target.checked })}
-                disabled={!isEditing || !isMasterAdmin}
+                disabled={!isEditing}
                 className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
               />
               <label htmlFor="showContactInfo" className="ml-2 text-sm font-medium text-gray-700">
                 Show contact information on receipt
               </label>
-              {!isMasterAdmin && (
-                <span className="ml-2 text-xs text-gray-500">(Master Admin only)</span>
-              )}
             </div>
             {formData.showContactInfo && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
