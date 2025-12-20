@@ -333,6 +333,7 @@ struct ThemeLayout: Codable, Equatable {
     let headerTopPadding: Double?
     let categoryHeaderTopPadding: Double?
     let sectionSpacing: Double?
+    let categoryAmountSectionSpacing: Double?
     let buttonSpacing: Double?
     let cornerRadius: Double?
     let quantityTotalSpacing: Double?

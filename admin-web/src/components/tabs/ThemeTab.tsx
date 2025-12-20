@@ -53,6 +53,7 @@ export default function ThemeTab() {
       headerTopPadding: 120,
       categoryHeaderTopPadding: 120,
       sectionSpacing: 40,
+      categoryAmountSectionSpacing: 40,
       buttonSpacing: 12,
       cornerRadius: 12,
       quantityTotalSpacing: 24,

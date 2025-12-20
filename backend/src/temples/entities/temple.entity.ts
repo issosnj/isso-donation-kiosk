@@ -106,6 +106,7 @@ export class Temple {
       headerTopPadding?: number; // Top padding for headers (e.g., 120)
       categoryHeaderTopPadding?: number; // Top padding for category header (to align with amount header)
       sectionSpacing?: number; // Spacing between sections
+      categoryAmountSectionSpacing?: number; // Horizontal spacing between category and amount sections (e.g., 40)
       buttonSpacing?: number; // Spacing between buttons
       cornerRadius?: number; // Corner radius for buttons (e.g., 12)
       quantityTotalSpacing?: number; // Spacing between quantity and total when category selected (e.g., 24)

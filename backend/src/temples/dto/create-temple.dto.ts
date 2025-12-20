@@ -85,6 +85,7 @@ export class CreateTempleDto {
       headerTopPadding?: number;
       categoryHeaderTopPadding?: number;
       sectionSpacing?: number;
+      categoryAmountSectionSpacing?: number;
       buttonSpacing?: number;
       cornerRadius?: number;
       quantityTotalSpacing?: number;

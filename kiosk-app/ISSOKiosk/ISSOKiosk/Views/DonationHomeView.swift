@@ -163,6 +163,10 @@ struct DonationHomeView: View {
         CGFloat(theme?.layout?.sectionSpacing ?? 40)
     }
     
+    var categoryAmountSectionSpacing: CGFloat {
+        CGFloat(theme?.layout?.categoryAmountSectionSpacing ?? 40)
+    }
+    
     var buttonSpacing: CGFloat {
         CGFloat(theme?.layout?.buttonSpacing ?? 12)
     }
@@ -183,23 +187,23 @@ struct DonationHomeView: View {
         }
         .fullScreenCover(isPresented: $showingDetails) {
             ModernDonationDetailsView(
-                amount: currentAmount,
-                category: selectedCategory,
-                onConfirm: { name, email in
-                    showingDetails = false
-                    showingPayment = true
-                    donorName = name
-                    donorEmail = email
-                }
-            )
-        }
-        .fullScreenCover(isPresented: $showingPayment) {
+                    amount: currentAmount,
+                    category: selectedCategory,
+                    onConfirm: { name, email in
+                        showingDetails = false
+                        showingPayment = true
+                        donorName = name
+                        donorEmail = email
+                    }
+                )
+            }
+            .fullScreenCover(isPresented: $showingPayment) {
             ModernPaymentView(
-                amount: currentAmount,
-                category: selectedCategory,
-                donorName: donorName,
-                donorEmail: donorEmail,
-                onComplete: {
+                    amount: currentAmount,
+                    category: selectedCategory,
+                    donorName: donorName,
+                    donorEmail: donorEmail,
+                    onComplete: {
                     withAnimation {
                         showingPayment = false
                         selectedAmount = nil
@@ -328,7 +332,7 @@ struct DonationHomeView: View {
     }
     
     private var mainContent: some View {
-        HStack(spacing: 40) {
+        HStack(spacing: categoryAmountSectionSpacing) {
             categorySection
                 .frame(maxWidth: .infinity)
             
@@ -675,7 +679,7 @@ struct CleanAmountButton: View {
     
     var body: some View {
         Button(action: action) {
-            Text("$\(Int(amount))")
+                Text("$\(Int(amount))")
                 .font(.custom("Inter-Medium", size: 20))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -731,9 +735,9 @@ struct CleanCustomAmountField: View {
         .padding(.horizontal, 16)
         .frame(height: 60)
         .background(Color.white)
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
                 .stroke(
                     isActive 
                         ? Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5)
@@ -765,7 +769,7 @@ struct CleanCategoryButton: View {
                 
                 // Category name and amount side by side
                 HStack(spacing: 8) {
-                    Text(category.name)
+            Text(category.name)
                         .font(.custom("Inter-SemiBold", size: 18))
                         .foregroundColor(.white)
                         .lineLimit(1)
