@@ -28,6 +28,55 @@ export class DonationCategoriesController {
     private readonly categoriesService: DonationCategoriesService,
   ) {}
 
+  // More specific routes must come before generic routes in NestJS
+  @Post(':id/move-up')
+  @ApiOperation({ summary: 'Move category up in display order' })
+  async moveUp(@Param('id') id: string, @CurrentUser() user: any) {
+    try {
+      console.log('[DonationCategoriesController] moveUp called with id:', id)
+      const templeId = user.role === UserRole.MASTER_ADMIN 
+        ? undefined 
+        : user.templeId;
+      
+      if (!templeId) {
+        // For master admin, need to get category first to find templeId
+        const category = await this.categoriesService.findOne(id);
+        console.log('[DonationCategoriesController] Master admin - found category templeId:', category.templeId)
+        return await this.categoriesService.moveUp(id, category.templeId);
+      }
+      
+      console.log('[DonationCategoriesController] Temple admin - using templeId:', templeId)
+      return await this.categoriesService.moveUp(id, templeId);
+    } catch (error) {
+      console.error('[DonationCategoriesController] Error moving category up:', error);
+      throw error;
+    }
+  }
+
+  @Post(':id/move-down')
+  @ApiOperation({ summary: 'Move category down in display order' })
+  async moveDown(@Param('id') id: string, @CurrentUser() user: any) {
+    try {
+      console.log('[DonationCategoriesController] moveDown called with id:', id)
+      const templeId = user.role === UserRole.MASTER_ADMIN 
+        ? undefined 
+        : user.templeId;
+      
+      if (!templeId) {
+        // For master admin, need to get category first to find templeId
+        const category = await this.categoriesService.findOne(id);
+        console.log('[DonationCategoriesController] Master admin - found category templeId:', category.templeId)
+        return await this.categoriesService.moveDown(id, category.templeId);
+      }
+      
+      console.log('[DonationCategoriesController] Temple admin - using templeId:', templeId)
+      return await this.categoriesService.moveDown(id, templeId);
+    } catch (error) {
+      console.error('[DonationCategoriesController] Error moving category down:', error);
+      throw error;
+    }
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a new donation category' })
   create(
@@ -143,48 +192,6 @@ export class DonationCategoriesController {
   @ApiOperation({ summary: 'Delete donation category' })
   remove(@Param('id') id: string) {
     return this.categoriesService.remove(id);
-  }
-
-  @Post(':id/move-up')
-  @ApiOperation({ summary: 'Move category up in display order' })
-  async moveUp(@Param('id') id: string, @CurrentUser() user: any) {
-    try {
-      const templeId = user.role === UserRole.MASTER_ADMIN 
-        ? undefined 
-        : user.templeId;
-      
-      if (!templeId) {
-        // For master admin, need to get category first to find templeId
-        const category = await this.categoriesService.findOne(id);
-        return await this.categoriesService.moveUp(id, category.templeId);
-      }
-      
-      return await this.categoriesService.moveUp(id, templeId);
-    } catch (error) {
-      console.error('[DonationCategoriesController] Error moving category up:', error);
-      throw error;
-    }
-  }
-
-  @Post(':id/move-down')
-  @ApiOperation({ summary: 'Move category down in display order' })
-  async moveDown(@Param('id') id: string, @CurrentUser() user: any) {
-    try {
-      const templeId = user.role === UserRole.MASTER_ADMIN 
-        ? undefined 
-        : user.templeId;
-      
-      if (!templeId) {
-        // For master admin, need to get category first to find templeId
-        const category = await this.categoriesService.findOne(id);
-        return await this.categoriesService.moveDown(id, category.templeId);
-      }
-      
-      return await this.categoriesService.moveDown(id, templeId);
-    } catch (error) {
-      console.error('[DonationCategoriesController] Error moving category down:', error);
-      throw error;
-    }
   }
 }
 
