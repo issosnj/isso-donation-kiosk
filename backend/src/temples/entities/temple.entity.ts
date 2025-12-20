@@ -75,6 +75,7 @@ export class Temple {
         amountSelected?: string; // Hex color for selected amount buttons
         amountUnselected?: string; // Hex color for unselected amount buttons
       };
+      backgroundImageUrl?: string; // URL to custom background image for kiosk home screen
     };
 
   @OneToMany(() => Device, (device) => device.temple)

@@ -4,68 +4,156 @@ import CoreImage.CIFilterBuiltins
 struct KioskHomeView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var navigationState: AppNavigationState
+    @ObservedObject private var networkMonitor = NetworkMonitor.shared
     @State private var showWhatsAppQR = false
     @State private var showEvents = false
     @State private var showSocialMediaQR: String? = nil
     @State private var showSuggestionBox = false
+    @State private var currentTime = Date()
+    @State private var timer: Timer?
+    
+    // QR Code cache to avoid regenerating on each tap
+    @State private var qrCodeCache: [String: UIImage] = [:]
+    
+    // Cache DateFormatter for better performance
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
     
     var body: some View {
         ZStack {
-            // Modern gradient background
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.white,
-                    Color(red: 0.95, green: 0.97, blue: 1.0)
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            // Background: Custom image if available, otherwise gradient
+            if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
+               let url = URL(string: backgroundUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        // Show gradient while loading
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white,
+                                Color(red: 0.95, green: 0.97, blue: 1.0)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    case .failure:
+                        // Fallback to gradient on error
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white,
+                                Color(red: 0.95, green: 0.97, blue: 1.0)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    @unknown default:
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white,
+                                Color(red: 0.95, green: 0.97, blue: 1.0)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                }
+                .ignoresSafeArea()
+            } else {
+                // Default gradient background
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.white,
+                        Color(red: 0.95, green: 0.97, blue: 1.0)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            }
             
             VStack(spacing: 0) {
                 // Header at top, edge to edge
-                VStack(spacing: 0) {
-                    // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
-                    Text(header1Text)
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .minimumScaleFactor(0.5)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 20)
-                        .background(Color.white)
-                    
-                    // Under Shree NarNarayan Dev Gadi
-                    Text("Under Shree NarNarayan Dev Gadi")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(Color.white)
-                    
-                    // Welcome to Shree Swaminarayan Hindu Temple
-                    Text("Welcome to Shree Swaminarayan Hindu Temple")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.white)
-                    
-                    // Temple Address
-                    if let temple = appState.temple, let address = temple.address, !address.isEmpty {
-                        Text(address)
-                            .font(.system(size: 18, weight: .regular))
+                ZStack {
+                    VStack(spacing: 0) {
+                        // Welcome to Shree Swaminarayan Hindu Temple (on top, bigger)
+                        Text("Welcome to Shree Swaminarayan Hindu Temple")
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(nil)
+                            .minimumScaleFactor(0.5)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                            .padding(.bottom, 8)
+                            .background(Color.white)
+                        
+                        // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
+                        Text(header1Text)
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(nil)
+                            .minimumScaleFactor(0.5)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 4)
+                            .background(Color.white)
+                        
+                        // Under Shree NarNarayan Dev Gadi
+                        Text("Under Shree NarNarayan Dev Gadi")
+                            .font(.system(size: 18, weight: .medium))
                             .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                             .multilineTextAlignment(.center)
-                            .lineLimit(2)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .padding(.bottom, 16)
+                            .padding(.bottom, 4)
                             .background(Color.white)
+                        
+                        // Temple Address
+                        if let temple = appState.temple, let address = temple.address, !address.isEmpty {
+                            Text(address)
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity)
+                                .padding(.bottom, 16)
+                                .background(Color.white)
+                        } else {
+                            // Add padding if no address
+                            Spacer()
+                                .frame(height: 16)
+                                .background(Color.white)
+                        }
+                    }
+                    
+                    // Time and Network Status in top right
+                    VStack {
+                        HStack {
+                            Spacer()
+                            HStack(spacing: 12) {
+                                // Network status indicator
+                                Circle()
+                                    .fill(networkMonitor.isConnected ? Color.green : Color.red)
+                                    .frame(width: 12, height: 12)
+                                    .shadow(color: networkMonitor.isConnected ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 4)
+                                
+                                // Time display
+                                Text(timeString)
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                            }
+                            .padding(.trailing, 20)
+                            .padding(.top, 8)
+                        }
+                        Spacer()
                     }
                 }
                 
@@ -74,94 +162,90 @@ struct KioskHomeView: View {
                 // Centered content
                 VStack(spacing: 40) {
                     
-                    // Main: Two Taps To Donation Button - Modern and Attractive
-                    Button(action: {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    // Main: Tap To Donate Button - Modern and Attractive (Centered)
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            // Use simpler animation for better performance
                             navigationState.showDonationFlow = true
-                        }
-                    }) {
-                        VStack(spacing: 16) {
-                            // Icon with glow effect
-                            ZStack {
-                                // Glow circle
-                                Circle()
-                                    .fill(
-                                        RadialGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.white.opacity(0.3),
-                                                Color.clear
-                                            ]),
-                                            center: .center,
-                                            startRadius: 10,
-                                            endRadius: 50
+                        }) {
+                            VStack(spacing: 16) {
+                                // Icon with glow effect
+                                ZStack {
+                                    // Glow circle
+                                    Circle()
+                                        .fill(
+                                            RadialGradient(
+                                                gradient: Gradient(colors: [
+                                                    Color.white.opacity(0.3),
+                                                    Color.clear
+                                                ]),
+                                                center: .center,
+                                                startRadius: 10,
+                                                endRadius: 50
+                                            )
                                         )
-                                    )
-                                    .frame(width: 100, height: 100)
-                                    .blur(radius: 10)
+                                        .frame(width: 100, height: 100)
+                                        .blur(radius: 10)
+                                    
+                                    // Hand icon (representing tap/gesture)
+                                    Image(systemName: "hand.tap.fill")
+                                        .font(.system(size: 50))
+                                        .foregroundColor(.white)
+                                }
                                 
-                                // Hand icon (representing tap/gesture)
-                                Image(systemName: "hand.tap.fill")
-                                    .font(.system(size: 50))
-                                    .foregroundColor(.white)
-                            }
-                            
-                            // Text with elegant styling
-                            VStack(spacing: 4) {
-                                Text("Two Taps")
+                                // Text with elegant styling
+                                Text("Tap To Donate")
                                     .font(.system(size: 42, weight: .bold))
                                     .foregroundColor(.white)
-                                
-                                Text("To Donation")
-                                    .font(.system(size: 32, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.95))
                             }
-                        }
-                        .frame(maxWidth: 650)
-                        .frame(height: 240)
-                        .background(
-                            ZStack {
-                                // Base gradient
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.2, green: 0.4, blue: 0.8),
-                                        Color(red: 0.3, green: 0.5, blue: 0.9)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                
-                                // Shine effect overlay
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color.white.opacity(0.2),
-                                        Color.clear,
-                                        Color.clear
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            }
-                        )
-                        .cornerRadius(32)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 32)
-                                .stroke(
+                            .frame(width: 650)
+                            .frame(height: 240)
+                            .background(
+                                ZStack {
+                                    // Base gradient
                                     LinearGradient(
                                         gradient: Gradient(colors: [
-                                            Color.white.opacity(0.3),
+                                            Color(red: 0.2, green: 0.4, blue: 0.8),
+                                            Color(red: 0.3, green: 0.5, blue: 0.9)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    
+                                    // Shine effect overlay
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.white.opacity(0.2),
+                                            Color.clear,
                                             Color.clear
                                         ]),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 2
-                                )
-                        )
-                        .shadow(color: Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5), radius: 25, x: 0, y: 12)
-                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                                    )
+                                }
+                            )
+                            .cornerRadius(32)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 32)
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.white.opacity(0.3),
+                                                Color.clear
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 2
+                                    )
+                            )
+                            .shadow(color: Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5), radius: 25, x: 0, y: 12)
+                            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        Spacer()
                     }
-                    .buttonStyle(ScaleButtonStyle())
-                    .padding(.horizontal, 40)
                     
                     // Bottom: Action Buttons (placeholders that activate when data is added)
                     VStack(spacing: 20) {
@@ -278,7 +362,7 @@ struct KioskHomeView: View {
         }
         .sheet(isPresented: $showWhatsAppQR) {
             if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink {
-                QRCodeDisplayView(url: whatsAppLink, title: "Join WhatsApp")
+                QRCodeDisplayView(url: whatsAppLink, title: "Join WhatsApp", cachedImage: qrCodeCache[whatsAppLink])
             }
         }
         .sheet(isPresented: $showEvents) {
@@ -292,17 +376,90 @@ struct KioskHomeView: View {
             get: { showSocialMediaQR.map { SocialMediaItem(url: $0) } },
             set: { showSocialMediaQR = $0?.url }
         )) { item in
-            QRCodeDisplayView(url: item.url, title: "Social Media")
+            QRCodeDisplayView(url: item.url, title: "Social Media", cachedImage: qrCodeCache[item.url])
         }
         .sheet(isPresented: $showSuggestionBox) {
             SuggestionBoxView()
         }
+        .onAppear {
+            // Start timer to update time every second - optimized for performance
+            currentTime = Date()
+            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                currentTime = Date()
+            }
+            // Add timer to RunLoop for better performance
+            if let timer = timer {
+                RunLoop.current.add(timer, forMode: .common)
+            }
+            // Pre-generate QR codes for better performance
+            pregenerateQRCodes()
+        }
+        .onChange(of: appState.temple?.homeScreenConfig?.whatsAppLink) { _ in
+            // Regenerate QR codes when config changes
+            pregenerateQRCodes()
+        }
+        .onChange(of: appState.temple?.homeScreenConfig?.socialMedia) { _ in
+            // Regenerate QR codes when social media changes
+            pregenerateQRCodes()
+        }
+        .onDisappear {
+            // Stop timer when view disappears
+            timer?.invalidate()
+            timer = nil
+        }
+    }
+    
+    // Pre-generate QR codes for all links to avoid delay when opening
+    private func pregenerateQRCodes() {
+        var cache: [String: UIImage] = [:]
+        
+        // Generate WhatsApp QR code
+        if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
+            if let qrImage = generateQRCode(from: whatsAppLink) {
+                cache[whatsAppLink] = qrImage
+            }
+        }
+        
+        // Generate social media QR codes
+        if let socialMedia = appState.temple?.homeScreenConfig?.socialMedia {
+            for link in socialMedia {
+                if !link.url.isEmpty, let qrImage = generateQRCode(from: link.url) {
+                    cache[link.url] = qrImage
+                }
+            }
+        }
+        
+        qrCodeCache = cache
+    }
+    
+    // QR code generation helper
+    private func generateQRCode(from string: String) -> UIImage? {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        
+        let data = string.data(using: .utf8)
+        filter.setValue(data, forKey: "inputMessage")
+        
+        if let outputImage = filter.outputImage {
+            let transform = CGAffineTransform(scaleX: 10, y: 10)
+            let scaledImage = outputImage.transformed(by: transform)
+            
+            if let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) {
+                return UIImage(cgImage: cgImage)
+            }
+        }
+        
+        return nil
     }
     
     // Computed properties for headers with defaults
     private var header1Text: String {
         // Default Header 1 for all kiosks
         return "International Swaminarayan Satsang Organization (ISSO)"
+    }
+    
+    private var timeString: String {
+        Self.timeFormatter.string(from: currentTime)
     }
     
     private var header2Text: String? {
@@ -333,7 +490,12 @@ struct ModernQuickActionButton: View {
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            // Button actions in SwiftUI are already on main thread
+            if isActive {
+                action()
+            }
+        }) {
             VStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 36))
@@ -354,6 +516,7 @@ struct ModernQuickActionButton: View {
             .opacity(isActive ? 1.0 : 0.6)
         }
         .disabled(!isActive)
+        .buttonStyle(PlainButtonStyle()) // Prevent button state issues
     }
 }
 
@@ -384,6 +547,7 @@ func colorForPlatform(_ platform: String) -> Color {
 struct QRCodeDisplayView: View {
     let url: String
     let title: String
+    let cachedImage: UIImage? // Use cached image if available
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -393,7 +557,8 @@ struct QRCodeDisplayView: View {
                     .font(.system(size: 24, weight: .semibold))
                     .padding(.top, 40)
                 
-                if let qrImage = generateQRCode(from: url) {
+                // Use cached image if available, otherwise generate on the fly
+                if let qrImage = cachedImage ?? generateQRCode(from: url) {
                     Image(uiImage: qrImage)
                         .interpolation(.none)
                         .resizable()
@@ -446,8 +611,13 @@ struct QRCodeDisplayView: View {
 }
 
 struct SocialMediaItem: Identifiable {
-    let id = UUID()
+    let id: String // Use URL as stable identifier
     let url: String
+    
+    init(url: String) {
+        self.id = url
+        self.url = url
+    }
 }
 
 // Custom button style for donation button with scale animation

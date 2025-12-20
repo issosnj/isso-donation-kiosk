@@ -174,4 +174,3 @@ extension PermissionsManager: CBCentralManagerDelegate {
         }
     }
 }
-

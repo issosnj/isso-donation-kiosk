@@ -290,6 +290,7 @@ struct HomeScreenConfig: Codable {
     let socialMedia: [SocialMediaLink]?
     let presetAmounts: [Double]? // Preset donation amounts configured by admin
     let buttonColors: ButtonColors? // Button color customization
+    let backgroundImageUrl: String? // URL to custom background image
 }
 
 struct ButtonColors: Codable {
@@ -322,7 +323,7 @@ struct DonationCategory: Codable, Identifiable {
     let showEndDate: String? // ISO date string (optional, for future use)
 }
 
-struct SocialMediaLink: Codable {
+struct SocialMediaLink: Codable, Equatable {
     let platform: String
     let url: String
 }

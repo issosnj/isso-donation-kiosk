@@ -39,7 +39,9 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
       amountSelected?: string;
       amountUnselected?: string;
     },
+    backgroundImageUrl: '',
   })
+  const [uploadingBackground, setUploadingBackground] = useState(false)
 
   useEffect(() => {
     if (temple?.homeScreenConfig) {
@@ -57,6 +59,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
           amountSelected: '#3366CC',
           amountUnselected: '#3366CC',
         },
+        backgroundImageUrl: temple.homeScreenConfig.backgroundImageUrl || '',
       })
     }
   }, [temple])
@@ -276,6 +279,97 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
           <p className="mt-2 text-xs text-gray-500">
             These amounts will appear as quick-select buttons on the donation screen. Donors can also enter a custom amount.
           </p>
+        </div>
+
+        {/* Background Image */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Kiosk Home Screen Background Image
+          </label>
+          <p className="text-xs text-gray-500 mb-3">
+            Upload a custom background image for the kiosk home screen. Recommended size: 1920x1080 or larger. Max file size: 10MB.
+          </p>
+          
+          {formData.backgroundImageUrl && (
+            <div className="mb-3">
+              <img
+                src={formData.backgroundImageUrl}
+                alt="Background preview"
+                className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-300"
+              />
+            </div>
+          )}
+          
+          <div className="flex items-center space-x-3">
+            <label className="flex-1">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  
+                  setUploadingBackground(true)
+                  try {
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    
+                    const token = localStorage.getItem('token')
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/temples/${templeId}/upload-background`, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                      },
+                      body: formData,
+                    })
+                    
+                    if (!response.ok) {
+                      throw new Error('Upload failed')
+                    }
+                    
+                    const data = await response.json()
+                    setFormData(prev => ({
+                      ...prev,
+                      backgroundImageUrl: data.url,
+                    }))
+                    
+                    // Update the temple data
+                    queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+                  } catch (error) {
+                    console.error('Upload error:', error)
+                    alert('Failed to upload background image. Please try again.')
+                  } finally {
+                    setUploadingBackground(false)
+                  }
+                }}
+                disabled={!isEditing || uploadingBackground}
+                className="hidden"
+              />
+              <div className="px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed">
+                {uploadingBackground ? (
+                  <span className="text-sm text-gray-600">Uploading...</span>
+                ) : (
+                  <span className="text-sm text-purple-600 font-medium">
+                    {formData.backgroundImageUrl ? 'Change Background Image' : 'Upload Background Image'}
+                  </span>
+                )}
+              </div>
+            </label>
+            
+            {formData.backgroundImageUrl && isEditing && (
+              <button
+                onClick={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    backgroundImageUrl: '',
+                  }))
+                }}
+                className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
+              >
+                Remove
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Button Colors */}

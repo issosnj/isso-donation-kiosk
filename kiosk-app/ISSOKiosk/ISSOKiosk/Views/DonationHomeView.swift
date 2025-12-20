@@ -28,8 +28,11 @@ struct DonationHomeView: View {
         )
     }
     
-    // Helper to convert hex string to Color
-    func colorFromHex(_ hex: String?, defaultColor: Color = Color(red: 0.2, green: 0.4, blue: 0.8)) -> Color {
+    // Cache default colors for better performance
+    private static let defaultBlue = Color(red: 0.2, green: 0.4, blue: 0.8)
+    
+    // Helper to convert hex string to Color - optimized
+    func colorFromHex(_ hex: String?, defaultColor: Color = Self.defaultBlue) -> Color {
         guard let hex = hex, !hex.isEmpty else {
             return defaultColor
         }
@@ -84,414 +87,400 @@ struct DonationHomeView: View {
     
     var body: some View {
         ZStack {
-            // Subtle gradient background (white to light blue)
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.white,
-                    Color(red: 0.95, green: 0.97, blue: 1.0)
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea(.all, edges: .all)
-            .onTapGesture {
-                // Dismiss keyboard when tapping background
-                customAmountFocused = false
-            }
-            .onAppear {
-                // Refresh categories when donation screen appears
-                print("[DonationHomeView] 👁️ View appeared, current categories: \(appState.categories.count)")
-                Task {
-                    print("[DonationHomeView] 🔄 Starting category refresh...")
-                    await appState.refreshCategories()
-                    print("[DonationHomeView] ✅ Category refresh completed, now have: \(appState.categories.count) categories")
-                }
-            }
-            .onChange(of: appState.categories.count) { newCount in
-                print("[DonationHomeView] 📊 Categories count changed to: \(newCount)")
-            }
-            
-            // Two-part split screen layout
-            HStack(spacing: 0) {
-                // LEFT SIDE: Category/Event Selection
-                VStack(spacing: 0) {
-                    // Header
-                    VStack(spacing: 12) {
-                        Text("Select Category")
-                                .font(.system(size: 36, weight: .bold))
-                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                        
-                        Text("Choose where your donation goes (optional)")
-                            .font(.system(size: 18, weight: .regular))
-                            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
-                    }
-                    .padding(.top, 60)
-                    .padding(.bottom, 40)
-                    
-                    // Category selection
-                    VStack(spacing: 20) {
-                        // Debug: Show category count
-                        if false { // Set to true for debugging
-                            Text("Categories: \(appState.categories.count)")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        
-                    if !appState.categories.isEmpty {
-                            ScrollView {
-                                VStack(spacing: 16) {
-                                    ForEach(appState.categories) { category in
-                                        CleanCategoryButton(
-                                            category: category,
-                                            isSelected: selectedCategory?.id == category.id,
-                                            selectedColor: categorySelectedColor,
-                                            unselectedColor: categoryUnselectedColor,
-                                            action: {
-                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                    if selectedCategory?.id == category.id {
-                                                        selectedCategory = nil
-                                                        selectedAmount = nil
-                                                        customAmount = ""
-                                                        quantity = 1
-                                                    } else {
-                                                        selectedCategory = category
-                                                        quantity = 1 // Reset quantity when selecting new category
-                                                        // Set default amount if category has one
-                                                        if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                                                            selectedAmount = defaultAmount
-                                                            customAmount = ""
-                                                            customAmountFocused = false
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        )
-                                        .frame(maxWidth: .infinity)
-                                    }
-                                }
-                                .padding(.horizontal, 40)
-                            }
-                            
-                            // Quantity selector (shown when category with defaultAmount is selected)
-                            if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                                VStack(spacing: 12) {
-                                    Text("Quantity")
-                                        .font(.system(size: 20, weight: .semibold))
-                                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                                    
-                                    HStack(spacing: 20) {
-                                        // Decrease button
-                                        Button(action: {
-                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                if quantity > 1 {
-                                                    quantity -= 1
-                                                }
-                                            }
-                                        }) {
-                                            Image(systemName: "minus.circle.fill")
-                                                .font(.system(size: 32))
-                                                .foregroundColor(quantity > 1 ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray)
-                                        }
-                                        .disabled(quantity <= 1)
-                                        
-                                        // Quantity display
-                                        Text("\(quantity)")
-                                            .font(.system(size: 36, weight: .bold))
-                                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                                            .frame(minWidth: 60)
-                                        
-                                        // Increase button
-                                        Button(action: {
-                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                quantity += 1
-                                            }
-                                        }) {
-                                            Image(systemName: "plus.circle.fill")
-                                                .font(.system(size: 32))
-                                                .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                        }
-                                    }
-                                    .padding(.vertical, 16)
-                                    .padding(.horizontal, 40)
-                                    .background(Color.white)
-                                    .cornerRadius(12)
-                                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                                    
-                                    // Total amount for this category
-                                    Text("Total: $\(String(format: "%.2f", defaultAmount * Double(quantity)))")
-                                        .font(.system(size: 18, weight: .medium))
-                                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                }
-                                .padding(.horizontal, 40)
-                                .padding(.top, 20)
-                                .transition(.scale.combined(with: .opacity))
-                            }
-                        } else {
-                            VStack(spacing: 16) {
-                                Image(systemName: "folder.fill")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
-                                
-                                Text("No categories available")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                
-                                Text("Categories can be added in the admin portal")
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
-                                    .multilineTextAlignment(.center)
-                                
-                                // Debug: Show refresh button
-                                Button(action: {
-                                    Task {
-                                        await appState.refreshCategories()
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "arrow.clockwise")
-                                        Text("Refresh Categories")
-                                    }
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                    .cornerRadius(8)
-                                }
-                                .padding(.top, 8)
-                            }
-                            .padding(.top, 60)
-                            .padding(.horizontal, 40)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
-                .background(Color.white.opacity(0.5))
-                
-                // Divider
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(width: 2)
-                
-                // RIGHT SIDE: Amount Selection & Continue
-                VStack(spacing: 0) {
-                    // Header
-                    VStack(spacing: 12) {
-                        Text("Select Amount")
-                            .font(.system(size: 36, weight: .bold))
-                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                        
-                        Text("Choose a preset amount or enter custom")
-                            .font(.system(size: 18, weight: .regular))
-                            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
-                    }
-                    .padding(.top, 60)
-                    .padding(.bottom, 40)
-                    
-                    // Amount selection content
-                    VStack(spacing: 30) {
-                        // Preset amount buttons - flexible grid based on count
-                        let buttonCount = presetAmounts.count
-                        Group {
-                            if buttonCount > 0 {
-                                if buttonCount <= 4 {
-                                    // 2x2 grid for 4 or fewer
-                                    VStack(spacing: 16) {
-                                        HStack(spacing: 16) {
-                                            ForEach(Array(presetAmounts.prefix(2)), id: \.self) { amount in
-                                                CleanAmountButton(
-                                                    amount: amount,
-                                                    isSelected: selectedAmount == amount,
-                                                    selectedColor: amountSelectedColor,
-                                                    unselectedColor: amountUnselectedColor,
-                                                    action: {
-                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                            selectedAmount = amount
-                                                            customAmount = ""
-                                                            customAmountFocused = false
-                                                        }
-                                                    }
-                                                )
-                                            }
-                                        }
-                                        
-                                        if buttonCount > 2 {
-                                            HStack(spacing: 16) {
-                                                ForEach(Array(presetAmounts.suffix(buttonCount > 2 ? buttonCount - 2 : 0)), id: \.self) { amount in
-                                                    CleanAmountButton(
-                                                        amount: amount,
-                                                        isSelected: selectedAmount == amount,
-                                                        action: {
-                                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                                selectedAmount = amount
-                                                                customAmount = ""
-                                                                customAmountFocused = false
-                                                            }
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    // Scrollable grid for more than 4
-                                    ScrollView {
-                                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                                            ForEach(presetAmounts, id: \.self) { amount in
-                                                CleanAmountButton(
-                                                    amount: amount,
-                                                    isSelected: selectedAmount == amount,
-                                                    selectedColor: amountSelectedColor,
-                                                    unselectedColor: amountUnselectedColor,
-                                                    action: {
-                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                            selectedAmount = amount
-                                                            customAmount = ""
-                                                            customAmountFocused = false
-                                                        }
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                EmptyView()
-                            }
-                        }
-                        .padding(.horizontal, 40)
-                        
-                        // Custom amount field
-                        CleanCustomAmountField(
-                            text: $customAmount,
-                            isActive: selectedAmount == nil,
-                            isFocused: $customAmountFocused,
-                            onTap: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    selectedAmount = nil
-                                    customAmountFocused = true
-                                }
-                            }
-                        )
-                        .padding(.horizontal, 40)
-                        
-                        // Selected amount display
-                        if hasValidAmount {
-                            VStack(spacing: 8) {
-                                Text("Selected Amount")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
-                                
-                                Text("$\(String(format: "%.2f", currentAmount))")
-                                    .font(.system(size: 48, weight: .bold))
-                                    .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                            }
-                            .padding(.top, 20)
-                            .transition(.scale.combined(with: .opacity))
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    Spacer()
-                    
-                    // Continue button at bottom
-                    VStack(spacing: 16) {
-                        if hasValidAmount {
-                            Text("Ready to donate $\(String(format: "%.2f", currentAmount))")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                        }
-                        
-                    Button(action: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        showingDetails = true
-                            }
-                    }) {
-                        Text("Continue")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                                .background(
-                                    hasValidAmount 
-                                        ? Color(red: 0.2, green: 0.4, blue: 0.8)
-                                        : Color.gray.opacity(0.4)
-                                )
-                                .cornerRadius(12)
-                    }
-                    .disabled(!hasValidAmount)
-                    .padding(.horizontal, 40)
-                    }
-                    .padding(.bottom, 60)
-                }
-                .frame(maxWidth: .infinity)
-                .background(Color(red: 0.98, green: 0.99, blue: 1.0))
-            }
-            
-            // Home button in top left
-            VStack {
-                HStack {
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            onDismiss()
-                        }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "house.fill")
-                            Text("Home")
-                        }
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
-                        .cornerRadius(10)
-                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                    }
-                    .padding()
-                    Spacer()
-                }
-                Spacer()
-            }
+            backgroundGradient
+            mainContent
+            homeButtonOverlay
         }
         .fullScreenCover(isPresented: $showingDetails) {
             ModernDonationDetailsView(
-                    amount: currentAmount,
-                    category: selectedCategory,
-                    onConfirm: { name, email in
-                    withAnimation {
-                        showingDetails = false
-                        showingPayment = true
-                        donorName = name
-                        donorEmail = email
-                    }
-                    }
-                )
-            }
-            .fullScreenCover(isPresented: $showingPayment) {
+                amount: currentAmount,
+                category: selectedCategory,
+                onConfirm: { name, email in
+                    showingDetails = false
+                    showingPayment = true
+                    donorName = name
+                    donorEmail = email
+                }
+            )
+        }
+        .fullScreenCover(isPresented: $showingPayment) {
             ModernPaymentView(
-                    amount: currentAmount,
-                    category: selectedCategory,
-                    donorName: donorName,
-                    donorEmail: donorEmail,
-                    onComplete: {
+                amount: currentAmount,
+                category: selectedCategory,
+                donorName: donorName,
+                donorEmail: donorEmail,
+                onComplete: {
                     withAnimation {
                         showingPayment = false
                         selectedAmount = nil
                         customAmount = ""
                         selectedCategory = nil
+                        quantity = 1
                         donorName = nil
                         donorEmail = nil
                     }
+                }
+            )
+        }
+    }
+    
+    private var backgroundGradient: some View {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color.white,
+                Color(red: 0.95, green: 0.97, blue: 1.0)
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea(.all, edges: .all)
+        .onTapGesture {
+            customAmountFocused = false
+        }
+        .task {
+            // Only refresh if categories are empty to avoid unnecessary refreshes
+            if appState.categories.isEmpty {
+                await appState.refreshCategories()
+            }
+        }
+    }
+    
+    private var mainContent: some View {
+        HStack(spacing: 0) {
+            categorySection
+            
+            // Divider
+            Rectangle()
+                .fill(Color.gray.opacity(0.2))
+                .frame(width: 2)
+            
+            amountSection
+        }
+    }
+    
+    private var homeButtonOverlay: some View {
+        VStack {
+            HStack {
+                    Button(action: {
+                        onDismiss()
+                    }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "house.fill")
+                        Text("Home")
                     }
-                )
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                }
+                .padding()
+                Spacer()
+            }
+            Spacer()
+        }
+    }
+    
+    private var categorySection: some View {
+        VStack(spacing: 0) {
+            // Header
+            VStack(spacing: 12) {
+                Text("Select Category")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                
+                Text("Choose where your donation goes (optional)")
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+            }
+            .padding(.top, 60)
+            .padding(.bottom, 40)
+            
+            categoryContent
+                .frame(maxWidth: .infinity)
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .background(Color.white.opacity(0.5))
+    }
+    
+    private var categoryContent: some View {
+        VStack(spacing: 20) {
+            if !appState.categories.isEmpty {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        ForEach(appState.categories) { category in
+                            CleanCategoryButton(
+                                category: category,
+                                isSelected: selectedCategory?.id == category.id,
+                                selectedColor: categorySelectedColor,
+                                unselectedColor: categoryUnselectedColor,
+                                action: {
+                                    // Use simpler animation for better performance
+                                    if selectedCategory?.id == category.id {
+                                        selectedCategory = nil
+                                        selectedAmount = nil
+                                        customAmount = ""
+                                        quantity = 1
+                                    } else {
+                                        selectedCategory = category
+                                        quantity = 1
+                                        // Clear preset amount selection when category is selected
+                                        selectedAmount = nil
+                                        customAmount = ""
+                                        customAmountFocused = false
+                                    }
+                                }
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(.horizontal, 40)
+                }
+                
+                if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+                    quantitySelector(category: category, defaultAmount: defaultAmount)
+                }
+            } else {
+                emptyCategoriesView
+            }
+        }
+    }
+    
+    private var emptyCategoriesView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "folder.fill")
+                .font(.system(size: 48))
+                .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
+            
+            Text("No categories available")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+            
+            Text("Categories can be added in the admin portal")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
+                .multilineTextAlignment(.center)
+            
+            Button(action: {
+                Task {
+                    await appState.refreshCategories()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "arrow.clockwise")
+                    Text("Refresh Categories")
+                }
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color(red: 0.2, green: 0.4, blue: 0.8))
+                .cornerRadius(8)
+            }
+            .padding(.top, 8)
+        }
+        .padding(.top, 60)
+        .padding(.horizontal, 40)
+    }
+    
+    private func quantitySelector(category: DonationCategory, defaultAmount: Double) -> some View {
+        VStack(spacing: 12) {
+            Text("Quantity")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+            
+            HStack(spacing: 20) {
+                    Button(action: {
+                        if quantity > 1 {
+                            quantity -= 1
+                        }
+                    }) {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(quantity > 1 ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray)
+                }
+                .disabled(quantity <= 1)
+                
+                Text("\(quantity)")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                    .frame(minWidth: 60)
+                
+                    Button(action: {
+                        quantity += 1
+                    }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                }
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 40)
+            .background(Color.white)
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+            
+            Text("Total: $\(String(format: "%.2f", defaultAmount * Double(quantity)))")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+        }
+        .padding(.horizontal, 40)
+        .padding(.top, 20)
+        .transition(.scale.combined(with: .opacity))
+    }
+    
+    private var amountSection: some View {
+        VStack(spacing: 0) {
+            // Header
+            VStack(spacing: 12) {
+                Text("Select Amount")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                
+                Text("Choose a preset amount or enter custom")
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+            }
+            .padding(.top, 60)
+            .padding(.bottom, 40)
+            
+            amountContent
+                .frame(maxWidth: .infinity)
+            
+            Spacer()
+            
+            continueButton
+        }
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
+    }
+    
+    private var amountContent: some View {
+        VStack(spacing: 30) {
+            presetAmountButtons
+                .padding(.horizontal, 40)
+            
+            CleanCustomAmountField(
+                text: $customAmount,
+                isActive: selectedAmount == nil && selectedCategory == nil,
+                isFocused: $customAmountFocused,
+                onTap: {
+                    // Clear category when custom amount is selected
+                    selectedCategory = nil
+                    quantity = 1
+                    selectedAmount = nil
+                    customAmountFocused = true
+                }
+            )
+            .padding(.horizontal, 40)
+            
+            if hasValidAmount {
+                VStack(spacing: 8) {
+                    Text("Selected Amount")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+                    
+                    Text("$\(String(format: "%.2f", currentAmount))")
+                        .font(.system(size: 48, weight: .bold))
+                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                }
+                .padding(.top, 20)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+    }
+    
+    private var presetAmountButtons: some View {
+        let buttonCount = presetAmounts.count
+        return Group {
+            if buttonCount > 0 {
+                if buttonCount <= 4 {
+                    VStack(spacing: 16) {
+                        HStack(spacing: 16) {
+                            ForEach(Array(presetAmounts.prefix(2)), id: \.self) { amount in
+                                amountButton(amount: amount)
+                            }
+                        }
+                        
+                        if buttonCount > 2 {
+                            HStack(spacing: 16) {
+                                ForEach(Array(presetAmounts.suffix(buttonCount > 2 ? buttonCount - 2 : 0)), id: \.self) { amount in
+                                    amountButton(amount: amount)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                            ForEach(presetAmounts, id: \.self) { amount in
+                                amountButton(amount: amount)
+                            }
+                        }
+                    }
+                }
+            } else {
+                EmptyView()
+            }
+        }
+    }
+    
+    private func amountButton(amount: Double) -> some View {
+        CleanAmountButton(
+            amount: amount,
+            isSelected: selectedAmount == amount && selectedCategory == nil,
+            selectedColor: amountSelectedColor,
+            unselectedColor: amountUnselectedColor,
+            action: {
+                // Clear category when preset amount is selected
+                selectedCategory = nil
+                quantity = 1
+                selectedAmount = amount
+                customAmount = ""
+                customAmountFocused = false
+            }
+        )
+    }
+    
+    private var continueButton: some View {
+        VStack(spacing: 16) {
+            if hasValidAmount {
+                Text("Ready to donate $\(String(format: "%.2f", currentAmount))")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+            }
+            
+            Button(action: {
+                showingDetails = true
+            }) {
+                Text(hasValidAmount ? "Ready to donate $\(String(format: "%.2f", currentAmount))" : "Select Amount to Continue")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        hasValidAmount
+                            ? Color(red: 0.2, green: 0.4, blue: 0.8)
+                            : Color.gray.opacity(0.4)
+                    )
+                    .cornerRadius(12)
+            }
+            .disabled(!hasValidAmount)
+            .padding(.horizontal, 40)
+            .padding(.bottom, 40)
         }
     }
     
     private var hasValidAmount: Bool {
+        // Check if category with defaultAmount is selected
+        if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+            return defaultAmount * Double(quantity) > 0
+        }
+        // Otherwise check preset amount or custom amount
         if let amount = selectedAmount {
             return amount > 0
         }
@@ -534,8 +523,8 @@ struct CleanAmountButton: View {
                 )
                 .cornerRadius(12)
         }
-        .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+        .scaleEffect(isSelected ? 1.02 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }
 
@@ -547,50 +536,53 @@ struct CleanCustomAmountField: View {
     let onTap: () -> Void
     
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 8) {
-                Text("$")
+        HStack(spacing: 8) {
+            Text("$")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.gray)
+                .frame(width: 20, alignment: .leading)
+            
+            if isActive {
+                TextField("", text: $text, prompt: Text("Custom Amount").foregroundColor(.gray))
+                    .keyboardType(.decimalPad)
                     .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.gray)
-                    .frame(width: 20, alignment: .leading)
-                
-                if isActive {
-                    TextField("Custom Amount", text: $text)
-                        .keyboardType(.decimalPad)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
-                        .focused($isFocused)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .onChange(of: text) { newValue in
-                            let filtered = newValue.filter { "0123456789.".contains($0) }
-                            if filtered != newValue {
-                                text = filtered
-                            }
+                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
+                    .focused($isFocused)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .onChange(of: text) { newValue in
+                        let filtered = newValue.filter { "0123456789.".contains($0) }
+                        if filtered != newValue {
+                            text = filtered
                         }
-                } else {
+                    }
+            } else {
+                Button(action: onTap) {
                     Text("Custom Amount")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(.gray)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .frame(height: 70)
-            .background(Color.white)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(
-                        isActive 
-                            ? Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5)
-                            : Color.gray.opacity(0.2),
-                        lineWidth: isActive ? 2 : 1
-                    )
-            )
         }
-        .scaleEffect(isActive ? 1.02 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isActive)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .frame(height: 70)
+        .background(Color.white)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    isActive 
+                        ? Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5)
+                        : Color.gray.opacity(0.2),
+                    lineWidth: isActive ? 2 : 1
+                )
+        )
+        .scaleEffect(isActive ? 1.01 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isActive)
     }
 }
 
@@ -624,7 +616,7 @@ struct CleanCategoryButton: View {
             )
             .cornerRadius(12)
         }
-        .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+        .scaleEffect(isSelected ? 1.02 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }
