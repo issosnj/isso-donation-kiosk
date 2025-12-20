@@ -10,7 +10,9 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { TemplesService } from './temples.service';
@@ -153,6 +155,7 @@ export class TemplesController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: any,
+    @Req() req: Request,
   ) {
     if (user.role === UserRole.TEMPLE_ADMIN && user.templeId !== id) {
       throw new BadRequestException('Unauthorized');
@@ -162,15 +165,28 @@ export class TemplesController {
       throw new BadRequestException('No file uploaded');
     }
 
-    // Get base URL from environment or construct it
-    // For Railway/production, use the public URL, otherwise construct from request
+    // Get base URL from environment, Railway variables, or construct from request
     let baseUrl = process.env.API_BASE_URL || process.env.BACKEND_URL;
+    
+    // Try Railway's public domain if available
+    if (!baseUrl && process.env.RAILWAY_PUBLIC_DOMAIN) {
+      baseUrl = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+    }
+    
+    // Fallback to constructing from request
+    if (!baseUrl && req) {
+      const protocol = req.protocol || (req.headers['x-forwarded-proto'] as string) || 'https';
+      const host = req.get('host') || req.headers.host || 'localhost:3000';
+      baseUrl = `${protocol}://${host}`;
+    }
+    
+    // Final fallback
     if (!baseUrl) {
-      // Construct from request if not set
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
       const host = process.env.HOST || 'localhost:3000';
       baseUrl = `${protocol}://${host}`;
     }
+    
     // Remove trailing slash if present
     baseUrl = baseUrl.replace(/\/$/, '');
     const fileUrl = `${baseUrl}/uploads/backgrounds/${file.filename}`;
