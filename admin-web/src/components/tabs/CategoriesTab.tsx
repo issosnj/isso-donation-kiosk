@@ -43,9 +43,10 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories', templeId],
     queryFn: async () => {
-      const response = await api.get('/donation-categories', {
-        params: { templeId },
-      })
+      const response = await api.get('/donation-categories')
+      console.log('[CategoriesTab] Fetched categories:', response.data)
+      console.log('[CategoriesTab] Categories count:', response.data?.length)
+      console.log('[CategoriesTab] First category displayOrder:', response.data?.[0]?.displayOrder)
       return response.data
     },
   })
@@ -110,10 +111,17 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     },
     onSuccess: (data) => {
       console.log('[CategoriesTab] Move up successful, updating cache with:', data)
-      // Update the cache directly with the new order instead of just invalidating
-      queryClient.setQueryData(['categories', templeId], data)
-      // Also invalidate to ensure we get fresh data
-      queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
+      console.log('[CategoriesTab] Data type:', Array.isArray(data) ? 'array' : typeof data)
+      console.log('[CategoriesTab] Data length:', Array.isArray(data) ? data.length : 'N/A')
+      const currentData = queryClient.getQueryData(['categories', templeId])
+      console.log('[CategoriesTab] Current cache before update:', currentData)
+      // Create a new array reference to ensure React detects the change
+      const newData = Array.isArray(data) ? [...data] : data
+      // Update the cache directly with the new order
+      queryClient.setQueryData(['categories', templeId], newData)
+      const updatedData = queryClient.getQueryData(['categories', templeId])
+      console.log('[CategoriesTab] Cache after update:', updatedData)
+      console.log('[CategoriesTab] Data references equal?', data === updatedData)
     },
     onError: (error: any) => {
       console.error('[CategoriesTab] Move up mutation error:', error)
@@ -140,10 +148,17 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     },
     onSuccess: (data) => {
       console.log('[CategoriesTab] Move down successful, updating cache with:', data)
-      // Update the cache directly with the new order instead of just invalidating
-      queryClient.setQueryData(['categories', templeId], data)
-      // Also invalidate to ensure we get fresh data
-      queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
+      console.log('[CategoriesTab] Data type:', Array.isArray(data) ? 'array' : typeof data)
+      console.log('[CategoriesTab] Data length:', Array.isArray(data) ? data.length : 'N/A')
+      const currentData = queryClient.getQueryData(['categories', templeId])
+      console.log('[CategoriesTab] Current cache before update:', currentData)
+      // Create a new array reference to ensure React detects the change
+      const newData = Array.isArray(data) ? [...data] : data
+      // Update the cache directly with the new order
+      queryClient.setQueryData(['categories', templeId], newData)
+      const updatedData = queryClient.getQueryData(['categories', templeId])
+      console.log('[CategoriesTab] Cache after update:', updatedData)
+      console.log('[CategoriesTab] Data references equal?', data === updatedData)
     },
     onError: (error: any) => {
       console.error('[CategoriesTab] Move down mutation error:', error)
