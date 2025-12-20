@@ -302,6 +302,17 @@ struct ModernDonationDetailsView: View {
                 }
                 Spacer()
             }
+            
+            // Time and Network Status in top right
+            VStack {
+                HStack {
+                    Spacer()
+                    TimeAndNetworkStatusView()
+                        .padding(.trailing, 20)
+                        .padding(.top, 20)
+                }
+                Spacer()
+            }
         }
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
