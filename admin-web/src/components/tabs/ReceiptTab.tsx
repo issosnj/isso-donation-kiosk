@@ -173,7 +173,7 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
                 placeholder="Donation Receipt - {{templeName}}"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
               />
-              <p className="text-xs text-gray-500 mt-1">Use {'{'}{'{'}}templeName{'}'}{'}'} to insert temple name</p>
+              <p className="text-xs text-gray-500 mt-1">Use {'{{templeName}}'} to insert temple name</p>
             </div>
           </div>
         </div>
