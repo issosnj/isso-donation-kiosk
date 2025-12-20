@@ -417,7 +417,7 @@ struct DonationHomeView: View {
                         Image(systemName: "star.fill")
                             .font(.system(size: 12))
                             .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
-                        Text("Sponsorship Tiers Available")
+                        Text("Yajman Opportunities Available")
                             .font(.custom(bodyFont, size: bodySize - 2))
                             .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                     }
