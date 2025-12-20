@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Donation, DonationStatus } from './entities/donation.entity';
@@ -17,6 +17,7 @@ export class DonationsService {
     private donationsRepository: Repository<Donation>,
     private templesService: TemplesService,
     private gmailService: GmailService,
+    @Inject(forwardRef(() => SquareService))
     private squareService: SquareService,
     private configService: ConfigService,
   ) {}

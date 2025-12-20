@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TemplesService } from '../temples/temples.service';
 import { DonationsService } from '../donations/donations.service';
@@ -9,6 +9,7 @@ export class SquareService {
   constructor(
     private configService: ConfigService,
     private templesService: TemplesService,
+    @Inject(forwardRef(() => DonationsService))
     private donationsService: DonationsService,
   ) {}
 
