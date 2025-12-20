@@ -183,88 +183,12 @@ struct KioskHomeView: View {
                 // Centered content
                 VStack(spacing: 30) {
                     
-                    // Main: Tap To Donate Button - Modern and Attractive (Centered)
+                    // Main: Tap To Donate Button - Gold-Accented Design
                     HStack {
                         Spacer()
-                        Button(action: {
-                            // Use simpler animation for better performance
+                        GoldAccentDonateButton(action: {
                             navigationState.showDonationFlow = true
-                        }) {
-                            VStack(spacing: 16) {
-                                // Icon with glow effect
-                                ZStack {
-                                    // Glow circle
-                                    Circle()
-                                        .fill(
-                                            RadialGradient(
-                                                gradient: Gradient(colors: [
-                                                    Color.white.opacity(0.3),
-                                                    Color.clear
-                                                ]),
-                                                center: .center,
-                                                startRadius: 10,
-                                                endRadius: 50
-                                            )
-                                        )
-                                        .frame(width: 100, height: 100)
-                                        .blur(radius: 10)
-                                    
-                                    // Hand icon (representing tap/gesture)
-                                    Image(systemName: "hand.tap.fill")
-                                        .font(.system(size: 50))
-                                        .foregroundColor(.white)
-                                }
-                                
-                                // Text with elegant styling
-                                Text("Tap To Donate")
-                                    .font(.custom("Inter-Medium", size: 42))
-                                    .foregroundColor(.white)
-                            }
-                            .frame(width: 650)
-                            .frame(height: 240)
-                            .background(
-                                ZStack {
-                                    // Base gradient
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.2, green: 0.4, blue: 0.8),
-                                            Color(red: 0.3, green: 0.5, blue: 0.9)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                    
-                                    // Shine effect overlay
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.white.opacity(0.2),
-                                            Color.clear,
-                                            Color.clear
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                }
-                            )
-                            .cornerRadius(32)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 32)
-                                    .stroke(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.white.opacity(0.3),
-                                                Color.clear
-                                            ]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 2
-                                    )
-                            )
-                            .shadow(color: Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5), radius: 25, x: 0, y: 12)
-                            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
-                        }
-                        .buttonStyle(ScaleButtonStyle())
+                        })
                         Spacer()
                     }
                     
@@ -647,6 +571,84 @@ struct ScaleButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+// Gold-accented donate button with pressed state
+struct GoldAccentDonateButton: View {
+    let action: () -> Void
+    @State private var isPressed = false
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 16) {
+                // Icon
+                Image(systemName: "hand.tap.fill")
+                    .font(.system(size: 50))
+                    .foregroundColor(.white)
+                
+                // Text
+                Text("Tap To Donate")
+                    .font(.custom("Inter-Medium", size: 42))
+                    .foregroundColor(.white)
+            }
+            .frame(width: 650)
+            .frame(height: 240)
+            .background(
+                // Blue gradient background - darker when pressed
+                LinearGradient(
+                    gradient: Gradient(colors: isPressed ? [
+                        Color(red: 0.153, green: 0.357, blue: 0.776), // #275BC6 (pressed)
+                        Color(red: 0.165, green: 0.365, blue: 0.808)  // Slightly lighter pressed
+                    ] : [
+                        Color(red: 0.227, green: 0.478, blue: 0.894), // #3A7AF0
+                        Color(red: 0.184, green: 0.388, blue: 0.839)  // #2F6FE4
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .cornerRadius(20)
+            .overlay(
+                // Gold border
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(
+                        Color(red: 0.831, green: 0.686, blue: 0.216), // #D4AF37
+                        lineWidth: 2
+                    )
+            )
+            .shadow(
+                color: isPressed ? Color.black.opacity(0.15) : Color.black.opacity(0.25),
+                radius: isPressed ? 5 : 7,
+                x: 0,
+                y: isPressed ? 3 : 6
+            )
+            .shadow(
+                color: isPressed
+                    ? Color(red: 0.831, green: 0.686, blue: 0.216).opacity(0.2)
+                    : Color(red: 0.831, green: 0.686, blue: 0.216).opacity(0.35),
+                radius: isPressed ? 6 : 9,
+                x: 0,
+                y: 0
+            )
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !isPressed {
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                            isPressed = true
+                        }
+                    }
+                }
+                .onEnded { _ in
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                        isPressed = false
+                    }
+                }
+        )
     }
 }
 
