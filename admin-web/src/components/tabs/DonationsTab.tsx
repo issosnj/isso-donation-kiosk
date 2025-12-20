@@ -1,14 +1,18 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { format } from 'date-fns'
+import { useState } from 'react'
 
 interface DonationsTabProps {
   templeId?: string
 }
 
 export default function DonationsTab({ templeId }: DonationsTabProps) {
+  const queryClient = useQueryClient()
+  const [resendingId, setResendingId] = useState<string | null>(null)
+
   const { data: donations, isLoading } = useQuery({
     queryKey: ['donations', templeId],
     queryFn: async () => {
@@ -18,6 +22,28 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
       return response.data
     },
   })
+
+  const resendReceiptMutation = useMutation({
+    mutationFn: async (donationId: string) => {
+      const response = await api.post(`/donations/${donationId}/resend-receipt`)
+      return response.data
+    },
+    onSuccess: () => {
+      alert('Receipt email sent successfully!')
+      setResendingId(null)
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to send receipt email')
+      setResendingId(null)
+    },
+  })
+
+  const handleResendReceipt = (donationId: string) => {
+    if (confirm('Are you sure you want to resend the receipt email?')) {
+      setResendingId(donationId)
+      resendReceiptMutation.mutate(donationId)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -54,7 +80,8 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Donor</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Donor Info</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -87,8 +114,25 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
                     {donation.status}
                   </span>
                 </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-900 font-medium">{donation.donorName || 'Anonymous'}</div>
+                  {donation.donorPhone && (
+                    <div className="text-xs text-gray-500 mt-1">📞 {donation.donorPhone}</div>
+                  )}
+                  {donation.donorEmail && (
+                    <div className="text-xs text-gray-500 mt-1">✉️ {donation.donorEmail}</div>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-600">{donation.donorName || 'Anonymous'}</div>
+                  {donation.status === 'SUCCEEDED' && donation.donorEmail && (
+                    <button
+                      onClick={() => handleResendReceipt(donation.id)}
+                      disabled={resendingId === donation.id}
+                      className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {resendingId === donation.id ? 'Sending...' : 'Resend Receipt'}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

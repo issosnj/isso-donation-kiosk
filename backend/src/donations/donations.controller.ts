@@ -6,6 +6,7 @@ import {
   Param,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DonationsService } from './donations.service';
@@ -191,8 +192,32 @@ export class DonationsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get donation by ID' })
-  findOne(@Param('id') id: string) {
-    return this.donationsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.donationsService.findOne(id, user);
+  }
+
+  @Post(':id/resend-receipt')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resend donation receipt email' })
+  async resendReceipt(@Param('id') id: string, @CurrentUser() user: any) {
+    const donation = await this.donationsService.findOne(id, user);
+    
+    // Verify user has access to this donation
+    if (user.role === UserRole.TEMPLE_ADMIN && donation.templeId !== user.templeId) {
+      throw new Error('Unauthorized');
+    }
+
+    if (!donation.donorEmail) {
+      throw new BadRequestException('Donation does not have an email address');
+    }
+
+    if (donation.status !== DonationStatus.SUCCEEDED) {
+      throw new BadRequestException('Can only resend receipts for successful donations');
+    }
+
+    await this.donationsService.sendReceiptEmail(donation);
+    return { message: 'Receipt email sent successfully' };
   }
 }
 

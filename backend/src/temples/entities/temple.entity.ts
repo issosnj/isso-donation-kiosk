@@ -113,6 +113,18 @@ export class Temple {
     };
   };
 
+  @Column({ type: 'json', nullable: true })
+  receiptConfig: {
+    fromEmail?: string; // Email address to send receipts from (e.g., "donations@temple.org")
+    fromName?: string; // Name to display as sender (e.g., "ISSO Temple")
+    subject?: string; // Email subject template (e.g., "Donation Receipt - {{templeName}}")
+    headerText?: string; // Header text for receipt (e.g., "Thank You for Your Donation")
+    footerText?: string; // Footer text for receipt (e.g., "Your donation helps support our temple")
+    includeTaxId?: boolean; // Whether to include tax ID in receipt
+    taxId?: string; // Tax ID number (EIN) to include in receipt
+    customMessage?: string; // Custom message to include in receipt
+  };
+
   @OneToMany(() => Device, (device) => device.temple)
   devices: Device[];
 

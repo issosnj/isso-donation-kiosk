@@ -107,7 +107,7 @@ export class DonationsService {
     }
   }
 
-  async findOne(id: string): Promise<Donation> {
+  async findOne(id: string, user?: any): Promise<Donation> {
     const donation = await this.donationsRepository.findOne({
       where: { id },
       relations: ['temple', 'device', 'category'],
@@ -115,6 +115,12 @@ export class DonationsService {
     if (!donation) {
       throw new NotFoundException(`Donation with ID ${id} not found`);
     }
+    
+    // Verify user has access (if user provided)
+    if (user && user.role === 'TEMPLE_ADMIN' && donation.templeId !== user.templeId) {
+      throw new NotFoundException(`Donation with ID ${id} not found`);
+    }
+    
     return donation;
   }
 
@@ -205,17 +211,105 @@ export class DonationsService {
     }
   }
 
-  private async sendReceiptEmail(donation: Donation): Promise<void> {
+  async sendReceiptEmail(donation: Donation): Promise<void> {
     try {
       const temple = await this.templesService.findOne(donation.templeId);
       if (!temple || !donation.donorEmail) {
         return;
       }
 
+      const receiptConfig = temple.receiptConfig || {};
+      const fromEmail = receiptConfig.fromEmail || 'donations@temple.org';
+      const fromName = receiptConfig.fromName || temple.name;
+      const subject = receiptConfig.subject?.replace('{{templeName}}', temple.name) || `Donation Receipt - ${temple.name}`;
+      const headerText = receiptConfig.headerText || 'Thank You for Your Donation';
+      const footerText = receiptConfig.footerText || 'Your donation helps support our temple';
+      const customMessage = receiptConfig.customMessage || '';
+
+      // Build receipt HTML
+      const receiptHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #4a5568; color: white; padding: 20px; text-align: center; }
+            .content { background-color: #f7fafc; padding: 30px; }
+            .receipt-details { background-color: white; padding: 20px; margin: 20px 0; border-radius: 5px; }
+            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+            .detail-row:last-child { border-bottom: none; }
+            .label { font-weight: bold; color: #4a5568; }
+            .value { color: #2d3748; }
+            .amount { font-size: 24px; font-weight: bold; color: #38a169; }
+            .footer { text-align: center; padding: 20px; color: #718096; font-size: 14px; }
+            ${receiptConfig.taxId ? '.tax-id { margin-top: 20px; padding-top: 20px; border-top: 2px solid #e2e8f0; }' : ''}
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${headerText}</h1>
+            </div>
+            <div class="content">
+              ${donation.donorName ? `<p>Dear ${donation.donorName},</p>` : '<p>Dear Donor,</p>'}
+              ${customMessage ? `<p>${customMessage}</p>` : ''}
+              <div class="receipt-details">
+                <h2>Donation Receipt</h2>
+                <div class="detail-row">
+                  <span class="label">Temple:</span>
+                  <span class="value">${temple.name}</span>
+                </div>
+                ${temple.address ? `
+                <div class="detail-row">
+                  <span class="label">Address:</span>
+                  <span class="value">${temple.address}</span>
+                </div>
+                ` : ''}
+                <div class="detail-row">
+                  <span class="label">Donation Date:</span>
+                  <span class="value">${new Date(donation.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Donation ID:</span>
+                  <span class="value">${donation.id}</span>
+                </div>
+                ${donation.category ? `
+                <div class="detail-row">
+                  <span class="label">Category:</span>
+                  <span class="value">${donation.category.name}</span>
+                </div>
+                ` : ''}
+                <div class="detail-row">
+                  <span class="label">Amount:</span>
+                  <span class="value amount">$${Number(donation.amount).toFixed(2)}</span>
+                </div>
+                ${receiptConfig.includeTaxId && receiptConfig.taxId ? `
+                <div class="tax-id">
+                  <div class="detail-row">
+                    <span class="label">Tax ID (EIN):</span>
+                    <span class="value">${receiptConfig.taxId}</span>
+                  </div>
+                </div>
+                ` : ''}
+              </div>
+              <p>${footerText}</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated receipt. Please keep this for your records.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
       // For now, log the receipt email details
-      // In production, integrate with an email service (SendGrid, AWS SES, etc.)
+      // In production, integrate with an email service (SendGrid, AWS SES, nodemailer, etc.)
       console.log('[DonationsService] 📧 Receipt email would be sent:', {
+        from: `${fromName} <${fromEmail}>`,
         to: donation.donorEmail,
+        subject: subject,
         templeName: temple.name,
         amount: donation.amount,
         category: donation.category?.name || 'General Donation',
@@ -223,16 +317,17 @@ export class DonationsService {
         date: donation.createdAt,
         donorName: donation.donorName,
         donorPhone: donation.donorPhone,
+        receiptConfig: receiptConfig,
       });
 
       // TODO: Implement actual email sending using nodemailer, SendGrid, or AWS SES
       // Example with nodemailer:
       // const transporter = nodemailer.createTransport({...});
       // await transporter.sendMail({
-      //   from: 'donations@temple.org',
+      //   from: `${fromName} <${fromEmail}>`,
       //   to: donation.donorEmail,
-      //   subject: `Donation Receipt - ${temple.name}`,
-      //   html: `...receipt HTML...`
+      //   subject: subject,
+      //   html: receiptHtml
       // });
     } catch (error) {
       console.error('[DonationsService] Error sending receipt email:', error);
