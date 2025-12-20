@@ -120,14 +120,6 @@ export class DonationCategoriesService {
   async moveUp(id: string, templeId: string): Promise<DonationCategory[]> {
     // Use transaction to prevent race conditions
     return await this.categoriesRepository.manager.transaction(async (transactionalEntityManager) => {
-      const category = await transactionalEntityManager.findOne(DonationCategory, {
-        where: { id, templeId },
-      });
-      
-      if (!category) {
-        throw new NotFoundException('Category not found for this temple');
-      }
-
       // Get all categories for this temple, ordered by displayOrder
       const allCategories = await transactionalEntityManager.find(DonationCategory, {
         where: { templeId },
@@ -137,36 +129,40 @@ export class DonationCategoriesService {
       const currentIndex = allCategories.findIndex((c) => c.id === id);
       if (currentIndex <= 0) {
         // Already at the top, nothing to do
+        console.log(`[DonationCategoriesService] moveUp: Category at index ${currentIndex}, cannot move up`);
         return allCategories;
       }
 
-      // Swap displayOrder with the category above
+      // Use the category from allCategories array to ensure we have the right entity instance
+      const category = allCategories[currentIndex];
       const previousCategory = allCategories[currentIndex - 1];
+      
+      console.log(`[DonationCategoriesService] moveUp: Moving "${category.name}" (order: ${category.displayOrder}) up with "${previousCategory.name}" (order: ${previousCategory.displayOrder})`);
+
+      // Swap displayOrder with the category above
       const tempOrder = category.displayOrder;
       category.displayOrder = previousCategory.displayOrder;
       previousCategory.displayOrder = tempOrder;
 
+      console.log(`[DonationCategoriesService] moveUp: After swap - "${category.name}" now has order ${category.displayOrder}, "${previousCategory.name}" now has order ${previousCategory.displayOrder}`);
+
       await transactionalEntityManager.save([category, previousCategory]);
 
       // Return updated list
-      return await transactionalEntityManager.find(DonationCategory, {
+      const updatedCategories = await transactionalEntityManager.find(DonationCategory, {
         where: { templeId },
         order: { displayOrder: 'ASC', name: 'ASC' },
       });
+      
+      console.log(`[DonationCategoriesService] moveUp: Updated order:`, updatedCategories.map(c => `${c.name} (${c.displayOrder})`).join(', '));
+      
+      return updatedCategories;
     });
   }
 
   async moveDown(id: string, templeId: string): Promise<DonationCategory[]> {
     // Use transaction to prevent race conditions
     return await this.categoriesRepository.manager.transaction(async (transactionalEntityManager) => {
-      const category = await transactionalEntityManager.findOne(DonationCategory, {
-        where: { id, templeId },
-      });
-      
-      if (!category) {
-        throw new NotFoundException('Category not found for this temple');
-      }
-
       // Get all categories for this temple, ordered by displayOrder
       const allCategories = await transactionalEntityManager.find(DonationCategory, {
         where: { templeId },
@@ -176,22 +172,34 @@ export class DonationCategoriesService {
       const currentIndex = allCategories.findIndex((c) => c.id === id);
       if (currentIndex < 0 || currentIndex >= allCategories.length - 1) {
         // Already at the bottom, nothing to do
+        console.log(`[DonationCategoriesService] moveDown: Category at index ${currentIndex}, cannot move down`);
         return allCategories;
       }
 
-      // Swap displayOrder with the category below
+      // Use the category from allCategories array to ensure we have the right entity instance
+      const category = allCategories[currentIndex];
       const nextCategory = allCategories[currentIndex + 1];
+      
+      console.log(`[DonationCategoriesService] moveDown: Moving "${category.name}" (order: ${category.displayOrder}) down with "${nextCategory.name}" (order: ${nextCategory.displayOrder})`);
+
+      // Swap displayOrder with the category below
       const tempOrder = category.displayOrder;
       category.displayOrder = nextCategory.displayOrder;
       nextCategory.displayOrder = tempOrder;
 
+      console.log(`[DonationCategoriesService] moveDown: After swap - "${category.name}" now has order ${category.displayOrder}, "${nextCategory.name}" now has order ${nextCategory.displayOrder}`);
+
       await transactionalEntityManager.save([category, nextCategory]);
 
       // Return updated list
-      return await transactionalEntityManager.find(DonationCategory, {
+      const updatedCategories = await transactionalEntityManager.find(DonationCategory, {
         where: { templeId },
         order: { displayOrder: 'ASC', name: 'ASC' },
       });
+      
+      console.log(`[DonationCategoriesService] moveDown: Updated order:`, updatedCategories.map(c => `${c.name} (${c.displayOrder})`).join(', '));
+      
+      return updatedCategories;
     });
   }
 }
