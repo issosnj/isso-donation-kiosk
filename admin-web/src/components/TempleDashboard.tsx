@@ -7,6 +7,7 @@ import DonationsTab from './tabs/DonationsTab'
 import DevicesTab from './tabs/DevicesTab'
 import CategoriesTab from './tabs/CategoriesTab'
 import SquareTab from './tabs/SquareTab'
+import ReceiptTab from './tabs/ReceiptTab'
 
 interface TempleDashboardProps {
   activeTab: string
@@ -34,6 +35,8 @@ export default function TempleDashboard({ activeTab, templeId }: TempleDashboard
         return <CategoriesTab templeId={templeId} />
       case 'square':
         return <SquareTab templeId={templeId} />
+      case 'receipts':
+        return <ReceiptTab templeId={templeId} />
       default:
         return <OverviewTab templeId={templeId} />
     }
