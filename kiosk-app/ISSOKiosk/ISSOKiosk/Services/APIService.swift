@@ -246,6 +246,39 @@ class APIService {
         )
     }
     
+    func createPledge(
+        templeId: String,
+        deviceId: String,
+        amount: Double,
+        categoryId: String?,
+        donorName: String,
+        donorPhone: String,
+        donorEmail: String?
+    ) async throws -> Donation {
+        var body: [String: Any] = [
+            "templeId": templeId,
+            "deviceId": deviceId,
+            "amount": amount,
+            "donorName": donorName,
+            "donorPhone": donorPhone,
+        ]
+        
+        if let categoryId = categoryId {
+            body["categoryId"] = categoryId
+        }
+        
+        if let donorEmail = donorEmail, !donorEmail.isEmpty {
+            body["donorEmail"] = donorEmail
+        }
+        
+        return try await request(
+            endpoint: "/donations/pledge",
+            method: "POST",
+            body: body,
+            requiresAuth: true
+        )
+    }
+    
     func getTemple(templeId: String) async throws -> Temple {
         print("[APIService] 📡 Fetching temple: \(templeId)")
         print("[APIService] 📡 Endpoint: /temples/\(templeId)")

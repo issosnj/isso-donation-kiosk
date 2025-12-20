@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
+import { useAuthStore } from '@/store/authStore'
 import api from '@/lib/api'
 import DevicesTab from './DevicesTab'
 import CategoriesTab from './CategoriesTab'
@@ -18,6 +19,8 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
   const [activeTab, setActiveTab] = useState<'info' | 'devices' | 'categories' | 'square' | 'events' | 'kiosk'>('info')
   const [isEditing, setIsEditing] = useState(false)
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const isMasterAdmin = user?.role === 'MASTER_ADMIN'
 
   const { data: temple, isLoading } = useQuery({
     queryKey: ['temple', templeId],
@@ -35,6 +38,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
     timezone: '',
     defaultCurrency: 'USD',
     logoUrl: '',
+    yajmanOpportunitiesEnabled: false,
     branding: {
       primaryColor: '',
       secondaryColor: '',
@@ -51,6 +55,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
         timezone: temple.timezone || '',
         defaultCurrency: temple.defaultCurrency || 'USD',
         logoUrl: temple.logoUrl || '',
+        yajmanOpportunitiesEnabled: temple.yajmanOpportunitiesEnabled || false,
         branding: {
           primaryColor: temple.branding?.primaryColor || '',
           secondaryColor: temple.branding?.secondaryColor || '',
@@ -151,6 +156,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
                     timezone: temple.timezone || '',
                     defaultCurrency: temple.defaultCurrency || 'USD',
                     logoUrl: temple.logoUrl || '',
+                    yajmanOpportunitiesEnabled: temple.yajmanOpportunitiesEnabled || false,
                     branding: {
                       primaryColor: temple.branding?.primaryColor || '',
                       secondaryColor: temple.branding?.secondaryColor || '',
@@ -365,6 +371,34 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
                 </div>
               </div>
             </div>
+
+            {isMasterAdmin && (
+              <div className="pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Yajman Opportunities (Sponsorship Tiers)
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      Enable yajman sponsorship tiers (Platinum, Gold, Silver) for this temple
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.yajmanOpportunitiesEnabled}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        yajmanOpportunitiesEnabled: e.target.checked
+                      })}
+                      disabled={!isEditing}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"></div>
+                  </label>
+                </div>
+              </div>
+            )}
 
             <div className="pt-4 border-t border-gray-200">
               <h3 className="text-sm font-semibold text-gray-900 mb-2">Temple Statistics</h3>

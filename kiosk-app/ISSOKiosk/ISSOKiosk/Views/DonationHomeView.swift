@@ -195,16 +195,53 @@ struct DonationHomeView: View {
                 Spacer()
             }
         }
+        .sheet(isPresented: $showingYajmanOpportunities) {
+            if let category = selectedCategory, let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
+                YajmanOpportunitiesView(
+                    category: category,
+                    opportunities: opportunities,
+                    onDismiss: {
+                        showingYajmanOpportunities = false
+                    }
+                )
+            }
+        }
         .fullScreenCover(isPresented: $showingDetails) {
             ModernDonationDetailsView(
                     amount: currentAmount,
                     category: selectedCategory,
                     onConfirm: { name, phone, email in
                         showingDetails = false
-                        showingPayment = true
+                        // Check if temple has yajman opportunities enabled
+                        if appState.temple?.yajmanOpportunitiesEnabled == true && selectedCategory != nil {
+                            showingPledgeOption = true
+                        } else {
+                            showingPayment = true
+                        }
                         donorName = name
                         donorPhone = phone
                         donorEmail = email
+                    }
+                )
+            }
+            .sheet(isPresented: $showingPledgeOption) {
+                PledgeOptionViewWrapper(
+                    amount: currentAmount,
+                    category: selectedCategory,
+                    donorName: donorName,
+                    donorPhone: donorPhone,
+                    donorEmail: donorEmail,
+                    onPayNow: {
+                        showingPledgeOption = false
+                        showingPayment = true
+                    },
+                    onPledge: {
+                        Task {
+                            await createPledge()
+                        }
+                    },
+                    onCancel: {
+                        showingPledgeOption = false
                     }
                 )
             }
@@ -751,16 +788,25 @@ struct CleanCategoryButton: View {
                     .foregroundColor(Color(red: 1.0, green: 0.58, blue: 0.0))
                 
                 // Category name and amount side by side
-                HStack(spacing: 8) {
-            Text(category.name)
-                        .font(.custom("Inter-SemiBold", size: 18))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                        Text("$\(Int(defaultAmount))")
-                            .font(.custom("Inter-Regular", size: 18))
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(category.name)
+                            .font(.custom("Inter-SemiBold", size: 18))
                             .foregroundColor(.white)
+                            .lineLimit(1)
+                        
+                        if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+                            Text("$\(Int(defaultAmount))")
+                                .font(.custom("Inter-Regular", size: 18))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    
+                    // Show yajman opportunities indicator
+                    if let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
+                        Text("Includes \(opportunities.count) yajman opportunity\(opportunities.count == 1 ? "" : "ies")")
+                            .font(.custom("Inter-Regular", size: 12))
+                            .foregroundColor(.white.opacity(0.8))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

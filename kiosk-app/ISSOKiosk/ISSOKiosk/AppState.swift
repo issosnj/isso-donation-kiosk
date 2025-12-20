@@ -362,6 +362,7 @@ struct Temple: Codable {
     let squareLocationId: String?
     let homeScreenConfig: HomeScreenConfig?
     let kioskTheme: KioskTheme?
+    let yajmanOpportunitiesEnabled: Bool? // Master admin can enable yajman sponsorship tiers
 }
 
 struct KioskTheme: Codable, Equatable {
@@ -436,12 +437,19 @@ struct Branding: Codable {
     let secondaryColor: String?
 }
 
+struct YajmanOpportunity: Codable, Identifiable {
+    let id: String
+    let name: String
+    let description: String?
+}
+
 struct DonationCategory: Codable, Identifiable {
     let id: String
     let name: String
     let defaultAmount: Double?
     let showStartDate: String? // ISO date string (optional, for future use)
     let showEndDate: String? // ISO date string (optional, for future use)
+    let yajmanOpportunities: [YajmanOpportunity]? // Included yajman opportunities for sponsorship tiers
 }
 
 struct SocialMediaLink: Codable, Equatable {

@@ -23,8 +23,22 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   const [editShowStartDate, setEditShowStartDate] = useState('')
   const [editShowEndDate, setEditShowEndDate] = useState('')
   const [editUseDateRange, setEditUseDateRange] = useState(false)
+  const [editYajmanOpportunities, setEditYajmanOpportunities] = useState<Array<{ id: string; name: string; description?: string }>>([])
+  const [newYajmanOpportunityName, setNewYajmanOpportunityName] = useState('')
+  const [newYajmanOpportunityDescription, setNewYajmanOpportunityDescription] = useState('')
   
   const queryClient = useQueryClient()
+
+  // Fetch temple to check if yajman opportunities are enabled
+  const { data: temple } = useQuery({
+    queryKey: ['temple', templeId],
+    queryFn: async () => {
+      const response = await api.get(`/temples/${templeId}`)
+      return response.data
+    },
+  })
+
+  const yajmanOpportunitiesEnabled = temple?.yajmanOpportunitiesEnabled || false
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories', templeId],
@@ -85,6 +99,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     setEditIsActive(category.isActive)
     setEditShowOnKiosk(category.showOnKiosk)
     setEditDefaultAmount(category.defaultAmount || '')
+    setEditYajmanOpportunities(category.yajmanOpportunities || [])
     
     // Parse dates from ISO strings to local datetime-local format
     if (category.showStartDate) {
@@ -115,6 +130,26 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     setEditShowStartDate('')
     setEditShowEndDate('')
     setEditUseDateRange(false)
+    setEditYajmanOpportunities([])
+    setNewYajmanOpportunityName('')
+    setNewYajmanOpportunityDescription('')
+  }
+
+  const addYajmanOpportunity = () => {
+    if (newYajmanOpportunityName.trim()) {
+      const newOpp = {
+        id: `opp-${Date.now()}`,
+        name: newYajmanOpportunityName.trim(),
+        description: newYajmanOpportunityDescription.trim() || undefined,
+      }
+      setEditYajmanOpportunities([...editYajmanOpportunities, newOpp])
+      setNewYajmanOpportunityName('')
+      setNewYajmanOpportunityDescription('')
+    }
+  }
+
+  const removeYajmanOpportunity = (id: string) => {
+    setEditYajmanOpportunities(editYajmanOpportunities.filter(opp => opp.id !== id))
   }
 
   const saveEdit = () => {
@@ -151,6 +186,11 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
         updateData.showEndDate = new Date(editShowEndDate).toISOString();
       } else {
         updateData.showEndDate = null;
+      }
+      
+      // Include yajman opportunities if enabled
+      if (yajmanOpportunitiesEnabled) {
+        updateData.yajmanOpportunities = editYajmanOpportunities.length > 0 ? editYajmanOpportunities : undefined;
       }
       
       updateCategoryMutation.mutate({
@@ -372,6 +412,68 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                   onChange={(e) => setEditShowEndDate(e.target.value)}
                                   className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                                 />
+                              </div>
+                            </div>
+                          )}
+
+                          {yajmanOpportunitiesEnabled && (
+                            <div className="pt-4 border-t border-gray-300">
+                              <label className="block text-xs font-semibold text-gray-700 mb-2">
+                                Yajman Opportunities (Included Benefits)
+                              </label>
+                              <p className="text-xs text-gray-500 mb-3">
+                                List the yajman opportunities included in this sponsorship tier
+                              </p>
+                              
+                              {/* List of existing opportunities */}
+                              {editYajmanOpportunities.length > 0 && (
+                                <div className="space-y-2 mb-3">
+                                  {editYajmanOpportunities.map((opp) => (
+                                    <div key={opp.id} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+                                      <div className="flex-1">
+                                        <div className="text-sm font-medium text-gray-900">{opp.name}</div>
+                                        {opp.description && (
+                                          <div className="text-xs text-gray-500 mt-1">{opp.description}</div>
+                                        )}
+                                      </div>
+                                      <button
+                                        onClick={() => removeYajmanOpportunity(opp.id)}
+                                        className="ml-2 text-red-600 hover:text-red-800 text-xs"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Add new opportunity */}
+                              <div className="space-y-2">
+                                <div>
+                                  <input
+                                    type="text"
+                                    value={newYajmanOpportunityName}
+                                    onChange={(e) => setNewYajmanOpportunityName(e.target.value)}
+                                    placeholder="e.g., ANNUAL POONAM SABHA YAJMAN"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <input
+                                    type="text"
+                                    value={newYajmanOpportunityDescription}
+                                    onChange={(e) => setNewYajmanOpportunityDescription(e.target.value)}
+                                    placeholder="Description (optional)"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  />
+                                </div>
+                                <button
+                                  onClick={addYajmanOpportunity}
+                                  disabled={!newYajmanOpportunityName.trim()}
+                                  className="px-3 py-1 bg-gray-600 text-white rounded text-xs font-medium hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Add Opportunity
+                                </button>
                               </div>
                             </div>
                           )}
