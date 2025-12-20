@@ -101,6 +101,10 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
     },
+    onError: (error: any) => {
+      console.error('Move up error:', error)
+      alert(error.response?.data?.message || 'Failed to move category up. Please try again.')
+    },
   })
 
   const moveDownMutation = useMutation({
@@ -110,6 +114,10 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories', templeId] })
+    },
+    onError: (error: any) => {
+      console.error('Move down error:', error)
+      alert(error.response?.data?.message || 'Failed to move category down. Please try again.')
     },
   })
 

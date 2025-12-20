@@ -12,6 +12,7 @@ class AppState: ObservableObject {
     
     private let keychain = KeychainHelper()
     private var themeRefreshTimer: Timer?
+    private var categoryRefreshTimer: Timer?
     
     init() {
         loadStoredCredentials()
@@ -19,6 +20,7 @@ class AppState: ObservableObject {
     
     deinit {
         themeRefreshTimer?.invalidate()
+        categoryRefreshTimer?.invalidate()
     }
     
     func activate(deviceCode: String) async throws {
