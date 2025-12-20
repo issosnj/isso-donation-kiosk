@@ -32,6 +32,15 @@ struct ISSOKioskApp: App {
                     startHeartbeat()
                 }
         }
+        .onChange(of: scenePhase) { newPhase in
+            // Refresh theme when app becomes active
+            if newPhase == .active && appState.isActivated {
+                print("[App] 🔄 App became active - refreshing theme settings")
+                Task {
+                    await appState.refreshTempleConfig()
+                }
+            }
+        }
     }
     
     private func startHeartbeat() {

@@ -11,9 +11,14 @@ class AppState: ObservableObject {
     @Published var backgroundImage: UIImage? = nil // Cached background image
     
     private let keychain = KeychainHelper()
+    private var themeRefreshTimer: Timer?
     
     init() {
         loadStoredCredentials()
+    }
+    
+    deinit {
+        themeRefreshTimer?.invalidate()
     }
     
     func activate(deviceCode: String) async throws {
@@ -29,6 +34,9 @@ class AppState: ObservableObject {
             let token = response.deviceToken
             self.deviceId = extractDeviceId(from: token)
             keychain.save(token, forKey: "deviceToken")
+            
+            // Start automatic theme refresh timer
+            startThemeRefreshTimer()
         }
     }
     
@@ -192,6 +200,11 @@ class AppState: ObservableObject {
                 self.isActivated = true
                 print("[AppState] ✅ Temple config loaded: \(temple.name)")
                 print("[AppState] ✅ Temple ID: \(temple.id)")
+                
+                // Start automatic theme refresh timer if not already started
+                if themeRefreshTimer == nil {
+                    startThemeRefreshTimer()
+                }
             }
             
             // Preload background image if available
@@ -350,6 +363,42 @@ class AppState: ObservableObject {
         }
         
         return Data(base64Encoded: base64)
+    }
+    
+    // Start automatic theme refresh timer (refreshes every 30 seconds)
+    private func startThemeRefreshTimer() {
+        // Stop existing timer if any
+        themeRefreshTimer?.invalidate()
+        
+        // Only start if device is activated
+        guard isActivated else {
+            print("[AppState] ⏸️ Skipping theme refresh timer - device not activated")
+            return
+        }
+        
+        print("[AppState] 🔄 Starting automatic theme refresh timer (every 30 seconds)")
+        
+        // Refresh immediately on first start
+        Task {
+            await refreshTempleConfig()
+        }
+        
+        // Then refresh every 30 seconds
+        themeRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            guard let self = self, self.isActivated else {
+                return
+            }
+            Task {
+                await self.refreshTempleConfig()
+            }
+        }
+    }
+    
+    // Stop theme refresh timer
+    func stopThemeRefreshTimer() {
+        themeRefreshTimer?.invalidate()
+        themeRefreshTimer = nil
+        print("[AppState] ⏸️ Stopped theme refresh timer")
     }
 }
 
