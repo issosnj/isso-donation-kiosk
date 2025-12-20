@@ -63,6 +63,10 @@ export class DonationsController {
     await this.donationsService.complete(processPaymentDto.donationId, {
       squarePaymentId: result.paymentId,
       status: result.status === 'COMPLETED' ? DonationStatus.SUCCEEDED : DonationStatus.FAILED,
+      netAmount: result.netAmount,
+      squareFee: result.squareFee,
+      cardLast4: result.cardLast4,
+      cardType: result.cardType,
     });
 
     return {
@@ -88,9 +92,15 @@ export class DonationsController {
 
     // If checkout is completed, update donation
     if (result.completed && result.paymentId) {
+      // Fetch full payment details to get fee and card info
+      const paymentDetails = await this.squareService.getPaymentDetails(donation.templeId, result.paymentId);
       await this.donationsService.complete(donationId, {
         squarePaymentId: result.paymentId,
         status: result.status === 'COMPLETED' ? DonationStatus.SUCCEEDED : DonationStatus.FAILED,
+        netAmount: paymentDetails.netAmount,
+        squareFee: paymentDetails.squareFee,
+        cardLast4: paymentDetails.cardLast4,
+        cardType: paymentDetails.cardType,
       });
     }
 
@@ -292,6 +302,76 @@ export class DonationsController {
     @Body() payPledgeDto: PayPledgeDto,
   ) {
     return this.donationsService.payPledge(token, payPledgeDto);
+  }
+
+  @Post(':id/refund')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Refund a donation' })
+  async refund(
+    @Param('id') id: string,
+    @Body() refundDto: { amount?: number; reason?: string },
+    @CurrentUser() user: any,
+  ) {
+    const donation = await this.donationsService.findOne(id, user);
+    
+    // Verify user has access to this donation
+    if (user.role === UserRole.TEMPLE_ADMIN && donation.templeId !== user.templeId) {
+      throw new ForbiddenException('Unauthorized');
+    }
+
+    if (!donation.squarePaymentId) {
+      throw new BadRequestException('Donation does not have a Square payment ID');
+    }
+
+    if (donation.status !== DonationStatus.SUCCEEDED) {
+      throw new BadRequestException('Can only refund successful donations');
+    }
+
+    // Process refund through Square
+    const refundResult = await this.squareService.refundPayment(
+      donation.templeId,
+      donation.squarePaymentId,
+      refundDto.amount || donation.amount,
+      refundDto.reason,
+    );
+
+    // Update donation status
+    await this.donationsService.updateStatus(donation.id, DonationStatus.REFUNDED);
+
+    return {
+      message: 'Refund processed successfully',
+      refundId: refundResult.refundId,
+      refundAmount: refundResult.amount,
+    };
+  }
+
+  @Get(':id/payment-details')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get payment details from Square' })
+  async getPaymentDetails(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const donation = await this.donationsService.findOne(id, user);
+    
+    // Verify user has access to this donation
+    if (user.role === UserRole.TEMPLE_ADMIN && donation.templeId !== user.templeId) {
+      throw new ForbiddenException('Unauthorized');
+    }
+
+    if (!donation.squarePaymentId) {
+      throw new BadRequestException('Donation does not have a Square payment ID');
+    }
+
+    // Fetch payment details from Square
+    const paymentDetails = await this.squareService.getPaymentDetails(
+      donation.templeId,
+      donation.squarePaymentId,
+    );
+
+    return paymentDetails;
   }
 }
 

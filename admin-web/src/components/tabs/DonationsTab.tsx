@@ -13,6 +13,9 @@ interface DonationsTabProps {
 export default function DonationsTab({ templeId, isMasterAdmin = false }: DonationsTabProps) {
   const queryClient = useQueryClient()
   const [resendingId, setResendingId] = useState<string | null>(null)
+  const [refundingId, setRefundingId] = useState<string | null>(null)
+  const [viewingPaymentDetailsId, setViewingPaymentDetailsId] = useState<string | null>(null)
+  const [paymentDetails, setPaymentDetails] = useState<any>(null)
   const [selectedTempleId, setSelectedTempleId] = useState<string>('all')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
@@ -82,6 +85,60 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
       alert(error.response?.data?.message || 'Failed to generate receipt numbers')
     },
   })
+
+  const refundMutation = useMutation({
+    mutationFn: async ({ donationId, amount, reason }: { donationId: string; amount?: number; reason?: string }) => {
+      const response = await api.post(`/donations/${donationId}/refund`, { amount, reason })
+      return response.data
+    },
+    onSuccess: (data) => {
+      alert(`Refund processed successfully! Refund ID: ${data.refundId}, Amount: $${data.refundAmount.toFixed(2)}`)
+      setRefundingId(null)
+      queryClient.invalidateQueries({ queryKey: ['donations'] })
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to process refund')
+      setRefundingId(null)
+    },
+  })
+
+  const fetchPaymentDetailsMutation = useMutation({
+    mutationFn: async (donationId: string) => {
+      const response = await api.get(`/donations/${donationId}/payment-details`)
+      return response.data
+    },
+    onSuccess: (data) => {
+      setPaymentDetails(data)
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to fetch payment details')
+      setViewingPaymentDetailsId(null)
+    },
+  })
+
+  const handleRefund = (donation: any) => {
+    const refundAmount = prompt(`Enter refund amount (leave empty for full refund of $${Number(donation.amount).toFixed(2)}):`)
+    if (refundAmount === null) return // User cancelled
+    
+    const amount = refundAmount.trim() ? parseFloat(refundAmount) : undefined
+    if (amount !== undefined && (isNaN(amount) || amount <= 0 || amount > donation.amount)) {
+      alert('Invalid refund amount')
+      return
+    }
+
+    const reason = prompt('Enter refund reason (optional):') || undefined
+    
+    if (confirm(`Are you sure you want to refund ${amount ? `$${amount.toFixed(2)}` : 'the full amount'}?`)) {
+      setRefundingId(donation.id)
+      refundMutation.mutate({ donationId: donation.id, amount, reason })
+    }
+  }
+
+  const handleViewPaymentDetails = (donationId: string) => {
+    setViewingPaymentDetailsId(donationId)
+    setPaymentDetails(null)
+    fetchPaymentDetailsMutation.mutate(donationId)
+  }
 
   const handleGenerateReceiptNumbers = () => {
     if (confirm('Generate receipt numbers for all successful donations that are missing them?')) {
@@ -198,7 +255,9 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Temple</th>
               )}
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Receipt #</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Gross Amount</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Square Fee</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Net Amount</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Donor Info</th>
@@ -231,6 +290,16 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-bold text-green-600">
                     ${Number(donation.amount).toFixed(2)}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-red-600">
+                    {donation.squareFee ? `-$${Number(donation.squareFee).toFixed(2)}` : '-'}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-bold text-blue-600">
+                    {donation.netAmount ? `$${Number(donation.netAmount).toFixed(2)}` : donation.amount ? `$${Number(donation.amount).toFixed(2)}` : '-'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -285,6 +354,24 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                         {resendingId === donation.id ? 'Sending...' : 'Resend Receipt'}
                       </button>
                     )}
+                    {donation.status === 'SUCCEEDED' && donation.squarePaymentId && (
+                      <>
+                        <button
+                          onClick={() => handleViewPaymentDetails(donation.id)}
+                          disabled={viewingPaymentDetailsId === donation.id}
+                          className="px-3 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {viewingPaymentDetailsId === donation.id ? 'Loading...' : 'View Details'}
+                        </button>
+                        <button
+                          onClick={() => handleRefund(donation)}
+                          disabled={refundingId === donation.id || donation.status === 'REFUNDED'}
+                          className="px-3 py-1 text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {refundingId === donation.id ? 'Processing...' : 'Refund'}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -292,6 +379,70 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
           </tbody>
         </table>
       </div>
+
+      {/* Payment Details Modal */}
+      {viewingPaymentDetailsId && paymentDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setViewingPaymentDetailsId(null)}>
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Payment Details</h2>
+              <button
+                onClick={() => {
+                  setViewingPaymentDetailsId(null)
+                  setPaymentDetails(null)
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Payment ID</p>
+                  <p className="font-medium">{paymentDetails.payment?.id || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Status</p>
+                  <p className="font-medium">{paymentDetails.paymentStatus || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Gross Amount</p>
+                  <p className="font-medium">${(paymentDetails.netAmount + paymentDetails.squareFee).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Square Fee</p>
+                  <p className="font-medium text-red-600">-${paymentDetails.squareFee.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Net Amount</p>
+                  <p className="font-medium text-blue-600">${paymentDetails.netAmount.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Card Type</p>
+                  <p className="font-medium">{paymentDetails.cardType || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Card Last 4</p>
+                  <p className="font-medium">{paymentDetails.cardLast4 ? `****${paymentDetails.cardLast4}` : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Created At</p>
+                  <p className="font-medium">{paymentDetails.createdAt ? format(new Date(paymentDetails.createdAt), 'MMM dd, yyyy HH:mm') : 'N/A'}</p>
+                </div>
+              </div>
+              {paymentDetails.payment && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-sm text-gray-600 mb-2">Full Payment Details (JSON):</p>
+                  <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-60">
+                    {JSON.stringify(paymentDetails.payment, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

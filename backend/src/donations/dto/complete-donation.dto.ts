@@ -6,6 +6,11 @@ export class CompleteDonationDto {
   @ApiProperty()
   @IsString()
   squarePaymentId: string;
+  
+  netAmount?: number;
+  squareFee?: number;
+  cardLast4?: string;
+  cardType?: string;
 
   @ApiProperty({ enum: DonationStatus })
   @IsEnum(DonationStatus)

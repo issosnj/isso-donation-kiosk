@@ -50,6 +50,19 @@ export class DonationsService {
     if (completeDonationDto.donorEmail) {
       donation.donorEmail = completeDonationDto.donorEmail;
     }
+    // Save Square fee and card information
+    if (completeDonationDto.netAmount !== undefined) {
+      donation.netAmount = completeDonationDto.netAmount;
+    }
+    if (completeDonationDto.squareFee !== undefined) {
+      donation.squareFee = completeDonationDto.squareFee;
+    }
+    if (completeDonationDto.cardLast4) {
+      donation.cardLast4 = completeDonationDto.cardLast4;
+    }
+    if (completeDonationDto.cardType) {
+      donation.cardType = completeDonationDto.cardType;
+    }
 
     // Generate receipt number if payment succeeded and temple has a code
     if (completeDonationDto.status === DonationStatus.SUCCEEDED && !donation.receiptNumber) {

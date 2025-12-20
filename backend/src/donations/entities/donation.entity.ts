@@ -64,6 +64,18 @@ export class Donation {
   @Column({ nullable: true })
   squarePaymentId: string;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  netAmount: number; // Amount after Square fees
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  squareFee: number; // Square processing fee
+
+  @Column({ nullable: true })
+  cardLast4: string; // Last 4 digits of card
+
+  @Column({ nullable: true })
+  cardType: string; // Card type (VISA, MASTERCARD, etc.)
+
   @Column({ nullable: true })
   receiptNumber: string; // Format: TempleCode - K - 0001
 

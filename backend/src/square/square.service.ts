@@ -264,14 +264,33 @@ export class SquareService {
     const data = await response.json();
     const payment = data.payment;
     
+    // Extract fee information
+    const totalMoney = payment.total_money?.amount || 0; // Total in cents
+    const processingFeeMoney = payment.processing_fee_money?.amount || 0; // Fee in cents
+    const netAmountMoney = totalMoney - processingFeeMoney; // Net in cents
+    
+    // Extract card information
+    const cardDetails = payment.card_details;
+    const cardLast4 = cardDetails?.card?.last_4 || null;
+    const cardType = cardDetails?.card?.card_brand || null;
+    
     console.log('[Square Service] Payment processed successfully:', {
       paymentId: payment.id,
       status: payment.status,
+      totalAmount: totalMoney / 100,
+      fee: processingFeeMoney / 100,
+      netAmount: netAmountMoney / 100,
+      cardLast4,
+      cardType,
     });
 
     return {
       paymentId: payment.id,
       status: payment.status,
+      netAmount: netAmountMoney / 100, // Convert cents to dollars
+      squareFee: processingFeeMoney / 100, // Convert cents to dollars
+      cardLast4,
+      cardType,
     };
   }
 
@@ -313,6 +332,143 @@ export class SquareService {
       paymentId,
       status: checkout.status,
       completed: isCompleted,
+    };
+  }
+
+  async getPaymentDetails(templeId: string, paymentId: string): Promise<{
+    netAmount: number;
+    squareFee: number;
+    cardLast4: string | null;
+    cardType: string | null;
+    paymentStatus: string;
+    createdAt: string;
+    [key: string]: any;
+  }> {
+    const temple = await this.templesService.findOne(templeId);
+    
+    if (!temple.squareAccessToken) {
+      throw new Error('Square not connected for this temple.');
+    }
+
+    const accessToken = temple.squareAccessToken;
+
+    // Get payment details from Square
+    const response = await fetch(`https://connect.squareup.com/v2/payments/${paymentId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Square-Version': '2023-10-18',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('[Square Service] Failed to get payment details:', error);
+      throw new Error(`Failed to get payment details: ${error.errors?.[0]?.detail || JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    const payment = data.payment;
+    
+    // Extract fee information
+    const totalMoney = payment.total_money?.amount || 0; // Total in cents
+    const processingFeeMoney = payment.processing_fee_money?.amount || 0; // Fee in cents
+    const netAmountMoney = totalMoney - processingFeeMoney; // Net in cents
+    
+    // Extract card information
+    const cardDetails = payment.card_details;
+    const cardLast4 = cardDetails?.card?.last_4 || null;
+    const cardType = cardDetails?.card?.card_brand || null;
+
+    console.log('[Square Service] Payment details retrieved:', {
+      paymentId,
+      totalAmount: totalMoney / 100,
+      fee: processingFeeMoney / 100,
+      netAmount: netAmountMoney / 100,
+      cardLast4,
+      cardType,
+    });
+
+    return {
+      netAmount: netAmountMoney / 100, // Convert cents to dollars
+      squareFee: processingFeeMoney / 100, // Convert cents to dollars
+      cardLast4,
+      cardType,
+      paymentStatus: payment.status,
+      createdAt: payment.created_at,
+      payment: payment, // Include full payment object for additional details
+    };
+  }
+
+  async refundPayment(
+    templeId: string,
+    paymentId: string,
+    amount: number,
+    reason?: string,
+  ): Promise<{ refundId: string; amount: number }> {
+    const temple = await this.templesService.findOne(templeId);
+    
+    if (!temple.squareAccessToken) {
+      throw new Error('Square not connected for this temple.');
+    }
+
+    if (!temple.squareLocationId) {
+      throw new Error('Square location not configured for this temple.');
+    }
+
+    const accessToken = temple.squareAccessToken;
+    const locationId = temple.squareLocationId;
+
+    // Convert amount to cents
+    const amountMoney = {
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: temple.defaultCurrency || 'USD',
+    };
+
+    // Create refund request
+    const refundRequest = {
+      idempotency_key: `refund-${paymentId}-${Date.now()}`,
+      payment_id: paymentId,
+      amount_money: amountMoney,
+      reason: reason || 'Refund requested by admin',
+    };
+
+    console.log('[Square Service] Processing refund:', {
+      paymentId,
+      amount: amountMoney.amount,
+      currency: amountMoney.currency,
+      reason: refundRequest.reason,
+    });
+
+    // Call Square Refunds API
+    const response = await fetch('https://connect.squareup.com/v2/refunds', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Square-Version': '2023-10-18',
+      },
+      body: JSON.stringify(refundRequest),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('[Square Service] Refund failed:', error);
+      throw new Error(`Square refund failed: ${error.errors?.[0]?.detail || JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    const refund = data.refund;
+    
+    console.log('[Square Service] Refund processed successfully:', {
+      refundId: refund.id,
+      status: refund.status,
+      amount: refund.amount_money.amount / 100,
+    });
+
+    return {
+      refundId: refund.id,
+      amount: refund.amount_money.amount / 100, // Convert cents to dollars
     };
   }
 
