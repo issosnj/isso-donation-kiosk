@@ -126,6 +126,9 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
                     <span>Visit: {config.website}</span>
                   </>
                 )}
+                {!config.phone && !config.email && !config.website && (
+                  <span className="text-gray-400 italic">No contact information provided</span>
+                )}
               </div>
             )}
           </div>
