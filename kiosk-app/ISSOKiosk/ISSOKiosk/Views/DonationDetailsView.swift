@@ -257,7 +257,7 @@ struct ModernDonationDetailsView: View {
                         }
                         
                         // Phone field
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Text(category != nil ? "Phone Number * Required" : "Phone Number (Optional)")
                                     .font(.custom("Inter-Regular", size: 14))
