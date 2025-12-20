@@ -116,9 +116,67 @@ class AppState: ObservableObject {
             
             let (data, response) = try await URLSession.shared.data(for: request)
             
+            // Log response details for debugging
+            if let httpResponse = response as? HTTPURLResponse {
+                print("[AppState] 📊 HTTP Status: \(httpResponse.statusCode)")
+                print("[AppState] 📊 Content-Type: \(httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "unknown")")
+                print("[AppState] 📊 Data size: \(data.count) bytes")
+                
+                // Check if we got an error response (HTML error page)
+                if httpResponse.statusCode != 200 {
+                    print("[AppState] ❌ HTTP Error: \(httpResponse.statusCode)")
+                    if let errorString = String(data: data, encoding: .utf8) {
+                        print("[AppState] ❌ Error response: \(errorString.prefix(200))")
+                    }
+                    await MainActor.run {
+                        self.backgroundImage = nil
+                    }
+                    return
+                }
+            }
+            
+            // Check if data is empty
+            guard !data.isEmpty else {
+                print("[AppState] ⚠️ Empty image data received")
+                await MainActor.run {
+                    self.backgroundImage = nil
+                }
+                return
+            }
+            
+            // Check if it's actually an image by looking at the first few bytes
+            let imageSignatures: [Data] = [
+                Data([0xFF, 0xD8, 0xFF]), // JPEG
+                Data([0x89, 0x50, 0x4E, 0x47]), // PNG
+                Data([0x47, 0x49, 0x46]), // GIF
+            ]
+            
+            let isImage = imageSignatures.contains { signature in
+                data.prefix(signature.count) == signature
+            }
+            
+            if !isImage {
+                print("[AppState] ⚠️ Data doesn't appear to be an image")
+                if let dataString = String(data: data.prefix(200), encoding: .utf8) {
+                    print("[AppState] ⚠️ First 200 bytes: \(dataString)")
+                }
+                await MainActor.run {
+                    self.backgroundImage = nil
+                }
+                return
+            }
+            
             // Verify it's an image
             guard let image = UIImage(data: data) else {
-                print("[AppState] ⚠️ Invalid image data")
+                print("[AppState] ⚠️ UIImage failed to create from data")
+                print("[AppState] ⚠️ Data size: \(data.count) bytes")
+                // Try to see what the data looks like
+                if let dataString = String(data: data.prefix(100), encoding: .utf8) {
+                    print("[AppState] ⚠️ First 100 bytes as string: \(dataString)")
+                }
+                await MainActor.run {
+                    self.backgroundImage = nil
+                }
                 return
             }
             
@@ -131,9 +189,10 @@ class AppState: ObservableObject {
             await MainActor.run {
                 self.backgroundImage = image
             }
-            print("[AppState] ✅ Background image loaded and cached")
+            print("[AppState] ✅ Background image loaded and cached (size: \(image.size))")
         } catch {
             print("[AppState] ❌ Failed to preload background image: \(error.localizedDescription)")
+            print("[AppState] ❌ Error type: \(type(of: error))")
             // Set to nil on error so it falls back to gradient
             await MainActor.run {
                 self.backgroundImage = nil
