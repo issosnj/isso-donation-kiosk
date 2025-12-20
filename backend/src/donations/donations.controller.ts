@@ -270,5 +270,28 @@ export class DonationsController {
     }
     return this.donationsService.generateReceiptNumbersForSuccessfulDonations();
   }
+
+  @Post('pledge')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a pledge (pay later) - device endpoint' })
+  async createPledge(@Body() createPledgeDto: CreatePledgeDto) {
+    return this.donationsService.createPledge(createPledgeDto);
+  }
+
+  @Get('pledge/:token')
+  @ApiOperation({ summary: 'Get pledge details by token (public endpoint)' })
+  async getPledge(@Param('token') token: string) {
+    return this.donationsService.getPledgeByToken(token);
+  }
+
+  @Post('pledge/:token/pay')
+  @ApiOperation({ summary: 'Pay a pledge (public endpoint)' })
+  async payPledge(
+    @Param('token') token: string,
+    @Body() payPledgeDto: PayPledgeDto,
+  ) {
+    return this.donationsService.payPledge(token, payPledgeDto);
+  }
 }
 

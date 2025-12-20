@@ -217,6 +217,86 @@ export class DonationsService {
     return saved;
   }
 
+  async createPledge(createPledgeDto: any): Promise<Donation> {
+    // Generate unique pledge token
+    const pledgeToken = crypto.randomUUID();
+    
+    // Calculate expiry date (30 days from now by default)
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30);
+    
+    // Generate payment link
+    const baseUrl = this.configService.get<string>('FRONTEND_URL') || 
+                   this.configService.get<string>('API_BASE_URL') || 
+                   'https://isso-donation-kiosk-admin.netlify.app';
+    const paymentLink = `${baseUrl}/pay-pledge/${pledgeToken}`;
+    
+    const donation = this.donationsRepository.create({
+      templeId: createPledgeDto.templeId,
+      deviceId: createPledgeDto.deviceId,
+      categoryId: createPledgeDto.categoryId,
+      amount: createPledgeDto.amount,
+      currency: createPledgeDto.currency || 'USD',
+      donorName: createPledgeDto.donorName,
+      donorPhone: createPledgeDto.donorPhone,
+      donorEmail: createPledgeDto.donorEmail,
+      status: DonationStatus.PLEDGED,
+      pledgeToken,
+      pledgeExpiryDate: expiryDate,
+      pledgePaymentLink: paymentLink,
+    });
+    
+    return this.donationsRepository.save(donation);
+  }
+
+  async getPledgeByToken(token: string): Promise<Donation> {
+    const donation = await this.donationsRepository.findOne({
+      where: { pledgeToken: token },
+      relations: ['temple', 'category'],
+    });
+    
+    if (!donation) {
+      throw new NotFoundException(`Pledge with token ${token} not found`);
+    }
+    
+    if (donation.status !== DonationStatus.PLEDGED) {
+      throw new BadRequestException('This pledge has already been paid or cancelled');
+    }
+    
+    // Check if expired
+    if (donation.pledgeExpiryDate && donation.pledgeExpiryDate < new Date()) {
+      throw new BadRequestException('This pledge has expired');
+    }
+    
+    return donation;
+  }
+
+  async payPledge(token: string, payPledgeDto: any): Promise<Donation> {
+    const donation = await this.getPledgeByToken(token);
+    
+    // Update donation with payment information
+    donation.squarePaymentId = payPledgeDto.squarePaymentId;
+    donation.status = payPledgeDto.status;
+    
+    // Generate receipt number if payment succeeded
+    if (payPledgeDto.status === DonationStatus.SUCCEEDED && !donation.receiptNumber) {
+      donation.receiptNumber = await this.generateReceiptNumber(donation.templeId);
+    }
+    
+    const savedDonation = await this.donationsRepository.save(donation);
+    
+    // Send receipt email if payment succeeded
+    if (payPledgeDto.status === DonationStatus.SUCCEEDED && donation.donorEmail) {
+      try {
+        await this.sendReceiptEmail(savedDonation);
+      } catch (error) {
+        console.error('[DonationsService] Failed to send receipt email:', error);
+      }
+    }
+    
+    return savedDonation;
+  }
+
   async findAll(
     templeId?: string,
     filters?: {
