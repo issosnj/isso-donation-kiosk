@@ -199,18 +199,6 @@ struct ModernDonationDetailsView: View {
                 }
             }
             .ignoresSafeArea(.all, edges: .all)
-            } else {
-                // Default gradient background
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.white,
-                        Color(red: 0.95, green: 0.97, blue: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea(.all, edges: .all)
-            }
             
             // No dark overlay - clean background
             
@@ -239,18 +227,18 @@ struct ModernDonationDetailsView: View {
                                 Text("$\(String(format: "%.2f", amount))")
                                     .font(.custom("Inter-Regular", size: detailsLabelFontSize))
                                     .foregroundColor(detailsTextColor)
-                            }
-                            
-                            if let category = category {
+                    }
+                    
+                    if let category = category {
                                 Divider()
                                     .background(Color.gray.opacity(0.3))
                                 
-                                HStack {
+                        HStack {
                                     Text("Category")
                                         .font(.custom("Inter-Regular", size: detailsLabelFontSize))
                                         .foregroundColor(detailsTextColor)
-                                    Spacer()
-                                    Text(category.name)
+                            Spacer()
+                            Text(category.name)
                                         .font(.custom("Inter-Regular", size: detailsLabelFontSize))
                                         .foregroundColor(detailsTextColor)
                                 }
@@ -317,13 +305,13 @@ struct ModernDonationDetailsView: View {
                             .padding(.bottom, 4)
                         
                         // Name field
-                        VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Text(category != nil ? "Name * Required" : "Name (Optional)")
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                             }
-                            TextField("Enter your name", text: $donorName)
+                        TextField("Enter your name", text: $donorName)
                                 .focused($nameFocused)
                                 .font(.custom("Inter-Regular", size: detailsInputFontSize))
                                 .foregroundColor(detailsTextColor)
@@ -372,14 +360,14 @@ struct ModernDonationDetailsView: View {
                         }
                         
                         // Email field
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Email for Receipt (Optional)")
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Email for Receipt (Optional)")
                                 .font(.custom("Inter-Regular", size: 14))
                                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                            TextField("Enter your email", text: $donorEmail)
+                        TextField("Enter your email", text: $donorEmail)
                                 .focused($emailFocused)
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
                                 .font(.custom("Inter-Regular", size: detailsInputFontSize))
                                 .foregroundColor(detailsTextColor)
                                 .padding(16)
@@ -409,7 +397,7 @@ struct ModernDonationDetailsView: View {
                 // Ready for Payment button - centered at bottom
                 Button(action: {
                     withAnimation {
-                        onConfirm(
+                    onConfirm(
                             donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
                             donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
                             donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces)
@@ -444,7 +432,7 @@ struct ModernDonationDetailsView: View {
                 HStack {
                     Button(action: {
                         withAnimation {
-                            dismiss()
+                        dismiss()
                         }
                     }) {
                         HStack(spacing: 8) {
