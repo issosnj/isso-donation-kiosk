@@ -115,7 +115,7 @@ struct KioskHomeView: View {
                             .minimumScaleFactor(0.5)
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 20)
-                            .padding(.top, 50)
+                            .padding(.top, 80)
                             .padding(.bottom, 4)
                         
                         // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
@@ -171,19 +171,18 @@ struct KioskHomeView: View {
                                     .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
                             }
                             .padding(.trailing, 20)
-                            .padding(.top, 8)
+                            .padding(.top, 30)
                         }
                         Spacer()
                     }
                 }
                 
                 Spacer()
-                    .frame(height: 20)
                 
                 // Centered content
                 VStack(spacing: 30) {
                     
-                    // Main: Tap To Donate Button - Gold-Accented Design
+                    // Main: Tap To Donate Button - Gold-Accented Design (centered vertically)
                     HStack {
                         Spacer()
                         GoldAccentDonateButton(action: {
