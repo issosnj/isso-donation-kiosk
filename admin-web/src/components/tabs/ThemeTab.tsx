@@ -86,6 +86,7 @@ export default function ThemeTab() {
           headerTopPadding: temple.kioskTheme.layout?.headerTopPadding || 120,
           categoryHeaderTopPadding: temple.kioskTheme.layout?.categoryHeaderTopPadding || 120,
           sectionSpacing: temple.kioskTheme.layout?.sectionSpacing || 40,
+          categoryAmountSectionSpacing: temple.kioskTheme.layout?.categoryAmountSectionSpacing || 40,
           buttonSpacing: temple.kioskTheme.layout?.buttonSpacing || 12,
           cornerRadius: temple.kioskTheme.layout?.cornerRadius || 12,
           quantityTotalSpacing: temple.kioskTheme.layout?.quantityTotalSpacing || 24,
