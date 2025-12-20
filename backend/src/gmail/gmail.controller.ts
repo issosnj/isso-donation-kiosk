@@ -1,0 +1,140 @@
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  Res,
+  CurrentUser,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
+import { GmailService } from './gmail.service';
+import { TemplesService } from '../temples/temples.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
+
+@ApiTags('gmail')
+@Controller('gmail')
+export class GmailController {
+  constructor(
+    private gmailService: GmailService,
+    private templesService: TemplesService,
+    private configService: ConfigService,
+  ) {}
+
+  // Simple encryption/decryption helpers (in production, use a proper encryption service)
+  private encrypt(text: string): string {
+    const algorithm = 'aes-256-cbc';
+    const key = Buffer.from(this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!', 'utf8');
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(algorithm, key, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+  }
+
+  private decrypt(encryptedText: string): string {
+    const algorithm = 'aes-256-cbc';
+    const key = Buffer.from(this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!', 'utf8');
+    const parts = encryptedText.split(':');
+    const iv = Buffer.from(parts[0], 'hex');
+    const encrypted = parts[1];
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  }
+
+  @Get('connect')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Gmail OAuth URL' })
+  async connect(@Query('templeId') templeId: string, @CurrentUser() user: any) {
+    if (user.role !== 'MASTER_ADMIN' && user.templeId !== templeId) {
+      throw new Error('Unauthorized');
+    }
+
+    const clientId = this.configService.get<string>('GMAIL_CLIENT_ID');
+    const redirectUri = this.configService.get<string>('GMAIL_REDIRECT_URI');
+    
+    if (!clientId || !redirectUri) {
+      throw new Error('Gmail configuration missing. Please set GMAIL_CLIENT_ID and GMAIL_REDIRECT_URI in environment variables.');
+    }
+
+    const oauthUrl = this.gmailService.getOAuthUrl(templeId);
+    return { oauthUrl };
+  }
+
+  @Get('callback')
+  @ApiOperation({ summary: 'Gmail OAuth callback' })
+  async callback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() res: Response,
+  ) {
+    try {
+      if (!code || !state) {
+        throw new Error('Missing code or state parameter');
+      }
+
+      const stateData = JSON.parse(
+        Buffer.from(state, 'base64').toString('utf-8'),
+      );
+      const { templeId } = stateData;
+
+      // Exchange code for token
+      const tokenData = await this.gmailService.exchangeCodeForToken(code, state);
+      
+      // Get user email
+      const userEmail = await this.gmailService.getUserEmail(tokenData.access_token);
+
+      // Encrypt tokens before storing
+      const encryptedAccessToken = this.encrypt(tokenData.access_token);
+      const encryptedRefreshToken = tokenData.refresh_token 
+        ? this.encrypt(tokenData.refresh_token)
+        : null;
+
+      // Update temple with Gmail credentials
+      const temple = await this.templesService.findOne(templeId);
+      temple.gmailAccessToken = encryptedAccessToken;
+      temple.gmailRefreshToken = encryptedRefreshToken;
+      temple.gmailEmail = userEmail;
+      await this.templesService.update(templeId, {
+        gmailAccessToken: encryptedAccessToken,
+        gmailRefreshToken: encryptedRefreshToken,
+        gmailEmail: userEmail,
+      });
+
+      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://issodonationkiosk.netlify.app';
+      const redirectUrl = `${adminWebUrl}/dashboard?gmailConnected=true&templeId=${templeId}`;
+      
+      res.redirect(redirectUrl);
+    } catch (error: any) {
+      console.error('[Gmail Callback] Error:', error);
+      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://issodonationkiosk.netlify.app';
+      const redirectUrl = `${adminWebUrl}/dashboard?gmailError=${encodeURIComponent(error.message)}`;
+      res.redirect(redirectUrl);
+    }
+  }
+
+  @Get('disconnect')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Disconnect Gmail account' })
+  async disconnect(@Query('templeId') templeId: string, @CurrentUser() user: any) {
+    if (user.role !== 'MASTER_ADMIN' && user.templeId !== templeId) {
+      throw new Error('Unauthorized');
+    }
+
+    await this.templesService.update(templeId, {
+      gmailAccessToken: null,
+      gmailRefreshToken: null,
+      gmailEmail: null,
+    });
+
+    return { message: 'Gmail account disconnected successfully' };
+  }
+}
+

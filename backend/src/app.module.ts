@@ -7,6 +7,7 @@ import { TemplesModule } from './temples/temples.module';
 import { DevicesModule } from './devices/devices.module';
 import { DonationsModule } from './donations/donations.module';
 import { SquareModule } from './square/square.module';
+import { GmailModule } from './gmail/gmail.module';
 import { typeOrmConfig } from './config/typeorm.config';
 
 @Module({
@@ -24,6 +25,7 @@ import { typeOrmConfig } from './config/typeorm.config';
     DevicesModule,
     DonationsModule,
     SquareModule,
+    GmailModule,
   ],
 })
 export class AppModule {}

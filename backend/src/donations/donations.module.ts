@@ -11,6 +11,7 @@ import { DonationCategoriesController } from './donation-categories.controller';
 import { TemplesModule } from '../temples/temples.module';
 import { DevicesModule } from '../devices/devices.module';
 import { SquareModule } from '../square/square.module';
+import { GmailModule } from '../gmail/gmail.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { SquareModule } from '../square/square.module';
     TemplesModule,
     forwardRef(() => DevicesModule),
     forwardRef(() => SquareModule),
+    GmailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

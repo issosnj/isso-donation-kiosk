@@ -5,6 +5,13 @@ import { useParams } from 'next/navigation'
 import api from '@/lib/api'
 import ReceiptView from '@/components/ReceiptView'
 
+// Required for static export with dynamic routes
+export function generateStaticParams() {
+  return []
+}
+
+export const dynamic = 'force-dynamic'
+
 export default function ReceiptPage() {
   const params = useParams()
   const donationId = params.id as string

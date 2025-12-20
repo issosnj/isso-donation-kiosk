@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 
 interface ReceiptTabProps {
@@ -9,8 +10,11 @@ interface ReceiptTabProps {
 }
 
 export default function ReceiptTab({ templeId }: ReceiptTabProps) {
+  const router = useRouter()
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
+  const [gmailSuccessMessage, setGmailSuccessMessage] = useState<string | null>(null)
+  const [gmailErrorMessage, setGmailErrorMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     // Email settings
     fromEmail: '',
@@ -49,6 +53,62 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
       return response.data
     },
   })
+
+  // Check for Gmail OAuth callback success/error from URL params
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    const urlParams = new URLSearchParams(window.location.search)
+    const gmailConnected = urlParams.get('gmailConnected')
+    const gmailError = urlParams.get('gmailError')
+    const connectedTempleId = urlParams.get('templeId')
+    
+    if (gmailConnected === 'true' && connectedTempleId === templeId) {
+      setGmailSuccessMessage('Gmail account connected successfully!')
+      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+      
+      urlParams.delete('gmailConnected')
+      urlParams.delete('templeId')
+      const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '')
+      router.replace(newUrl)
+      
+      setTimeout(() => setGmailSuccessMessage(null), 5000)
+    }
+    
+    if (gmailError) {
+      setGmailErrorMessage(decodeURIComponent(gmailError))
+      urlParams.delete('gmailError')
+      const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '')
+      router.replace(newUrl)
+      setTimeout(() => setGmailErrorMessage(null), 10000)
+    }
+  }, [templeId, queryClient, router])
+
+  const handleConnectGmail = async () => {
+    try {
+      const response = await api.get('/gmail/connect', {
+        params: { templeId },
+      })
+      window.location.href = response.data.oauthUrl
+    } catch (error: any) {
+      console.error('Failed to connect Gmail:', error)
+      setGmailErrorMessage(error.response?.data?.message || error.message || 'Failed to initiate Gmail connection')
+    }
+  }
+
+  const handleDisconnectGmail = async () => {
+    if (confirm('Are you sure you want to disconnect Gmail? Receipt emails will not be sent until Gmail is reconnected.')) {
+      try {
+        await api.get('/gmail/disconnect', {
+          params: { templeId },
+        })
+        queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+        alert('Gmail account disconnected successfully')
+      } catch (error: any) {
+        alert(error.response?.data?.message || 'Failed to disconnect Gmail')
+      }
+    }
+  }
 
   useEffect(() => {
     if (temple?.receiptConfig) {
@@ -178,10 +238,56 @@ export default function ReceiptTab({ templeId }: ReceiptTabProps) {
         )}
       </div>
 
+      {/* Gmail Connection Status */}
+      {(gmailSuccessMessage || gmailErrorMessage) && (
+        <div className={`mb-4 p-4 rounded-lg ${
+          gmailSuccessMessage ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          {gmailSuccessMessage || gmailErrorMessage}
+        </div>
+      )}
+
+      {/* Gmail Connection */}
+      <div className="mb-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Gmail Account</h3>
+            <p className="text-sm text-gray-600">
+              {temple?.gmailEmail 
+                ? `Connected: ${temple.gmailEmail}` 
+                : 'Connect your Gmail account to send receipt emails'}
+            </p>
+          </div>
+          {temple?.gmailEmail ? (
+            <button
+              onClick={handleDisconnectGmail}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Disconnect Gmail
+            </button>
+          ) : (
+            <button
+              onClick={handleConnectGmail}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+              </svg>
+              Connect Gmail
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="space-y-6">
         {/* Email Settings */}
         <div className="border-b border-gray-200 pb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Email Settings</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            {temple?.gmailEmail 
+              ? `Emails will be sent from your connected Gmail account (${temple.gmailEmail}). The "From Email" and "From Name" below will be used as the display name.`
+              : 'Connect Gmail above to enable email sending. Until then, these settings are for display purposes only.'}
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

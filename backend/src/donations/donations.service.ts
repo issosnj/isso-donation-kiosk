@@ -5,6 +5,9 @@ import { Donation, DonationStatus } from './entities/donation.entity';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
 import { TemplesService } from '../temples/temples.service';
+import { GmailService } from '../gmail/gmail.service';
+import * as crypto from 'crypto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class DonationsService {
@@ -12,6 +15,8 @@ export class DonationsService {
     @InjectRepository(Donation)
     private donationsRepository: Repository<Donation>,
     private templesService: TemplesService,
+    private gmailService: GmailService,
+    private configService: ConfigService,
   ) {}
 
   async initiate(initiateDonationDto: InitiateDonationDto): Promise<Donation> {
@@ -355,6 +360,29 @@ export class DonationsService {
     }
   }
 
+  // Simple encryption/decryption helpers (should match GmailController)
+  private encrypt(text: string): string {
+    const algorithm = 'aes-256-cbc';
+    const key = Buffer.from(this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!', 'utf8');
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(algorithm, key, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+  }
+
+  private decrypt(encryptedText: string): string {
+    const algorithm = 'aes-256-cbc';
+    const key = Buffer.from(this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!', 'utf8');
+    const parts = encryptedText.split(':');
+    const iv = Buffer.from(parts[0], 'hex');
+    const encrypted = parts[1];
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  }
+
   async sendReceiptEmail(donation: Donation): Promise<void> {
     try {
       const temple = await this.templesService.findOne(donation.templeId);
@@ -363,7 +391,7 @@ export class DonationsService {
       }
 
       const receiptConfig = temple.receiptConfig || {};
-      const fromEmail = receiptConfig.fromEmail || 'donations@temple.org';
+      const fromEmail = receiptConfig.fromEmail || temple.gmailEmail || 'donations@temple.org';
       const fromName = receiptConfig.fromName || temple.name;
       const subject = receiptConfig.subject?.replace('{{templeName}}', temple.name) || `Donation Receipt - ${temple.name}`;
       const headerText = receiptConfig.headerText || 'Thank You for Your Donation';

@@ -39,6 +39,15 @@ export class Temple {
   @Column({ nullable: true })
   squareLocationId: string;
 
+  @Column({ type: 'text', nullable: true })
+  gmailAccessToken: string; // Encrypted Gmail OAuth access token
+
+  @Column({ nullable: true })
+  gmailRefreshToken: string; // Encrypted Gmail OAuth refresh token
+
+  @Column({ nullable: true })
+  gmailEmail: string; // Gmail address that is connected
+
   @Column({ default: 'USD' })
   defaultCurrency: string;
 
