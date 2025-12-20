@@ -34,8 +34,8 @@ class AppState: ObservableObject {
             
             // Extract device ID from JWT token
             let token = response.deviceToken
-            self.deviceId = extractDeviceId(from: token)
-            keychain.save(token, forKey: "deviceToken")
+                self.deviceId = extractDeviceId(from: token)
+                keychain.save(token, forKey: "deviceToken")
             
             // Start automatic theme refresh timer
             startThemeRefreshTimer()
@@ -76,6 +76,9 @@ class AppState: ObservableObject {
             
             // Always reload background image when refreshing config (in case image was updated)
             await preloadBackgroundImage(forceReload: true)
+            
+            // Also refresh categories when temple config is refreshed (categories might have changed)
+            await refreshCategories()
         } catch {
             print("[AppState] ❌ Failed to refresh temple config: \(error.localizedDescription)")
         }
@@ -276,6 +279,11 @@ class AppState: ObservableObject {
                 if themeRefreshTimer == nil {
                     startThemeRefreshTimer()
                 }
+                
+                // Start automatic category refresh timer if not already started
+                if categoryRefreshTimer == nil {
+                    startCategoryRefreshTimer()
+                }
             }
             
             // Preload background image if available
@@ -470,6 +478,42 @@ class AppState: ObservableObject {
         themeRefreshTimer?.invalidate()
         themeRefreshTimer = nil
         print("[AppState] ⏸️ Stopped theme refresh timer")
+    }
+    
+    // Start automatic category refresh timer (refreshes every 30 seconds)
+    private func startCategoryRefreshTimer() {
+        // Stop existing timer if any
+        categoryRefreshTimer?.invalidate()
+        
+        // Only start if device is activated
+        guard isActivated else {
+            print("[AppState] ⏸️ Skipping category refresh timer - device not activated")
+            return
+        }
+        
+        print("[AppState] 🔄 Starting automatic category refresh timer (every 30 seconds)")
+        
+        // Refresh immediately on first start
+        Task {
+            await refreshCategories()
+        }
+        
+        // Then refresh every 30 seconds
+        categoryRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            guard let self = self, self.isActivated else {
+                return
+            }
+            Task {
+                await self.refreshCategories()
+            }
+        }
+    }
+    
+    // Stop category refresh timer
+    private func stopCategoryRefreshTimer() {
+        categoryRefreshTimer?.invalidate()
+        categoryRefreshTimer = nil
+        print("[AppState] ⏸️ Stopped category refresh timer")
     }
 }
 
