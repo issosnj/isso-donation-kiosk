@@ -131,6 +131,10 @@ struct DonationHomeView: View {
         colorFromHex(theme?.colors?.subtitleColor, defaultColor: Color(red: 0.5, green: 0.5, blue: 0.6))
     }
     
+    var quantityTotalColor: Color {
+        colorFromHex(theme?.colors?.quantityTotalColor, defaultColor: headingColor)
+    }
+    
     var categoryBoxMaxWidth: CGFloat {
         CGFloat(theme?.layout?.categoryBoxMaxWidth ?? 400)
     }
@@ -151,6 +155,10 @@ struct DonationHomeView: View {
         CGFloat(theme?.layout?.headerTopPadding ?? 120)
     }
     
+    var categoryHeaderTopPadding: CGFloat {
+        CGFloat(theme?.layout?.categoryHeaderTopPadding ?? headerTopPadding)
+    }
+    
     var sectionSpacing: CGFloat {
         CGFloat(theme?.layout?.sectionSpacing ?? 40)
     }
@@ -161,6 +169,10 @@ struct DonationHomeView: View {
     
     var cornerRadius: CGFloat {
         CGFloat(theme?.layout?.cornerRadius ?? 12)
+    }
+    
+    var quantityTotalSpacing: CGFloat {
+        CGFloat(theme?.layout?.quantityTotalSpacing ?? 24)
     }
     
     var body: some View {
@@ -363,7 +375,7 @@ struct DonationHomeView: View {
                     .font(.custom(bodyFont, size: bodySize))
                     .foregroundColor(subtitleColor)
             }
-            .padding(.top, 120)
+            .padding(.top, categoryHeaderTopPadding)
             .padding(.bottom, 12)
             
             categoryContent
@@ -458,12 +470,12 @@ struct DonationHomeView: View {
             // Header
             VStack(spacing: 6) {
                 Text("Select Amount")
-                    .font(.custom("Inter-SemiBold", size: 32))
-                    .foregroundColor(colorFromHex("423232"))
+                    .font(.custom(headingFont, size: headingSize))
+                    .foregroundColor(headingColor)
                 
                 Text("Choose preset donation amount from")
-                    .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                    .font(.custom(bodyFont, size: bodySize))
+                    .foregroundColor(subtitleColor)
             }
             .padding(.top, headerTopPadding)
             .padding(.bottom, 12)
@@ -536,12 +548,12 @@ struct DonationHomeView: View {
         VStack(spacing: 16) {
             // Show quantity and total side by side when category with quantity is selected
             if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                HStack(spacing: 24) {
+                HStack(spacing: quantityTotalSpacing) {
                     // Quantity selector
                     VStack(spacing: 8) {
                         Text("Quantity")
-                            .font(.custom("Inter-SemiBold", size: 16))
-                            .foregroundColor(colorFromHex("423232"))
+                            .font(.custom(bodyFont, size: bodySize))
+                            .foregroundColor(subtitleColor)
                         
                         HStack(spacing: 12) {
                             Button(action: {
@@ -556,8 +568,8 @@ struct DonationHomeView: View {
                             .disabled(quantity <= 1)
                             
                             Text("\(quantity)")
-                                .font(.custom("Inter-SemiBold", size: 24))
-                                .foregroundColor(colorFromHex("423232"))
+                                .font(.custom(headingFont, size: 24))
+                                .foregroundColor(quantityTotalColor)
                                 .frame(minWidth: 40)
                             
                             Button(action: {
@@ -571,19 +583,19 @@ struct DonationHomeView: View {
                         .padding(.vertical, 10)
                         .padding(.horizontal, 24)
                         .background(Color.white)
-                        .cornerRadius(12)
+                        .cornerRadius(cornerRadius)
                         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
                     
                     // Total display
                     VStack(spacing: 6) {
                         Text("Total")
-                            .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                            .font(.custom(bodyFont, size: bodySize))
+                            .foregroundColor(subtitleColor)
                         
                         Text("$\(String(format: "%.2f", defaultAmount * Double(quantity)))")
-                            .font(.custom("Inter-SemiBold", size: 28))
-                            .foregroundColor(colorFromHex("423232"))
+                            .font(.custom(headingFont, size: 28))
+                            .foregroundColor(quantityTotalColor)
                     }
                 }
                 .padding(.bottom, 8)
@@ -754,13 +766,13 @@ struct CleanCategoryButton: View {
                 // Category name and amount side by side
                 HStack(spacing: 8) {
                     Text(category.name)
-                        .font(.custom("Inter-Medium", size: 18))
+                        .font(.custom("Inter-SemiBold", size: 18))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     
                     if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
                         Text("$\(Int(defaultAmount))")
-                            .font(.custom("Inter-Medium", size: 18))
+                            .font(.custom("Inter-Regular", size: 18))
                             .foregroundColor(.white)
                     }
                 }

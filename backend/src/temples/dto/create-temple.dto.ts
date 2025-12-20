@@ -75,6 +75,7 @@ export class CreateTempleDto {
       buttonTextColor?: string;
       bodyTextColor?: string;
       subtitleColor?: string;
+      quantityTotalColor?: string;
     };
     layout?: {
       categoryBoxMaxWidth?: number;
@@ -82,9 +83,11 @@ export class CreateTempleDto {
       amountButtonHeight?: number;
       categoryButtonHeight?: number;
       headerTopPadding?: number;
+      categoryHeaderTopPadding?: number;
       sectionSpacing?: number;
       buttonSpacing?: number;
       cornerRadius?: number;
+      quantityTotalSpacing?: number;
     };
   };
 }

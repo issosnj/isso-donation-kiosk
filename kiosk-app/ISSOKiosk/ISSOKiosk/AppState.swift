@@ -322,6 +322,7 @@ struct ThemeColors: Codable, Equatable {
     let buttonTextColor: String?
     let bodyTextColor: String?
     let subtitleColor: String?
+    let quantityTotalColor: String?
 }
 
 struct ThemeLayout: Codable, Equatable {
@@ -330,9 +331,11 @@ struct ThemeLayout: Codable, Equatable {
     let amountButtonHeight: Double?
     let categoryButtonHeight: Double?
     let headerTopPadding: Double?
+    let categoryHeaderTopPadding: Double?
     let sectionSpacing: Double?
     let buttonSpacing: Double?
     let cornerRadius: Double?
+    let quantityTotalSpacing: Double?
 }
 
 struct HomeScreenConfig: Codable {

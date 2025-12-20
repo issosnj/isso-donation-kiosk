@@ -95,6 +95,7 @@ export class Temple {
       buttonTextColor?: string; // Hex color for button text (default: white)
       bodyTextColor?: string; // Hex color for body text
       subtitleColor?: string; // Hex color for subtitles
+      quantityTotalColor?: string; // Hex color for quantity and total display (e.g., "#423232")
     };
     // Layout settings
     layout?: {
@@ -103,9 +104,11 @@ export class Temple {
       amountButtonHeight?: number; // Height for amount buttons (e.g., 70)
       categoryButtonHeight?: number; // Height for category buttons (e.g., 70)
       headerTopPadding?: number; // Top padding for headers (e.g., 120)
+      categoryHeaderTopPadding?: number; // Top padding for category header (to align with amount header)
       sectionSpacing?: number; // Spacing between sections
       buttonSpacing?: number; // Spacing between buttons
       cornerRadius?: number; // Corner radius for buttons (e.g., 12)
+      quantityTotalSpacing?: number; // Spacing between quantity and total when category selected (e.g., 24)
     };
   };
 
