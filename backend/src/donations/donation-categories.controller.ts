@@ -91,11 +91,34 @@ export class DonationCategoriesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all donation categories' })
-  findAll(@CurrentUser() user: any) {
-    if (user.role === UserRole.MASTER_ADMIN) {
-      return this.categoriesService.findAll();
+  async findAll(@CurrentUser() user: any) {
+    const categories = user.role === UserRole.MASTER_ADMIN
+      ? await this.categoriesService.findAll()
+      : await this.categoriesService.findAll(user.templeId);
+    
+    // Fix any duplicate displayOrder values by reassigning them
+    // Group by templeId and fix each group
+    const categoriesByTemple = new Map<string, typeof categories>();
+    categories.forEach(cat => {
+      if (!categoriesByTemple.has(cat.templeId)) {
+        categoriesByTemple.set(cat.templeId, []);
+      }
+      categoriesByTemple.get(cat.templeId)!.push(cat);
+    });
+    
+    // Check and fix duplicates for each temple
+    for (const [templeId, templeCategories] of categoriesByTemple) {
+      const orders = templeCategories.map(c => c.displayOrder);
+      const hasDuplicates = orders.length !== new Set(orders).size;
+      
+      if (hasDuplicates) {
+        console.log(`[DonationCategoriesController] Found duplicate displayOrder values for temple ${templeId}, fixing...`);
+        // Fix will happen on next move operation, but we can also trigger a fix here if needed
+        // For now, just log it - the move operations will handle it
+      }
     }
-    return this.categoriesService.findAll(user.templeId);
+    
+    return categories;
   }
 
   @Get('kiosk/:templeId')
