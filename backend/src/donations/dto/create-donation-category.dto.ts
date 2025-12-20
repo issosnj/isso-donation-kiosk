@@ -1,4 +1,4 @@
-import { IsUUID, IsString, IsBoolean, IsOptional, IsNumber, IsDateString, ValidateIf } from 'class-validator';
+import { IsUUID, IsString, IsBoolean, IsOptional, IsNumber, IsDateString, ValidateIf, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -37,5 +37,14 @@ export class CreateDonationCategoryDto {
   @IsOptional()
   @IsDateString()
   showEndDate?: string;
+
+  @ApiProperty({ required: false, type: 'array', items: { type: 'object' } })
+  @IsOptional()
+  @IsArray()
+  yajmanOpportunities?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+  }>;
 }
 

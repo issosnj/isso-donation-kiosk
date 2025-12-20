@@ -39,6 +39,13 @@ export class DonationCategory {
   @Column({ type: 'timestamp', nullable: true })
   showEndDate: Date;
 
+  @Column({ type: 'json', nullable: true })
+  yajmanOpportunities?: Array<{
+    id: string;                    // Unique ID for this opportunity
+    name: string;                  // e.g., "ANNUAL POONAM SABHA YAJMAN"
+    description?: string;           // Optional description
+  }>;
+
   @CreateDateColumn()
   createdAt: Date;
 

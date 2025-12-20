@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { CreateTempleDto } from './create-temple.dto';
 
@@ -18,5 +18,10 @@ export class UpdateTempleDto extends PartialType(CreateTempleDto) {
   @IsOptional()
   @IsString()
   gmailEmail?: string;
+
+  @ApiProperty({ required: false, default: false })
+  @IsOptional()
+  @IsBoolean()
+  yajmanOpportunitiesEnabled?: boolean;
 }
 

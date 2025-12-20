@@ -14,6 +14,8 @@ import { DonationsService } from './donations.service';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
+import { CreatePledgeDto } from './dto/create-pledge.dto';
+import { PayPledgeDto } from './dto/pay-pledge.dto';
 import { SquareService } from '../square/square.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';

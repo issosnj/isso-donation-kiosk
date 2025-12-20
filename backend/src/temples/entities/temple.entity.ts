@@ -48,6 +48,9 @@ export class Temple {
   @Column({ nullable: true })
   gmailEmail: string; // Gmail address that is connected
 
+  @Column({ default: false })
+  yajmanOpportunitiesEnabled: boolean; // Master admin can enable yajman sponsorship tiers for this temple
+
   @Column({ default: 'USD' })
   defaultCurrency: string;
 

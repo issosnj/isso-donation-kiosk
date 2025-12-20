@@ -13,6 +13,7 @@ import { DonationCategory } from './donation-category.entity';
 
 export enum DonationStatus {
   PENDING = 'PENDING',
+  PLEDGED = 'PLEDGED',  // Pledged but not paid yet
   SUCCEEDED = 'SUCCEEDED',
   FAILED = 'FAILED',
   CANCELED = 'CANCELED',
@@ -72,6 +73,15 @@ export class Donation {
     default: DonationStatus.PENDING,
   })
   status: DonationStatus;
+
+  @Column({ nullable: true })
+  pledgeToken: string; // Unique token for pledge payment link
+
+  @Column({ type: 'timestamp', nullable: true })
+  pledgeExpiryDate: Date; // Optional: when pledge expires
+
+  @Column({ nullable: true })
+  pledgePaymentLink: string; // Link to pay later (QR code or URL)
 
   @CreateDateColumn()
   createdAt: Date;
