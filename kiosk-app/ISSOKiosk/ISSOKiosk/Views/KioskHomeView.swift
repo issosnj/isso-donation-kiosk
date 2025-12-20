@@ -48,9 +48,15 @@ struct KioskHomeView: View {
     
     var body: some View {
         ZStack {
-            // Background: Custom image if available, otherwise gradient
-            if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
+            // Background: Use preloaded image from AppState for instant display
+            if let backgroundImage = appState.backgroundImage {
+                Image(uiImage: backgroundImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+            } else if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
                let url = URL(string: backgroundUrl) {
+                // Fallback to AsyncImage if cached image not available yet
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
@@ -68,7 +74,7 @@ struct KioskHomeView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     case .failure:
-                        // Fallback to gradient on error
+                        // Fallback to gradient on error (404, network error, etc.)
                         LinearGradient(
                             gradient: Gradient(colors: [
                                 Color.white,
