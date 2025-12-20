@@ -112,9 +112,9 @@ struct KioskHomeView: View {
                 // Header at top, transparent background
                 ZStack {
                     VStack(spacing: 0) {
-                        // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller)
+                        // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller) - Bold
                         Text("Welcome to Shree Swaminarayan Hindu Temple")
-                            .font(.custom("Inter-Bold", size: 42))
+                            .font(.system(size: 42, weight: .bold, design: .default))
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
@@ -135,9 +135,10 @@ struct KioskHomeView: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 4)
                         
-                        // Under Shree NarNarayan Dev Gadi
+                        // Under Shree NarNarayan Dev Gadi - Italic
                         Text("Under Shree NarNarayan Dev Gadi")
-                            .font(.custom("Inter-Italic", size: 20))
+                            .font(.system(size: 20, weight: .regular, design: .default))
+                            .italic()
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)

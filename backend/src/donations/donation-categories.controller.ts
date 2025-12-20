@@ -147,36 +147,44 @@ export class DonationCategoriesController {
 
   @Post(':id/move-up')
   @ApiOperation({ summary: 'Move category up in display order' })
-  moveUp(@Param('id') id: string, @CurrentUser() user: any) {
-    const templeId = user.role === UserRole.MASTER_ADMIN 
-      ? undefined 
-      : user.templeId;
-    
-    if (!templeId) {
-      // For master admin, need to get category first to find templeId
-      return this.categoriesService.findOne(id).then((category) => {
-        return this.categoriesService.moveUp(id, category.templeId);
-      });
+  async moveUp(@Param('id') id: string, @CurrentUser() user: any) {
+    try {
+      const templeId = user.role === UserRole.MASTER_ADMIN 
+        ? undefined 
+        : user.templeId;
+      
+      if (!templeId) {
+        // For master admin, need to get category first to find templeId
+        const category = await this.categoriesService.findOne(id);
+        return await this.categoriesService.moveUp(id, category.templeId);
+      }
+      
+      return await this.categoriesService.moveUp(id, templeId);
+    } catch (error) {
+      console.error('[DonationCategoriesController] Error moving category up:', error);
+      throw error;
     }
-    
-    return this.categoriesService.moveUp(id, templeId);
   }
 
   @Post(':id/move-down')
   @ApiOperation({ summary: 'Move category down in display order' })
-  moveDown(@Param('id') id: string, @CurrentUser() user: any) {
-    const templeId = user.role === UserRole.MASTER_ADMIN 
-      ? undefined 
-      : user.templeId;
-    
-    if (!templeId) {
-      // For master admin, need to get category first to find templeId
-      return this.categoriesService.findOne(id).then((category) => {
-        return this.categoriesService.moveDown(id, category.templeId);
-      });
+  async moveDown(@Param('id') id: string, @CurrentUser() user: any) {
+    try {
+      const templeId = user.role === UserRole.MASTER_ADMIN 
+        ? undefined 
+        : user.templeId;
+      
+      if (!templeId) {
+        // For master admin, need to get category first to find templeId
+        const category = await this.categoriesService.findOne(id);
+        return await this.categoriesService.moveDown(id, category.templeId);
+      }
+      
+      return await this.categoriesService.moveDown(id, templeId);
+    } catch (error) {
+      console.error('[DonationCategoriesController] Error moving category down:', error);
+      throw error;
     }
-    
-    return this.categoriesService.moveDown(id, templeId);
   }
 }
 
