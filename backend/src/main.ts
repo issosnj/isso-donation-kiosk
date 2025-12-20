@@ -180,7 +180,7 @@ async function bootstrap() {
   );
 
   // Add health check endpoint BEFORE global prefix (Railway needs this)
-  app.getHttpAdapter().get('/health', (req, res) => {
+  app.getHttpAdapter().get('/health', (req: any, res: any) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
@@ -189,7 +189,7 @@ async function bootstrap() {
 
   // Add root route handler (after global prefix, this handles / which becomes /api)
   const adapter = app.getHttpAdapter();
-  adapter.get('/', (req, res) => {
+  adapter.get('/', (req: any, res: any) => {
     res.json({
       message: 'ISSO Donation Kiosk API',
       version: '1.0',
