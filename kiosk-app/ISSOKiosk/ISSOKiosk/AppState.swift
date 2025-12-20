@@ -302,13 +302,13 @@ struct Temple: Codable {
     let kioskTheme: KioskTheme?
 }
 
-struct KioskTheme: Codable {
+struct KioskTheme: Codable, Equatable {
     let fonts: ThemeFonts?
     let colors: ThemeColors?
     let layout: ThemeLayout?
 }
 
-struct ThemeFonts: Codable {
+struct ThemeFonts: Codable, Equatable {
     let headingFamily: String?
     let headingSize: Double?
     let buttonFamily: String?
@@ -317,14 +317,14 @@ struct ThemeFonts: Codable {
     let bodySize: Double?
 }
 
-struct ThemeColors: Codable {
+struct ThemeColors: Codable, Equatable {
     let headingColor: String?
     let buttonTextColor: String?
     let bodyTextColor: String?
     let subtitleColor: String?
 }
 
-struct ThemeLayout: Codable {
+struct ThemeLayout: Codable, Equatable {
     let categoryBoxMaxWidth: Double?
     let amountButtonWidth: Double?
     let amountButtonHeight: Double?
