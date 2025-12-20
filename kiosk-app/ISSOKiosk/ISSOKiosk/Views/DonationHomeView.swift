@@ -214,23 +214,18 @@ struct DonationHomeView: View {
                     category: selectedCategory,
                     onConfirm: { name, phone, email in
                         showingDetails = false
-                        // Show pledge option if:
-                        // 1. Temple has yajman opportunities enabled, OR
-                        // 2. Selected category has yajman opportunities
-                        let yajmanEnabled = appState.temple?.yajmanOpportunitiesEnabled == true
-                        let categoryHasOpportunities = selectedCategory?.yajmanOpportunities?.isEmpty == false
-                        let shouldShowPledge = yajmanEnabled || categoryHasOpportunities
+                        // Show pledge option ONLY if selected category has yajman opportunities (sponsor tiers)
+                        let categoryHasOpportunities = selectedCategory?.yajmanOpportunities != nil && !(selectedCategory?.yajmanOpportunities?.isEmpty ?? true)
                         
-                        print("[DonationHomeView] 🔍 Yajman opportunities enabled: \(yajmanEnabled)")
-                        print("[DonationHomeView] 🔍 Category has opportunities: \(categoryHasOpportunities ?? false)")
+                        print("[DonationHomeView] 🔍 Category has opportunities: \(categoryHasOpportunities)")
                         print("[DonationHomeView] 🔍 Selected category: \(selectedCategory?.name ?? "nil")")
-                        print("[DonationHomeView] 🔍 Should show pledge: \(shouldShowPledge)")
+                        print("[DonationHomeView] 🔍 Should show pledge: \(categoryHasOpportunities)")
                         
-                        if shouldShowPledge {
-                            print("[DonationHomeView] ✅ Showing pledge option")
+                        if categoryHasOpportunities {
+                            print("[DonationHomeView] ✅ Showing pledge option for sponsor tier")
                             showingPledgeOption = true
                         } else {
-                            print("[DonationHomeView] ⏭️ Going directly to payment (pledge not available)")
+                            print("[DonationHomeView] ⏭️ Going directly to payment (pledge only available for sponsor tiers)")
                             showingPayment = true
                         }
                         donorName = name

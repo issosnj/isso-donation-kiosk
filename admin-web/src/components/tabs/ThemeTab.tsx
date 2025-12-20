@@ -66,6 +66,18 @@ export default function ThemeTab() {
       donorFormMaxWidth: 420,
       detailsCardPadding: 24,
       detailsCardSpacing: 16,
+      // Donation Details Page Fonts
+      detailsAmountFontSize: 56,
+      detailsLabelFontSize: 18,
+      detailsInputFontSize: 18,
+      detailsButtonFontSize: 22,
+      // Donation Details Page Colors
+      detailsAmountColor: '#423232',
+      detailsTextColor: '#423232',
+      detailsInputBorderColor: '#CCCCCC',
+      detailsInputFocusColor: '#3366CC',
+      detailsButtonColor: '#3366CC',
+      detailsButtonTextColor: '#FFFFFF',
     },
   })
 

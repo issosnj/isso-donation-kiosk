@@ -126,14 +126,26 @@ export class Temple {
       cornerRadius?: number; // Corner radius for buttons (e.g., 12)
       quantityTotalSpacing?: number; // Spacing between quantity and total when category selected (e.g., 24)
       // Donation Details Page Layout
-      detailsPageHorizontalSpacing?: number; // Spacing between left and right sections (e.g., 30)
-      detailsPageSidePadding?: number; // Padding on left/right sides (e.g., 30)
+      detailsPageHorizontalSpacing?: number; // Spacing between left and right sections (e.g., 40)
+      detailsPageSidePadding?: number; // Padding on left/right sides (e.g., 60)
       detailsPageTopPadding?: number; // Top padding (e.g., 80)
       detailsPageBottomPadding?: number; // Bottom padding (e.g., 40)
-      detailsCardMaxWidth?: number; // Max width for donation details card (e.g., 400)
-      donorFormMaxWidth?: number; // Max width for donor form (e.g., 400)
-      detailsCardPadding?: number; // Padding inside details card (e.g., 20)
-      detailsCardSpacing?: number; // Spacing between items in card (e.g., 12)
+      detailsCardMaxWidth?: number; // Max width for donation details card (e.g., 420)
+      donorFormMaxWidth?: number; // Max width for donor form (e.g., 420)
+      detailsCardPadding?: number; // Padding inside details card (e.g., 24)
+      detailsCardSpacing?: number; // Spacing between items in card (e.g., 16)
+      // Donation Details Page Fonts
+      detailsAmountFontSize?: number; // Font size for large amount display (e.g., 56)
+      detailsLabelFontSize?: number; // Font size for labels (e.g., 18)
+      detailsInputFontSize?: number; // Font size for input fields (e.g., 18)
+      detailsButtonFontSize?: number; // Font size for button text (e.g., 22)
+      // Donation Details Page Colors
+      detailsAmountColor?: string; // Hex color for amount display (e.g., "#423232")
+      detailsTextColor?: string; // Hex color for text (e.g., "#423232")
+      detailsInputBorderColor?: string; // Hex color for input border (e.g., "#CCCCCC")
+      detailsInputFocusColor?: string; // Hex color for input focus border (e.g., "#3366CC")
+      detailsButtonColor?: string; // Hex color for button background (e.g., "#3366CC")
+      detailsButtonTextColor?: string; // Hex color for button text (e.g., "#FFFFFF")
     };
   };
 

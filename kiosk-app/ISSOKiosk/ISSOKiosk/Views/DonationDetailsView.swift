@@ -41,6 +41,37 @@ struct ModernDonationDetailsView: View {
         appState.temple?.kioskTheme
     }
     
+    // Helper to convert hex string to Color
+    private func colorFromHex(_ hex: String?, defaultColor: Color) -> Color {
+        guard let hex = hex, !hex.isEmpty else {
+            return defaultColor
+        }
+        
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        
+        if hexSanitized.count == 3 {
+            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
+        }
+        
+        guard hexSanitized.count == 6 else {
+            return defaultColor
+        }
+        
+        var rgb: UInt64 = 0
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else {
+            return defaultColor
+        }
+        
+        let r = Double((rgb & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgb & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgb & 0x0000FF) / 255.0
+        
+        return Color(red: r, green: g, blue: b)
+    }
+    
     private var detailsPageHorizontalSpacing: CGFloat {
         CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? 40)
     }
@@ -71,6 +102,48 @@ struct ModernDonationDetailsView: View {
     
     private var detailsCardSpacing: CGFloat {
         CGFloat(theme?.layout?.detailsCardSpacing ?? 16)
+    }
+    
+    // Font sizes
+    private var detailsAmountFontSize: CGFloat {
+        CGFloat(theme?.layout?.detailsAmountFontSize ?? 56)
+    }
+    
+    private var detailsLabelFontSize: CGFloat {
+        CGFloat(theme?.layout?.detailsLabelFontSize ?? 18)
+    }
+    
+    private var detailsInputFontSize: CGFloat {
+        CGFloat(theme?.layout?.detailsInputFontSize ?? 18)
+    }
+    
+    private var detailsButtonFontSize: CGFloat {
+        CGFloat(theme?.layout?.detailsButtonFontSize ?? 22)
+    }
+    
+    // Colors
+    private var detailsAmountColor: Color {
+        colorFromHex(theme?.layout?.detailsAmountColor, defaultColor: Color(red: 0.26, green: 0.20, blue: 0.20))
+    }
+    
+    private var detailsTextColor: Color {
+        colorFromHex(theme?.layout?.detailsTextColor, defaultColor: Color(red: 0.26, green: 0.20, blue: 0.20))
+    }
+    
+    private var detailsInputBorderColor: Color {
+        colorFromHex(theme?.layout?.detailsInputBorderColor, defaultColor: Color.gray.opacity(0.2))
+    }
+    
+    private var detailsInputFocusColor: Color {
+        colorFromHex(theme?.layout?.detailsInputFocusColor, defaultColor: Color(red: 0.2, green: 0.4, blue: 0.8))
+    }
+    
+    private var detailsButtonColor: Color {
+        colorFromHex(theme?.layout?.detailsButtonColor, defaultColor: Color(red: 0.2, green: 0.4, blue: 0.8))
+    }
+    
+    private var detailsButtonTextColor: Color {
+        colorFromHex(theme?.layout?.detailsButtonTextColor, defaultColor: Color.white)
     }
     
     var body: some View {
@@ -138,20 +211,20 @@ struct ModernDonationDetailsView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         // Large amount display
                         Text("$\(String(format: "%.2f", amount))")
-                            .font(.custom("Inter-SemiBold", size: 56))
-                            .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                            .font(.custom("Inter-SemiBold", size: detailsAmountFontSize))
+                            .foregroundColor(detailsAmountColor)
                             .padding(.bottom, 4)
                         
                         // Donation summary card
                         VStack(alignment: .leading, spacing: detailsCardSpacing) {
                             HStack {
                                 Text("Donation")
-                                    .font(.custom("Inter-Regular", size: 18))
-                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                    .font(.custom("Inter-Regular", size: detailsLabelFontSize))
+                                    .foregroundColor(detailsTextColor)
                                 Spacer()
                                 Text("$\(String(format: "%.2f", amount))")
-                                    .font(.custom("Inter-Regular", size: 18))
-                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                    .font(.custom("Inter-Regular", size: detailsLabelFontSize))
+                                    .foregroundColor(detailsTextColor)
                             }
                             
                             if let category = category {
@@ -160,12 +233,12 @@ struct ModernDonationDetailsView: View {
                                 
                                 HStack {
                                     Text("Category")
-                                        .font(.custom("Inter-Regular", size: 18))
-                                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                        .font(.custom("Inter-Regular", size: detailsLabelFontSize))
+                                        .foregroundColor(detailsTextColor)
                                     Spacer()
                                     Text(category.name)
-                                        .font(.custom("Inter-Regular", size: 18))
-                                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                        .font(.custom("Inter-Regular", size: detailsLabelFontSize))
+                                        .foregroundColor(detailsTextColor)
                                 }
                                 
                                 // View Benefits button if category has yajman opportunities
@@ -205,12 +278,12 @@ struct ModernDonationDetailsView: View {
                             
                             HStack {
                                 Text("Total")
-                                    .font(.custom("Inter-SemiBold", size: 20))
-                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                    .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
+                                    .foregroundColor(detailsTextColor)
                                 Spacer()
                                 Text("$\(String(format: "%.2f", amount))")
-                                    .font(.custom("Inter-SemiBold", size: 20))
-                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                    .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
+                                    .foregroundColor(detailsTextColor)
                             }
                         }
                         .padding(detailsCardPadding)
@@ -225,8 +298,8 @@ struct ModernDonationDetailsView: View {
                     // RIGHT SIDE: Donor Information
                     VStack(alignment: .leading, spacing: 20) {
                         Text(category != nil ? "Donor Information" : "Optional Information")
-                            .font(.custom("Inter-SemiBold", size: 20))
-                            .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                            .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
+                            .foregroundColor(detailsTextColor)
                             .padding(.bottom, 4)
                         
                         // Name field
@@ -238,8 +311,8 @@ struct ModernDonationDetailsView: View {
                             }
                             TextField("Enter your name", text: $donorName)
                                 .focused($nameFocused)
-                                .font(.custom("Inter-Regular", size: 18))
-                                .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                .foregroundColor(detailsTextColor)
                                 .padding(16)
                                 .background(Color.white)
                                 .cornerRadius(10)
@@ -247,10 +320,10 @@ struct ModernDonationDetailsView: View {
                                     RoundedRectangle(cornerRadius: 10)
                                         .stroke(
                                             nameFocused 
-                                                ? Color(red: 0.2, green: 0.4, blue: 0.8)
+                                                ? detailsInputFocusColor
                                                 : (category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty
                                                     ? Color.red.opacity(0.5)
-                                                    : Color.gray.opacity(0.2)),
+                                                    : detailsInputBorderColor),
                                             lineWidth: nameFocused ? 2 : 1
                                         )
                                 )
@@ -266,8 +339,8 @@ struct ModernDonationDetailsView: View {
                             TextField("Enter your phone number", text: $donorPhone)
                                 .focused($phoneFocused)
                                 .keyboardType(.phonePad)
-                                .font(.custom("Inter-Regular", size: 18))
-                                .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                .foregroundColor(detailsTextColor)
                                 .padding(16)
                                 .background(Color.white)
                                 .cornerRadius(10)
@@ -275,10 +348,10 @@ struct ModernDonationDetailsView: View {
                                     RoundedRectangle(cornerRadius: 10)
                                         .stroke(
                                             phoneFocused 
-                                                ? Color(red: 0.2, green: 0.4, blue: 0.8)
+                                                ? detailsInputFocusColor
                                                 : (category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty
                                                     ? Color.red.opacity(0.5)
-                                                    : Color.gray.opacity(0.2)),
+                                                    : detailsInputBorderColor),
                                             lineWidth: phoneFocused ? 2 : 1
                                         )
                                 )
@@ -293,8 +366,8 @@ struct ModernDonationDetailsView: View {
                                 .focused($emailFocused)
                                 .keyboardType(.emailAddress)
                                 .autocapitalization(.none)
-                                .font(.custom("Inter-Regular", size: 18))
-                                .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                .foregroundColor(detailsTextColor)
                                 .padding(16)
                                 .background(Color.white)
                                 .cornerRadius(10)
@@ -302,8 +375,8 @@ struct ModernDonationDetailsView: View {
                                     RoundedRectangle(cornerRadius: 10)
                                         .stroke(
                                             emailFocused 
-                                                ? Color(red: 0.2, green: 0.4, blue: 0.8)
-                                                : Color.gray.opacity(0.2),
+                                                ? detailsInputFocusColor
+                                                : detailsInputBorderColor,
                                             lineWidth: emailFocused ? 2 : 1
                                         )
                                 )
@@ -331,15 +404,15 @@ struct ModernDonationDetailsView: View {
                 }) {
                     HStack(spacing: 12) {
                         Text("Ready for Payment")
-                            .font(.custom("Inter-Medium", size: 22))
-                            .foregroundColor(.white)
+                            .font(.custom("Inter-Medium", size: detailsButtonFontSize))
+                            .foregroundColor(canProceed ? detailsButtonTextColor : Color.gray)
                         Image(systemName: "arrow.right")
-                            .font(.custom("Inter-SemiBold", size: 20))
-                            .foregroundColor(.white)
+                            .font(.custom("Inter-SemiBold", size: detailsButtonFontSize - 2))
+                            .foregroundColor(canProceed ? detailsButtonTextColor : Color.gray)
                     }
                     .frame(maxWidth: 500)
                     .padding(.vertical, 18)
-                    .background(canProceed ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray.opacity(0.5))
+                    .background(canProceed ? detailsButtonColor : Color.gray.opacity(0.5))
                     .cornerRadius(12)
                 }
                 .disabled(!canProceed)

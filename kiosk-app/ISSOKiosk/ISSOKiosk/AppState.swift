@@ -527,6 +527,18 @@ struct ThemeLayout: Codable, Equatable {
     let donorFormMaxWidth: Double?
     let detailsCardPadding: Double?
     let detailsCardSpacing: Double?
+    // Donation Details Page Fonts
+    let detailsAmountFontSize: Double?
+    let detailsLabelFontSize: Double?
+    let detailsInputFontSize: Double?
+    let detailsButtonFontSize: Double?
+    // Donation Details Page Colors
+    let detailsAmountColor: String?
+    let detailsTextColor: String?
+    let detailsInputBorderColor: String?
+    let detailsInputFocusColor: String?
+    let detailsButtonColor: String?
+    let detailsButtonTextColor: String?
 }
 
 struct HomeScreenConfig: Codable {
