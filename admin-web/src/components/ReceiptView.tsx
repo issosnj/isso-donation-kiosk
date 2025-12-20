@@ -117,16 +117,16 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
             )}
             {config.showContactInfo !== false && (
               <div className="text-sm text-gray-600 mt-2">
-                {config.phone && <span>Phone: {config.phone}</span>}
-                {config.phone && config.email && <span> | </span>}
-                {config.email && <span>Email: {config.email}</span>}
-                {config.website && (
+                {config.phone && config.phone.trim() && <span>Phone: {config.phone}</span>}
+                {config.phone && config.phone.trim() && config.email && config.email.trim() && <span> | </span>}
+                {config.email && config.email.trim() && <span>Email: {config.email}</span>}
+                {config.website && config.website.trim() && (
                   <>
-                    {(config.phone || config.email) && <span> | </span>}
+                    {((config.phone && config.phone.trim()) || (config.email && config.email.trim())) && <span> | </span>}
                     <span>Visit: {config.website}</span>
                   </>
                 )}
-                {!config.phone && !config.email && !config.website && (
+                {(!config.phone || !config.phone.trim()) && (!config.email || !config.email.trim()) && (!config.website || !config.website.trim()) && (
                   <span className="text-gray-400 italic">No contact information provided</span>
                 )}
               </div>
