@@ -25,9 +25,34 @@ export class GmailController {
   ) {}
 
   // Simple encryption/decryption helpers (in production, use a proper encryption service)
+  private getEncryptionKey(): Buffer {
+    const keyString = this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!';
+    
+    // If it's a hex string, parse it
+    if (/^[0-9a-fA-F]+$/.test(keyString)) {
+      // Hex string - convert to buffer
+      const hexKey = Buffer.from(keyString, 'hex');
+      // AES-256-CBC requires exactly 32 bytes
+      if (hexKey.length === 32) {
+        return hexKey;
+      } else if (hexKey.length < 32) {
+        // Pad with zeros if too short
+        const padded = Buffer.alloc(32);
+        hexKey.copy(padded);
+        return padded;
+      } else {
+        // Truncate if too long
+        return hexKey.slice(0, 32);
+      }
+    } else {
+      // Regular string - use SHA-256 to derive a 32-byte key
+      return crypto.createHash('sha256').update(keyString).digest();
+    }
+  }
+
   private encrypt(text: string): string {
     const algorithm = 'aes-256-cbc';
-    const key = Buffer.from(this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!', 'utf8');
+    const key = this.getEncryptionKey();
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(algorithm, key, iv);
     let encrypted = cipher.update(text, 'utf8', 'hex');
@@ -37,7 +62,7 @@ export class GmailController {
 
   private decrypt(encryptedText: string): string {
     const algorithm = 'aes-256-cbc';
-    const key = Buffer.from(this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!', 'utf8');
+    const key = this.getEncryptionKey();
     const parts = encryptedText.split(':');
     const iv = Buffer.from(parts[0], 'hex');
     const encrypted = parts[1];
