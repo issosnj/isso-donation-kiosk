@@ -268,7 +268,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   <div className="flex flex-col gap-1">
                     {donation.status === 'SUCCEEDED' && (
                       <a
-                        href={`/receipt/${donation.id}`}
+                        href={`/receipt?id=${donation.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1 text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline"
