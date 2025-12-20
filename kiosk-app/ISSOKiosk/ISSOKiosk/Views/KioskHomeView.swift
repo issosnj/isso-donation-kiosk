@@ -156,7 +156,7 @@ struct KioskHomeView: View {
                     // Time and Network Status in top right
                     TimeAndNetworkStatusView()
                         .padding(.trailing, 20)
-                        .padding(.top, 20)
+                        .padding(.top, 17)
                 }
                 
                 Spacer()
