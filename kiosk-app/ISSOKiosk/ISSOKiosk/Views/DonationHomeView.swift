@@ -531,7 +531,7 @@ struct DonationHomeView: View {
                     .font(.custom(headingFont, size: headingSize))
                     .foregroundColor(headingColor)
                 
-                Text("Choose preset donation amount from")
+                Text("Choose a preset donation amount")
                     .font(.custom(bodyFont, size: bodySize))
                     .foregroundColor(subtitleColor)
             }
@@ -913,7 +913,7 @@ struct CleanCategoryButton: View {
                             Image(systemName: "star.fill")
                                 .font(.system(size: 10))
                                 .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
-                            Text("Includes \(opportunities.count) yajman opportunity\(opportunities.count == 1 ? "" : "ies")")
+                            Text("Includes \(opportunities.count) yajman \(opportunities.count == 1 ? "opportunity" : "opportunities")")
                                 .font(.custom("Inter-Medium", size: 13))
                                 .foregroundColor(.white.opacity(0.95))
                         }
