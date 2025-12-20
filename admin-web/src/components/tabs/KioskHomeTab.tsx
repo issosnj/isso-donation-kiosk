@@ -312,33 +312,28 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                   
                   setUploadingBackground(true)
                   try {
-                    const formData = new FormData()
-                    formData.append('file', file)
+                    const uploadFormData = new FormData()
+                    uploadFormData.append('file', file)
                     
-                    const token = localStorage.getItem('token')
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/temples/${templeId}/upload-background`, {
-                      method: 'POST',
+                    // Use the api instance which handles authentication automatically
+                    const token = localStorage.getItem('authToken')
+                    const response = await api.post(`/temples/${templeId}/upload-background`, uploadFormData, {
                       headers: {
-                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data',
                       },
-                      body: formData,
                     })
                     
-                    if (!response.ok) {
-                      throw new Error('Upload failed')
-                    }
-                    
-                    const data = await response.json()
                     setFormData(prev => ({
                       ...prev,
-                      backgroundImageUrl: data.url,
+                      backgroundImageUrl: response.data.url,
                     }))
                     
                     // Update the temple data
                     queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error('Upload error:', error)
-                    alert('Failed to upload background image. Please try again.')
+                    const errorMessage = error.response?.data?.message || error.message || 'Failed to upload background image. Please try again.'
+                    alert(errorMessage)
                   } finally {
                     setUploadingBackground(false)
                   }
