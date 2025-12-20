@@ -379,8 +379,9 @@ export class SquareService {
     const payment = data.payment;
     
     // Extract fee information
+    // processing_fee is an array, get the first element's amount_money.amount
     const totalMoney = payment.total_money?.amount || 0; // Total in cents
-    const processingFeeMoney = payment.processing_fee_money?.amount || 0; // Fee in cents
+    const processingFeeMoney = payment.processing_fee?.[0]?.amount_money?.amount || 0; // Fee in cents
     const netAmountMoney = totalMoney - processingFeeMoney; // Net in cents
     
     // Extract card information
@@ -395,6 +396,7 @@ export class SquareService {
       netAmount: netAmountMoney / 100,
       cardLast4,
       cardType,
+      processingFeeArray: payment.processing_fee, // Log for debugging
     });
 
     return {
