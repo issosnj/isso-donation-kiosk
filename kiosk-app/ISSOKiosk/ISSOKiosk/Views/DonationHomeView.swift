@@ -12,6 +12,7 @@ struct DonationHomeView: View {
     @State private var donorName: String?
     @State private var donorEmail: String?
     @FocusState private var customAmountFocused: Bool
+    @State private var backgroundImage: UIImage? = nil
     
     // Preset amounts from backend config, fallback to defaults
     var presetAmounts: [Double] {
@@ -65,7 +66,11 @@ struct DonationHomeView: View {
     
     // Get colors with defaults
     var categorySelectedColor: Color {
-        colorFromHex(buttonColors.categorySelected)
+        // Default to red for selected category if not configured
+        if let hex = buttonColors.categorySelected, !hex.isEmpty {
+            return colorFromHex(hex)
+        }
+        return Color(red: 0.9, green: 0.2, blue: 0.2) // Red color for selected category
     }
     
     var categoryUnselectedColor: Color {
@@ -127,43 +132,37 @@ struct DonationHomeView: View {
     private var backgroundGradient: some View {
         Group {
             // Background: Custom image if available, otherwise gradient
-            if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
+            if let backgroundImage = backgroundImage {
+                Image(uiImage: backgroundImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea(.all, edges: .all)
+            } else if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
                let url = URL(string: backgroundUrl) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        // Show gradient while loading
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white,
-                                Color(red: 0.95, green: 0.97, blue: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .failure:
-                        // Fallback to gradient on error
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white,
-                                Color(red: 0.95, green: 0.97, blue: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    @unknown default:
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white,
-                                Color(red: 0.95, green: 0.97, blue: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                // Show gradient immediately while loading, then overlay image when ready
+                ZStack {
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.white,
+                            Color(red: 0.95, green: 0.97, blue: 1.0)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            Color.clear
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        case .failure:
+                            Color.clear
+                        @unknown default:
+                            Color.clear
+                        }
                     }
                 }
                 .ignoresSafeArea(.all, edges: .all)
@@ -184,19 +183,67 @@ struct DonationHomeView: View {
             customAmountFocused = false
         }
         .task {
+            // Preload background image if available for instant display
+            if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
+               let url = URL(string: backgroundUrl),
+               backgroundImage == nil {
+                // Try to load from cache first
+                if let cachedResponse = URLCache.shared.cachedResponse(for: URLRequest(url: url)),
+                   let image = UIImage(data: cachedResponse.data) {
+                    backgroundImage = image
+                } else {
+                    // Load asynchronously and cache
+                    Task {
+                        if let (data, response) = try? await URLSession.shared.data(from: url),
+                           let uiImage = UIImage(data: data) {
+                            // Cache the response
+                            if let httpResponse = response as? HTTPURLResponse {
+                                let cachedResponse = CachedURLResponse(response: httpResponse, data: data)
+                                URLCache.shared.storeCachedResponse(cachedResponse, for: URLRequest(url: url))
+                            }
+                            await MainActor.run {
+                                self.backgroundImage = uiImage
+                            }
+                        }
+                    }
+                }
+            }
+            
             // Only refresh if categories are empty to avoid unnecessary refreshes
             if appState.categories.isEmpty {
                 await appState.refreshCategories()
             }
         }
+        .onChange(of: appState.temple?.homeScreenConfig?.backgroundImageUrl) { newUrl in
+            // Reset image when URL changes
+            backgroundImage = nil
+            if let urlString = newUrl, let url = URL(string: urlString) {
+                Task {
+                    if let (data, response) = try? await URLSession.shared.data(from: url),
+                       let uiImage = UIImage(data: data) {
+                        // Cache the response
+                        if let httpResponse = response as? HTTPURLResponse {
+                            let cachedResponse = CachedURLResponse(response: httpResponse, data: data)
+                            URLCache.shared.storeCachedResponse(cachedResponse, for: URLRequest(url: url))
+                        }
+                        await MainActor.run {
+                            self.backgroundImage = uiImage
+                        }
+                    }
+                }
+            }
+        }
     }
     
     private var mainContent: some View {
-        HStack(spacing: 60) {
+        HStack(spacing: 40) {
             categorySection
+                .frame(maxWidth: .infinity)
+            
             amountSection
+                .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal, 60)
+        .padding(.horizontal, 40)
     }
     
     private var homeButtonOverlay: some View {
@@ -209,7 +256,7 @@ struct DonationHomeView: View {
                         Image(systemName: "house.fill")
                         Text("Home")
                     }
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.custom("Inter-Medium", size: 16))
                     .foregroundColor(colorFromHex("423232"))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
@@ -227,17 +274,17 @@ struct DonationHomeView: View {
     private var categorySection: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Text("Select Category")
-                    .font(.system(size: 42, weight: .bold))
+                    .font(.custom("Inter-SemiBold", size: 32))
                     .foregroundColor(colorFromHex("423232"))
                 
                 Text("Choose your donation category")
-                    .font(.system(size: 16, weight: .regular))
+                    .font(.custom("Inter-Regular", size: 14))
                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
             }
-            .padding(.top, 60)
-            .padding(.bottom, 30)
+            .padding(.top, 120)
+            .padding(.bottom, 12)
             
             categoryContent
                 .frame(maxWidth: .infinity)
@@ -248,10 +295,10 @@ struct DonationHomeView: View {
     }
     
     private var categoryContent: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 12) {
             if !appState.categories.isEmpty {
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 12) {
                         ForEach(appState.categories) { category in
                             CleanCategoryButton(
                                 category: category,
@@ -275,19 +322,18 @@ struct DonationHomeView: View {
                                     }
                                 }
                             )
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: 400) // Constrain width to make boxes less wide
                         }
                     }
-                    .padding(.horizontal, 20)
-                }
-                
-                if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                    quantitySelector(category: category, defaultAmount: defaultAmount)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity)
+                    .frame(alignment: .center)
                 }
             } else {
                 emptyCategoriesView
             }
         }
+        .frame(maxWidth: .infinity)
     }
     
     private var emptyCategoriesView: some View {
@@ -297,11 +343,11 @@ struct DonationHomeView: View {
                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
             
             Text("No categories available")
-                .font(.system(size: 18, weight: .medium))
+                .font(.custom("Inter-SemiBold", size: 18))
                 .foregroundColor(colorFromHex("423232"))
             
             Text("Categories can be added in the admin portal")
-                .font(.system(size: 14, weight: .regular))
+                .font(.custom("Inter-Regular", size: 14))
                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                 .multilineTextAlignment(.center)
             
@@ -314,7 +360,7 @@ struct DonationHomeView: View {
                     Image(systemName: "arrow.clockwise")
                     Text("Refresh Categories")
                 }
-                .font(.system(size: 14, weight: .medium))
+                .font(.custom("Inter-Medium", size: 14))
                 .foregroundColor(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
@@ -327,66 +373,20 @@ struct DonationHomeView: View {
         .padding(.horizontal, 40)
     }
     
-    private func quantitySelector(category: DonationCategory, defaultAmount: Double) -> some View {
-        VStack(spacing: 12) {
-            Text("Quantity")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(colorFromHex("423232"))
-            
-            HStack(spacing: 20) {
-                    Button(action: {
-                        if quantity > 1 {
-                            quantity -= 1
-                        }
-                    }) {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(quantity > 1 ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray)
-                }
-                .disabled(quantity <= 1)
-                
-                Text("\(quantity)")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(colorFromHex("423232"))
-                    .frame(minWidth: 60)
-                
-                    Button(action: {
-                        quantity += 1
-                    }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                }
-            }
-            .padding(.vertical, 16)
-            .padding(.horizontal, 40)
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-            
-            Text("Total: $\(String(format: "%.2f", defaultAmount * Double(quantity)))")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-        }
-        .padding(.horizontal, 40)
-        .padding(.top, 20)
-        .transition(.scale.combined(with: .opacity))
-    }
-    
     private var amountSection: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Text("Select Amount")
-                    .font(.system(size: 42, weight: .bold))
+                    .font(.custom("Inter-SemiBold", size: 32))
                     .foregroundColor(colorFromHex("423232"))
                 
                 Text("Choose preset donation amount from")
-                    .font(.system(size: 16, weight: .regular))
+                    .font(.custom("Inter-Regular", size: 14))
                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
             }
-            .padding(.top, 60)
-            .padding(.bottom, 30)
+            .padding(.top, 120)
+            .padding(.bottom, 12)
             
             amountContent
                 .frame(maxWidth: .infinity)
@@ -399,9 +399,9 @@ struct DonationHomeView: View {
     }
     
     private var amountContent: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 12) {
             presetAmountButtons
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 16)
             
             CleanCustomAmountField(
                 text: $customAmount,
@@ -415,7 +415,7 @@ struct DonationHomeView: View {
                     customAmountFocused = true
                 }
             )
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 16)
         }
     }
     
@@ -423,29 +423,10 @@ struct DonationHomeView: View {
         let buttonCount = presetAmounts.count
         return Group {
             if buttonCount > 0 {
-                if buttonCount <= 4 {
-                    VStack(spacing: 16) {
-                        HStack(spacing: 16) {
-                            ForEach(Array(presetAmounts.prefix(2)), id: \.self) { amount in
-                                amountButton(amount: amount)
-                            }
-                        }
-                        
-                        if buttonCount > 2 {
-                            HStack(spacing: 16) {
-                                ForEach(Array(presetAmounts.suffix(buttonCount > 2 ? buttonCount - 2 : 0)), id: \.self) { amount in
-                                    amountButton(amount: amount)
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                            ForEach(presetAmounts, id: \.self) { amount in
-                                amountButton(amount: amount)
-                            }
-                        }
+                // Use 2-column grid for 3 rows x 2 columns layout
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    ForEach(presetAmounts, id: \.self) { amount in
+                        amountButton(amount: amount)
                     }
                 }
             } else {
@@ -473,25 +454,95 @@ struct DonationHomeView: View {
     
     private var continueButton: some View {
         VStack(spacing: 16) {
+            // Show quantity and total side by side when category with quantity is selected
+            if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+                HStack(spacing: 24) {
+                    // Quantity selector
+                    VStack(spacing: 8) {
+                        Text("Quantity")
+                            .font(.custom("Inter-SemiBold", size: 16))
+                            .foregroundColor(colorFromHex("423232"))
+                        
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                if quantity > 1 {
+                                    quantity -= 1
+                                }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(quantity > 1 ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray)
+                            }
+                            .disabled(quantity <= 1)
+                            
+                            Text("\(quantity)")
+                                .font(.custom("Inter-SemiBold", size: 24))
+                                .foregroundColor(colorFromHex("423232"))
+                                .frame(minWidth: 40)
+                            
+                            Button(action: {
+                                quantity += 1
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                            }
+                        }
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 24)
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    }
+                    
+                    // Total display
+                    VStack(spacing: 6) {
+                        Text("Total")
+                            .font(.custom("Inter-Regular", size: 14))
+                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                        
+                        Text("$\(String(format: "%.2f", defaultAmount * Double(quantity)))")
+                            .font(.custom("Inter-SemiBold", size: 28))
+                            .foregroundColor(colorFromHex("423232"))
+                    }
+                }
+                .padding(.bottom, 8)
+                .transition(.scale.combined(with: .opacity))
+            } else if hasValidAmount {
+                // Show total only when amount is selected (no quantity)
+                VStack(spacing: 6) {
+                    Text("Total")
+                        .font(.custom("Inter-Regular", size: 14))
+                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                    
+                    Text("$\(String(format: "%.2f", currentAmount))")
+                        .font(.custom("Inter-SemiBold", size: 28))
+                        .foregroundColor(colorFromHex("423232"))
+                }
+                .padding(.bottom, 8)
+                .transition(.scale.combined(with: .opacity))
+            }
+            
             Button(action: {
                 showingDetails = true
             }) {
                 Text("Select Amount to Continue")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.custom("Inter-Medium", size: 18))
                     .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
+                    .frame(maxWidth: 600) // Center the button with max width
+                    .padding(.vertical, 14)
                     .background(
                         hasValidAmount
                             ? Color(red: 1.0, green: 0.58, blue: 0.0) // Orange color
                             : Color.gray.opacity(0.4)
                     )
-                    .cornerRadius(16)
+                    .cornerRadius(12)
             }
             .disabled(!hasValidAmount)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 40)
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 30)
         }
+        .frame(maxWidth: .infinity)
     }
     
     private var hasValidAmount: Bool {
@@ -533,39 +584,12 @@ struct CleanAmountButton: View {
     var body: some View {
         Button(action: action) {
             Text("$\(Int(amount))")
-                .font(.system(size: 24, weight: .semibold))
+                .font(.custom("Inter-Medium", size: 20))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 80)
-                .background(
-                    ZStack {
-                        // Base gradient
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                (isSelected ? selectedColor : unselectedColor),
-                                (isSelected ? selectedColor : unselectedColor).opacity(0.9)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        
-                        // Shine effect overlay
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white.opacity(0.2),
-                                Color.clear,
-                                Color.clear
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    }
-                )
-                .cornerRadius(16)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                )
+                .frame(height: 70)
+                .background(isSelected ? selectedColor : unselectedColor)
+                .cornerRadius(12)
         }
         .scaleEffect(isSelected ? 1.02 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: isSelected)
@@ -589,7 +613,7 @@ struct CleanCustomAmountField: View {
             if isActive {
                 TextField("", text: $text, prompt: Text("Custom Amount").foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6)))
                     .keyboardType(.decimalPad)
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.custom("Inter-Regular", size: 20))
                     .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
                     .focused($isFocused)
                     .textInputAutocapitalization(.never)
@@ -605,15 +629,15 @@ struct CleanCustomAmountField: View {
             } else {
                 Button(action: onTap) {
                     Text("Custom Amount")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.custom("Inter-Regular", size: 20))
                         .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .frame(height: 80)
+        .padding(.horizontal, 16)
+        .frame(height: 60)
         .background(Color.white)
         .cornerRadius(16)
         .overlay(
@@ -641,23 +665,23 @@ struct CleanCategoryButton: View {
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 // Icon on the left (orange leaf-like icon)
                 Image(systemName: "leaf.fill")
-                    .font(.system(size: 20))
+                    .font(.system(size: 16))
                     .foregroundColor(Color(red: 1.0, green: 0.58, blue: 0.0))
                 
-                VStack(spacing: 4) {
+                // Category name and amount side by side
+                HStack(spacing: 8) {
                     Text(category.name)
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.custom("Inter-Medium", size: 18))
                         .foregroundColor(.white)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
+                        .lineLimit(1)
                     
                     if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
                         Text("$\(Int(defaultAmount))")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.custom("Inter-Medium", size: 18))
+                            .foregroundColor(.white)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -666,29 +690,17 @@ struct CleanCategoryButton: View {
                 
                 // Chevron on the right
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white.opacity(0.8))
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 16)
             .frame(maxWidth: .infinity)
-            .frame(height: 80)
-            .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        (isSelected ? selectedColor : unselectedColor),
-                        (isSelected ? selectedColor : unselectedColor).opacity(0.9)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
-            )
+            .frame(height: 70)
+            .background(isSelected ? selectedColor : unselectedColor)
+            .cornerRadius(12)
         }
         .scaleEffect(isSelected ? 1.02 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }
+

@@ -57,5 +57,35 @@ export class CreateTempleDto {
       url: string;
     }>;
   };
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsObject()
+  kioskTheme?: {
+    fonts?: {
+      headingFamily?: string;
+      headingSize?: number;
+      buttonFamily?: string;
+      buttonSize?: number;
+      bodyFamily?: string;
+      bodySize?: number;
+    };
+    colors?: {
+      headingColor?: string;
+      buttonTextColor?: string;
+      bodyTextColor?: string;
+      subtitleColor?: string;
+    };
+    layout?: {
+      categoryBoxMaxWidth?: number;
+      amountButtonWidth?: number;
+      amountButtonHeight?: number;
+      categoryButtonHeight?: number;
+      headerTopPadding?: number;
+      sectionSpacing?: number;
+      buttonSpacing?: number;
+      cornerRadius?: number;
+    };
+  };
 }
 
