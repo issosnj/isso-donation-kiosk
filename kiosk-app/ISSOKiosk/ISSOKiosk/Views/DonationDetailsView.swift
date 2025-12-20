@@ -131,6 +131,9 @@ struct ModernDonationDetailsView: View {
                 
                 // Main content: Left (Donation Details) and Right (Donor Info)
                 HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
+                    Spacer()
+                        .frame(maxWidth: .infinity)
+                    
                     // LEFT SIDE: Donation Details
                     VStack(alignment: .leading, spacing: 20) {
                         // Large amount display
@@ -306,6 +309,9 @@ struct ModernDonationDetailsView: View {
                     }
                     .frame(maxWidth: donorFormMaxWidth)
                     .padding(.trailing, detailsPageSidePadding)
+                    
+                    Spacer()
+                        .frame(maxWidth: .infinity)
                 }
                 .frame(maxWidth: .infinity)
                 
