@@ -22,6 +22,30 @@ struct KioskHomeView: View {
         return formatter
     }()
     
+    // Helper function to convert hex string to Color
+    private func colorFromHex(_ hex: String) -> Color {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        
+        // Handle 3-character hex codes
+        if hexSanitized.count == 3 {
+            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
+        }
+        
+        guard hexSanitized.count == 6,
+              let rgb = UInt32(hexSanitized, radix: 16) else {
+            return Color(red: 0.26, green: 0.20, blue: 0.20) // Default to #423232 if parsing fails
+        }
+        
+        let red = Double((rgb >> 16) & 0xFF) / 255.0
+        let green = Double((rgb >> 8) & 0xFF) / 255.0
+        let blue = Double(rgb & 0xFF) / 255.0
+        
+        return Color(red: red, green: green, blue: blue)
+    }
+    
     var body: some View {
         ZStack {
             // Background: Custom image if available, otherwise gradient
@@ -79,58 +103,53 @@ struct KioskHomeView: View {
             }
             
             VStack(spacing: 0) {
-                // Header at top, edge to edge
+                // Header at top, transparent background
                 ZStack {
                     VStack(spacing: 0) {
-                        // Welcome to Shree Swaminarayan Hindu Temple (on top, bigger)
+                        // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller)
                         Text("Welcome to Shree Swaminarayan Hindu Temple")
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.5)
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 20)
-                            .padding(.top, 8)
-                            .padding(.bottom, 8)
-                            .background(Color.white)
+                            .padding(.top, 80)
+                            .padding(.bottom, 4)
                         
                         // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
                         Text(header1Text)
-                            .font(.system(size: 36, weight: .bold))
-                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.5)
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 20)
                             .padding(.bottom, 4)
-                            .background(Color.white)
                         
                         // Under Shree NarNarayan Dev Gadi
                         Text("Under Shree NarNarayan Dev Gadi")
                             .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                            .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
                             .padding(.bottom, 4)
-                            .background(Color.white)
                         
                         // Temple Address
                         if let temple = appState.temple, let address = temple.address, !address.isEmpty {
                             Text(address)
                                 .font(.system(size: 16, weight: .regular))
-                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                                .foregroundColor(colorFromHex("423232"))
                                 .multilineTextAlignment(.center)
                                 .lineLimit(2)
                                 .frame(maxWidth: .infinity)
                                 .padding(.bottom, 16)
-                                .background(Color.white)
                         } else {
                             // Add padding if no address
                             Spacer()
                                 .frame(height: 16)
-                                .background(Color.white)
                         }
                     }
                     
@@ -148,7 +167,8 @@ struct KioskHomeView: View {
                                 // Time display
                                 Text(timeString)
                                     .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                                    .foregroundColor(.white)
+                                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
                             }
                             .padding(.trailing, 20)
                             .padding(.top, 8)
