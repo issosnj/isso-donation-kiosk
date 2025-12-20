@@ -112,14 +112,14 @@ export class DonationsService {
   }
 
   async generateReceiptNumbersForSuccessfulDonations(): Promise<{ updated: number }> {
-    // Find all successful donations without receipt numbers
-    const donations = await this.donationsRepository.find({
-      where: {
-        status: DonationStatus.SUCCEEDED,
-        receiptNumber: null as any, // TypeORM workaround for IS NULL
-      },
-      relations: ['temple'],
-    });
+    // Find all successful donations without receipt numbers using query builder
+    const donations = await this.donationsRepository
+      .createQueryBuilder('donation')
+      .leftJoinAndSelect('donation.temple', 'temple')
+      .where('donation.status = :status', { status: DonationStatus.SUCCEEDED })
+      .andWhere('donation.receiptNumber IS NULL')
+      .orderBy('donation.createdAt', 'ASC')
+      .getMany();
 
     // Group by temple to generate sequential numbers
     const donationsByTemple = new Map<string, typeof donations>();
