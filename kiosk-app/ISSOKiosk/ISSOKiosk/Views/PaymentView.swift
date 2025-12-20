@@ -233,13 +233,13 @@ struct ModernPaymentReadyView: View {
                 
                 VStack(spacing: 20) {
                     Text("Ready for Payment")
-                        .font(.system(size: 42, weight: .bold))
+                        .font(.custom("Inter-SemiBold", size: 42))
                         .foregroundColor(.white)
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
                     
                     Text("$\(String(format: "%.2f", amount))")
-                        .font(.system(size: 72, weight: .bold))
+                        .font(.custom("Inter-SemiBold", size: 72))
                         .foregroundColor(.white)
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
@@ -363,13 +363,13 @@ struct ModernPaymentProcessingView: View {
                 
                 VStack(spacing: 15) {
             Text("Ready to Process Payment")
-                        .font(.system(size: 38, weight: .bold))
+                        .font(.custom("Inter-SemiBold", size: 38))
                         .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
             
             Text("$\(String(format: "%.2f", amount))")
-                        .font(.system(size: 72, weight: .bold))
+                        .font(.custom("Inter-SemiBold", size: 72))
                         .foregroundStyle(
                             LinearGradient(
                                 gradient: Gradient(colors: [
@@ -396,7 +396,7 @@ struct ModernPaymentProcessingView: View {
                         Image(systemName: "play.circle.fill")
                             .font(.system(size: 28))
                 Text("Start Payment")
-                            .font(.system(size: 24, weight: .semibold))
+                            .font(.custom("Inter-SemiBold", size: 24))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -488,11 +488,11 @@ struct ModernProcessingView: View {
                 
                 VStack(spacing: 15) {
             Text("Processing Payment...")
-                        .font(.system(size: 32, weight: .bold))
+                        .font(.custom("Inter-SemiBold", size: 32))
                         .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
             
             Text("$\(String(format: "%.2f", amount))")
-                        .font(.system(size: 56, weight: .bold))
+                        .font(.custom("Inter-SemiBold", size: 56))
                         .foregroundStyle(
                             LinearGradient(
                                 gradient: Gradient(colors: [
@@ -570,7 +570,7 @@ struct ModernPaymentResultView: View {
                 
                 VStack(spacing: 20) {
                     Text(status == .success ? "Thank You!" : "Payment Failed")
-                        .font(.system(size: 48, weight: .bold))
+                        .font(.custom("Inter-SemiBold", size: 48))
                         .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
@@ -600,7 +600,7 @@ struct ModernPaymentResultView: View {
                         Image(systemName: status == .success ? "checkmark.circle.fill" : "arrow.clockwise")
                             .font(.system(size: 24))
                 Text(status == .success ? "Done" : "Try Again")
-                            .font(.system(size: 24, weight: .semibold))
+                            .font(.custom("Inter-SemiBold", size: 24))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)

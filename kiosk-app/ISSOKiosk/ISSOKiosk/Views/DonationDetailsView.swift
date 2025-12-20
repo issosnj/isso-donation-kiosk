@@ -31,7 +31,7 @@ struct ModernDonationDetailsView: View {
                     // Large amount display
                     VStack(spacing: 8) {
                         Text("$\(String(format: "%.2f", amount))")
-                            .font(.system(size: 72, weight: .bold))
+                            .font(.custom("Inter-SemiBold", size: 72))
                             .foregroundColor(.white)
                     }
                     
@@ -66,11 +66,11 @@ struct ModernDonationDetailsView: View {
                         
                         HStack {
                             Text("Total")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.custom("Inter-SemiBold", size: 20))
                                 .foregroundColor(.white)
                             Spacer()
                             Text("$\(String(format: "%.2f", amount))")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.custom("Inter-SemiBold", size: 20))
                                 .foregroundColor(.white)
                         }
                     }
@@ -146,10 +146,10 @@ struct ModernDonationDetailsView: View {
                     }) {
                         HStack(spacing: 12) {
                             Text("Ready for Payment")
-                                .font(.system(size: 22, weight: .semibold))
+                                .font(.custom("Inter-Medium", size: 22))
                                 .foregroundColor(.white)
                             Image(systemName: "arrow.right")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.custom("Inter-SemiBold", size: 20))
                                 .foregroundColor(.white)
                         }
                         .frame(maxWidth: 500)

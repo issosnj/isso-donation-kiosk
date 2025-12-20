@@ -24,7 +24,7 @@ struct DeviceActivationView: View {
             
             VStack(spacing: 15) {
                 Text("Enter Device Code")
-                    .font(.system(size: 42, weight: .bold))
+                    .font(.custom("Inter-SemiBold", size: 42))
                 
                 Text("Enter the 8-character device code or scan the QR code")
                     .font(.system(size: 20))
@@ -40,7 +40,7 @@ struct DeviceActivationView: View {
                         Image(systemName: "qrcode.viewfinder")
                             .font(.system(size: 20))
                         Text("Scan QR Code")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.custom("Inter-SemiBold", size: 18))
                     }
                     .foregroundColor(.blue)
                     .padding(.horizontal, 24)
@@ -71,7 +71,7 @@ struct DeviceActivationView: View {
                     .textFieldStyle(.roundedBorder)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
-                    .font(.system(size: 36, weight: .semibold))
+                    .font(.custom("Inter-SemiBold", size: 36))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 400)
                     .padding(.horizontal, 30)
@@ -123,7 +123,7 @@ struct DeviceActivationView: View {
                                 Image(systemName: "arrow.clockwise")
                                 Text("Retry (\(retryCount + 1)/\(maxRetries))")
                             }
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.custom("Inter-SemiBold", size: 18))
                             .foregroundColor(.white)
                             .frame(maxWidth: 300)
                             .padding(.vertical, 12)
@@ -141,7 +141,7 @@ struct DeviceActivationView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         Text("Activating...")
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(.custom("Inter-SemiBold", size: 20))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: 400)
@@ -150,7 +150,7 @@ struct DeviceActivationView: View {
                     .cornerRadius(16)
                 } else {
                     Text("Activate Device")
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.custom("Inter-SemiBold", size: 24))
                         .foregroundColor(.white)
                         .frame(maxWidth: 400)
                         .padding(.vertical, 20)

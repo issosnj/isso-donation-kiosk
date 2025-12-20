@@ -108,7 +108,7 @@ struct KioskHomeView: View {
                     VStack(spacing: 0) {
                         // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller)
                         Text("Welcome to Shree Swaminarayan Hindu Temple")
-                            .font(.system(size: 42, weight: .bold))
+                            .font(.custom("Inter-SemiBold", size: 42))
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
@@ -120,7 +120,7 @@ struct KioskHomeView: View {
                         
                         // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
                         Text(header1Text)
-                            .font(.system(size: 32, weight: .bold))
+                            .font(.custom("Inter-SemiBold", size: 32))
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
@@ -131,7 +131,7 @@ struct KioskHomeView: View {
                         
                         // Under Shree NarNarayan Dev Gadi
                         Text("Under Shree NarNarayan Dev Gadi")
-                            .font(.system(size: 20, weight: .medium))
+                            .font(.custom("Inter-SemiBold", size: 20))
                             .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
@@ -140,7 +140,7 @@ struct KioskHomeView: View {
                         // Temple Address
                         if let temple = appState.temple, let address = temple.address, !address.isEmpty {
                             Text(address)
-                                .font(.system(size: 18, weight: .regular))
+                                .font(.custom("Inter-Regular", size: 18))
                                 .foregroundColor(colorFromHex("423232"))
                                 .multilineTextAlignment(.center)
                                 .lineLimit(2)
@@ -166,7 +166,7 @@ struct KioskHomeView: View {
                                 
                                 // Time display
                                 Text(timeString)
-                                    .font(.system(size: 18, weight: .medium))
+                                    .font(.custom("Inter-Medium", size: 18))
                                     .foregroundColor(.white)
                                     .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
                             }
@@ -217,7 +217,7 @@ struct KioskHomeView: View {
                                 
                                 // Text with elegant styling
                                 Text("Tap To Donate")
-                                    .font(.system(size: 42, weight: .bold))
+                                    .font(.custom("Inter-Medium", size: 42))
                                     .foregroundColor(.white)
                             }
                             .frame(width: 650)
@@ -273,7 +273,7 @@ struct KioskHomeView: View {
                         // Quick Actions Section (WhatsApp, Events, Social Media as icons)
                         VStack(spacing: 12) {
                             Text("Quick Actions")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.custom("Inter-SemiBold", size: 20))
                                 .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                             
                             HStack(spacing: 16) {
@@ -369,7 +369,7 @@ struct KioskHomeView: View {
                     // Custom Message at Bottom (if configured)
                     if let customMessage = appState.temple?.homeScreenConfig?.customMessage, !customMessage.isEmpty {
                         Text(customMessage)
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.custom("Inter-Regular", size: 18))
                             .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 40)
@@ -523,7 +523,7 @@ struct ModernQuickActionButton: View {
                     .foregroundColor(isActive ? .white : .gray.opacity(0.5))
                 
                 Text(title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.custom("Inter-Medium", size: 14))
                     .foregroundColor(isActive ? .white : .gray.opacity(0.5))
             }
             .frame(width: 110, height: 110)
@@ -575,7 +575,7 @@ struct QRCodeDisplayView: View {
         NavigationView {
             VStack(spacing: 30) {
                 Text("Scan to \(title)")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(.custom("Inter-SemiBold", size: 24))
                     .padding(.top, 40)
                 
                 // Use cached image if available, otherwise generate on the fly
@@ -675,11 +675,11 @@ struct SuggestionBoxView: View {
                             .foregroundColor(Color(red: 0.18, green: 0.64, blue: 0.33))
                         
                         Text("Thank You!")
-                            .font(.system(size: 32, weight: .bold))
+                            .font(.custom("Inter-SemiBold", size: 32))
                             .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                         
                         Text("Your anonymous suggestion has been submitted.")
-                            .font(.system(size: 18))
+                            .font(.custom("Inter-Regular", size: 18))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 40)
@@ -688,7 +688,7 @@ struct SuggestionBoxView: View {
                             dismiss()
                         }) {
                             Text("Done")
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.custom("Inter-Medium", size: 18))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: 300)
                                 .padding(.vertical, 16)
@@ -708,11 +708,11 @@ struct SuggestionBoxView: View {
                                     .foregroundColor(Color(red: 0.5, green: 0.3, blue: 0.8))
                                 
                                 Text("Anonymous Suggestion Box")
-                                    .font(.system(size: 28, weight: .bold))
+                                    .font(.custom("Inter-SemiBold", size: 28))
                                     .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                                 
                                 Text("Share your thoughts, ideas, or feedback anonymously")
-                                    .font(.system(size: 16))
+                                    .font(.custom("Inter-Regular", size: 16))
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
                             }
@@ -722,7 +722,7 @@ struct SuggestionBoxView: View {
                             // Suggestion text field
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Your Suggestion")
-                                    .font(.system(size: 18, weight: .semibold))
+                                    .font(.custom("Inter-SemiBold", size: 18))
                                     .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
                                 
                                 ZStack(alignment: .topLeading) {
@@ -779,7 +779,7 @@ struct SuggestionBoxView: View {
                                             .font(.system(size: 18))
                                     }
                                     Text(isSubmitting ? "Submitting..." : "Submit Suggestion")
-                                        .font(.system(size: 18, weight: .semibold))
+                                        .font(.custom("Inter-Medium", size: 18))
                                 }
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -1075,7 +1075,7 @@ struct EventsListView: View {
                             .font(.system(size: 50))
                             .foregroundColor(.gray)
                         Text("No upcoming events")
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(.custom("Inter-SemiBold", size: 20))
                     }
                     .padding()
                 } else {
@@ -1147,18 +1147,18 @@ struct EventCard: View {
                     Image(systemName: "calendar")
                         .foregroundColor(.blue)
                     Text(formatDate(date))
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.custom("Inter-SemiBold", size: 16))
                         .foregroundColor(.primary)
                 }
             }
             
             Text(event.summary)
-                .font(.system(size: 20, weight: .bold))
+                .font(.custom("Inter-SemiBold", size: 20))
                 .foregroundColor(.primary)
             
             if let description = event.description, !description.isEmpty {
                 Text(description)
-                    .font(.system(size: 16))
+                    .font(.custom("Inter-Regular", size: 16))
                     .foregroundColor(.secondary)
                     .lineLimit(3)
             }
@@ -1199,18 +1199,18 @@ struct LocalEventCard: View {
                     Image(systemName: "calendar")
                         .foregroundColor(.blue)
                     Text(formatDate(date))
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.custom("Inter-SemiBold", size: 16))
                         .foregroundColor(.primary)
                 }
             }
             
             Text(event.title)
-                .font(.system(size: 20, weight: .bold))
+                .font(.custom("Inter-SemiBold", size: 20))
                 .foregroundColor(.primary)
             
             if let description = event.description, !description.isEmpty {
                 Text(description)
-                    .font(.system(size: 16))
+                    .font(.custom("Inter-Regular", size: 16))
                     .foregroundColor(.secondary)
                     .lineLimit(3)
             }
