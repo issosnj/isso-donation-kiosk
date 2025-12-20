@@ -101,8 +101,12 @@ export class DonationCategoriesController {
         // Convert Date objects to ISO strings for iOS compatibility
         showStartDate: cat.showStartDate ? cat.showStartDate.toISOString() : null,
         showEndDate: cat.showEndDate ? cat.showEndDate.toISOString() : null,
+        // Include yajman opportunities if they exist
+        yajmanOpportunities: cat.yajmanOpportunities || null,
       };
-      console.log(`[DonationCategoriesController]   Mapping category: "${cat.name}" -> ${JSON.stringify(mapped)}`);
+      console.log(`[DonationCategoriesController]   Mapping category: "${cat.name}"`);
+      console.log(`[DonationCategoriesController]     - yajmanOpportunities: ${cat.yajmanOpportunities ? JSON.stringify(cat.yajmanOpportunities) : 'null'}`);
+      console.log(`[DonationCategoriesController]     - Mapped: ${JSON.stringify(mapped)}`);
       return mapped;
     });
     
