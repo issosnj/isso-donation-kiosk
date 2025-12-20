@@ -86,6 +86,20 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     },
   })
 
+  const backfillSquareFeesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/donations/cleanup/backfill-square-fees')
+      return response.data
+    },
+    onSuccess: (data) => {
+      alert(`Successfully backfilled Square fees for ${data.updated} donations!${data.failed > 0 ? ` ${data.failed} failed.` : ''}`)
+      queryClient.invalidateQueries({ queryKey: ['donations'] })
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to backfill Square fees')
+    },
+  })
+
   const refundMutation = useMutation({
     mutationFn: async ({ donationId, amount, reason }: { donationId: string; amount?: number; reason?: string }) => {
       const response = await api.post(`/donations/${donationId}/refund`, { amount, reason })
@@ -143,6 +157,12 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   const handleGenerateReceiptNumbers = () => {
     if (confirm('Generate receipt numbers for all successful donations that are missing them?')) {
       generateReceiptNumbersMutation.mutate()
+    }
+  }
+
+  const handleBackfillSquareFees = () => {
+    if (confirm('Backfill Square fees for all donations that are missing fee information? This will fetch fees from Square for each donation.')) {
+      backfillSquareFeesMutation.mutate()
     }
   }
 

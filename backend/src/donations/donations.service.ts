@@ -6,6 +6,7 @@ import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
 import { TemplesService } from '../temples/temples.service';
 import { GmailService } from '../gmail/gmail.service';
+import { SquareService } from '../square/square.service';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
@@ -16,6 +17,7 @@ export class DonationsService {
     private donationsRepository: Repository<Donation>,
     private templesService: TemplesService,
     private gmailService: GmailService,
+    private squareService: SquareService,
     private configService: ConfigService,
   ) {}
 
@@ -50,18 +52,81 @@ export class DonationsService {
     if (completeDonationDto.donorEmail) {
       donation.donorEmail = completeDonationDto.donorEmail;
     }
-    // Save Square fee and card information
-    if (completeDonationDto.netAmount !== undefined) {
-      donation.netAmount = completeDonationDto.netAmount;
-    }
-    if (completeDonationDto.squareFee !== undefined) {
-      donation.squareFee = completeDonationDto.squareFee;
-    }
-    if (completeDonationDto.cardLast4) {
-      donation.cardLast4 = completeDonationDto.cardLast4;
-    }
-    if (completeDonationDto.cardType) {
-      donation.cardType = completeDonationDto.cardType;
+    
+    // Automatically fetch Square fee and card information if not provided
+    if (completeDonationDto.squarePaymentId && 
+        (completeDonationDto.netAmount === undefined || 
+         completeDonationDto.squareFee === undefined || 
+         !completeDonationDto.cardLast4 || 
+         !completeDonationDto.cardType)) {
+      try {
+        console.log('[DonationsService] Automatically fetching payment details from Square for payment:', completeDonationDto.squarePaymentId);
+        const paymentDetails = await this.squareService.getPaymentDetails(
+          donation.templeId,
+          completeDonationDto.squarePaymentId,
+        );
+        
+        // Use fetched data if not provided in DTO
+        if (completeDonationDto.netAmount === undefined) {
+          donation.netAmount = paymentDetails.netAmount;
+        } else {
+          donation.netAmount = completeDonationDto.netAmount;
+        }
+        
+        if (completeDonationDto.squareFee === undefined) {
+          donation.squareFee = paymentDetails.squareFee;
+        } else {
+          donation.squareFee = completeDonationDto.squareFee;
+        }
+        
+        if (!completeDonationDto.cardLast4) {
+          donation.cardLast4 = paymentDetails.cardLast4;
+        } else {
+          donation.cardLast4 = completeDonationDto.cardLast4;
+        }
+        
+        if (!completeDonationDto.cardType) {
+          donation.cardType = paymentDetails.cardType;
+        } else {
+          donation.cardType = completeDonationDto.cardType;
+        }
+        
+        console.log('[DonationsService] Successfully fetched payment details:', {
+          netAmount: donation.netAmount,
+          squareFee: donation.squareFee,
+          cardLast4: donation.cardLast4,
+          cardType: donation.cardType,
+        });
+      } catch (error) {
+        console.error('[DonationsService] Failed to automatically fetch payment details from Square:', error);
+        // Fall back to provided values or defaults
+        if (completeDonationDto.netAmount !== undefined) {
+          donation.netAmount = completeDonationDto.netAmount;
+        }
+        if (completeDonationDto.squareFee !== undefined) {
+          donation.squareFee = completeDonationDto.squareFee;
+        }
+        if (completeDonationDto.cardLast4) {
+          donation.cardLast4 = completeDonationDto.cardLast4;
+        }
+        if (completeDonationDto.cardType) {
+          donation.cardType = completeDonationDto.cardType;
+        }
+      }
+    } else {
+      // Use provided values
+      if (completeDonationDto.netAmount !== undefined) {
+        donation.netAmount = completeDonationDto.netAmount;
+      }
+      if (completeDonationDto.squareFee !== undefined) {
+        donation.squareFee = completeDonationDto.squareFee;
+      }
+      if (completeDonationDto.cardLast4) {
+        donation.cardLast4 = completeDonationDto.cardLast4;
+      }
+      if (completeDonationDto.cardType) {
+        donation.cardType = completeDonationDto.cardType;
+      }
     }
 
     // Generate receipt number if payment succeeded and temple has a code
@@ -127,6 +192,52 @@ export class DonationsService {
     });
     console.log(`[DonationsService] Deleted ${result.affected || 0} pending donations`);
     return { deleted: result.affected || 0 };
+  }
+
+  async backfillSquareFees(): Promise<{ updated: number; failed: number }> {
+    // Find all successful donations with Square payment IDs but missing fee information
+    const donations = await this.donationsRepository.find({
+      where: {
+        status: DonationStatus.SUCCEEDED,
+      },
+    });
+
+    let updated = 0;
+    let failed = 0;
+
+    for (const donation of donations) {
+      // Skip if already has fee information
+      if (donation.squareFee !== null && donation.netAmount !== null && donation.squareFee !== undefined && donation.netAmount !== undefined) {
+        continue;
+      }
+
+      // Skip if no Square payment ID
+      if (!donation.squarePaymentId) {
+        continue;
+      }
+
+      try {
+        console.log(`[DonationsService] Backfilling fees for donation ${donation.id}, payment ${donation.squarePaymentId}`);
+        const paymentDetails = await this.squareService.getPaymentDetails(
+          donation.templeId,
+          donation.squarePaymentId,
+        );
+
+        donation.netAmount = paymentDetails.netAmount;
+        donation.squareFee = paymentDetails.squareFee;
+        donation.cardLast4 = paymentDetails.cardLast4;
+        donation.cardType = paymentDetails.cardType;
+
+        await this.donationsRepository.save(donation);
+        updated++;
+        console.log(`[DonationsService] ✅ Successfully backfilled fees for donation ${donation.id}`);
+      } catch (error) {
+        console.error(`[DonationsService] ❌ Failed to backfill fees for donation ${donation.id}:`, error);
+        failed++;
+      }
+    }
+
+    return { updated, failed };
   }
 
   async generateReceiptNumbersForSuccessfulDonations(): Promise<{ updated: number }> {
