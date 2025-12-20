@@ -437,6 +437,11 @@ struct DonationHomeView: View {
                                         selectedAmount = nil
                                         customAmount = ""
                                         customAmountFocused = false
+                                        
+                                        // If category has yajman opportunities, show them
+                                        if let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
+                                            showingYajmanOpportunities = true
+                                        }
                                     }
                                 }
                             )
@@ -688,6 +693,77 @@ struct DonationHomeView: View {
             return amount
         }
         return Double(customAmount) ?? 0
+    }
+    
+    private func createPledge() async {
+        guard let templeId = appState.temple?.id,
+              let deviceId = appState.deviceId else {
+            print("[DonationHomeView] ❌ Missing temple ID or device ID for pledge")
+            await MainActor.run {
+                showingPledgeOption = false
+            }
+            return
+        }
+        
+        do {
+            let pledge = try await APIService.shared.createPledge(
+                templeId: templeId,
+                deviceId: deviceId,
+                amount: currentAmount,
+                categoryId: selectedCategory?.id,
+                donorName: donorName ?? "",
+                donorPhone: donorPhone ?? "",
+                donorEmail: donorEmail
+            )
+            
+            print("[DonationHomeView] ✅ Pledge created: \(pledge.id)")
+            
+            // Reset and dismiss
+            await MainActor.run {
+                showingPledgeOption = false
+                // Reset selections
+                selectedCategory = nil
+                selectedAmount = nil
+                customAmount = ""
+                quantity = 1
+                donorName = nil
+                donorPhone = nil
+                donorEmail = nil
+                
+                // Show success message or navigate back
+                onDismiss()
+            }
+        } catch {
+            print("[DonationHomeView] ❌ Failed to create pledge: \(error.localizedDescription)")
+            await MainActor.run {
+                showingPledgeOption = false
+            }
+        }
+    }
+}
+
+// Wrapper to handle pledge creation and state updates
+struct PledgeOptionViewWrapper: View {
+    let amount: Double
+    let category: DonationCategory?
+    let donorName: String?
+    let donorPhone: String?
+    let donorEmail: String?
+    let onPayNow: () -> Void
+    let onPledge: () -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        PledgeOptionView(
+            amount: amount,
+            category: category,
+            donorName: donorName,
+            donorPhone: donorPhone,
+            donorEmail: donorEmail,
+            onPayNow: onPayNow,
+            onPledge: onPledge,
+            onCancel: onCancel
+        )
     }
 }
 
