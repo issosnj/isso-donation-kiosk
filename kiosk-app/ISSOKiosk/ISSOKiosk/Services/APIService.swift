@@ -237,6 +237,15 @@ class APIService {
         )
     }
     
+    func cancelDonation(donationId: String) async throws -> Donation {
+        return try await request(
+            endpoint: "/donations/\(donationId)/cancel",
+            method: "POST",
+            body: nil,
+            requiresAuth: true
+        )
+    }
+    
     func getTemple(templeId: String) async throws -> Temple {
         print("[APIService] 📡 Fetching temple: \(templeId)")
         print("[APIService] 📡 Endpoint: /temples/\(templeId)")

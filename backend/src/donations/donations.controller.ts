@@ -219,5 +219,13 @@ export class DonationsController {
     await this.donationsService.sendReceiptEmail(donation);
     return { message: 'Receipt email sent successfully' };
   }
+
+  @Post(':id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancel a donation (device endpoint)' })
+  async cancel(@Param('id') id: string) {
+    return this.donationsService.cancel(id);
+  }
 }
 

@@ -20,6 +20,7 @@ struct ModernPaymentView: View {
     @State private var appearAnimation = false
     @State private var cardPulse = false
     @State private var isReady = false
+    @State private var donationId: String? = nil
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -73,6 +74,20 @@ struct ModernPaymentView: View {
                 print("[PaymentView] ⚠️ Skipping payment start - isReady: \(isReady), isProcessing: \(isProcessing)")
             }
         }
+        .onDisappear {
+            // If user dismisses without completing payment, cancel the donation
+            if let donationId = donationId, paymentStatus == nil {
+                print("[PaymentView] ⚠️ View dismissed without completing payment, canceling donation: \(donationId)")
+                Task {
+                    do {
+                        _ = try await APIService.shared.cancelDonation(donationId: donationId)
+                        print("[PaymentView] ✅ Donation canceled successfully")
+                    } catch {
+                        print("[PaymentView] ❌ Failed to cancel donation: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
     }
     
     private func processPayment() {
@@ -109,6 +124,11 @@ struct ModernPaymentView: View {
                     categoryId: category?.id
                 )
                 print("[PaymentView] ✅ Donation initiated: \(donation.id)")
+                
+                // Store donation ID for potential cancellation
+                await MainActor.run {
+                    self.donationId = donation.id
+                }
                 
                 // 2. Start payment using Square Mobile Payments SDK
                 // This will show card entry UI and detect card interactions from Square hardware

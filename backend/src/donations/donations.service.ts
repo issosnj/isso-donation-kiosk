@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Donation, DonationStatus } from './entities/donation.entity';
@@ -58,6 +58,23 @@ export class DonationsService {
     }
 
     return savedDonation;
+  }
+
+  async cancel(donationId: string): Promise<Donation> {
+    const donation = await this.donationsRepository.findOne({
+      where: { id: donationId },
+    });
+    if (!donation) {
+      throw new NotFoundException(`Donation with ID ${donationId} not found`);
+    }
+
+    // Only allow canceling if still pending
+    if (donation.status !== DonationStatus.PENDING) {
+      throw new BadRequestException('Can only cancel pending donations');
+    }
+
+    donation.status = DonationStatus.CANCELED;
+    return this.donationsRepository.save(donation);
   }
 
   async findAll(

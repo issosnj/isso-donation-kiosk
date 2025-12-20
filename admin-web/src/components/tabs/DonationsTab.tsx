@@ -109,9 +109,17 @@ export default function DonationsTab({ templeId }: DonationsTabProps) {
                       ? 'bg-green-100 text-green-700 border-green-200' 
                       : donation.status === 'PENDING' 
                       ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                      : donation.status === 'CANCELED'
+                      ? 'bg-gray-100 text-gray-700 border-gray-200'
+                      : donation.status === 'FAILED'
+                      ? 'bg-red-100 text-red-700 border-red-200'
                       : 'bg-red-100 text-red-700 border-red-200'
                   }`}>
-                    {donation.status}
+                    {donation.status === 'CANCELED' 
+                      ? 'User Cancelled' 
+                      : donation.status === 'FAILED'
+                      ? 'Failed'
+                      : donation.status}
                   </span>
                 </td>
                 <td className="px-6 py-4">
