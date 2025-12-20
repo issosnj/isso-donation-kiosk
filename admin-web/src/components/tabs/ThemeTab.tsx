@@ -723,6 +723,260 @@ export default function ThemeTab() {
                   />
                 </div>
               </div>
+              
+              {/* Donation Details Page Fonts */}
+              <div className="mt-6">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Font Sizes</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Amount Display Size
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Size of the large donation amount</p>
+                    <input
+                      type="number"
+                      value={formData.layout.detailsAmountFontSize}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, detailsAmountFontSize: parseInt(e.target.value) || 56 }
+                      })}
+                      disabled={!isEditing}
+                      min="24"
+                      max="120"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Label Size
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Size of labels and text</p>
+                    <input
+                      type="number"
+                      value={formData.layout.detailsLabelFontSize}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, detailsLabelFontSize: parseInt(e.target.value) || 18 }
+                      })}
+                      disabled={!isEditing}
+                      min="12"
+                      max="32"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Input Field Size
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Size of text in input fields</p>
+                    <input
+                      type="number"
+                      value={formData.layout.detailsInputFontSize}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, detailsInputFontSize: parseInt(e.target.value) || 18 }
+                      })}
+                      disabled={!isEditing}
+                      min="12"
+                      max="32"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Button Text Size
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Size of button text</p>
+                    <input
+                      type="number"
+                      value={formData.layout.detailsButtonFontSize}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, detailsButtonFontSize: parseInt(e.target.value) || 22 }
+                      })}
+                      disabled={!isEditing}
+                      min="14"
+                      max="36"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Donation Details Page Colors */}
+              <div className="mt-6">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Colors</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Amount Color
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Color of the large donation amount</p>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.detailsAmountColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsAmountColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.detailsAmountColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsAmountColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Text Color
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Color of labels and text</p>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.detailsTextColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsTextColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.detailsTextColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsTextColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Input Border Color
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Color of input field borders</p>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.detailsInputBorderColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsInputBorderColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.detailsInputBorderColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsInputBorderColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Input Focus Color
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Color when input field is focused</p>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.detailsInputFocusColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsInputFocusColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.detailsInputFocusColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsInputFocusColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Button Color
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Background color of payment button</p>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.detailsButtonColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsButtonColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.detailsButtonColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsButtonColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Button Text Color
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Color of text on payment button</p>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.detailsButtonTextColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsButtonTextColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.detailsButtonTextColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, detailsButtonTextColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
