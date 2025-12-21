@@ -861,9 +861,15 @@ struct CleanCustomAmountField: View {
             } else {
                 Button(action: onTap) {
                     HStack {
-                        Text("Custom Amount")
-                            .font(.custom("Inter-Regular", size: 20))
-                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                        if !text.isEmpty, let amount = Double(text), amount > 0 {
+                            Text("$\(text)")
+                                .font(.custom("Inter-Regular", size: 20))
+                                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
+                        } else {
+                            Text("Custom Amount")
+                                .font(.custom("Inter-Regular", size: 20))
+                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                        }
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14))
