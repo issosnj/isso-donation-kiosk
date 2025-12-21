@@ -227,41 +227,39 @@ export class ReceiptPdfService {
           }
         }
 
-        // Header Center Content - Very compact font sizes
+        // Header Center Content - Better spacing and sizing
         // Calculate available width for header text (accounting for logo on left)
-        // Ensure text doesn't extend beyond right margin
-        const logoRightEdge = logoX + logoSize;
-        const headerTextLeft = logoRightEdge + 10; // Start after logo with padding
-        const headerTextRight = pageWidth - margin; // Right margin boundary
-        const headerTextWidth = Math.max(0, headerTextRight - headerTextLeft); // Available width, ensure non-negative
+        // Center the text within the full page width (not just after logo)
+        const headerTextWidth = contentWidth; // Use full content width for centering
+        const headerTextLeft = margin; // Start at left margin for full-width centering
         let headerY = currentY;
 
         if (receiptConfig.headerTitle) {
-          doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000');
+          doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000');
           const titleHeight = doc.heightOfString(receiptConfig.headerTitle, { width: headerTextWidth, align: 'center' });
           doc.text(receiptConfig.headerTitle, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
-          headerY += titleHeight + 3;
+          headerY += titleHeight + 5;
         }
 
         if (receiptConfig.organizationName) {
-          doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
+          doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000');
           const orgHeight = doc.heightOfString(receiptConfig.organizationName, { width: headerTextWidth, align: 'center' });
           doc.text(receiptConfig.organizationName, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
-          headerY += orgHeight + 1;
+          headerY += orgHeight + 3;
         }
 
         if (receiptConfig.organizationSubtitle) {
-          doc.fontSize(9).font('Helvetica').fillColor('#666666');
+          doc.fontSize(10).font('Helvetica').fillColor('#666666');
           const subtitleHeight = doc.heightOfString(receiptConfig.organizationSubtitle, { width: headerTextWidth, align: 'center' });
           doc.text(receiptConfig.organizationSubtitle, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
-          headerY += subtitleHeight + 1;
+          headerY += subtitleHeight + 2;
         }
 
         if (temple.address) {
-          doc.fontSize(9).font('Helvetica').fillColor('#666666');
+          doc.fontSize(10).font('Helvetica').fillColor('#666666');
           const addressHeight = doc.heightOfString(temple.address, { width: headerTextWidth, align: 'center' });
           doc.text(temple.address, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
-          headerY += addressHeight + 1;
+          headerY += addressHeight + 2;
         }
 
         // Contact Info
@@ -277,11 +275,11 @@ export class ReceiptPdfService {
             contactParts.push(`Visit: ${receiptConfig.website}`);
           }
           if (contactParts.length > 0) {
-            doc.fontSize(9).font('Helvetica').fillColor('#666666');
+            doc.fontSize(10).font('Helvetica').fillColor('#666666');
             const contactText = contactParts.join(' | ');
             const contactHeight = doc.heightOfString(contactText, { width: headerTextWidth, align: 'center' });
             doc.text(contactText, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
-            headerY += contactHeight + 1;
+            headerY += contactHeight + 2;
           }
         }
 
