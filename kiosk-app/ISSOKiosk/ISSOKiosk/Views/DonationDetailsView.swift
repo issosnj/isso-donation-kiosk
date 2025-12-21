@@ -576,7 +576,7 @@ struct ModernDonationDetailsView: View {
                         .disabled(!canProceed)
                     }
                     .frame(
-                        width: min(donorFormMaxWidth, (geometry.size.width - detailsPageSidePadding * 2 - detailsPageHorizontalSpacing) / 2)
+                        width: max(200, min(donorFormMaxWidth, max(0, (geometry.size.width - detailsPageSidePadding * 2 - detailsPageHorizontalSpacing) / 2)))
                     )
                     .padding(detailsCardPadding)
                     .background(

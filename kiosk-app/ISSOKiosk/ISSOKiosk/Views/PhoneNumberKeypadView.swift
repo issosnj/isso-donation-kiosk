@@ -69,24 +69,24 @@ struct PhoneNumberKeypadView: View {
                         // Numeric keypad
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
-                                KeypadButton(number: "1", letters: "", enteredPhone: $enteredPhone)
-                                KeypadButton(number: "2", letters: "ABC", enteredPhone: $enteredPhone)
-                                KeypadButton(number: "3", letters: "DEF", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "1", letters: "", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "2", letters: "ABC", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "3", letters: "DEF", enteredPhone: $enteredPhone)
                             }
                             HStack(spacing: 12) {
-                                KeypadButton(number: "4", letters: "GHI", enteredPhone: $enteredPhone)
-                                KeypadButton(number: "5", letters: "JKL", enteredPhone: $enteredPhone)
-                                KeypadButton(number: "6", letters: "MNO", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "4", letters: "GHI", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "5", letters: "JKL", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "6", letters: "MNO", enteredPhone: $enteredPhone)
                             }
                             HStack(spacing: 12) {
-                                KeypadButton(number: "7", letters: "PQRS", enteredPhone: $enteredPhone)
-                                KeypadButton(number: "8", letters: "TUV", enteredPhone: $enteredPhone)
-                                KeypadButton(number: "9", letters: "WXYZ", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "7", letters: "PQRS", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "8", letters: "TUV", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "9", letters: "WXYZ", enteredPhone: $enteredPhone)
                             }
                             HStack(spacing: 12) {
-                                KeypadButton(number: "*", letters: "", enteredPhone: $enteredPhone)
-                                KeypadButton(number: "0", letters: "+", enteredPhone: $enteredPhone)
-                                KeypadButton(number: "#", letters: "", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "*", letters: "", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "0", letters: "+", enteredPhone: $enteredPhone)
+                                PhoneKeypadButton(number: "#", letters: "", enteredPhone: $enteredPhone)
                             }
                             HStack(spacing: 12) {
                                 // Backspace button
@@ -188,7 +188,7 @@ struct PhoneNumberKeypadView: View {
     }
 }
 
-struct KeypadButton: View {
+struct PhoneKeypadButton: View {
     let number: String
     let letters: String
     @Binding var enteredPhone: String
