@@ -125,6 +125,8 @@ export class Temple {
       buttonSpacing?: number; // Spacing between buttons
       cornerRadius?: number; // Corner radius for buttons (e.g., 12)
       quantityTotalSpacing?: number; // Spacing between quantity and total when category selected (e.g., 24)
+      donationSelectionPageLeftPadding?: number; // Left padding for donation selection page (e.g., 40)
+      donationSelectionPageRightPadding?: number; // Right padding for donation selection page (e.g., 40)
       // Donation Details Page Layout
       detailsPageHorizontalSpacing?: number; // Spacing between left and right sections (e.g., 40)
       detailsPageSidePadding?: number; // Padding on left/right sides (e.g., 60)

@@ -57,6 +57,8 @@ export default function ThemeTab() {
       buttonSpacing: 12,
       cornerRadius: 12,
       quantityTotalSpacing: 24,
+      donationSelectionPageLeftPadding: 40,
+      donationSelectionPageRightPadding: 40,
       // Donation Details Page Layout
       detailsPageHorizontalSpacing: 40,
       detailsPageSidePadding: 60,
@@ -111,6 +113,8 @@ export default function ThemeTab() {
           buttonSpacing: temple.kioskTheme.layout?.buttonSpacing || 12,
           cornerRadius: temple.kioskTheme.layout?.cornerRadius || 12,
           quantityTotalSpacing: temple.kioskTheme.layout?.quantityTotalSpacing || 24,
+          donationSelectionPageLeftPadding: temple.kioskTheme.layout?.donationSelectionPageLeftPadding || 40,
+          donationSelectionPageRightPadding: temple.kioskTheme.layout?.donationSelectionPageRightPadding || 40,
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
           detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,

@@ -171,6 +171,14 @@ struct DonationHomeView: View {
         CGFloat(theme?.layout?.categoryAmountSectionSpacing ?? 40)
     }
     
+    var donationSelectionPageLeftPadding: CGFloat {
+        CGFloat(theme?.layout?.donationSelectionPageLeftPadding ?? 40)
+    }
+    
+    var donationSelectionPageRightPadding: CGFloat {
+        CGFloat(theme?.layout?.donationSelectionPageRightPadding ?? 40)
+    }
+    
     var buttonSpacing: CGFloat {
         CGFloat(theme?.layout?.buttonSpacing ?? 12)
     }
@@ -401,7 +409,8 @@ struct DonationHomeView: View {
                 amountSection
                     .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 40)
+            .padding(.leading, donationSelectionPageLeftPadding)
+            .padding(.trailing, donationSelectionPageRightPadding)
             
             // Overlay to detect taps outside keypad
             // Only close when tapping on the amount section, not on the keypad itself
