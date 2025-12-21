@@ -166,7 +166,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nFRAMEWORKS=\"${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\n\"${FRAMEWORKS}/SquareMobilePaymentsSDK.framework/setup\"\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nFRAMEWORKS=\"${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\n\"${FRAMEWORKS}/SquareMobilePaymentsSDK.framework/setup\"\ntouch \"${FRAMEWORKS}/SquareMobilePaymentsSDK.framework/.setup_complete\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
