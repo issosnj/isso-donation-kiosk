@@ -5,6 +5,7 @@ import { Temple } from '../temples/entities/temple.entity';
 import { Device } from '../devices/entities/device.entity';
 import { DonationCategory } from '../donations/entities/donation-category.entity';
 import { Donation } from '../donations/entities/donation.entity';
+import { Donor } from '../donors/entities/donor.entity';
 import { AuditLog } from '../audit/entities/audit-log.entity';
 
 export const typeOrmConfig = (): DataSourceOptions => {
@@ -24,7 +25,7 @@ export const typeOrmConfig = (): DataSourceOptions => {
       username: url.username,
       password: url.password,
       database: url.pathname.slice(1), // Remove leading /
-      entities: [User, Temple, Device, DonationCategory, Donation, AuditLog],
+      entities: [User, Temple, Device, DonationCategory, Donation, Donor, AuditLog],
       synchronize: false, // Disabled to use existing Railway database schema
       logging: configService.get('NODE_ENV') === 'development',
       migrations: ['dist/migrations/*.js'],
