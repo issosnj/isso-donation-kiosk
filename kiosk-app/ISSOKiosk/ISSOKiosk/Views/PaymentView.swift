@@ -300,7 +300,8 @@ struct ModernPaymentView: View {
                                                 status: "SUCCEEDED",
                                                 donorName: donorName,
                                                 donorPhone: donorPhone,
-                                                donorEmail: donorEmail
+                                                donorEmail: donorEmail,
+                                                donorAddress: donorAddress
                                             )
                                             print("[PaymentView] ✅ Donation marked as SUCCEEDED after retry")
                                             await MainActor.run {
@@ -324,7 +325,8 @@ struct ModernPaymentView: View {
                                                 status: "FAILED",
                                                 donorName: donorName,
                                                 donorPhone: donorPhone,
-                                                donorEmail: donorEmail
+                                                donorEmail: donorEmail,
+                                                donorAddress: donorAddress
                                             )
                                             print("[PaymentView] ✅ Donation marked as FAILED after error")
                                         } catch {
@@ -864,6 +866,7 @@ struct PaymentView: View {
     let donorName: String?
     let donorPhone: String?
     let donorEmail: String?
+    let donorAddress: String?
     let onComplete: () -> Void
     
     var body: some View {
@@ -873,6 +876,7 @@ struct PaymentView: View {
             donorName: donorName,
             donorPhone: donorPhone,
             donorEmail: donorEmail,
+            donorAddress: donorAddress,
             onComplete: onComplete
         )
     }
