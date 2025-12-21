@@ -76,7 +76,10 @@ class AppState: ObservableObject {
             }
             
             // Always reload background image when refreshing config (in case image was updated)
-            await preloadBackgroundImage(forceReload: true)
+            // Don't block - load in background
+            Task.detached(priority: .background) { [weak self] in
+                await self?.preloadBackgroundImage(forceReload: true)
+            }
             
             // Also refresh categories when temple config is refreshed (categories might have changed)
             await refreshCategories()
@@ -88,14 +91,33 @@ class AppState: ObservableObject {
     func preloadBackgroundImage(forceReload: Bool = false) async {
         // Check kioskTheme.layout first, then fallback to homeScreenConfig for backward compatibility
         let backgroundUrl = temple?.kioskTheme?.layout?.backgroundImageUrl ?? temple?.homeScreenConfig?.backgroundImageUrl
-        guard let urlString = backgroundUrl, let url = URL(string: urlString) else {
+        guard let urlString = backgroundUrl else {
             await MainActor.run {
                 self.backgroundImage = nil
             }
             return
         }
         
-        print("[AppState] 🖼️ Preloading background image: \(backgroundUrl ?? "nil") (forceReload: \(forceReload))")
+        print("[AppState] 🖼️ Preloading background image: \(urlString) (forceReload: \(forceReload))")
+        
+        // Use proxy endpoint for Google Drive URLs to avoid CORS issues
+        let finalUrlString: String
+        if urlString.contains("drive.google.com") {
+            // Use backend proxy for Google Drive URLs
+            let encodedUrl = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? urlString
+            finalUrlString = "\(Config.apiBaseURL)/temples/proxy-image?url=\(encodedUrl)"
+            print("[AppState] 🔄 Using proxy endpoint for Google Drive URL")
+        } else {
+            finalUrlString = urlString
+        }
+        
+        guard let url = URL(string: finalUrlString) else {
+            print("[AppState] ❌ Invalid URL: \(finalUrlString)")
+            await MainActor.run {
+                self.backgroundImage = nil
+            }
+            return
+        }
         
         // If force reload, clear cache first
         if forceReload {
