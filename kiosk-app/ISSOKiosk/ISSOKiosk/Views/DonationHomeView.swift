@@ -565,14 +565,14 @@ struct DonationHomeView: View {
             
             CleanCustomAmountField(
                 text: $customAmount,
-                isActive: selectedAmount == nil && selectedCategory == nil,
+                isActive: false, // Always show button, never inline text field
                 isFocused: $customAmountFocused,
                 onTap: {
                     // Clear category when custom amount is selected
                     selectedCategory = nil
                     quantity = 1
                     selectedAmount = nil
-                    // Show custom amount modal instead of inline text field
+                    // Show custom amount modal
                     showingCustomAmount = true
                 }
             )
