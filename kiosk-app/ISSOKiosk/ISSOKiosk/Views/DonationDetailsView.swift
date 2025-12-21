@@ -206,9 +206,9 @@ struct ModernDonationDetailsView: View {
             
             ScrollView {
                 VStack(spacing: 0) {
-                    // Top spacing
+                    // Top spacing - reduced to prevent cutoff
                     Spacer()
-                        .frame(height: detailsPageTopPadding)
+                        .frame(height: min(detailsPageTopPadding, 40))
                     
                     // Main content: Left (Review Donation) and Right (Optional Information)
                     HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
@@ -287,69 +287,33 @@ struct ModernDonationDetailsView: View {
                         
                         Spacer()
                         
-                        // Payment methods illustration
-                        HStack(spacing: 12) {
-                            // Credit cards stack
-                            ZStack(alignment: .leading) {
-                                // Card 3 (back)
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(LinearGradient(
-                                        gradient: Gradient(colors: [Color.gray.opacity(0.3), Color.gray.opacity(0.2)]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ))
-                                    .frame(width: 60, height: 38)
-                                    .offset(x: 8, y: 4)
-                                
-                                // Card 2 (middle)
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(LinearGradient(
-                                        gradient: Gradient(colors: [Color.gray.opacity(0.4), Color.gray.opacity(0.3)]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ))
-                                    .frame(width: 60, height: 38)
-                                    .offset(x: 4, y: 2)
-                                
-                                // Card 1 (front - gold)
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.85, green: 0.75, blue: 0.5),
-                                            Color(red: 0.95, green: 0.85, blue: 0.6)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ))
-                                    .frame(width: 60, height: 38)
+                        // Cancel button at bottom (similar to Proceed to Payment)
+                        Button(action: {
+                            withAnimation {
+                                dismiss()
                             }
-                            
-                            // Coins stack
-                            ZStack(alignment: .bottom) {
-                                // Coin 3 (back)
-                                Circle()
-                                    .fill(Color(red: 0.85, green: 0.75, blue: 0.5).opacity(0.6))
-                                    .frame(width: 24, height: 24)
-                                    .offset(y: 4)
-                                
-                                // Coin 2 (middle)
-                                Circle()
-                                    .fill(Color(red: 0.85, green: 0.75, blue: 0.5).opacity(0.8))
-                                    .frame(width: 24, height: 24)
-                                    .offset(y: 2)
-                                
-                                // Coin 1 (front)
-                                Circle()
-                                    .fill(LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.95, green: 0.85, blue: 0.6),
-                                            Color(red: 0.85, green: 0.75, blue: 0.5)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ))
-                                    .frame(width: 24, height: 24)
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: detailsButtonFontSize - 4, weight: .semibold))
+                                Text("Cancel")
+                                    .font(.custom("Inter-Medium", size: detailsButtonFontSize))
                             }
+                            .foregroundColor(Color.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.gray.opacity(0.6),
+                                        Color.gray.opacity(0.4)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
                         }
                     }
                     .frame(width: detailsCardMaxWidth, alignment: .leading)
@@ -368,7 +332,7 @@ struct ModernDonationDetailsView: View {
                     )
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
-                    .padding(.leading, detailsPageSidePadding)
+                    .padding(.leading, min(detailsPageSidePadding, 40))
                     
                     // RIGHT SIDE: Optional Information Panel
                     VStack(alignment: .leading, spacing: 0) {
@@ -572,16 +536,16 @@ struct ModernDonationDetailsView: View {
                     )
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
-                    .padding(.trailing, detailsPageSidePadding)
+                    .padding(.trailing, min(detailsPageSidePadding, 40))
                     
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 0)
                     
-                    // Bottom spacing
+                    // Bottom spacing - reduced to prevent cutoff
                     Spacer()
-                        .frame(height: detailsPageBottomPadding)
+                        .frame(height: min(detailsPageBottomPadding, 40))
                 }
             }
             .onTapGesture {
@@ -589,31 +553,7 @@ struct ModernDonationDetailsView: View {
                 nameFocused = false
                 phoneFocused = false
                 emailFocused = false
-            }
-            
-            // Cancel button (top left)
-            VStack {
-                HStack {
-                    Button(action: {
-                        withAnimation {
-                        dismiss()
-                        }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "xmark")
-                            Text("Cancel")
-                        }
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.gray)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Color(red: 0.1, green: 0.1, blue: 0.1))
-                        .cornerRadius(10)
-                    }
-                    .padding()
-                    Spacer()
-                }
-                Spacer()
+                addressFocused = false
             }
             
             // Time and Network Status in top right
@@ -622,7 +562,7 @@ struct ModernDonationDetailsView: View {
                     Spacer()
                     TimeAndNetworkStatusView()
                         .padding(.trailing, 20)
-                        .padding(.top, 17)
+                        .padding(.top, 20)
                 }
                 Spacer()
             }
