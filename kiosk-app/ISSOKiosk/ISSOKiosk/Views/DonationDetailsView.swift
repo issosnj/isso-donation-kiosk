@@ -204,16 +204,16 @@ struct ModernDonationDetailsView: View {
             
             // No dark overlay - clean background
             
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Top spacing
-                    Spacer()
-                        .frame(height: detailsPageTopPadding)
-                    
-                    // Main content: Left (Review Donation) and Right (Optional Information)
-                    HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Top spacing
                         Spacer()
-                    // LEFT SIDE: Review Donation Panel
+                            .frame(height: detailsPageTopPadding)
+                        
+                        // Main content: Left (Review Donation) and Right (Optional Information)
+                        HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
+                            // LEFT SIDE: Review Donation Panel
                     VStack(alignment: .leading, spacing: 0) {
                         // Panel Title
                         Text("Review Donation")
@@ -520,7 +520,9 @@ struct ModernDonationDetailsView: View {
                         }
                         .disabled(!canProceed)
                     }
-                    .frame(width: donorFormMaxWidth)
+                    .frame(
+                        width: min(donorFormMaxWidth, (geometry.size.width - detailsPageSidePadding * 2 - detailsPageHorizontalSpacing) / 2)
+                    )
                     .padding(detailsCardPadding)
                     .background(
                         // Glass effect background
@@ -537,13 +539,15 @@ struct ModernDonationDetailsView: View {
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
                     
-                    Spacer()
+                            Spacer()
+                        }
+                        .padding(.horizontal, detailsPageSidePadding)
+                        .frame(maxWidth: geometry.size.width)
+                        
+                        // Bottom spacing
+                        Spacer()
+                            .frame(height: detailsPageBottomPadding)
                     }
-                    .padding(.horizontal, detailsPageSidePadding)
-                    
-                    // Bottom spacing
-                    Spacer()
-                        .frame(height: detailsPageBottomPadding)
                 }
             }
             .onTapGesture {
