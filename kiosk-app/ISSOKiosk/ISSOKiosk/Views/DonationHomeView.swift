@@ -11,7 +11,8 @@ struct DonationHomeView: View {
     @State private var showingPayment = false
     @State private var showingYajmanOpportunities = false
     @State private var showingPledgeOption = false
-    @State private var showingCustomAmount = false
+    @State private var showingCustomAmountKeypad = false
+    @State private var hideSystemKeyboard = false
     @State private var donorName: String?
     @State private var donorPhone: String?
     @State private var donorEmail: String?
@@ -209,13 +210,19 @@ struct DonationHomeView: View {
                 )
             }
         }
-        .sheet(isPresented: $showingCustomAmount) {
-            CustomAmountView(
-                customAmount: $customAmount,
-                onDismiss: {
-                    showingCustomAmount = false
-                }
-            )
+        .overlay(alignment: .bottom) {
+            if showingCustomAmountKeypad {
+                CustomNumericKeypad(
+                    amount: $customAmount,
+                    onDismiss: {
+                        showingCustomAmountKeypad = false
+                        customAmountFocused = false
+                    }
+                )
+                .transition(.move(edge: .bottom))
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showingCustomAmountKeypad)
+                .zIndex(1000)
+            }
         }
         .fullScreenCover(isPresented: $showingDetails) {
             ModernDonationDetailsView(
@@ -338,7 +345,11 @@ struct DonationHomeView: View {
             }
         }
         .onTapGesture {
-            customAmountFocused = false
+            // Dismiss keypad when tapping outside
+            if showingCustomAmountKeypad {
+                showingCustomAmountKeypad = false
+                customAmountFocused = false
+            }
         }
         .task {
             // Ensure background image is preloaded
@@ -565,15 +576,17 @@ struct DonationHomeView: View {
             
             CleanCustomAmountField(
                 text: $customAmount,
-                isActive: false, // Always show button, never inline text field
+                isActive: true, // Always show inline text field
                 isFocused: $customAmountFocused,
+                showingKeypad: $showingCustomAmountKeypad,
                 onTap: {
                     // Clear category when custom amount is selected
                     selectedCategory = nil
                     quantity = 1
                     selectedAmount = nil
-                    // Show custom amount modal
-                    showingCustomAmount = true
+                    // Show custom keypad instead of system keyboard
+                    showingCustomAmountKeypad = true
+                    customAmountFocused = true
                 }
             )
             .padding(.horizontal, 16)
@@ -843,21 +856,34 @@ struct CleanCustomAmountField: View {
                 .frame(width: 24, alignment: .leading)
             
             if isActive {
-                TextField("", text: $text, prompt: Text("Custom Amount").foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6)))
-                    .keyboardType(.decimalPad)
-                    .font(.custom("Inter-Regular", size: 20))
-                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
-                    .focused($isFocused)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.done)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .onChange(of: text) { newValue in
-                        let filtered = newValue.filter { "0123456789.".contains($0) }
-                        if filtered != newValue {
-                            text = filtered
+                // Display field that shows amount or placeholder
+                HStack {
+                    if text.isEmpty {
+                        Text("Custom Amount")
+                            .font(.custom("Inter-Regular", size: 20))
+                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                    } else {
+                        Text("$\(text)")
+                            .font(.custom("Inter-Regular", size: 20))
+                            .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
+                    }
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    onTap()
+                }
+                .onChange(of: isFocused) { focused in
+                    if focused {
+                        // Show custom keypad when field is focused
+                        showingKeypad = true
+                        // Hide system keyboard by resigning focus immediately
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            isFocused = false
                         }
                     }
+                }
             } else {
                 Button(action: onTap) {
                     HStack {
