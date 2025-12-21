@@ -218,6 +218,11 @@ export default function ThemeTab() {
                       bodyTextColor: temple.kioskTheme.colors?.bodyTextColor || '#808080',
                       subtitleColor: temple.kioskTheme.colors?.subtitleColor || '#808080',
                       quantityTotalColor: temple.kioskTheme.colors?.quantityTotalColor || '#423232',
+                      tapToDonateButtonColor: temple.kioskTheme.colors?.tapToDonateButtonColor || '#D4AF37',
+                      categorySelectedColor: temple.kioskTheme.colors?.categorySelectedColor || temple.homeScreenConfig?.buttonColors?.categorySelected || '#3366CC',
+                      categoryUnselectedColor: temple.kioskTheme.colors?.categoryUnselectedColor || temple.homeScreenConfig?.buttonColors?.categoryUnselected || '#3366CC',
+                      amountSelectedColor: temple.kioskTheme.colors?.amountSelectedColor || temple.homeScreenConfig?.buttonColors?.amountSelected || '#3366CC',
+                      amountUnselectedColor: temple.kioskTheme.colors?.amountUnselectedColor || temple.homeScreenConfig?.buttonColors?.amountUnselected || '#3366CC',
                     },
                     layout: {
                       categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
