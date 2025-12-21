@@ -574,9 +574,45 @@ export default function ThemeTab() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Left Side Padding
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Padding on the left side of the page (0-200)</p>
+                  <input
+                    type="number"
+                    value={formData.layout.donationSelectionPageLeftPadding}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, donationSelectionPageLeftPadding: parseInt(e.target.value) || 40 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Right Side Padding
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Padding on the right side of the page (0-200)</p>
+                  <input
+                    type="number"
+                    value={formData.layout.donationSelectionPageRightPadding}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, donationSelectionPageRightPadding: parseInt(e.target.value) || 40 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
               </div>
             </div>
-
+            
             {/* Donation Details Page Layout */}
             <div className="bg-white rounded-lg shadow p-6">
               <h4 className="text-md font-semibold text-gray-900 mb-2">Donation Details Page</h4>
