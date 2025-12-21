@@ -24,6 +24,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -288,6 +289,7 @@ export class TemplesController {
   }
 
   @Get('proxy-image')
+  @Public()
   @ApiOperation({ summary: 'Proxy external images (e.g., Google Drive) to bypass CORS' })
   async proxyImage(
     @Query('url') url: string,
