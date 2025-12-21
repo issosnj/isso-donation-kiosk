@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { DeviceAuthGuard } from '../auth/guards/device-auth.guard';
 import { DonorsService } from './donors.service';
 import { UpdateDonorDto } from './dto/update-donor.dto';
 
@@ -34,6 +35,25 @@ export class DonorsController {
     const templeId = req.user.templeId;
     if (!templeId) {
       throw new Error('Temple ID not found in user context');
+    }
+
+    const donor = await this.donorsService.getDonorByPhone(templeId, phone);
+    return {
+      found: !!donor,
+      donor: donor || null,
+    };
+  }
+
+  @Get('device/lookup/:phone')
+  @UseGuards(DeviceAuthGuard)
+  @ApiOperation({ summary: 'Lookup donor by phone number (device endpoint for kiosk)' })
+  async lookupDonorDevice(
+    @Request() req,
+    @Param('phone') phone: string,
+  ) {
+    const templeId = req.device?.templeId;
+    if (!templeId) {
+      throw new Error('Temple ID not found in device context');
     }
 
     const donor = await this.donorsService.getDonorByPhone(templeId, phone);

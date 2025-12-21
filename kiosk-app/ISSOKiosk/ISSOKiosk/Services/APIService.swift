@@ -516,10 +516,33 @@ extension APIService {
             requiresAuth: true
         )
     }
+    
+    func lookupDonor(phone: String) async throws -> DonorLookupResponse {
+        let encodedPhone = phone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? phone
+        return try await request(
+            endpoint: "/donors/device/lookup/\(encodedPhone)",
+            method: "GET",
+            body: nil,
+            requiresAuth: true
+        )
+    }
 }
 
 struct SquareCredentials: Codable {
     let accessToken: String
     let locationId: String
+}
+
+struct DonorLookupResponse: Codable {
+    let found: Bool
+    let donor: DonorInfo?
+}
+
+struct DonorInfo: Codable {
+    let id: String
+    let name: String?
+    let email: String?
+    let phone: String
+    let address: String?
 }
 

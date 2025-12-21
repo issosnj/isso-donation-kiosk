@@ -11,6 +11,7 @@ struct ModernDonationDetailsView: View {
     @State private var donorAddress = ""
     @State private var appearAnimation = false
     @State private var showingYajmanOpportunities = false
+    @State private var isLookingUpDonor = false
     @FocusState private var nameFocused: Bool
     @FocusState private var phoneFocused: Bool
     @FocusState private var emailFocused: Bool
@@ -588,9 +589,17 @@ struct ModernDonationDetailsView: View {
             // User is typing in name field - reset idle timer
             IdleTimer.shared.userDidInteract()
         }
-        .onChange(of: donorPhone) { _ in
+        .onChange(of: donorPhone) { newPhone in
             // User is typing in phone field - reset idle timer
             IdleTimer.shared.userDidInteract()
+            
+            // Auto-populate donor info if phone number is complete (10+ digits)
+            let digitsOnly = newPhone.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
+            if digitsOnly.count >= 10 && !isLookingUpDonor {
+                Task {
+                    await lookupDonorInfo(phone: digitsOnly)
+                }
+            }
         }
         .onChange(of: donorEmail) { _ in
             // User is typing in email field - reset idle timer
