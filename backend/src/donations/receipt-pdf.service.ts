@@ -308,7 +308,8 @@ export class ReceiptPdfService {
         
         // Table Row
         doc.fontSize(12).font('Helvetica').fillColor('#000000');
-        doc.text(donation.category?.name || 'Donation/Aarti', tableLeft, currentY);
+        // Show category name if category was selected, otherwise show "Donation" for preset amounts
+        doc.text(donation.category?.name || 'Donation', tableLeft, currentY);
         doc.text(amount.toFixed(2), tableLeft + col1Width, currentY, { width: col2Width, align: 'right' });
         currentY += 20;
         

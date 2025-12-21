@@ -170,7 +170,7 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
             </thead>
             <tbody>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-4">{donation.category?.name || 'Donation/Aarti'}</td>
+                <td className="py-2 px-4">{donation.category?.name || 'Donation'}</td>
                 <td className="py-2 px-4 text-right">{amount.toFixed(2)}</td>
               </tr>
               <tr className="border-t-2 border-gray-800 font-semibold">

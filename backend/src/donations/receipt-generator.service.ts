@@ -131,7 +131,7 @@ export class ReceiptGeneratorService {
             </thead>
             <tbody>
               <tr>
-                <td>${this.escapeHtml(donation.category?.name || 'Donation/Aarti')}</td>
+                <td>${this.escapeHtml(donation.category?.name || 'Donation')}</td>
                 <td class="amount-cell">${amount.toFixed(2)}</td>
               </tr>
               <tr class="total-row">
