@@ -204,13 +204,14 @@ struct ModernDonationDetailsView: View {
             
             // No dark overlay - clean background
             
-            VStack(spacing: 0) {
-                // Top spacing
-                Spacer()
-                    .frame(height: detailsPageTopPadding)
-                
-                // Main content: Left (Review Donation) and Right (Optional Information)
-                HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Top spacing
+                    Spacer()
+                        .frame(height: detailsPageTopPadding)
+                    
+                    // Main content: Left (Review Donation) and Right (Optional Information)
+                    HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
                     // LEFT SIDE: Review Donation Panel
                     VStack(alignment: .leading, spacing: 0) {
                         // Panel Title
