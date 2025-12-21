@@ -46,9 +46,8 @@ struct CustomNumericKeypad: View {
                 .shadow(color: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0).opacity(0.6), radius: 15, x: 0, y: 0) // Glow effect
                 .shadow(color: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0).opacity(0.4), radius: 25, x: 0, y: 0) // Outer glow
         )
-        .onTapGesture {
-            // Prevent taps on keypad from closing it
-        }
+        .allowsHitTesting(true)
+        .contentShape(Rectangle())
     }
 }
 

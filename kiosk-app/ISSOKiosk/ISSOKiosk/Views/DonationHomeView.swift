@@ -330,12 +330,9 @@ struct DonationHomeView: View {
                 .ignoresSafeArea(.all, edges: .all)
             }
         }
-        .onTapGesture {
-            // Dismiss keypad when tapping outside
-            if showingCustomAmountKeypad {
-                showingCustomAmountKeypad = false
-                customAmountFocused = false
-            }
+        .onTapGesture { location in
+            // Only dismiss keypad when tapping on background, not on interactive elements
+            // This is handled by the overlay in mainContent instead
         }
         .task {
             // Ensure background image is preloaded
