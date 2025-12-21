@@ -805,6 +805,6 @@ struct DonationDetailsView: View {
     let onConfirm: (String?, String?, String?, String?) -> Void // name, phone, email, address
     
     var body: some View {
-        ModernDonationDetailsView(amount: amount, category: category, onConfirm: onConfirm)
+        ModernDonationDetailsView(amount: amount, category: category, onConfirm: onConfirm, onCancel: nil)
     }
 }
