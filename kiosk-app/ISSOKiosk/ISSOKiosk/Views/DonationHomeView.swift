@@ -864,20 +864,30 @@ struct CleanCustomAmountField: View {
                 .frame(width: 24, alignment: .leading)
             
             if isActive {
-                // Display field that shows amount or placeholder
+                // Display field that shows amount or placeholder - styled like the image
                 HStack {
                     if text.isEmpty {
                         Text("Custom Amount")
                             .font(.custom("Inter-Regular", size: 20))
-                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                            .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.65))
                     } else {
-                        Text("$\(text)")
+                        Text(text)
                             .font(.custom("Inter-Regular", size: 20))
                             .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
                     }
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .frame(height: 60)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(red: 0.98, green: 0.97, blue: 0.95)) // Cream/white interior
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color(red: 0.85, green: 0.75, blue: 0.55), lineWidth: 2) // Light gold border
+                        )
+                )
                 .contentShape(Rectangle())
                 .onTapGesture {
                     onTap()
