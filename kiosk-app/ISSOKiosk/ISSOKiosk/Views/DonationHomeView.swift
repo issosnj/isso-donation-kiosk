@@ -410,14 +410,22 @@ struct DonationHomeView: View {
             }
             .padding(.horizontal, 40)
             
-            // Invisible overlay to detect taps outside keypad
+            // Invisible overlay to detect taps outside keypad (only on the amount section side)
             if showingCustomAmountKeypad {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        showingCustomAmountKeypad = false
-                        customAmountFocused = false
-                    }
+                HStack(spacing: 0) {
+                    // Left side - keypad area, don't close on tap
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                    
+                    // Right side - amount section, close on tap
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            showingCustomAmountKeypad = false
+                            customAmountFocused = false
+                        }
+                }
             }
         }
     }
