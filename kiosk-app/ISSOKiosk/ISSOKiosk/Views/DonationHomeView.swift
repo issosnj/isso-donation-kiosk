@@ -377,10 +377,10 @@ struct DonationHomeView: View {
                         Spacer()
                             .frame(height: categoryHeaderTopPadding)
                         
-                        // Match the header height and bottom padding (approximately)
-                        // Header is typically around 50-60pt, plus 12pt bottom padding
+                        // Match the header height and bottom padding exactly
+                        // Heading size + body size + spacing 6pt + bottom padding 12pt
                         Spacer()
-                            .frame(height: 62) // Approximate header height + bottom padding
+                            .frame(height: headingSize + bodySize + 6 + 12)
                         
                         // Keypad aligned to start where category buttons start
                         HStack {
