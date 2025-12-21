@@ -8,6 +8,11 @@ export default function ThemeTab() {
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
   const [selectedTempleId, setSelectedTempleId] = useState<string | null>(null)
+  const [uploadingBackground, setUploadingBackground] = useState(false)
+  const [imageLoadError, setImageLoadError] = useState(false)
+  const [backgroundUrlInput, setBackgroundUrlInput] = useState('')
+  const [useUrlInstead, setUseUrlInstead] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Fetch all temples for selection
   const { data: temples } = useQuery({
