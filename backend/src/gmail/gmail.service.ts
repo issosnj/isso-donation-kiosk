@@ -154,12 +154,21 @@ export class GmailService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error('[Gmail Service] Failed to send email:', error);
-      throw new Error(`Failed to send email: ${error.error?.message || JSON.stringify(error)}`);
+      const errorText = await response.text();
+      let error: any;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { message: errorText };
+      }
+      console.error('[Gmail Service] Failed to send email - Status:', response.status);
+      console.error('[Gmail Service] Failed to send email - Error:', JSON.stringify(error, null, 2));
+      console.error('[Gmail Service] Failed to send email - Response headers:', Object.fromEntries(response.headers.entries()));
+      throw new Error(`Failed to send email (${response.status}): ${error.error?.message || error.message || JSON.stringify(error)}`);
     }
 
-    console.log('[Gmail Service] Email sent successfully');
+    const responseData = await response.json();
+    console.log('[Gmail Service] ✅ Email sent successfully - Message ID:', responseData.id);
   }
 }
 

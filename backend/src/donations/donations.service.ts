@@ -610,10 +610,20 @@ export class DonationsService {
 
   async sendReceiptEmail(donation: Donation): Promise<void> {
     try {
+      console.log('[DonationsService] 📧 Starting receipt email send process for donation:', donation.id);
       const temple = await this.templesService.findOne(donation.templeId);
-      if (!temple || !donation.donorEmail) {
+      if (!temple) {
+        console.log('[DonationsService] ⚠️ Temple not found, skipping email');
         return;
       }
+      if (!donation.donorEmail) {
+        console.log('[DonationsService] ⚠️ No donor email provided, skipping email');
+        return;
+      }
+      console.log('[DonationsService] 📧 Temple found:', temple.name);
+      console.log('[DonationsService] 📧 Donor email:', donation.donorEmail);
+      console.log('[DonationsService] 📧 Gmail connected:', !!temple.gmailAccessToken);
+      console.log('[DonationsService] 📧 Gmail email:', temple.gmailEmail);
 
       const receiptConfig = temple.receiptConfig || {};
       const fromEmail = receiptConfig.fromEmail || temple.gmailEmail || 'donations@temple.org';
@@ -710,11 +720,21 @@ export class DonationsService {
       // Check if temple has Gmail connected
       if (temple.gmailAccessToken && temple.gmailEmail) {
         try {
+          console.log('[DonationsService] 🔐 Decrypting Gmail access token...');
           // Decrypt access token
-          let accessToken = this.decrypt(temple.gmailAccessToken);
+          let accessToken: string;
+          try {
+            accessToken = this.decrypt(temple.gmailAccessToken);
+            console.log('[DonationsService] ✅ Access token decrypted successfully');
+          } catch (decryptError: any) {
+            console.error('[DonationsService] ❌ Failed to decrypt access token:', decryptError.message);
+            console.error('[DonationsService] ❌ Decrypt error details:', decryptError);
+            throw new Error(`Failed to decrypt Gmail access token: ${decryptError.message}`);
+          }
           
           // Try to send email, refresh token if needed
           try {
+            console.log('[DonationsService] 📤 Attempting to send email via Gmail API...');
             await this.gmailService.sendEmail(
               accessToken,
               donation.donorEmail,
@@ -723,41 +743,66 @@ export class DonationsService {
               temple.gmailEmail,
               fromName,
             );
-            console.log('[DonationsService] ✅ Receipt email sent via Gmail');
+            console.log('[DonationsService] ✅ Receipt email sent via Gmail successfully');
             return;
           } catch (error: any) {
+            console.error('[DonationsService] ⚠️ Gmail send error:', error.message);
+            console.error('[DonationsService] ⚠️ Error details:', JSON.stringify(error, null, 2));
+            
             // If token expired, try to refresh
-            if (error.message?.includes('invalid_grant') || error.message?.includes('401') || error.message?.includes('invalid_token')) {
-              console.log('[DonationsService] ⚠️ Access token expired, attempting refresh...');
+            const isTokenError = error.message?.includes('invalid_grant') || 
+                                error.message?.includes('401') || 
+                                error.message?.includes('invalid_token') ||
+                                error.message?.includes('Invalid Credentials') ||
+                                (error.response?.status === 401);
+            
+            if (isTokenError) {
+              console.log('[DonationsService] 🔄 Access token expired or invalid, attempting refresh...');
               if (temple.gmailRefreshToken) {
-                const refreshToken = this.decrypt(temple.gmailRefreshToken);
-                accessToken = await this.gmailService.refreshAccessToken(refreshToken);
-                
-                // Update temple with new access token
-                const encryptedToken = this.encrypt(accessToken);
-                await this.templesService.update(temple.id, {
-                  gmailAccessToken: encryptedToken,
-                });
-                
-                // Retry sending email
-                await this.gmailService.sendEmail(
-                  accessToken,
-                  donation.donorEmail,
-                  subject,
-                  receiptHtml,
-                  temple.gmailEmail,
-                  fromName,
-                );
-                console.log('[DonationsService] ✅ Receipt email sent via Gmail (after refresh)');
-                return;
+                try {
+                  const refreshToken = this.decrypt(temple.gmailRefreshToken);
+                  console.log('[DonationsService] 🔄 Refresh token decrypted, refreshing access token...');
+                  accessToken = await this.gmailService.refreshAccessToken(refreshToken);
+                  console.log('[DonationsService] ✅ Access token refreshed successfully');
+                  
+                  // Update temple with new access token
+                  const encryptedToken = this.encrypt(accessToken);
+                  await this.templesService.update(temple.id, {
+                    gmailAccessToken: encryptedToken,
+                  });
+                  console.log('[DonationsService] ✅ Updated temple with new access token');
+                  
+                  // Retry sending email
+                  console.log('[DonationsService] 📤 Retrying email send with refreshed token...');
+                  await this.gmailService.sendEmail(
+                    accessToken,
+                    donation.donorEmail,
+                    subject,
+                    receiptHtml,
+                    temple.gmailEmail,
+                    fromName,
+                  );
+                  console.log('[DonationsService] ✅ Receipt email sent via Gmail (after refresh)');
+                  return;
+                } catch (refreshError: any) {
+                  console.error('[DonationsService] ❌ Failed to refresh access token:', refreshError.message);
+                  console.error('[DonationsService] ❌ Refresh error details:', JSON.stringify(refreshError, null, 2));
+                  throw new Error(`Failed to refresh Gmail token: ${refreshError.message}`);
+                }
+              } else {
+                console.error('[DonationsService] ❌ No refresh token available');
+                throw new Error('Gmail access token expired and no refresh token available');
               }
             }
             throw error;
           }
-        } catch (error) {
-          console.error('[DonationsService] ❌ Failed to send email via Gmail:', error);
+        } catch (error: any) {
+          console.error('[DonationsService] ❌ Failed to send email via Gmail:', error.message);
+          console.error('[DonationsService] ❌ Full error:', JSON.stringify(error, null, 2));
           // Fall through to log-only mode
         }
+      } else {
+        console.log('[DonationsService] ⚠️ Gmail not connected - no access token or email');
       }
 
       // Log email details (fallback if Gmail not connected or failed)
