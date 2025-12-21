@@ -583,7 +583,8 @@ struct DonationHomeView: View {
             .padding(.top, 8)
         }
         .padding(.top, 60)
-        .padding(.horizontal, 40)
+        .padding(.leading, donationSelectionPageLeftPadding)
+        .padding(.trailing, donationSelectionPageRightPadding)
     }
     
     private var amountSection: some View {
