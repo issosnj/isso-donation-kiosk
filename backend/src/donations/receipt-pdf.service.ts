@@ -377,12 +377,10 @@ export class ReceiptPdfService {
         }
         
         // Tax Exempt Information
+        // Use the same format as ReceiptGeneratorService (matches ReceiptView component)
         if (receiptConfig.includeTaxId && receiptConfig.taxId) {
           const orgName = receiptConfig.organizationName || 'This organization';
-          let taxExemptText = `Thank you for your kind donation, your donation may be tax deductible ${orgName} (EIN#${receiptConfig.taxId}) is recognized by IRS as 501(c)(3) tax exempt organization`;
-          if (receiptConfig.website) {
-            taxExemptText += `, please visit us at ${receiptConfig.website}`;
-          }
+          const taxExemptText = `${orgName} (EIN#${receiptConfig.taxId}) is recognized by IRS as 501(c)(3) tax exempt organization${receiptConfig.website ? `, please visit us at ${receiptConfig.website}` : ''}`;
           doc.fontSize(12).font('Helvetica').fillColor('#666666').text(taxExemptText, headerCenterX, currentY, { width: contentWidth, align: 'center' });
           currentY += 20;
         }
