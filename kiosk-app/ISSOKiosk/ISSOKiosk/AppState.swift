@@ -290,8 +290,10 @@ class AppState: ObservableObject {
                 }
             }
             
-            // Preload background image if available
-            await preloadBackgroundImage()
+            // Preload background image if available (don't block - load in background)
+            Task.detached(priority: .background) { [weak self] in
+                await self?.preloadBackgroundImage()
+            }
             
             // Load categories after temple config is loaded
             await refreshCategories()
