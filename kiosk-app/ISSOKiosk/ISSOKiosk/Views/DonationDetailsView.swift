@@ -12,6 +12,9 @@ struct ModernDonationDetailsView: View {
     @State private var appearAnimation = false
     @State private var showingYajmanOpportunities = false
     @State private var isLookingUpDonor = false
+    @State private var addressSuggestions: [AddressPrediction] = []
+    @State private var showAddressSuggestions = false
+    @State private var addressSessionToken: String? = nil
     @FocusState private var nameFocused: Bool
     @FocusState private var phoneFocused: Bool
     @FocusState private var emailFocused: Bool
@@ -444,35 +447,82 @@ struct ModernDonationDetailsView: View {
                                 )
                             }
                             
-                            // Address field with icon
+                            // Address field with icon and autocomplete
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Mailing Address (Optional)")
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
-                                HStack(spacing: 12) {
-                                    Image(systemName: "map.fill")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                        .frame(width: 24)
+                                ZStack(alignment: .topLeading) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "map.fill")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                            .frame(width: 24)
+                                        
+                                        TextField("Enter your mailing address", text: $donorAddress)
+                                            .focused($addressFocused)
+                                            .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                            .foregroundColor(detailsTextColor)
+                                            .onChange(of: donorAddress) { newValue in
+                                                if newValue.count >= 3 {
+                                                    Task {
+                                                        await searchAddresses(input: newValue)
+                                                    }
+                                                } else {
+                                                    addressSuggestions = []
+                                                    showAddressSuggestions = false
+                                                }
+                                            }
+                                    }
+                                    .padding(16)
+                                    .background(Color.white.opacity(0.6))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(
+                                                addressFocused 
+                                                    ? detailsInputFocusColor
+                                                    : Color.white.opacity(0.3),
+                                                lineWidth: addressFocused ? 2 : 1
+                                            )
+                                    )
                                     
-                                    TextField("Enter your mailing address", text: $donorAddress)
-                                        .focused($addressFocused)
-                                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                        .foregroundColor(detailsTextColor)
+                                    // Address suggestions dropdown
+                                    if showAddressSuggestions && !addressSuggestions.isEmpty && addressFocused {
+                                        VStack(spacing: 0) {
+                                            ForEach(addressSuggestions.prefix(5)) { suggestion in
+                                                Button(action: {
+                                                    Task {
+                                                        await selectAddress(suggestion: suggestion)
+                                                    }
+                                                }) {
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        Text(suggestion.structured_formatting.main_text)
+                                                            .font(.custom("Inter-Medium", size: detailsInputFontSize))
+                                                            .foregroundColor(detailsTextColor)
+                                                        Text(suggestion.structured_formatting.secondary_text)
+                                                            .font(.custom("Inter-Regular", size: detailsInputFontSize - 2))
+                                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                                    }
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                                    .padding(.horizontal, 16)
+                                                    .padding(.vertical, 12)
+                                                }
+                                                .buttonStyle(PlainButtonStyle())
+                                                
+                                                if suggestion.id != addressSuggestions.prefix(5).last?.id {
+                                                    Divider()
+                                                        .padding(.horizontal, 16)
+                                                }
+                                            }
+                                        }
+                                        .background(Color.white)
+                                        .cornerRadius(12)
+                                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                                        .padding(.top, 60)
+                                    }
                                 }
-                                .padding(16)
-                                .background(Color.white.opacity(0.6))
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(
-                                            addressFocused 
-                                                ? detailsInputFocusColor
-                                                : Color.white.opacity(0.3),
-                                            lineWidth: addressFocused ? 2 : 1
-                                        )
-                                )
                             }
                         }
                         .padding(.bottom, 32)

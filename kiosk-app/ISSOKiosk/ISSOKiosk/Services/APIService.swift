@@ -526,6 +526,32 @@ extension APIService {
             requiresAuth: true
         )
     }
+    
+    func autocompleteAddress(input: String, sessionToken: String? = nil) async throws -> AddressAutocompleteResponse {
+        var endpoint = "/places/autocomplete?input=\(input.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? input)"
+        if let token = sessionToken {
+            endpoint += "&sessionToken=\(token.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? token)"
+        }
+        return try await request(
+            endpoint: endpoint,
+            method: "GET",
+            body: nil,
+            requiresAuth: true
+        )
+    }
+    
+    func getPlaceDetails(placeId: String, sessionToken: String? = nil) async throws -> PlaceDetailsResponse {
+        var endpoint = "/places/details?placeId=\(placeId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? placeId)"
+        if let token = sessionToken {
+            endpoint += "&sessionToken=\(token.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? token)"
+        }
+        return try await request(
+            endpoint: endpoint,
+            method: "GET",
+            body: nil,
+            requiresAuth: true
+        )
+    }
 }
 
 struct SquareCredentials: Codable {
@@ -544,5 +570,33 @@ struct DonorInfo: Codable {
     let email: String?
     let phone: String
     let address: String?
+}
+
+struct AddressAutocompleteResponse: Codable {
+    let predictions: [AddressPrediction]
+}
+
+struct AddressPrediction: Codable, Identifiable {
+    let description: String
+    let place_id: String
+    let structured_formatting: StructuredFormatting
+    
+    var id: String { place_id }
+}
+
+struct StructuredFormatting: Codable {
+    let main_text: String
+    let secondary_text: String
+}
+
+struct PlaceDetailsResponse: Codable {
+    let formatted_address: String?
+    let address_components: [AddressComponent]?
+}
+
+struct AddressComponent: Codable {
+    let long_name: String
+    let short_name: String
+    let types: [String]
 }
 
