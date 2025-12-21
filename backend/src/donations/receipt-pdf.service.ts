@@ -3,6 +3,7 @@ import * as PDFDocument from 'pdfkit';
 import { Donation } from './entities/donation.entity';
 import { Temple } from '../temples/entities/temple.entity';
 import { formatAmountInWords } from './receipt-helpers';
+import { ReceiptGeneratorService } from './receipt-generator.service';
 
 @Injectable()
 export class ReceiptPdfService {

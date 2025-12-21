@@ -13,6 +13,7 @@ import { DevicesModule } from '../devices/devices.module';
 import { SquareModule } from '../square/square.module';
 import { GmailModule } from '../gmail/gmail.module';
 import { ReceiptPdfService } from './receipt-pdf.service';
+import { ReceiptGeneratorService } from './receipt-generator.service';
 
 @Module({
   imports: [
@@ -33,7 +34,7 @@ import { ReceiptPdfService } from './receipt-pdf.service';
     }),
   ],
   controllers: [DonationsController, DonationCategoriesController],
-  providers: [DonationsService, DonationCategoriesService, ReceiptPdfService],
+  providers: [DonationsService, DonationCategoriesService, ReceiptPdfService, ReceiptGeneratorService],
   exports: [DonationsService, DonationCategoriesService],
 })
 export class DonationsModule {}

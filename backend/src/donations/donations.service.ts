@@ -8,7 +8,7 @@ import { TemplesService } from '../temples/temples.service';
 import { GmailService } from '../gmail/gmail.service';
 import { SquareService } from '../square/square.service';
 import { ReceiptPdfService } from './receipt-pdf.service';
-import { formatAmountInWords } from './receipt-helpers';
+import { ReceiptGeneratorService } from './receipt-generator.service';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
@@ -23,6 +23,7 @@ export class DonationsService {
     private squareService: SquareService,
     private configService: ConfigService,
     private receiptPdfService: ReceiptPdfService,
+    private receiptGeneratorService: ReceiptGeneratorService,
   ) {}
 
   async initiate(initiateDonationDto: InitiateDonationDto): Promise<Donation> {
@@ -687,18 +688,9 @@ export class DonationsService {
       const fromEmail = receiptConfig.fromEmail || temple.gmailEmail || 'donations@temple.org';
       const fromName = receiptConfig.fromName || temple.name;
       const subject = receiptConfig.subject?.replace('{{templeName}}', temple.name) || `Donation Receipt - ${temple.name}`;
-      
-      const amount = Number(donation.amount);
-      const amountInWords = formatAmountInWords(amount, receiptConfig.showAmountInWords !== false);
-      const receiptNumber = donation.receiptNumber || donation.id.substring(0, 8).toUpperCase();
-      const donationDate = new Date(donation.createdAt).toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric',
-      });
 
-      // Build receipt HTML matching ReceiptView format exactly
-      const receiptHtml = `
+      // Generate receipt HTML using the same generator as the view receipt page
+      const receiptHtml = this.receiptGeneratorService.generateReceiptHtml(donation, temple);
         <!DOCTYPE html>
         <html>
         <head>
