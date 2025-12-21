@@ -56,6 +56,7 @@ Key variables:
 - `SQUARE_APPLICATION_ID`: Square app ID
 - `SQUARE_APPLICATION_SECRET`: Square app secret
 - `SQUARE_ENVIRONMENT`: `sandbox` or `production`
+- `GOOGLE_PLACES_API_KEY`: Google Places API key for address autocomplete (optional, but required for address autocomplete feature)
 - `CORS_ORIGIN`: Frontend URL for CORS (e.g., `https://issodonationkiosk.netlify.app`)
 - `ADMIN_WEB_URL`: Frontend URL for Square OAuth redirects
 - `NODE_ENV`: `development` or `production`
