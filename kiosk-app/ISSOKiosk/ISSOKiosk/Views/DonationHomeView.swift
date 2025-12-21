@@ -846,6 +846,7 @@ struct CleanCustomAmountField: View {
     @Binding var text: String
     let isActive: Bool
     @FocusState.Binding var isFocused: Bool
+    @Binding var showingKeypad: Bool
     let onTap: () -> Void
     
     var body: some View {
