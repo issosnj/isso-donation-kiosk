@@ -610,6 +610,36 @@ struct ModernDonationDetailsView: View {
             IdleTimer.shared.userDidInteract()
         }
     }
+    
+    private func lookupDonorInfo(phone: String) async {
+        guard !phone.isEmpty, phone.count >= 10 else {
+            return
+        }
+        
+        isLookingUpDonor = true
+        defer { isLookingUpDonor = false }
+        
+        do {
+            let response = try await APIService.shared.lookupDonor(phone: phone)
+            if response.found, let donor = response.donor {
+                await MainActor.run {
+                    // Only auto-populate if fields are empty (don't overwrite user input)
+                    if donorName.trimmingCharacters(in: .whitespaces).isEmpty, let name = donor.name {
+                        donorName = name
+                    }
+                    if donorEmail.trimmingCharacters(in: .whitespaces).isEmpty, let email = donor.email {
+                        donorEmail = email
+                    }
+                    if donorAddress.trimmingCharacters(in: .whitespaces).isEmpty, let address = donor.address {
+                        donorAddress = address
+                    }
+                }
+            }
+        } catch {
+            // Silently fail - don't show error for lookup failures
+            print("[DonationDetailsView] Failed to lookup donor: \(error.localizedDescription)")
+        }
+    }
 }
 
 // Keep old view for compatibility
