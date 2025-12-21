@@ -368,14 +368,43 @@ struct DonationHomeView: View {
     }
     
     private var mainContent: some View {
-        HStack(spacing: categoryAmountSectionSpacing) {
-            categorySection
-                .frame(maxWidth: .infinity)
+        ZStack {
+            HStack(spacing: categoryAmountSectionSpacing) {
+                // Show keypad in place of category section when active
+                if showingCustomAmountKeypad {
+                    VStack {
+                        Spacer()
+                        CustomNumericKeypad(
+                            amount: $customAmount,
+                            onDismiss: {
+                                showingCustomAmountKeypad = false
+                                customAmountFocused = false
+                            }
+                        )
+                        .padding(.horizontal, 20)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    categorySection
+                        .frame(maxWidth: .infinity)
+                }
+                
+                amountSection
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, 40)
             
-            amountSection
-                .frame(maxWidth: .infinity)
+            // Invisible overlay to detect taps outside keypad
+            if showingCustomAmountKeypad {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        showingCustomAmountKeypad = false
+                        customAmountFocused = false
+                    }
+            }
         }
-        .padding(.horizontal, 40)
     }
     
     private var homeButtonOverlay: some View {
