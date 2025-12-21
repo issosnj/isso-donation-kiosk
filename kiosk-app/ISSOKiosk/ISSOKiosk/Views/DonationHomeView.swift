@@ -68,29 +68,29 @@ struct DonationHomeView: View {
         return Color(red: r, green: g, blue: b)
     }
     
-    // Get colors with defaults
-    var categorySelectedColor: Color {
+    // Get colors with defaults (Color values)
+    var categorySelectedColorValue: Color {
         // Default to red for selected category if not configured
-        if let hex = buttonColors.categorySelected, !hex.isEmpty {
-            return colorFromHex(hex)
+        if !categorySelectedColor.isEmpty {
+            return colorFromHex(categorySelectedColor)
         }
         return Color(red: 0.9, green: 0.2, blue: 0.2) // Red color for selected category
     }
     
-    var categoryUnselectedColor: Color {
-        let baseColor = colorFromHex(buttonColors.categoryUnselected)
+    var categoryUnselectedColorValue: Color {
+        let baseColor = colorFromHex(categoryUnselectedColor)
         // If unselected color is same as selected, apply opacity
-        if buttonColors.categoryUnselected == buttonColors.categorySelected {
+        if categoryUnselectedColor == categorySelectedColor {
             return baseColor.opacity(0.7)
         }
         return baseColor
     }
     
-    var amountSelectedColor: Color {
+    var amountSelectedColorValue: Color {
         colorFromHex(amountSelectedColor)
     }
     
-    var amountUnselectedColor: Color {
+    var amountUnselectedColorValue: Color {
         colorFromHex(amountUnselectedColor)
     }
     
@@ -539,8 +539,8 @@ struct DonationHomeView: View {
                             CleanCategoryButton(
                                 category: category,
                                 isSelected: selectedCategory?.id == category.id,
-                                selectedColor: categorySelectedColor,
-                                unselectedColor: categoryUnselectedColor,
+                                selectedColor: categorySelectedColorValue,
+                                unselectedColor: categoryUnselectedColorValue,
                                 action: {
                                     // Use simpler animation for better performance
                                     if selectedCategory?.id == category.id {
@@ -684,8 +684,8 @@ struct DonationHomeView: View {
         CleanAmountButton(
             amount: amount,
             isSelected: selectedAmount == amount && selectedCategory == nil,
-            selectedColor: amountSelectedColor,
-            unselectedColor: amountUnselectedColor,
+            selectedColor: amountSelectedColorValue,
+            unselectedColor: amountUnselectedColorValue,
             action: {
                 // Clear category when preset amount is selected
                 selectedCategory = nil
