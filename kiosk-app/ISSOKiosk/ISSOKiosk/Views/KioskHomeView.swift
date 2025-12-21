@@ -283,6 +283,13 @@ struct KioskHomeView: View {
                 Spacer()
             }
         }
+    }
+    
+    var body: some View {
+        ZStack {
+            backgroundView
+            mainContentView
+        }
         .sheet(isPresented: $showWhatsAppQR) {
             if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink {
                 QRCodeDisplayView(url: whatsAppLink, title: "Join WhatsApp", cachedImage: qrCodeCache[whatsAppLink])
