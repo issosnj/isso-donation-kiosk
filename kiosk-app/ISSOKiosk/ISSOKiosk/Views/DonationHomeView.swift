@@ -382,19 +382,39 @@ struct DonationHomeView: View {
             HStack(spacing: showingCustomAmountKeypad ? 20 : categoryAmountSectionSpacing) {
                 // Show keypad in place of category section when active
                 if showingCustomAmountKeypad {
-                    VStack(spacing: 0) {
-                        // Match the same top padding as category section header
-                        Spacer()
-                            .frame(height: categoryHeaderTopPadding)
-                        
-                        // Match the header height and bottom padding exactly
-                        // Heading size + body size + spacing 6pt + bottom padding 12pt
-                        Spacer()
-                            .frame(height: headingSize + bodySize + 6 + 12)
-                        
-                        // Keypad aligned to start where category buttons start
-                        // Match the exact padding used by category buttons (16pt)
-                        HStack {
+                    // If X and Y are both 0, use default positioning (aligned with category buttons)
+                    // Otherwise, use absolute positioning
+                    if customAmountKeypadX == 0 && customAmountKeypadY == 0 {
+                        VStack(spacing: 0) {
+                            // Match the same top padding as category section header
+                            Spacer()
+                                .frame(height: categoryHeaderTopPadding)
+                            
+                            // Match the header height and bottom padding exactly
+                            // Heading size + body size + spacing 6pt + bottom padding 12pt
+                            Spacer()
+                                .frame(height: headingSize + bodySize + 6 + 12)
+                            
+                            // Keypad aligned to start where category buttons start
+                            // Match the exact padding used by category buttons (16pt)
+                            HStack {
+                                CustomNumericKeypad(
+                                    amount: $customAmount,
+                                    onDismiss: {
+                                        showingCustomAmountKeypad = false
+                                        customAmountFocused = false
+                                    }
+                                )
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        // Custom positioning using X and Y coordinates
+                        GeometryReader { geometry in
                             CustomNumericKeypad(
                                 amount: $customAmount,
                                 onDismiss: {
@@ -402,13 +422,13 @@ struct DonationHomeView: View {
                                     customAmountFocused = false
                                 }
                             )
-                            Spacer()
+                            .position(
+                                x: customAmountKeypadX > 0 ? customAmountKeypadX : geometry.size.width / 2,
+                                y: customAmountKeypadY > 0 ? customAmountKeypadY : geometry.size.height / 2
+                            )
                         }
-                        .padding(.horizontal, 16)
-                        
-                        Spacer()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
                 } else {
                     categorySection
                         .frame(maxWidth: .infinity)

@@ -117,6 +117,8 @@ export default function ThemeTab() {
           quantityTotalSpacing: temple.kioskTheme.layout?.quantityTotalSpacing || 24,
           donationSelectionPageLeftPadding: temple.kioskTheme.layout?.donationSelectionPageLeftPadding || 40,
           donationSelectionPageRightPadding: temple.kioskTheme.layout?.donationSelectionPageRightPadding || 40,
+          customAmountKeypadX: temple.kioskTheme.layout?.customAmountKeypadX || 0,
+          customAmountKeypadY: temple.kioskTheme.layout?.customAmountKeypadY || 0,
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
           detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
