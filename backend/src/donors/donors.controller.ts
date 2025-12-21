@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 import { DonorsService } from './donors.service';
 import { UpdateDonorDto } from './dto/update-donor.dto';
 
@@ -43,7 +44,7 @@ export class DonorsController {
   }
 
   @Get('temple/:templeId')
-  @Roles('master_admin', 'temple_admin')
+  @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
   @ApiOperation({ summary: 'Get all donors for a temple' })
   async getDonorsByTemple(
     @Param('templeId') templeId: string,
@@ -61,7 +62,7 @@ export class DonorsController {
   }
 
   @Get('my-temple')
-  @Roles('temple_admin')
+  @Roles(UserRole.TEMPLE_ADMIN)
   @ApiOperation({ summary: 'Get all donors for current temple admin' })
   async getMyTempleDonors(
     @Request() req,
@@ -84,7 +85,7 @@ export class DonorsController {
   }
 
   @Put(':id')
-  @Roles('master_admin', 'temple_admin')
+  @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
   @ApiOperation({ summary: 'Update donor information' })
   async updateDonor(
     @Param('id') id: string,
@@ -94,7 +95,7 @@ export class DonorsController {
   }
 
   @Delete(':id')
-  @Roles('master_admin', 'temple_admin')
+  @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
   @ApiOperation({ summary: 'Delete a donor' })
   async deleteDonor(@Param('id') id: string) {
     await this.donorsService.deleteDonor(id);
