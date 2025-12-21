@@ -428,6 +428,23 @@ struct DonationHomeView: View {
             // Background image was updated, view will refresh automatically
             print("[DonationHomeView] Background image updated")
         }
+        .detectTouches() // Detect all user interactions to reset idle timer
+        .onChange(of: customAmount) { _ in
+            // User is typing in custom amount field - reset idle timer
+            IdleTimer.shared.userDidInteract()
+        }
+        .onChange(of: selectedCategory) { _ in
+            // User selected a category - reset idle timer
+            IdleTimer.shared.userDidInteract()
+        }
+        .onChange(of: selectedAmount) { _ in
+            // User selected an amount - reset idle timer
+            IdleTimer.shared.userDidInteract()
+        }
+        .onChange(of: quantity) { _ in
+            // User changed quantity - reset idle timer
+            IdleTimer.shared.userDidInteract()
+        }
     }
     
     private var mainContent: some View {

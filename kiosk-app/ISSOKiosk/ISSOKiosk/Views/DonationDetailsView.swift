@@ -479,6 +479,19 @@ struct ModernDonationDetailsView: View {
                 appearAnimation = true
             }
         }
+        .detectTouches() // Detect all user interactions to reset idle timer
+        .onChange(of: donorName) { _ in
+            // User is typing in name field - reset idle timer
+            IdleTimer.shared.userDidInteract()
+        }
+        .onChange(of: donorPhone) { _ in
+            // User is typing in phone field - reset idle timer
+            IdleTimer.shared.userDidInteract()
+        }
+        .onChange(of: donorEmail) { _ in
+            // User is typing in email field - reset idle timer
+            IdleTimer.shared.userDidInteract()
+        }
     }
 }
 

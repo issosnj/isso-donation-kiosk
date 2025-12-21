@@ -137,6 +137,7 @@ struct ModernPaymentView: View {
                 }
             }
         }
+        .detectTouches() // Detect all user interactions to reset idle timer
     }
     
     private func processPayment() {

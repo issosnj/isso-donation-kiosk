@@ -41,7 +41,7 @@ extension Notification.Name {
     static let idleTimeoutReached = Notification.Name("idleTimeoutReached")
 }
 
-// View modifier to detect all touches
+// View modifier to detect all touches and interactions
 struct TouchDetector: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -52,6 +52,13 @@ struct TouchDetector: ViewModifier {
                     }
             )
             .onTapGesture {
+                IdleTimer.shared.userDidInteract()
+            }
+            // Listen for keyboard notifications to detect when user starts typing
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                IdleTimer.shared.userDidInteract()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
                 IdleTimer.shared.userDidInteract()
             }
     }
