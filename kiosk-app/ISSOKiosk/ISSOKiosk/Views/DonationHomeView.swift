@@ -11,6 +11,7 @@ struct DonationHomeView: View {
     @State private var showingPayment = false
     @State private var showingYajmanOpportunities = false
     @State private var showingPledgeOption = false
+    @State private var showingCustomAmount = false
     @State private var donorName: String?
     @State private var donorPhone: String?
     @State private var donorEmail: String?
@@ -207,6 +208,14 @@ struct DonationHomeView: View {
                     }
                 )
             }
+        }
+        .sheet(isPresented: $showingCustomAmount) {
+            CustomAmountView(
+                customAmount: $customAmount,
+                onDismiss: {
+                    showingCustomAmount = false
+                }
+            )
         }
         .fullScreenCover(isPresented: $showingDetails) {
             ModernDonationDetailsView(
@@ -563,7 +572,8 @@ struct DonationHomeView: View {
                     selectedCategory = nil
                     quantity = 1
                     selectedAmount = nil
-                    customAmountFocused = true
+                    // Show custom amount modal instead of inline text field
+                    showingCustomAmount = true
                 }
             )
             .padding(.horizontal, 16)
