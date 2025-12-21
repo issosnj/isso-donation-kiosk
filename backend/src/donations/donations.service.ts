@@ -55,7 +55,9 @@ export class DonationsService {
     }
     
     // Automatically fetch Square fee and card information if not provided
-    if (completeDonationDto.squarePaymentId && 
+    // Only fetch for SUCCEEDED donations - cancelled/failed donations shouldn't have fees
+    if (completeDonationDto.status === DonationStatus.SUCCEEDED &&
+        completeDonationDto.squarePaymentId && 
         (completeDonationDto.netAmount === undefined || 
          completeDonationDto.squareFee === undefined || 
          !completeDonationDto.cardLast4 || 
@@ -115,19 +117,29 @@ export class DonationsService {
         }
       }
     } else {
-      // Use provided values
-      if (completeDonationDto.netAmount !== undefined) {
-        donation.netAmount = completeDonationDto.netAmount;
+      // Use provided values - only set fees for SUCCEEDED donations
+      if (completeDonationDto.status === DonationStatus.SUCCEEDED) {
+        if (completeDonationDto.netAmount !== undefined) {
+          donation.netAmount = completeDonationDto.netAmount;
+        }
+        if (completeDonationDto.squareFee !== undefined) {
+          donation.squareFee = completeDonationDto.squareFee;
+        }
+        if (completeDonationDto.cardLast4) {
+          donation.cardLast4 = completeDonationDto.cardLast4;
+        }
+        if (completeDonationDto.cardType) {
+          donation.cardType = completeDonationDto.cardType;
+        }
       }
-      if (completeDonationDto.squareFee !== undefined) {
-        donation.squareFee = completeDonationDto.squareFee;
-      }
-      if (completeDonationDto.cardLast4) {
-        donation.cardLast4 = completeDonationDto.cardLast4;
-      }
-      if (completeDonationDto.cardType) {
-        donation.cardType = completeDonationDto.cardType;
-      }
+    }
+    
+    // Clear fee information for non-succeeded donations (cancelled/failed)
+    if (completeDonationDto.status !== DonationStatus.SUCCEEDED) {
+      donation.netAmount = null;
+      donation.squareFee = null;
+      donation.cardLast4 = null;
+      donation.cardType = null;
     }
 
     // Generate receipt number if payment succeeded and temple has a code

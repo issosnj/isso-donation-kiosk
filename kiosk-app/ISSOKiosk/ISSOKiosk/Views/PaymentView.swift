@@ -213,9 +213,10 @@ struct ModernPaymentView: View {
                     ) { result in
                         print("[PaymentView] 📬 Payment result received")
                         Task {
+                            // Declare paymentResult outside do-catch so it's accessible in catch block
+                            var paymentResult: SquarePaymentService.PaymentResult?
+                            
                             do {
-                                let paymentResult: SquarePaymentService.PaymentResult
-                                
                                 switch result {
                                 case .success(let result):
                                     paymentResult = result
@@ -242,11 +243,22 @@ struct ModernPaymentView: View {
                                     return
                                 }
                                 
+                                guard let result = paymentResult else {
+                                    print("[PaymentView] ❌ Payment result is nil")
+                                    await MainActor.run {
+                                        self.isProcessing = false
+                                        self.paymentStatus = .failure("Payment result is missing")
+                                    }
+                                    return
+                                }
+                                
                                 // 3. Complete donation
+                                print("[PaymentView] 📡 Completing donation with status: \(result.success ? "SUCCEEDED" : "FAILED")")
+                                print("[PaymentView] 📡 Payment ID: \(result.paymentId ?? "nil")")
                                 _ = try await APIService.shared.completeDonation(
                                     donationId: donation.id,
-                                    squarePaymentId: paymentResult.paymentId ?? "",
-                                    status: paymentResult.success ? "SUCCEEDED" : "FAILED",
+                                    squarePaymentId: result.paymentId ?? "",
+                                    status: result.success ? "SUCCEEDED" : "FAILED",
                                     donorName: donorName,
                                     donorPhone: donorPhone,
                                     donorEmail: donorEmail
@@ -254,35 +266,90 @@ struct ModernPaymentView: View {
                                 
                                 await MainActor.run {
                                     self.isProcessing = false
-                                    if paymentResult.success {
+                                    if result.success {
                                         // Payment succeeded - set success status (will auto-dismiss)
                                         print("[PaymentView] ✅ Payment succeeded, returning to home")
                                         self.paymentStatus = .success
                                     } else {
                                         // Payment failed - show error
-                                        print("[PaymentView] ❌ Payment failed: \(paymentResult.error ?? "Unknown error")")
-                                        self.paymentStatus = .failure(paymentResult.error ?? "Payment failed")
+                                        print("[PaymentView] ❌ Payment failed: \(result.error ?? "Unknown error")")
+                                        self.paymentStatus = .failure(result.error ?? "Payment failed")
                                     }
                                 }
                             } catch {
-                                // Error during payment completion - mark donation as FAILED
+                                // Error during payment completion
+                                // If paymentResult.success was true, the payment actually succeeded on Square
+                                // So we should still mark it as SUCCEEDED even if the completion API call failed
                                 print("[PaymentView] ❌ Error completing donation: \(error.localizedDescription)")
-                                do {
-                                    _ = try await APIService.shared.completeDonation(
-                                        donationId: donation.id,
-                                        squarePaymentId: "",
-                                        status: "FAILED",
-                                        donorName: donorName,
-                                        donorPhone: donorPhone,
-                                        donorEmail: donorEmail
-                                    )
-                                    print("[PaymentView] ✅ Donation marked as FAILED after error")
-                                } catch {
-                                    print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
-                                }
-                                await MainActor.run {
-                                    self.isProcessing = false
-                                    self.paymentStatus = .failure(error.localizedDescription)
+                                if let result = paymentResult {
+                                    print("[PaymentView] 🔍 Payment result success: \(result.success)")
+                                    print("[PaymentView] 🔍 Payment ID: \(result.paymentId ?? "nil")")
+                                    
+                                    // If payment actually succeeded on Square, try to complete it again with the payment ID
+                                    if result.success, let paymentId = result.paymentId, !paymentId.isEmpty {
+                                        print("[PaymentView] 🔄 Retrying completion with payment ID: \(paymentId)")
+                                        do {
+                                            _ = try await APIService.shared.completeDonation(
+                                                donationId: donation.id,
+                                                squarePaymentId: paymentId,
+                                                status: "SUCCEEDED",
+                                                donorName: donorName,
+                                                donorPhone: donorPhone,
+                                                donorEmail: donorEmail
+                                            )
+                                            print("[PaymentView] ✅ Donation marked as SUCCEEDED after retry")
+                                            await MainActor.run {
+                                                self.isProcessing = false
+                                                self.paymentStatus = .success
+                                            }
+                                        } catch {
+                                            print("[PaymentView] ⚠️ Retry also failed: \(error.localizedDescription)")
+                                            // Still show success to user since payment went through on Square
+                                            await MainActor.run {
+                                                self.isProcessing = false
+                                                self.paymentStatus = .success
+                                            }
+                                        }
+                                    } else {
+                                        // Payment actually failed - mark as FAILED
+                                        do {
+                                            _ = try await APIService.shared.completeDonation(
+                                                donationId: donation.id,
+                                                squarePaymentId: result.paymentId ?? "",
+                                                status: "FAILED",
+                                                donorName: donorName,
+                                                donorPhone: donorPhone,
+                                                donorEmail: donorEmail
+                                            )
+                                            print("[PaymentView] ✅ Donation marked as FAILED after error")
+                                        } catch {
+                                            print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
+                                        }
+                                        await MainActor.run {
+                                            self.isProcessing = false
+                                            self.paymentStatus = .failure(error.localizedDescription)
+                                        }
+                                    }
+                                } else {
+                                    // No payment result - mark as FAILED
+                                    print("[PaymentView] ⚠️ No payment result available")
+                                    do {
+                                        _ = try await APIService.shared.completeDonation(
+                                            donationId: donation.id,
+                                            squarePaymentId: "",
+                                            status: "FAILED",
+                                            donorName: donorName,
+                                            donorPhone: donorPhone,
+                                            donorEmail: donorEmail
+                                        )
+                                        print("[PaymentView] ✅ Donation marked as FAILED")
+                                    } catch {
+                                        print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
+                                    }
+                                    await MainActor.run {
+                                        self.isProcessing = false
+                                        self.paymentStatus = .failure(error.localizedDescription)
+                                    }
                                 }
                             }
                         }

@@ -323,12 +323,12 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-red-600">
-                    {donation.squareFee ? `-$${Number(donation.squareFee).toFixed(2)}` : '-'}
+                    {donation.status === 'SUCCEEDED' && donation.squareFee ? `-$${Number(donation.squareFee).toFixed(2)}` : '-'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-bold text-blue-600">
-                    {donation.netAmount ? `$${Number(donation.netAmount).toFixed(2)}` : donation.amount ? `$${Number(donation.amount).toFixed(2)}` : '-'}
+                    {donation.status === 'SUCCEEDED' && donation.netAmount ? `$${Number(donation.netAmount).toFixed(2)}` : donation.status === 'SUCCEEDED' && donation.amount ? `$${Number(donation.amount).toFixed(2)}` : '-'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -364,7 +364,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col gap-1">
-                    {donation.status === 'SUCCEEDED' && (
+                    {donation.receiptNumber && (
                       <a
                         href={`/receipt?id=${donation.id}`}
                         target="_blank"
