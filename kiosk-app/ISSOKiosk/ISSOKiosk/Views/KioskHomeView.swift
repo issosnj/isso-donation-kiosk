@@ -46,69 +46,51 @@ struct KioskHomeView: View {
         return Color(red: red, green: green, blue: blue)
     }
     
-    var body: some View {
-        ZStack {
-            // Background: Use preloaded image from AppState for instant display
+    // Background view
+    private var backgroundView: some View {
+        Group {
             if let backgroundImage = appState.backgroundImage {
                 Image(uiImage: backgroundImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .ignoresSafeArea()
-            } else if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
+            } else if let backgroundUrl = appState.temple?.kioskTheme?.layout?.backgroundImageUrl ?? appState.temple?.homeScreenConfig?.backgroundImageUrl,
                let url = URL(string: backgroundUrl) {
-                // Fallback to AsyncImage if cached image not available yet
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
-                        // Show gradient while loading
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white,
-                                Color(red: 0.95, green: 0.97, blue: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                        defaultGradient
                     case .success(let image):
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     case .failure:
-                        // Fallback to gradient on error (404, network error, etc.)
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white,
-                                Color(red: 0.95, green: 0.97, blue: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                        defaultGradient
                     @unknown default:
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white,
-                                Color(red: 0.95, green: 0.97, blue: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                        defaultGradient
                     }
                 }
                 .ignoresSafeArea()
             } else {
-                // Default gradient background
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.white,
-                        Color(red: 0.95, green: 0.97, blue: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                defaultGradient
             }
-            
-            VStack(spacing: 0) {
+        }
+    }
+    
+    private var defaultGradient: some View {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color.white,
+                Color(red: 0.95, green: 0.97, blue: 1.0)
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+    
+    // Main content view
+    private var mainContentView: some View {
+        VStack(spacing: 0) {
                 // Header at top, transparent background
                 ZStack {
                     VStack(spacing: 0) {
@@ -606,8 +588,33 @@ struct ScaleButtonStyle: ButtonStyle {
 
 // Gold-accented donate button with pressed state
 struct GoldAccentDonateButton: View {
+    let buttonColor: String
     let action: () -> Void
     @State private var isPressed = false
+    
+    // Helper to convert hex string to Color
+    private func colorFromHex(_ hex: String) -> Color {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        
+        // Handle 3-character hex codes
+        if hexSanitized.count == 3 {
+            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
+        }
+        
+        guard hexSanitized.count == 6,
+              let rgb = UInt32(hexSanitized, radix: 16) else {
+            return Color(red: 0.83, green: 0.69, blue: 0.22) // Default gold #D4AF37
+        }
+        
+        let red = Double((rgb >> 16) & 0xFF) / 255.0
+        let green = Double((rgb >> 8) & 0xFF) / 255.0
+        let blue = Double(rgb & 0xFF) / 255.0
+        
+        return Color(red: red, green: green, blue: blue)
+    }
     
     var body: some View {
         Button(action: action) {
