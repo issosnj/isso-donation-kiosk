@@ -173,22 +173,3 @@ struct AddressKeypadView: View {
     }
 }
 
-struct TextKeypadButton: View {
-    let character: String
-    @Binding var enteredText: String
-    
-    var body: some View {
-        Button(action: {
-            enteredText += character.lowercased()
-        }) {
-            Text(character)
-                .font(.custom("Inter-SemiBold", size: 20))
-                .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                .frame(width: 50, height: 50)
-                .background(Color.white)
-                .cornerRadius(12)
-                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-        }
-    }
-}
-

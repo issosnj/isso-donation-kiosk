@@ -53,36 +53,36 @@ struct NameKeypadView: View {
                         // Text keypad
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
-                                TextKeypadButton(character: "Q", enteredText: $enteredName)
-                                TextKeypadButton(character: "W", enteredText: $enteredName)
-                                TextKeypadButton(character: "E", enteredText: $enteredName)
-                                TextKeypadButton(character: "R", enteredText: $enteredName)
-                                TextKeypadButton(character: "T", enteredText: $enteredName)
-                                TextKeypadButton(character: "Y", enteredText: $enteredName)
-                                TextKeypadButton(character: "U", enteredText: $enteredName)
-                                TextKeypadButton(character: "I", enteredText: $enteredName)
-                                TextKeypadButton(character: "O", enteredText: $enteredName)
-                                TextKeypadButton(character: "P", enteredText: $enteredName)
+                                TextKeypadButton(character: "Q", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "W", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "E", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "R", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "T", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "Y", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "U", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "I", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "O", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "P", enteredText: $enteredName, capitalize: true)
                             }
                             HStack(spacing: 12) {
-                                TextKeypadButton(character: "A", enteredText: $enteredName)
-                                TextKeypadButton(character: "S", enteredText: $enteredName)
-                                TextKeypadButton(character: "D", enteredText: $enteredName)
-                                TextKeypadButton(character: "F", enteredText: $enteredName)
-                                TextKeypadButton(character: "G", enteredText: $enteredName)
-                                TextKeypadButton(character: "H", enteredText: $enteredName)
-                                TextKeypadButton(character: "J", enteredText: $enteredName)
-                                TextKeypadButton(character: "K", enteredText: $enteredName)
-                                TextKeypadButton(character: "L", enteredText: $enteredName)
+                                TextKeypadButton(character: "A", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "S", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "D", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "F", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "G", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "H", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "J", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "K", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "L", enteredText: $enteredName, capitalize: true)
                             }
                             HStack(spacing: 12) {
-                                TextKeypadButton(character: "Z", enteredText: $enteredName)
-                                TextKeypadButton(character: "X", enteredText: $enteredName)
-                                TextKeypadButton(character: "C", enteredText: $enteredName)
-                                TextKeypadButton(character: "V", enteredText: $enteredName)
-                                TextKeypadButton(character: "B", enteredText: $enteredName)
-                                TextKeypadButton(character: "N", enteredText: $enteredName)
-                                TextKeypadButton(character: "M", enteredText: $enteredName)
+                                TextKeypadButton(character: "Z", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "X", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "C", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "V", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "B", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "N", enteredText: $enteredName, capitalize: true)
+                                TextKeypadButton(character: "M", enteredText: $enteredName, capitalize: true)
                             }
                             HStack(spacing: 12) {
                                 // Space button
@@ -169,30 +169,6 @@ struct NameKeypadView: View {
                     isNameFocused = true
                 }
             }
-        }
-    }
-}
-
-struct TextKeypadButton: View {
-    let character: String
-    @Binding var enteredText: String
-    
-    var body: some View {
-        Button(action: {
-            // For names, capitalize first letter of each word
-            if enteredText.isEmpty || enteredText.last == " " {
-                enteredText += character.uppercased()
-            } else {
-                enteredText += character.lowercased()
-            }
-        }) {
-            Text(character)
-                .font(.custom("Inter-SemiBold", size: 20))
-                .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                .frame(width: 50, height: 50)
-                .background(Color.white)
-                .cornerRadius(12)
-                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
         }
     }
 }
