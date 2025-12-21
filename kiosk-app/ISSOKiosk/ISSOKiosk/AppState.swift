@@ -550,6 +550,11 @@ struct ThemeColors: Codable, Equatable {
     let bodyTextColor: String?
     let subtitleColor: String?
     let quantityTotalColor: String?
+    let tapToDonateButtonColor: String?
+    let categorySelectedColor: String?
+    let categoryUnselectedColor: String?
+    let amountSelectedColor: String?
+    let amountUnselectedColor: String?
 }
 
 struct ThemeLayout: Codable, Equatable {
@@ -568,6 +573,7 @@ struct ThemeLayout: Codable, Equatable {
     let donationSelectionPageRightPadding: Double?
     let customAmountKeypadX: Double?
     let customAmountKeypadY: Double?
+    let backgroundImageUrl: String? // URL to custom background image for kiosk home screen
     // Donation Details Page Layout
     let detailsPageHorizontalSpacing: Double?
     let detailsPageSidePadding: Double?

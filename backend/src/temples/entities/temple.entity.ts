@@ -111,6 +111,11 @@ export class Temple {
       bodyTextColor?: string; // Hex color for body text
       subtitleColor?: string; // Hex color for subtitles
       quantityTotalColor?: string; // Hex color for quantity and total display (e.g., "#423232")
+      tapToDonateButtonColor?: string; // Hex color for "Tap to Donate" button
+      categorySelectedColor?: string; // Hex color for selected category buttons
+      categoryUnselectedColor?: string; // Hex color for unselected category buttons
+      amountSelectedColor?: string; // Hex color for selected amount buttons
+      amountUnselectedColor?: string; // Hex color for unselected amount buttons
     };
     // Layout settings
     layout?: {
@@ -129,6 +134,7 @@ export class Temple {
       donationSelectionPageRightPadding?: number; // Right padding for donation selection page (e.g., 40)
       customAmountKeypadX?: number; // X position of custom amount keypad (e.g., 0)
       customAmountKeypadY?: number; // Y position of custom amount keypad (e.g., 0)
+      backgroundImageUrl?: string; // URL to custom background image for kiosk home screen
       // Donation Details Page Layout
       detailsPageHorizontalSpacing?: number; // Spacing between left and right sections (e.g., 40)
       detailsPageSidePadding?: number; // Padding on left/right sides (e.g., 60)

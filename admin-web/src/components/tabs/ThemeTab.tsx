@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import api from '@/lib/api'
 
 export default function ThemeTab() {
@@ -44,6 +44,11 @@ export default function ThemeTab() {
       bodyTextColor: '#808080',
       subtitleColor: '#808080',
       quantityTotalColor: '#423232',
+      tapToDonateButtonColor: '#D4AF37',
+      categorySelectedColor: '#3366CC',
+      categoryUnselectedColor: '#3366CC',
+      amountSelectedColor: '#3366CC',
+      amountUnselectedColor: '#3366CC',
     },
     layout: {
       categoryBoxMaxWidth: 400,
@@ -61,6 +66,7 @@ export default function ThemeTab() {
       donationSelectionPageRightPadding: 40,
       customAmountKeypadX: 0,
       customAmountKeypadY: 0,
+      backgroundImageUrl: '',
       // Donation Details Page Layout
       detailsPageHorizontalSpacing: 40,
       detailsPageSidePadding: 60,
@@ -102,6 +108,11 @@ export default function ThemeTab() {
           bodyTextColor: temple.kioskTheme.colors?.bodyTextColor || '#808080',
           subtitleColor: temple.kioskTheme.colors?.subtitleColor || '#808080',
           quantityTotalColor: temple.kioskTheme.colors?.quantityTotalColor || '#423232',
+          tapToDonateButtonColor: temple.kioskTheme.colors?.tapToDonateButtonColor || '#D4AF37',
+          categorySelectedColor: temple.kioskTheme.colors?.categorySelectedColor || temple.homeScreenConfig?.buttonColors?.categorySelected || '#3366CC',
+          categoryUnselectedColor: temple.kioskTheme.colors?.categoryUnselectedColor || temple.homeScreenConfig?.buttonColors?.categoryUnselected || '#3366CC',
+          amountSelectedColor: temple.kioskTheme.colors?.amountSelectedColor || temple.homeScreenConfig?.buttonColors?.amountSelected || '#3366CC',
+          amountUnselectedColor: temple.kioskTheme.colors?.amountUnselectedColor || temple.homeScreenConfig?.buttonColors?.amountUnselected || '#3366CC',
         },
         layout: {
           categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
@@ -428,6 +439,404 @@ export default function ThemeTab() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Background Image */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h4 className="text-md font-semibold text-gray-900 mb-2">Kiosk Home Screen Background Image</h4>
+            <p className="text-xs text-gray-500 mb-3">
+              Upload a custom background image or provide a direct image URL (supports Google Drive links). Recommended size: 1920x1080 or larger. Max file size: 10MB.
+            </p>
+            
+            {formData.layout.backgroundImageUrl && (
+              <div className="mb-3">
+                {imageLoadError ? (
+                  <div className="w-full max-w-md h-48 rounded-lg border border-red-300 bg-red-50 flex items-center justify-center">
+                    <div className="text-center p-4">
+                      <p className="text-sm text-red-600 font-medium">Failed to load image</p>
+                      <p className="text-xs text-red-500 mt-1 break-all">URL: {formData.layout.backgroundImageUrl}</p>
+                      <button
+                        onClick={() => setImageLoadError(false)}
+                        className="mt-2 text-xs text-red-600 hover:text-red-700 underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    src={formData.layout.backgroundImageUrl}
+                    alt="Background preview"
+                    className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-300"
+                    onError={() => {
+                      console.error('Failed to load background image:', formData.layout.backgroundImageUrl)
+                      setImageLoadError(true)
+                    }}
+                    onLoad={() => setImageLoadError(false)}
+                  />
+                )}
+              </div>
+            )}
+            
+            {isEditing && (
+              <div className="mb-3">
+                <div className="flex items-center space-x-4 mb-3">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={!useUrlInstead}
+                      onChange={() => {
+                        setUseUrlInstead(false)
+                        setBackgroundUrlInput('')
+                      }}
+                      className="text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Upload Image File</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={useUrlInstead}
+                      onChange={() => {
+                        setUseUrlInstead(true)
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = ''
+                        }
+                      }}
+                      className="text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Use Image URL</span>
+                  </label>
+                </div>
+              </div>
+            )}
+            
+            {isEditing && !useUrlInstead && (
+              <div className="flex items-center space-x-3 mb-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file || !selectedTempleId) return
+                    
+                    setUploadingBackground(true)
+                    try {
+                      const uploadFormData = new FormData()
+                      uploadFormData.append('file', file)
+                      
+                      const response = await api.post(`/temples/${selectedTempleId}/upload-background`, uploadFormData, {
+                        headers: {
+                          'Content-Type': 'multipart/form-data',
+                        },
+                      })
+                      
+                      setFormData(prev => ({
+                        ...prev,
+                        layout: { ...prev.layout, backgroundImageUrl: response.data.url },
+                      }))
+                      
+                      setImageLoadError(false)
+                      queryClient.invalidateQueries({ queryKey: ['temple', selectedTempleId] })
+                    } catch (error: any) {
+                      console.error('Upload error:', error)
+                      const errorMessage = error.response?.data?.message || error.message || 'Failed to upload background image. Please try again.'
+                      alert(errorMessage)
+                    } finally {
+                      setUploadingBackground(false)
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = ''
+                      }
+                    }
+                  }}
+                  disabled={!isEditing || uploadingBackground}
+                  className="hidden"
+                />
+                <div
+                  onClick={() => {
+                    if (isEditing && !uploadingBackground && fileInputRef.current) {
+                      fileInputRef.current.click()
+                    }
+                  }}
+                  className={`flex-1 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors ${
+                    isEditing && !uploadingBackground
+                      ? 'cursor-pointer hover:border-purple-500 hover:bg-purple-50'
+                      : 'cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  {uploadingBackground ? (
+                    <span className="text-sm text-gray-600">Uploading...</span>
+                  ) : (
+                    <span className="text-sm text-purple-600 font-medium">
+                      {formData.layout.backgroundImageUrl ? 'Change Background Image' : 'Upload Background Image'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {isEditing && useUrlInstead && (
+              <div className="mb-3 space-y-2">
+                <input
+                  type="url"
+                  value={backgroundUrlInput}
+                  onChange={(e) => setBackgroundUrlInput(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/... or https://example.com/image.jpg"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                />
+                <p className="text-xs text-gray-500">
+                  Enter a direct image URL or Google Drive share link. Google Drive links will be automatically converted to direct download links.
+                </p>
+                <button
+                  onClick={async () => {
+                    if (!backgroundUrlInput.trim() || !selectedTempleId) {
+                      alert('Please enter an image URL')
+                      return
+                    }
+                    
+                    setUploadingBackground(true)
+                    try {
+                      const response = await api.post(`/temples/${selectedTempleId}/set-background-url`, {
+                        url: backgroundUrlInput.trim(),
+                      })
+                      
+                      setFormData(prev => ({
+                        ...prev,
+                        layout: { ...prev.layout, backgroundImageUrl: response.data.url },
+                      }))
+                      
+                      setBackgroundUrlInput('')
+                      setImageLoadError(false)
+                      queryClient.invalidateQueries({ queryKey: ['temple', selectedTempleId] })
+                    } catch (error: any) {
+                      console.error('Set URL error:', error)
+                      const errorMessage = error.response?.data?.message || error.message || 'Failed to set background image URL. Please try again.'
+                      alert(errorMessage)
+                    } finally {
+                      setUploadingBackground(false)
+                    }
+                  }}
+                  disabled={!backgroundUrlInput.trim() || uploadingBackground}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  {uploadingBackground ? 'Setting URL...' : 'Set Background URL'}
+                </button>
+              </div>
+            )}
+            
+            {formData.layout.backgroundImageUrl && isEditing && (
+              <button
+                onClick={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    layout: { ...prev.layout, backgroundImageUrl: '' },
+                  }))
+                }}
+                className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
+              >
+                Remove Background
+              </button>
+            )}
+          </div>
+
+          {/* Button Colors */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Button Colors</h4>
+            <p className="text-xs text-gray-500 mb-4">
+              Customize the colors for category, amount, and action buttons
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {/* Tap to Donate Button */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-700">Tap to Donate Button</h4>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Button Color
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={formData.colors.tapToDonateButtonColor || '#D4AF37'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          tapToDonateButtonColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={formData.colors.tapToDonateButtonColor || '#D4AF37'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          tapToDonateButtonColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      placeholder="#D4AF37"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Colors */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-700">Category Buttons</h4>
+                
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Selected Category Color
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={formData.colors.categorySelectedColor || '#3366CC'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          categorySelectedColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={formData.colors.categorySelectedColor || '#3366CC'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          categorySelectedColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      placeholder="#3366CC"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Unselected Category Color
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={formData.colors.categoryUnselectedColor || '#3366CC'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          categoryUnselectedColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={formData.colors.categoryUnselectedColor || '#3366CC'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          categoryUnselectedColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      placeholder="#3366CC"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Amount Colors */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-700">Amount Buttons</h4>
+                
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Selected Amount Color
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={formData.colors.amountSelectedColor || '#3366CC'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          amountSelectedColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={formData.colors.amountSelectedColor || '#3366CC'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          amountSelectedColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      placeholder="#3366CC"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Unselected Amount Color
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={formData.colors.amountUnselectedColor || '#3366CC'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          amountUnselectedColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={formData.colors.amountUnselectedColor || '#3366CC'}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: {
+                          ...formData.colors,
+                          amountUnselectedColor: e.target.value,
+                        },
+                      })}
+                      disabled={!isEditing}
+                      placeholder="#3366CC"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

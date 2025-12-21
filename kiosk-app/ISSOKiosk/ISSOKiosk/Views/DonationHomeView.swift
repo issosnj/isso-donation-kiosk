@@ -160,7 +160,7 @@ struct DonationHomeView: View {
     }
     
     var categoryHeaderTopPadding: CGFloat {
-        CGFloat(theme?.layout?.categoryHeaderTopPadding ?? headerTopPadding)
+        CGFloat((theme?.layout?.categoryHeaderTopPadding ?? headerTopPadding) + 5)
     }
     
     var sectionSpacing: CGFloat {
