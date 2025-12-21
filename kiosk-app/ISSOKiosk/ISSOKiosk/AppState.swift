@@ -575,6 +575,21 @@ struct ThemeLayout: Codable, Equatable {
     let donationSelectionPageRightPadding: Double?
     let customAmountKeypadX: Double?
     let customAmountKeypadY: Double?
+    let customAmountKeypadWidth: Double?
+    let customAmountKeypadButtonHeight: Double?
+    let customAmountKeypadButtonSpacing: Double?
+    let customAmountKeypadButtonCornerRadius: Double?
+    let customAmountKeypadBackgroundColor: String?
+    let customAmountKeypadBorderColor: String?
+    let customAmountKeypadBorderWidth: Double?
+    let customAmountKeypadGlowColor: String?
+    let customAmountKeypadGlowRadius: Double?
+    let customAmountKeypadButtonColor: String?
+    let customAmountKeypadButtonTextColor: String?
+    let customAmountKeypadNumberFontSize: Double?
+    let customAmountKeypadLetterFontSize: Double?
+    let customAmountKeypadPadding: Double?
+    let customAmountKeypadCornerRadius: Double?
     let backgroundImageUrl: String? // URL to custom background image for kiosk home screen
     // Donation Details Page Layout
     let detailsPageHorizontalSpacing: Double?

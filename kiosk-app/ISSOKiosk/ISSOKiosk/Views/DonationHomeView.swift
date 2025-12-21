@@ -208,6 +208,27 @@ struct DonationHomeView: View {
         CGFloat(theme?.layout?.customAmountKeypadY ?? 0)
     }
     
+    var keypadTheme: KeypadTheme {
+        let layout = theme?.layout
+        return KeypadTheme(
+            width: CGFloat(layout?.customAmountKeypadWidth ?? 320),
+            buttonHeight: CGFloat(layout?.customAmountKeypadButtonHeight ?? 70),
+            buttonSpacing: CGFloat(layout?.customAmountKeypadButtonSpacing ?? 12),
+            buttonCornerRadius: CGFloat(layout?.customAmountKeypadButtonCornerRadius ?? 12),
+            backgroundColor: colorFromHex(layout?.customAmountKeypadBackgroundColor, defaultColor: Color(red: 135/255.0, green: 81/255.0, blue: 43/255.0)),
+            borderColor: colorFromHex(layout?.customAmountKeypadBorderColor, defaultColor: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0)),
+            borderWidth: CGFloat(layout?.customAmountKeypadBorderWidth ?? 3),
+            glowColor: colorFromHex(layout?.customAmountKeypadGlowColor, defaultColor: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0)),
+            glowRadius: CGFloat(layout?.customAmountKeypadGlowRadius ?? 15),
+            buttonColor: colorFromHex(layout?.customAmountKeypadButtonColor, defaultColor: Color(red: 248/255.0, green: 216/255.0, blue: 161/255.0)),
+            buttonTextColor: colorFromHex(layout?.customAmountKeypadButtonTextColor, defaultColor: Color(red: 0.2, green: 0.2, blue: 0.3)),
+            numberFontSize: CGFloat(layout?.customAmountKeypadNumberFontSize ?? 32),
+            letterFontSize: CGFloat(layout?.customAmountKeypadLetterFontSize ?? 10),
+            padding: CGFloat(layout?.customAmountKeypadPadding ?? 16),
+            cornerRadius: CGFloat(layout?.customAmountKeypadCornerRadius ?? 16)
+        )
+    }
+    
     var buttonSpacing: CGFloat {
         CGFloat(theme?.layout?.buttonSpacing ?? 12)
     }
@@ -424,7 +445,8 @@ struct DonationHomeView: View {
                                     onDismiss: {
                                         showingCustomAmountKeypad = false
                                         customAmountFocused = false
-                                    }
+                                    },
+                                    theme: keypadTheme
                                 )
                                 Spacer()
                             }
@@ -441,7 +463,8 @@ struct DonationHomeView: View {
                                 onDismiss: {
                                     showingCustomAmountKeypad = false
                                     customAmountFocused = false
-                                }
+                                },
+                                theme: keypadTheme
                             )
                             .position(
                                 x: customAmountKeypadX > 0 ? customAmountKeypadX : geometry.size.width / 2,

@@ -71,6 +71,21 @@ export default function ThemeTab() {
       donationSelectionPageRightPadding: 40,
       customAmountKeypadX: 0,
       customAmountKeypadY: 0,
+      customAmountKeypadWidth: 320,
+      customAmountKeypadButtonHeight: 70,
+      customAmountKeypadButtonSpacing: 12,
+      customAmountKeypadButtonCornerRadius: 12,
+      customAmountKeypadBackgroundColor: '#87512B',
+      customAmountKeypadBorderColor: '#F4A44E',
+      customAmountKeypadBorderWidth: 3,
+      customAmountKeypadGlowColor: '#F4A44E',
+      customAmountKeypadGlowRadius: 15,
+      customAmountKeypadButtonColor: '#F8D8A1',
+      customAmountKeypadButtonTextColor: '#333355',
+      customAmountKeypadNumberFontSize: 32,
+      customAmountKeypadLetterFontSize: 10,
+      customAmountKeypadPadding: 16,
+      customAmountKeypadCornerRadius: 16,
       backgroundImageUrl: '',
       // Donation Details Page Layout
       detailsPageHorizontalSpacing: 40,
@@ -135,6 +150,21 @@ export default function ThemeTab() {
           donationSelectionPageRightPadding: temple.kioskTheme.layout?.donationSelectionPageRightPadding || 40,
           customAmountKeypadX: temple.kioskTheme.layout?.customAmountKeypadX || 0,
           customAmountKeypadY: temple.kioskTheme.layout?.customAmountKeypadY || 0,
+          customAmountKeypadWidth: temple.kioskTheme.layout?.customAmountKeypadWidth || 320,
+          customAmountKeypadButtonHeight: temple.kioskTheme.layout?.customAmountKeypadButtonHeight || 70,
+          customAmountKeypadButtonSpacing: temple.kioskTheme.layout?.customAmountKeypadButtonSpacing || 12,
+          customAmountKeypadButtonCornerRadius: temple.kioskTheme.layout?.customAmountKeypadButtonCornerRadius || 12,
+          customAmountKeypadBackgroundColor: temple.kioskTheme.layout?.customAmountKeypadBackgroundColor || '#87512B',
+          customAmountKeypadBorderColor: temple.kioskTheme.layout?.customAmountKeypadBorderColor || '#F4A44E',
+          customAmountKeypadBorderWidth: temple.kioskTheme.layout?.customAmountKeypadBorderWidth || 3,
+          customAmountKeypadGlowColor: temple.kioskTheme.layout?.customAmountKeypadGlowColor || '#F4A44E',
+          customAmountKeypadGlowRadius: temple.kioskTheme.layout?.customAmountKeypadGlowRadius || 15,
+          customAmountKeypadButtonColor: temple.kioskTheme.layout?.customAmountKeypadButtonColor || '#F8D8A1',
+          customAmountKeypadButtonTextColor: temple.kioskTheme.layout?.customAmountKeypadButtonTextColor || '#333355',
+          customAmountKeypadNumberFontSize: temple.kioskTheme.layout?.customAmountKeypadNumberFontSize || 32,
+          customAmountKeypadLetterFontSize: temple.kioskTheme.layout?.customAmountKeypadLetterFontSize || 10,
+          customAmountKeypadPadding: temple.kioskTheme.layout?.customAmountKeypadPadding || 16,
+          customAmountKeypadCornerRadius: temple.kioskTheme.layout?.customAmountKeypadCornerRadius || 16,
           backgroundImageUrl: temple.kioskTheme.layout?.backgroundImageUrl || temple.homeScreenConfig?.backgroundImageUrl || '',
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
@@ -245,6 +275,21 @@ export default function ThemeTab() {
           donationSelectionPageRightPadding: temple.kioskTheme.layout?.donationSelectionPageRightPadding || 40,
                       customAmountKeypadX: temple.kioskTheme.layout?.customAmountKeypadX || 0,
                       customAmountKeypadY: temple.kioskTheme.layout?.customAmountKeypadY || 0,
+                      customAmountKeypadWidth: temple.kioskTheme.layout?.customAmountKeypadWidth || 320,
+                      customAmountKeypadButtonHeight: temple.kioskTheme.layout?.customAmountKeypadButtonHeight || 70,
+                      customAmountKeypadButtonSpacing: temple.kioskTheme.layout?.customAmountKeypadButtonSpacing || 12,
+                      customAmountKeypadButtonCornerRadius: temple.kioskTheme.layout?.customAmountKeypadButtonCornerRadius || 12,
+                      customAmountKeypadBackgroundColor: temple.kioskTheme.layout?.customAmountKeypadBackgroundColor || '#87512B',
+                      customAmountKeypadBorderColor: temple.kioskTheme.layout?.customAmountKeypadBorderColor || '#F4A44E',
+                      customAmountKeypadBorderWidth: temple.kioskTheme.layout?.customAmountKeypadBorderWidth || 3,
+                      customAmountKeypadGlowColor: temple.kioskTheme.layout?.customAmountKeypadGlowColor || '#F4A44E',
+                      customAmountKeypadGlowRadius: temple.kioskTheme.layout?.customAmountKeypadGlowRadius || 15,
+                      customAmountKeypadButtonColor: temple.kioskTheme.layout?.customAmountKeypadButtonColor || '#F8D8A1',
+                      customAmountKeypadButtonTextColor: temple.kioskTheme.layout?.customAmountKeypadButtonTextColor || '#333355',
+                      customAmountKeypadNumberFontSize: temple.kioskTheme.layout?.customAmountKeypadNumberFontSize || 32,
+                      customAmountKeypadLetterFontSize: temple.kioskTheme.layout?.customAmountKeypadLetterFontSize || 10,
+                      customAmountKeypadPadding: temple.kioskTheme.layout?.customAmountKeypadPadding || 16,
+                      customAmountKeypadCornerRadius: temple.kioskTheme.layout?.customAmountKeypadCornerRadius || 16,
                       backgroundImageUrl: temple.kioskTheme.layout?.backgroundImageUrl || temple.homeScreenConfig?.backgroundImageUrl || '',
                       // Donation Details Page Layout
                       detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
@@ -653,198 +698,384 @@ export default function ThemeTab() {
             )}
           </div>
 
-          {/* Button Colors */}
+          {/* Custom Amount Keypad Settings */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-md font-semibold text-gray-900 mb-3">Button Colors</h4>
-            <p className="text-xs text-gray-500 mb-4">
-              Customize the colors for category, amount, and action buttons
-            </p>
+            <h4 className="text-md font-semibold text-gray-900 mb-2">Custom Amount Keypad</h4>
+            <p className="text-xs text-gray-500 mb-4">Customize the appearance and position of the numeric keypad that appears when users enter a custom donation amount</p>
             
-            <div className="grid grid-cols-2 gap-4">
-              {/* Tap to Donate Button */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-700">Tap to Donate Button</h4>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    Button Color
-                  </label>
-                  <div className="flex items-center space-x-2">
+            <div className="space-y-6">
+              {/* Position */}
+              <div>
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Position</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      X Position (0 = use default alignment)
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Horizontal position in pixels</p>
                     <input
-                      type="color"
-                      value={formData.colors.tapToDonateButtonColor || '#D4AF37'}
+                      type="number"
+                      value={formData.layout.customAmountKeypadX}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: {
-                          ...formData.colors,
-                          tapToDonateButtonColor: e.target.value,
-                        },
+                        layout: { ...formData.layout, customAmountKeypadX: parseInt(e.target.value) || 0 }
                       })}
                       disabled={!isEditing}
-                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      min="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Y Position (0 = use default alignment)
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Vertical position in pixels</p>
                     <input
-                      type="text"
-                      value={formData.colors.tapToDonateButtonColor || '#D4AF37'}
+                      type="number"
+                      value={formData.layout.customAmountKeypadY}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: {
-                          ...formData.colors,
-                          tapToDonateButtonColor: e.target.value,
-                        },
+                        layout: { ...formData.layout, customAmountKeypadY: parseInt(e.target.value) || 0 }
                       })}
                       disabled={!isEditing}
-                      placeholder="#D4AF37"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      min="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Category Colors */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-700">Category Buttons</h4>
-                
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    Selected Category Color
-                  </label>
-                  <div className="flex items-center space-x-2">
+              {/* Size */}
+              <div>
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Size</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Keypad Width
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Overall width of the keypad in pixels</p>
                     <input
-                      type="color"
-                      value={formData.colors.categorySelectedColor || '#3366CC'}
+                      type="number"
+                      value={formData.layout.customAmountKeypadWidth}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: {
-                          ...formData.colors,
-                          categorySelectedColor: e.target.value,
-                        },
+                        layout: { ...formData.layout, customAmountKeypadWidth: parseInt(e.target.value) || 320 }
                       })}
                       disabled={!isEditing}
-                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                    <input
-                      type="text"
-                      value={formData.colors.categorySelectedColor || '#3366CC'}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        colors: {
-                          ...formData.colors,
-                          categorySelectedColor: e.target.value,
-                        },
-                      })}
-                      disabled={!isEditing}
-                      placeholder="#3366CC"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      min="200"
+                      max="600"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
-                </div>
-                
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    Unselected Category Color
-                  </label>
-                  <div className="flex items-center space-x-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Button Height
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Height of each keypad button in pixels</p>
                     <input
-                      type="color"
-                      value={formData.colors.categoryUnselectedColor || '#3366CC'}
+                      type="number"
+                      value={formData.layout.customAmountKeypadButtonHeight}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: {
-                          ...formData.colors,
-                          categoryUnselectedColor: e.target.value,
-                        },
+                        layout: { ...formData.layout, customAmountKeypadButtonHeight: parseInt(e.target.value) || 70 }
                       })}
                       disabled={!isEditing}
-                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      min="40"
+                      max="120"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Button Spacing
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Space between buttons in pixels</p>
                     <input
-                      type="text"
-                      value={formData.colors.categoryUnselectedColor || '#3366CC'}
+                      type="number"
+                      value={formData.layout.customAmountKeypadButtonSpacing}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: {
-                          ...formData.colors,
-                          categoryUnselectedColor: e.target.value,
-                        },
+                        layout: { ...formData.layout, customAmountKeypadButtonSpacing: parseInt(e.target.value) || 12 }
                       })}
                       disabled={!isEditing}
-                      placeholder="#3366CC"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      min="0"
+                      max="30"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Keypad Padding
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Internal padding inside keypad container</p>
+                    <input
+                      type="number"
+                      value={formData.layout.customAmountKeypadPadding}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, customAmountKeypadPadding: parseInt(e.target.value) || 16 }
+                      })}
+                      disabled={!isEditing}
+                      min="0"
+                      max="40"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
                 </div>
               </div>
-              
-              {/* Amount Colors */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-700">Amount Buttons</h4>
-                
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    Selected Amount Color
-                  </label>
-                  <div className="flex items-center space-x-2">
+
+              {/* Colors */}
+              <div>
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Colors</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Background Color
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.customAmountKeypadBackgroundColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadBackgroundColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.customAmountKeypadBackgroundColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadBackgroundColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Border Color
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.customAmountKeypadBorderColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadBorderColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.customAmountKeypadBorderColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadBorderColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Button Background Color
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.customAmountKeypadButtonColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadButtonColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.customAmountKeypadButtonColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadButtonColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Button Text Color
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.customAmountKeypadButtonTextColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadButtonTextColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.customAmountKeypadButtonTextColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadButtonTextColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Glow Color
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.layout.customAmountKeypadGlowColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadGlowColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.layout.customAmountKeypadGlowColor}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          layout: { ...formData.layout, customAmountKeypadGlowColor: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Border Width
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Width of keypad border in pixels</p>
                     <input
-                      type="color"
-                      value={formData.colors.amountSelectedColor || '#3366CC'}
+                      type="number"
+                      value={formData.layout.customAmountKeypadBorderWidth}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: {
-                          ...formData.colors,
-                          amountSelectedColor: e.target.value,
-                        },
+                        layout: { ...formData.layout, customAmountKeypadBorderWidth: parseInt(e.target.value) || 3 }
                       })}
                       disabled={!isEditing}
-                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      min="0"
+                      max="10"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Glow Radius
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Radius of glow effect around keypad</p>
                     <input
-                      type="text"
-                      value={formData.colors.amountSelectedColor || '#3366CC'}
+                      type="number"
+                      value={formData.layout.customAmountKeypadGlowRadius}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: {
-                          ...formData.colors,
-                          amountSelectedColor: e.target.value,
-                        },
+                        layout: { ...formData.layout, customAmountKeypadGlowRadius: parseInt(e.target.value) || 15 }
                       })}
                       disabled={!isEditing}
-                      placeholder="#3366CC"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      min="0"
+                      max="50"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
                 </div>
-                
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    Unselected Amount Color
-                  </label>
-                  <div className="flex items-center space-x-2">
+              </div>
+
+              {/* Styling */}
+              <div>
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Styling</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Button Corner Radius
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Roundness of button corners</p>
                     <input
-                      type="color"
-                      value={formData.colors.amountUnselectedColor || '#3366CC'}
+                      type="number"
+                      value={formData.layout.customAmountKeypadButtonCornerRadius}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: {
-                          ...formData.colors,
-                          amountUnselectedColor: e.target.value,
-                        },
+                        layout: { ...formData.layout, customAmountKeypadButtonCornerRadius: parseInt(e.target.value) || 12 }
                       })}
                       disabled={!isEditing}
-                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      min="0"
+                      max="30"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Keypad Corner Radius
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Roundness of keypad container corners</p>
                     <input
-                      type="text"
-                      value={formData.colors.amountUnselectedColor || '#3366CC'}
+                      type="number"
+                      value={formData.layout.customAmountKeypadCornerRadius}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: {
-                          ...formData.colors,
-                          amountUnselectedColor: e.target.value,
-                        },
+                        layout: { ...formData.layout, customAmountKeypadCornerRadius: parseInt(e.target.value) || 16 }
                       })}
                       disabled={!isEditing}
-                      placeholder="#3366CC"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      min="0"
+                      max="40"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Number Font Size
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Font size of numbers on buttons</p>
+                    <input
+                      type="number"
+                      value={formData.layout.customAmountKeypadNumberFontSize}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, customAmountKeypadNumberFontSize: parseInt(e.target.value) || 32 }
+                      })}
+                      disabled={!isEditing}
+                      min="16"
+                      max="60"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Letter Font Size
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">Font size of letters on buttons</p>
+                    <input
+                      type="number"
+                      value={formData.layout.customAmountKeypadLetterFontSize}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, customAmountKeypadLetterFontSize: parseInt(e.target.value) || 10 }
+                      })}
+                      disabled={!isEditing}
+                      min="6"
+                      max="20"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
                 </div>
