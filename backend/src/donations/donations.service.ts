@@ -151,11 +151,19 @@ export class DonationsService {
 
     // Send receipt email if email is provided and payment succeeded
     if (completeDonationDto.donorEmail && completeDonationDto.status === DonationStatus.SUCCEEDED) {
-      try {
-        await this.sendReceiptEmail(savedDonation);
-      } catch (error) {
-        console.error('[DonationsService] Failed to send receipt email:', error);
+      console.log('[DonationsService] 📧 Scheduling receipt email for donation:', savedDonation.id);
+      // Don't await - send email asynchronously to not block donation completion
+      this.sendReceiptEmail(savedDonation).catch((error) => {
+        console.error('[DonationsService] ❌ Failed to send receipt email (async):', error);
+        console.error('[DonationsService] ❌ Error stack:', error.stack);
         // Don't fail the donation completion if email fails
+      });
+    } else {
+      if (!completeDonationDto.donorEmail) {
+        console.log('[DonationsService] ⚠️ No donor email provided, skipping receipt email');
+      }
+      if (completeDonationDto.status !== DonationStatus.SUCCEEDED) {
+        console.log('[DonationsService] ⚠️ Donation status is not SUCCEEDED, skipping receipt email');
       }
     }
 
