@@ -330,10 +330,6 @@ struct DonationHomeView: View {
                 .ignoresSafeArea(.all, edges: .all)
             }
         }
-        .onTapGesture { location in
-            // Only dismiss keypad when tapping on background, not on interactive elements
-            // This is handled by the overlay in mainContent instead
-        }
         .task {
             // Ensure background image is preloaded
             if appState.backgroundImage == nil {
@@ -407,12 +403,14 @@ struct DonationHomeView: View {
             }
             .padding(.horizontal, 40)
             
-            // Invisible overlay to detect taps outside keypad (only on the amount section side)
+            // Overlay to detect taps outside keypad
+            // Only close when tapping on the amount section, not on the keypad itself
             if showingCustomAmountKeypad {
                 HStack(spacing: 0) {
-                    // Left side - keypad area, don't close on tap
+                    // Left side - keypad area, allow taps to pass through to buttons
                     Color.clear
                         .frame(maxWidth: .infinity)
+                        .allowsHitTesting(false)
                     
                     // Right side - amount section, close on tap
                     Color.clear
