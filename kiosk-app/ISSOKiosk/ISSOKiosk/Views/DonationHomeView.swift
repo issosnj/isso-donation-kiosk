@@ -16,6 +16,7 @@ struct DonationHomeView: View {
     @State private var donorName: String?
     @State private var donorPhone: String?
     @State private var donorEmail: String?
+    @State private var donorAddress: String?
     @FocusState private var customAmountFocused: Bool
     
     // Preset amounts from backend config, fallback to defaults
@@ -272,7 +273,7 @@ struct DonationHomeView: View {
             ModernDonationDetailsView(
                     amount: currentAmount,
                     category: selectedCategory,
-                    onConfirm: { name, phone, email in
+                    onConfirm: { name, phone, email, address in
                         showingDetails = false
                         // Show pledge option ONLY if selected category has yajman opportunities (sponsor tiers)
                         let categoryHasOpportunities = selectedCategory?.yajmanOpportunities != nil && !(selectedCategory?.yajmanOpportunities?.isEmpty ?? true)
@@ -291,6 +292,7 @@ struct DonationHomeView: View {
                         donorName = name
                         donorPhone = phone
                         donorEmail = email
+                        donorAddress = address
                     }
                 )
             }
@@ -322,6 +324,7 @@ struct DonationHomeView: View {
                     donorName: donorName,
                     donorPhone: donorPhone,
                     donorEmail: donorEmail,
+                    donorAddress: donorAddress,
                     onComplete: {
                     withAnimation {
                         showingPayment = false

@@ -3,16 +3,18 @@ import SwiftUI
 struct ModernDonationDetailsView: View {
     let amount: Double
     let category: DonationCategory?
-    let onConfirm: (String?, String?, String?) -> Void // name, phone, email
+    let onConfirm: (String?, String?, String?, String?) -> Void // name, phone, email, address
     
     @State private var donorName = ""
     @State private var donorPhone = ""
     @State private var donorEmail = ""
+    @State private var donorAddress = ""
     @State private var appearAnimation = false
     @State private var showingYajmanOpportunities = false
     @FocusState private var nameFocused: Bool
     @FocusState private var phoneFocused: Bool
     @FocusState private var emailFocused: Bool
+    @FocusState private var addressFocused: Bool
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
     
@@ -207,18 +209,38 @@ struct ModernDonationDetailsView: View {
                 Spacer()
                     .frame(height: detailsPageTopPadding)
                 
-                // Main content: Left (Donation Details) and Right (Donor Info)
+                // Main content: Left (Review Donation) and Right (Optional Information)
                 HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
-                    // LEFT SIDE: Donation Details
-                    VStack(alignment: .leading, spacing: 24) {
+                    // LEFT SIDE: Review Donation Panel
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Panel Title
+                        Text("Review Donation")
+                            .font(.custom("Inter-SemiBold", size: 24))
+                            .foregroundColor(detailsTextColor)
+                            .padding(.bottom, 24)
+                        
                         // Large amount display
                         Text("$\(String(format: "%.2f", amount))")
                             .font(.custom("Inter-SemiBold", size: detailsAmountFontSize))
                             .foregroundColor(detailsAmountColor)
-                            .padding(.bottom, 4)
+                            .padding(.bottom, 32)
                         
-                        // Donation summary card
-                        VStack(alignment: .leading, spacing: detailsCardSpacing) {
+                        // Donation breakdown
+                        VStack(alignment: .leading, spacing: 16) {
+                            // Category name if selected
+                            if let category = category {
+                                HStack {
+                                    Text(category.name)
+                                        .font(.custom("Inter-Regular", size: detailsLabelFontSize))
+                                        .foregroundColor(detailsTextColor)
+                                    Spacer()
+                                    Text("$\(String(format: "%.2f", amount))")
+                                        .font(.custom("Inter-Regular", size: detailsLabelFontSize))
+                                        .foregroundColor(detailsTextColor)
+                                }
+                            }
+                            
+                            // Donation line
                             HStack {
                                 Text("Donation")
                                     .font(.custom("Inter-Regular", size: detailsLabelFontSize))
@@ -227,57 +249,14 @@ struct ModernDonationDetailsView: View {
                                 Text("$\(String(format: "%.2f", amount))")
                                     .font(.custom("Inter-Regular", size: detailsLabelFontSize))
                                     .foregroundColor(detailsTextColor)
-                    }
-                    
-                    if let category = category {
-                                Divider()
-                                    .background(Color.gray.opacity(0.3))
-                                
-                        HStack {
-                                    Text("Category")
-                                        .font(.custom("Inter-Regular", size: detailsLabelFontSize))
-                                        .foregroundColor(detailsTextColor)
-                            Spacer()
-                            Text(category.name)
-                                        .font(.custom("Inter-Regular", size: detailsLabelFontSize))
-                                        .foregroundColor(detailsTextColor)
-                                }
-                                
-                                // View Benefits button if category has yajman opportunities
-                                // Debug: Check if opportunities exist
-                                let hasOpportunities = category.yajmanOpportunities != nil && !(category.yajmanOpportunities?.isEmpty ?? true)
-                                if hasOpportunities {
-                                    Divider()
-                                        .background(Color.gray.opacity(0.3))
-                                    
-                                    Button(action: {
-                                        print("[DonationDetailsView] ✅ View Benefits clicked for category: \(category.name)")
-                                        print("[DonationDetailsView] ✅ Opportunities count: \(category.yajmanOpportunities?.count ?? 0)")
-                                        showingYajmanOpportunities = true
-                                    }) {
-                                        HStack(spacing: 8) {
-                                            Image(systemName: "star.fill")
-                                                .font(.system(size: 16))
-                                                .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
-                                            Text("View Benefits")
-                                                .font(.custom("Inter-Medium", size: 16))
-                                                .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 14)
-                                        .background(Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.15))
-                                        .cornerRadius(10)
-                                    }
-                                } else {
-                                    // Debug: Log why button isn't showing
-                                    let _ = print("[DonationDetailsView] ⚠️ Category '\(category.name)' has no yajman opportunities")
-                                    let _ = print("[DonationDetailsView] ⚠️ yajmanOpportunities value: \(category.yajmanOpportunities?.debugDescription ?? "nil")")
-                                }
                             }
                             
+                            // Divider
                             Divider()
                                 .background(Color.gray.opacity(0.3))
+                                .padding(.vertical, 8)
                             
+                            // Total
                             HStack {
                                 Text("Total")
                                     .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
@@ -288,103 +267,279 @@ struct ModernDonationDetailsView: View {
                                     .foregroundColor(detailsTextColor)
                             }
                         }
-                        .padding(detailsCardPadding)
-                        .background(Color.white)
-                        .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
-                        .frame(maxWidth: detailsCardMaxWidth)
+                        .padding(.bottom, 24)
+                        
+                        // Change Amount link
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            HStack(spacing: 4) {
+                                Text("Change Amount")
+                                    .font(.custom("Inter-Medium", size: 16))
+                                    .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                            }
+                        }
+                        .padding(.bottom, 32)
+                        
+                        Spacer()
+                        
+                        // Payment methods illustration
+                        HStack(spacing: 12) {
+                            // Credit cards stack
+                            ZStack(alignment: .leading) {
+                                // Card 3 (back)
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(LinearGradient(
+                                        gradient: Gradient(colors: [Color.gray.opacity(0.3), Color.gray.opacity(0.2)]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+                                    .frame(width: 60, height: 38)
+                                    .offset(x: 8, y: 4)
+                                
+                                // Card 2 (middle)
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(LinearGradient(
+                                        gradient: Gradient(colors: [Color.gray.opacity(0.4), Color.gray.opacity(0.3)]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+                                    .frame(width: 60, height: 38)
+                                    .offset(x: 4, y: 2)
+                                
+                                // Card 1 (front - gold)
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.85, green: 0.75, blue: 0.5),
+                                            Color(red: 0.95, green: 0.85, blue: 0.6)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+                                    .frame(width: 60, height: 38)
+                            }
+                            
+                            // Coins stack
+                            ZStack(alignment: .bottom) {
+                                // Coin 3 (back)
+                                Circle()
+                                    .fill(Color(red: 0.85, green: 0.75, blue: 0.5).opacity(0.6))
+                                    .frame(width: 24, height: 24)
+                                    .offset(y: 4)
+                                
+                                // Coin 2 (middle)
+                                Circle()
+                                    .fill(Color(red: 0.85, green: 0.75, blue: 0.5).opacity(0.8))
+                                    .frame(width: 24, height: 24)
+                                    .offset(y: 2)
+                                
+                                // Coin 1 (front)
+                                Circle()
+                                    .fill(LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.95, green: 0.85, blue: 0.6),
+                                            Color(red: 0.85, green: 0.75, blue: 0.5)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+                                    .frame(width: 24, height: 24)
+                            }
+                        }
                     }
                     .frame(width: detailsCardMaxWidth, alignment: .leading)
+                    .padding(detailsCardPadding)
+                    .background(
+                        // Glass effect background
+                        ZStack {
+                            // Blur effect
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white.opacity(0.25))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(.ultraThinMaterial)
+                                )
+                        }
+                    )
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
                     .padding(.leading, detailsPageSidePadding)
                     
-                    // RIGHT SIDE: Donor Information
-                    VStack(alignment: .leading, spacing: 20) {
-                        Text(category != nil ? "Donor Information" : "Optional Information")
-                            .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
+                    // RIGHT SIDE: Optional Information Panel
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Panel Title
+                        Text("Optional Information")
+                            .font(.custom("Inter-SemiBold", size: 24))
                             .foregroundColor(detailsTextColor)
-                            .padding(.bottom, 4)
+                            .padding(.bottom, 24)
                         
-                        // Name field
-                    VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(category != nil ? "Name * Required" : "Name (Optional)")
+                        VStack(alignment: .leading, spacing: 20) {
+                            // Name field with icon
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Name (Optional)")
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                            }
-                        TextField("Enter your name", text: $donorName)
-                                .focused($nameFocused)
-                                .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                .foregroundColor(detailsTextColor)
+                                
+                                HStack(spacing: 12) {
+                                    Image(systemName: "person.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                        .frame(width: 24)
+                                    
+                                    TextField("Enter your name", text: $donorName)
+                                        .focused($nameFocused)
+                                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                        .foregroundColor(detailsTextColor)
+                                }
                                 .padding(16)
-                                .background(Color.white)
-                                .cornerRadius(10)
+                                .background(Color.white.opacity(0.6))
+                                .cornerRadius(12)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
+                                    RoundedRectangle(cornerRadius: 12)
                                         .stroke(
                                             nameFocused 
                                                 ? detailsInputFocusColor
                                                 : (category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty
                                                     ? Color.red.opacity(0.5)
-                                                    : detailsInputBorderColor),
+                                                    : Color.white.opacity(0.3)),
                                             lineWidth: nameFocused ? 2 : 1
                                         )
                                 )
-                        }
-                        
-                        // Phone field
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(category != nil ? "Phone Number * Required" : "Phone Number (Optional)")
+                            }
+                            
+                            // Phone field with icon
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Phone (Optional)")
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                            }
-                            TextField("Enter your phone number", text: $donorPhone)
-                                .focused($phoneFocused)
-                                .keyboardType(.phonePad)
-                                .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                .foregroundColor(detailsTextColor)
+                                
+                                HStack(spacing: 12) {
+                                    Image(systemName: "phone.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                        .frame(width: 24)
+                                    
+                                    TextField("Enter your phone number", text: $donorPhone)
+                                        .focused($phoneFocused)
+                                        .keyboardType(.phonePad)
+                                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                        .foregroundColor(detailsTextColor)
+                                }
                                 .padding(16)
-                                .background(Color.white)
-                                .cornerRadius(10)
+                                .background(Color.white.opacity(0.6))
+                                .cornerRadius(12)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
+                                    RoundedRectangle(cornerRadius: 12)
                                         .stroke(
                                             phoneFocused 
                                                 ? detailsInputFocusColor
                                                 : (category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty
                                                     ? Color.red.opacity(0.5)
-                                                    : detailsInputBorderColor),
+                                                    : Color.white.opacity(0.3)),
                                             lineWidth: phoneFocused ? 2 : 1
                                         )
                                 )
-                        }
-                        
-                        // Email field
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Email for Receipt (Optional)")
-                                .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                        TextField("Enter your email", text: $donorEmail)
-                                .focused($emailFocused)
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                                .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                .foregroundColor(detailsTextColor)
+                            }
+                            
+                            // Email field with icon
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Email for Receipt (Optional)")
+                                    .font(.custom("Inter-Regular", size: 14))
+                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                
+                                HStack(spacing: 12) {
+                                    Image(systemName: "envelope.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                        .frame(width: 24)
+                                    
+                                    TextField("Enter your email", text: $donorEmail)
+                                        .focused($emailFocused)
+                                        .keyboardType(.emailAddress)
+                                        .autocapitalization(.none)
+                                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                        .foregroundColor(detailsTextColor)
+                                }
                                 .padding(16)
-                                .background(Color.white)
-                                .cornerRadius(10)
+                                .background(Color.white.opacity(0.6))
+                                .cornerRadius(12)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
+                                    RoundedRectangle(cornerRadius: 12)
                                         .stroke(
                                             emailFocused 
                                                 ? detailsInputFocusColor
-                                                : detailsInputBorderColor,
+                                                : Color.white.opacity(0.3),
                                             lineWidth: emailFocused ? 2 : 1
                                         )
                                 )
+                            }
                         }
+                        .padding(.bottom, 32)
+                        
+                        Spacer()
+                        
+                        // Proceed to Payment button
+                        Button(action: {
+                            withAnimation {
+                                onConfirm(
+                                    donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
+                                    donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
+                                    donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces),
+                                    donorAddress.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorAddress.trimmingCharacters(in: .whitespaces)
+                                )
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Text("Proceed to Payment")
+                                    .font(.custom("Inter-Medium", size: detailsButtonFontSize))
+                                    .foregroundColor(canProceed ? Color.white : Color.gray)
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: detailsButtonFontSize - 4, weight: .semibold))
+                                    .foregroundColor(canProceed ? Color.white : Color.gray)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(
+                                canProceed 
+                                    ? LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.85, green: 0.75, blue: 0.5),
+                                            Color(red: 0.95, green: 0.85, blue: 0.6)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    : LinearGradient(
+                                        gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                            )
+                            .cornerRadius(12)
+                            .shadow(color: canProceed ? Color.black.opacity(0.2) : Color.clear, radius: 8, x: 0, y: 4)
+                        }
+                        .disabled(!canProceed)
                     }
                     .frame(width: donorFormMaxWidth)
+                    .padding(detailsCardPadding)
+                    .background(
+                        // Glass effect background
+                        ZStack {
+                            // Blur effect
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white.opacity(0.25))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(.ultraThinMaterial)
+                                )
+                        }
+                    )
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
                     .padding(.trailing, detailsPageSidePadding)
                     
                     Spacer()
@@ -393,32 +548,6 @@ struct ModernDonationDetailsView: View {
                 .padding(.horizontal, 0)
                 
                 Spacer()
-                
-                // Ready for Payment button - centered at bottom
-                Button(action: {
-                    withAnimation {
-                    onConfirm(
-                            donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
-                            donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
-                            donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces)
-                        )
-                    }
-                }) {
-                    HStack(spacing: 12) {
-                        Text("Ready for Payment")
-                            .font(.custom("Inter-Medium", size: detailsButtonFontSize))
-                            .foregroundColor(canProceed ? detailsButtonTextColor : Color.gray)
-                        Image(systemName: "arrow.right")
-                            .font(.custom("Inter-SemiBold", size: detailsButtonFontSize - 2))
-                            .foregroundColor(canProceed ? detailsButtonTextColor : Color.gray)
-                    }
-                    .frame(maxWidth: 500)
-                    .padding(.vertical, 18)
-                    .background(canProceed ? detailsButtonColor : Color.gray.opacity(0.5))
-                    .cornerRadius(12)
-                }
-                .disabled(!canProceed)
-                .padding(.bottom, detailsPageBottomPadding)
             }
             .onTapGesture {
                 // Dismiss keyboard when tapping background
@@ -492,6 +621,10 @@ struct ModernDonationDetailsView: View {
             // User is typing in email field - reset idle timer
             IdleTimer.shared.userDidInteract()
         }
+        .onChange(of: donorAddress) { _ in
+            // User is typing in address field - reset idle timer
+            IdleTimer.shared.userDidInteract()
+        }
     }
 }
 
@@ -499,7 +632,7 @@ struct ModernDonationDetailsView: View {
 struct DonationDetailsView: View {
     let amount: Double
     let category: DonationCategory?
-    let onConfirm: (String?, String?, String?) -> Void // name, phone, email
+    let onConfirm: (String?, String?, String?, String?) -> Void // name, phone, email, address
     
     var body: some View {
         ModernDonationDetailsView(amount: amount, category: category, onConfirm: onConfirm)

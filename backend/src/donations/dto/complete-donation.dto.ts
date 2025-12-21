@@ -28,6 +28,11 @@ export class CompleteDonationDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @IsString()
+  donorAddress?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsNumber()
   netAmount?: number;
 

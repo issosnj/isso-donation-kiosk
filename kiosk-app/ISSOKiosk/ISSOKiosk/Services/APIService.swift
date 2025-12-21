@@ -211,7 +211,8 @@ class APIService {
         status: String,
         donorName: String? = nil,
         donorPhone: String? = nil,
-        donorEmail: String? = nil
+        donorEmail: String? = nil,
+        donorAddress: String? = nil
     ) async throws -> Donation {
         struct Request: Codable {
             let squarePaymentId: String
@@ -219,6 +220,7 @@ class APIService {
             let donorName: String?
             let donorPhone: String?
             let donorEmail: String?
+            let donorAddress: String?
         }
         
         let body = Request(
@@ -226,7 +228,8 @@ class APIService {
             status: status,
             donorName: donorName,
             donorPhone: donorPhone,
-            donorEmail: donorEmail
+            donorEmail: donorEmail,
+            donorAddress: donorAddress
         )
         
         return try await request(

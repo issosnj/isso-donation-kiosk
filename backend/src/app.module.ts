@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { TemplesModule } from './temples/temples.module';
 import { DevicesModule } from './devices/devices.module';
 import { DonationsModule } from './donations/donations.module';
+import { DonorsModule } from './donors/donors.module';
 import { SquareModule } from './square/square.module';
 import { GmailModule } from './gmail/gmail.module';
 import { typeOrmConfig } from './config/typeorm.config';
@@ -24,6 +25,7 @@ import { typeOrmConfig } from './config/typeorm.config';
     TemplesModule,
     DevicesModule,
     DonationsModule,
+    DonorsModule,
     SquareModule,
     GmailModule,
   ],

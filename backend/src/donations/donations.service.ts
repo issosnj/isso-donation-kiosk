@@ -9,6 +9,7 @@ import { GmailService } from '../gmail/gmail.service';
 import { SquareService } from '../square/square.service';
 import { ReceiptPdfService } from './receipt-pdf.service';
 import { ReceiptGeneratorService } from './receipt-generator.service';
+import { DonorsService } from '../donors/donors.service';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
@@ -24,6 +25,7 @@ export class DonationsService {
     private configService: ConfigService,
     private receiptPdfService: ReceiptPdfService,
     private receiptGeneratorService: ReceiptGeneratorService,
+    private donorsService: DonorsService,
   ) {}
 
   async initiate(initiateDonationDto: InitiateDonationDto): Promise<Donation> {
@@ -56,6 +58,9 @@ export class DonationsService {
     }
     if (completeDonationDto.donorEmail) {
       donation.donorEmail = completeDonationDto.donorEmail;
+    }
+    if (completeDonationDto.donorAddress) {
+      donation.donorAddress = completeDonationDto.donorAddress;
     }
     
     // Automatically fetch Square fee and card information if not provided
@@ -152,6 +157,30 @@ export class DonationsService {
     }
 
     const savedDonation = await this.donationsRepository.save(donation);
+
+    // Save/update donor information in Donor table if phone is provided
+    if (completeDonationDto.donorPhone && completeDonationDto.status === DonationStatus.SUCCEEDED) {
+      try {
+        await this.donorsService.findOrCreateDonor(
+          donation.templeId,
+          completeDonationDto.donorPhone,
+          completeDonationDto.donorName,
+          completeDonationDto.donorEmail,
+          completeDonationDto.donorAddress,
+        );
+        
+        // Update donor statistics
+        await this.donorsService.updateDonorStats(
+          donation.templeId,
+          completeDonationDto.donorPhone,
+          Number(donation.amount),
+          new Date(),
+        );
+      } catch (error) {
+        console.error('[DonationsService] Failed to save donor information:', error);
+        // Don't fail donation completion if donor save fails
+      }
+    }
 
     // Send receipt email if email is provided and payment succeeded
     if (completeDonationDto.donorEmail && completeDonationDto.status === DonationStatus.SUCCEEDED) {

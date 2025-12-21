@@ -14,6 +14,7 @@ import { SquareModule } from '../square/square.module';
 import { GmailModule } from '../gmail/gmail.module';
 import { ReceiptPdfService } from './receipt-pdf.service';
 import { ReceiptGeneratorService } from './receipt-generator.service';
+import { DonorsModule } from '../donors/donors.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ReceiptGeneratorService } from './receipt-generator.service';
     forwardRef(() => DevicesModule),
     forwardRef(() => SquareModule),
     GmailModule,
+    forwardRef(() => DonorsModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

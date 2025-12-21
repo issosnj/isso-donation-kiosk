@@ -3,6 +3,7 @@
 import OverviewTab from './tabs/OverviewTab'
 import TemplesTab from './tabs/TemplesTab'
 import DonationsTab from './tabs/DonationsTab'
+import DonorsTab from './tabs/DonorsTab'
 import UsersTab from './tabs/UsersTab'
 import ThemeTab from './tabs/ThemeTab'
 import MasterReceiptsTab from './tabs/MasterReceiptsTab'

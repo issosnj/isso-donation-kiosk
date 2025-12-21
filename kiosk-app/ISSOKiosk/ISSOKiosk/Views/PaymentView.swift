@@ -12,6 +12,7 @@ struct ModernPaymentView: View {
     let donorName: String?
     let donorPhone: String?
     let donorEmail: String?
+    let donorAddress: String?
     let onComplete: () -> Void
     
     @EnvironmentObject var appState: AppState
@@ -108,7 +109,8 @@ struct ModernPaymentView: View {
                                     status: "CANCELED",
                                     donorName: donorName,
                                     donorPhone: donorPhone,
-                                    donorEmail: donorEmail
+                                    donorEmail: donorEmail,
+                                    donorAddress: donorAddress
                                 )
                                 print("[PaymentView] ✅ Donation marked as CANCELED via completeDonation")
                             } catch {
@@ -127,7 +129,8 @@ struct ModernPaymentView: View {
                                 status: "FAILED",
                                 donorName: donorName,
                                 donorPhone: donorPhone,
-                                donorEmail: donorEmail
+                                donorEmail: donorEmail,
+                                donorAddress: donorAddress
                             )
                             print("[PaymentView] ✅ Donation confirmed as FAILED")
                         } catch {
@@ -230,7 +233,8 @@ struct ModernPaymentView: View {
                                             status: "FAILED",
                                             donorName: donorName,
                                             donorPhone: donorPhone,
-                                            donorEmail: donorEmail
+                                            donorEmail: donorEmail,
+                                            donorAddress: donorAddress
                                         )
                                         print("[PaymentView] ✅ Donation marked as FAILED")
                                     } catch {
@@ -261,7 +265,8 @@ struct ModernPaymentView: View {
                                     status: result.success ? "SUCCEEDED" : "FAILED",
                                     donorName: donorName,
                                     donorPhone: donorPhone,
-                                    donorEmail: donorEmail
+                                    donorEmail: donorEmail,
+                                    donorAddress: donorAddress
                                 )
                                 
                                 await MainActor.run {
@@ -340,7 +345,8 @@ struct ModernPaymentView: View {
                                             status: "FAILED",
                                             donorName: donorName,
                                             donorPhone: donorPhone,
-                                            donorEmail: donorEmail
+                                            donorEmail: donorEmail,
+                                            donorAddress: donorAddress
                                         )
                                         print("[PaymentView] ✅ Donation marked as FAILED")
                                     } catch {

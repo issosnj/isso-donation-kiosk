@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import OverviewTab from './tabs/OverviewTab'
 import DonationsTab from './tabs/DonationsTab'
+import DonorsTab from './tabs/DonorsTab'
 import DevicesTab from './tabs/DevicesTab'
 import CategoriesTab from './tabs/CategoriesTab'
 import SquareTab from './tabs/SquareTab'
@@ -29,6 +30,8 @@ export default function TempleDashboard({ activeTab, templeId }: TempleDashboard
         return <OverviewTab templeId={templeId} />
       case 'donations':
         return <DonationsTab templeId={templeId} />
+      case 'donors':
+        return <DonorsTab templeId={templeId} />
       case 'devices':
         return <DevicesTab templeId={templeId} />
       case 'categories':

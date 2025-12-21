@@ -30,6 +30,7 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
   const templeTabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'donations', label: 'Donations' },
+    { id: 'donors', label: 'Donors' },
     { id: 'devices', label: 'Devices' },
     { id: 'categories', label: 'Categories' },
     { id: 'square', label: 'Square' },
@@ -40,6 +41,7 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
     { id: 'overview', label: 'Overview' },
     { id: 'temples', label: 'Temples' },
     { id: 'donations', label: 'All Donations' },
+    { id: 'donors', label: 'All Donors' },
     { id: 'users', label: 'Users' },
     { id: 'theme', label: 'Kiosk Theme' },
     { id: 'receipts', label: 'Receipts' },

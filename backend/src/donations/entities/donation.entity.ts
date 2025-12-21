@@ -61,6 +61,9 @@ export class Donation {
   @Column({ nullable: true })
   donorEmail: string;
 
+  @Column({ type: 'text', nullable: true })
+  donorAddress: string; // Mailing address
+
   @Column({ nullable: true })
   squarePaymentId: string;
 
