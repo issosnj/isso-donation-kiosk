@@ -29,9 +29,21 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
 
   const queryClient = useQueryClient()
 
+  // Fetch temples for master admin to select
+  const { data: temples } = useQuery({
+    queryKey: ['temples'],
+    queryFn: async () => {
+      const response = await api.get('/temples')
+      return Array.isArray(response.data) ? response.data : []
+    },
+    enabled: isMasterAdmin && !templeId,
+  })
+
   // Determine which endpoint to use
   const endpoint = isMasterAdmin && templeId
     ? `/donors/temple/${templeId}`
+    : isMasterAdmin
+    ? null // Master admin needs to select a temple first
     : '/donors/my-temple'
 
   const { data, isLoading } = useQuery({
@@ -125,6 +137,46 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
     return <div className="p-6">Loading donors...</div>
   }
 
+  // Master admin without templeId - show temple selector
+  if (isMasterAdmin && !templeId) {
+    return (
+      <div className="p-6">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold mb-4">Donor Management</h2>
+          <p className="text-gray-600 mb-4">
+            View and manage donor information. Donors are automatically created when they make donations.
+          </p>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Temple to View Donors
+            </label>
+            <select
+              value=""
+              onChange={(e) => {
+                const selectedTempleId = e.target.value
+                if (selectedTempleId) {
+                  // Navigate to temple-specific donors view
+                  window.location.href = `/dashboard?tab=donors&templeId=${selectedTempleId}`
+                }
+              }}
+              className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">-- Select a Temple --</option>
+              {temples?.map((temple: any) => (
+                <option key={temple.id} value={temple.id}>
+                  {temple.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <p className="text-gray-500">Please select a temple to view its donors.</p>
+        </div>
+      </div>
+    )
+  }
+
   const donors: Donor[] = data?.donors || []
   const total = data?.total || 0
   const totalPages = Math.ceil(total / limit)
@@ -136,6 +188,20 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
         <p className="text-gray-600 mb-4">
           View and manage donor information. Donors are automatically created when they make donations.
         </p>
+        
+        {/* Temple selector for master admin (if viewing specific temple) */}
+        {isMasterAdmin && templeId && (
+          <div className="mb-4">
+            <button
+              onClick={() => {
+                window.location.href = '/dashboard?tab=donors'
+              }}
+              className="text-blue-600 hover:text-blue-800 text-sm"
+            >
+              ← Back to Temple Selection
+            </button>
+          </div>
+        )}
         
         {/* Search */}
         <div className="mb-4">
