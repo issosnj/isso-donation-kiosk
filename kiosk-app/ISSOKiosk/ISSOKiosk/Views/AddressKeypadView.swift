@@ -154,14 +154,14 @@ struct AddressKeypadView: View {
             }
             .navigationTitle("Mailing Address")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+            .toolbar(content: {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         onDismiss()
                     }
                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                 }
-            }
+            })
             .onAppear {
                 enteredAddress = address
                 // Focus the text field after a short delay
