@@ -35,14 +35,16 @@ struct CustomNumericKeypad: View {
             }
         }
         .padding(16)
-        .frame(maxWidth: .infinity)
+        .frame(width: 320) // Shrunk width
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(red: 0.85, green: 0.75, blue: 0.55)) // Golden/bronze background
+                .fill(Color(red: 135/255.0, green: 81/255.0, blue: 43/255.0)) // rgba(135, 81, 43) - dark brown background
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color(red: 0.7, green: 0.6, blue: 0.4), lineWidth: 3) // Darker gold border
+                        .stroke(Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0), lineWidth: 3) // rgba(244, 164, 78) - light orange border
                 )
+                .shadow(color: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0).opacity(0.6), radius: 15, x: 0, y: 0) // Glow effect
+                .shadow(color: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0).opacity(0.4), radius: 25, x: 0, y: 0) // Outer glow
         )
         .overlay(alignment: .topTrailing) {
             Button(action: onDismiss) {
@@ -97,7 +99,7 @@ struct KeypadButton: View {
             .frame(height: 70)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(red: 0.95, green: 0.88, blue: 0.7)) // Light golden button color
+                    .fill(Color(red: 248/255.0, green: 216/255.0, blue: 161/255.0)) // rgba(248, 216, 161) - light beige/cream
                     .shadow(color: isPressed ? Color.black.opacity(0.1) : Color.black.opacity(0.2), 
                            radius: isPressed ? 2 : 4, 
                            x: 0, 
@@ -140,7 +142,7 @@ struct KeypadDeleteButton: View {
                 .frame(height: 70)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(red: 0.95, green: 0.88, blue: 0.7)) // Light golden button color
+                        .fill(Color(red: 248/255.0, green: 216/255.0, blue: 161/255.0)) // rgba(248, 216, 161) - light beige/cream
                         .shadow(color: isPressed ? Color.black.opacity(0.1) : Color.black.opacity(0.2), 
                                radius: isPressed ? 2 : 4, 
                                x: 0, 

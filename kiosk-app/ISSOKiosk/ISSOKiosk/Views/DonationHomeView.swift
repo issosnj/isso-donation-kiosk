@@ -374,13 +374,16 @@ struct DonationHomeView: View {
                 if showingCustomAmountKeypad {
                     VStack {
                         Spacer()
-                        CustomNumericKeypad(
-                            amount: $customAmount,
-                            onDismiss: {
-                                showingCustomAmountKeypad = false
-                                customAmountFocused = false
-                            }
-                        )
+                        HStack {
+                            CustomNumericKeypad(
+                                amount: $customAmount,
+                                onDismiss: {
+                                    showingCustomAmountKeypad = false
+                                    customAmountFocused = false
+                                }
+                            )
+                            Spacer()
+                        }
                         .padding(.horizontal, 20)
                         Spacer()
                     }
