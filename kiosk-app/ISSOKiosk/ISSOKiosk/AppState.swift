@@ -649,7 +649,7 @@ struct Branding: Codable {
     let secondaryColor: String?
 }
 
-struct YajmanOpportunity: Codable, Identifiable {
+struct YajmanOpportunity: Codable, Identifiable, Equatable {
     let id: String
     let name: String
     let description: String?
