@@ -5,58 +5,97 @@ struct CustomNumericKeypad: View {
     let onDismiss: () -> Void
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Keypad header
-            HStack {
-                Spacer()
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                }
-                .padding(.trailing, 16)
-                .padding(.top, 8)
-            }
-            .frame(height: 44)
-            .background(Color(red: 0.95, green: 0.95, blue: 0.97))
-            
-            // Keypad grid
+        HStack(spacing: 0) {
+            // Keypad on the left
             VStack(spacing: 12) {
                 // Row 1: 1, 2, 3
                 HStack(spacing: 12) {
-                    KeypadButton(number: "1", amount: $amount)
-                    KeypadButton(number: "2", amount: $amount)
-                    KeypadButton(number: "3", amount: $amount)
+                    KeypadButton(number: "1", amount: $amount, showLetters: false)
+                    KeypadButton(number: "2", amount: $amount, showLetters: true, letters: "ABC")
+                    KeypadButton(number: "3", amount: $amount, showLetters: true, letters: "DEF")
                 }
                 
                 // Row 2: 4, 5, 6
                 HStack(spacing: 12) {
-                    KeypadButton(number: "4", amount: $amount)
-                    KeypadButton(number: "5", amount: $amount)
-                    KeypadButton(number: "6", amount: $amount)
+                    KeypadButton(number: "4", amount: $amount, showLetters: true, letters: "GHI")
+                    KeypadButton(number: "5", amount: $amount, showLetters: true, letters: "JKL")
+                    KeypadButton(number: "6", amount: $amount, showLetters: true, letters: "MNO")
                 }
                 
                 // Row 3: 7, 8, 9
                 HStack(spacing: 12) {
-                    KeypadButton(number: "7", amount: $amount)
-                    KeypadButton(number: "8", amount: $amount)
-                    KeypadButton(number: "9", amount: $amount)
+                    KeypadButton(number: "7", amount: $amount, showLetters: true, letters: "PQRS")
+                    KeypadButton(number: "8", amount: $amount, showLetters: true, letters: "TUV")
+                    KeypadButton(number: "9", amount: $amount, showLetters: true, letters: "WXYZ")
                 }
                 
                 // Row 4: ., 0, Delete
                 HStack(spacing: 12) {
-                    KeypadButton(number: ".", amount: $amount, isDecimal: true)
-                    KeypadButton(number: "0", amount: $amount)
+                    KeypadButton(number: ".", amount: $amount, isDecimal: true, showLetters: false)
+                    KeypadButton(number: "0", amount: $amount, showLetters: false)
                     KeypadDeleteButton(amount: $amount)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .background(Color(red: 0.95, green: 0.95, blue: 0.97))
+            .padding(16)
+            .frame(width: 320)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(red: 0.85, green: 0.75, blue: 0.55)) // Golden/bronze background
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color(red: 0.7, green: 0.6, blue: 0.4), lineWidth: 3) // Darker gold border
+                    )
+            )
+            
+            // Input field on the right
+            VStack {
+                Spacer()
+                HStack {
+                    Text("$")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                        .padding(.leading, 16)
+                    
+                    if amount.isEmpty {
+                        Text("Custom Amount")
+                            .font(.custom("Inter-Regular", size: 20))
+                            .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.65))
+                    } else {
+                        Text(amount)
+                            .font(.custom("Inter-Regular", size: 24))
+                            .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
+                    }
+                    
+                    Spacer()
+                }
+                .frame(height: 60)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(red: 0.98, green: 0.97, blue: 0.95)) // Cream/white interior
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color(red: 0.85, green: 0.75, blue: 0.55), lineWidth: 2) // Light gold border
+                        )
+                )
+                .padding(.horizontal, 20)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
         }
-        .background(Color(red: 0.95, green: 0.95, blue: 0.97))
-        .cornerRadius(20, corners: [.topLeft, .topRight])
-        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
+        .frame(height: 400)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white.opacity(0.95))
+                .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+        )
+        .overlay(alignment: .topTrailing) {
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+            }
+            .padding(12)
+        }
     }
 }
 
@@ -64,6 +103,8 @@ struct KeypadButton: View {
     let number: String
     @Binding var amount: String
     var isDecimal: Bool = false
+    var showLetters: Bool = false
+    var letters: String = ""
     @State private var isPressed = false
     
     var body: some View {
@@ -81,19 +122,27 @@ struct KeypadButton: View {
                 amount += number
             }
         }) {
-            Text(number)
-                .font(.system(size: 36, weight: .semibold, design: .rounded))
-                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
-                .frame(maxWidth: .infinity)
-                .frame(height: 80)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.white)
-                        .shadow(color: isPressed ? Color.black.opacity(0.1) : Color.black.opacity(0.15), 
-                               radius: isPressed ? 2 : 4, 
-                               x: 0, 
-                               y: isPressed ? 1 : 2)
-                )
+            VStack(spacing: 4) {
+                Text(number)
+                    .font(.system(size: 32, weight: .semibold, design: .rounded))
+                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
+                
+                if showLetters && !letters.isEmpty {
+                    Text(letters)
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 70)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(red: 0.95, green: 0.88, blue: 0.7)) // Light golden button color
+                    .shadow(color: isPressed ? Color.black.opacity(0.1) : Color.black.opacity(0.2), 
+                           radius: isPressed ? 2 : 4, 
+                           x: 0, 
+                           y: isPressed ? 1 : 3)
+            )
         }
         .buttonStyle(PlainButtonStyle())
         .scaleEffect(isPressed ? 0.95 : 1.0)
@@ -124,18 +173,18 @@ struct KeypadDeleteButton: View {
                 amount.removeLast()
             }
         }) {
-            Image(systemName: "delete.backward.fill")
-                .font(.system(size: 32, weight: .semibold))
-                .foregroundColor(Color(red: 0.9, green: 0.2, blue: 0.2))
+            Image(systemName: "xmark")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
                 .frame(maxWidth: .infinity)
-                .frame(height: 80)
+                .frame(height: 70)
                 .background(
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Color.white)
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(red: 0.95, green: 0.88, blue: 0.7)) // Light golden button color
                         .shadow(color: isPressed ? Color.black.opacity(0.1) : Color.black.opacity(0.2), 
-                               radius: isPressed ? 3 : 6, 
+                               radius: isPressed ? 2 : 4, 
                                x: 0, 
-                               y: isPressed ? 2 : 4)
+                               y: isPressed ? 1 : 3)
                 )
         }
         .buttonStyle(PlainButtonStyle())
@@ -152,25 +201,3 @@ struct KeypadDeleteButton: View {
         )
     }
 }
-
-// Extension for corner radius on specific corners
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
-    }
-}
-
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(
-            roundedRect: rect,
-            byRoundingCorners: corners,
-            cornerRadii: CGSize(width: radius, height: radius)
-        )
-        return Path(path.cgPath)
-    }
-}
-

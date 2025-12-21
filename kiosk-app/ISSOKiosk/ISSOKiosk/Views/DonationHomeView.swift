@@ -210,8 +210,15 @@ struct DonationHomeView: View {
                 )
             }
         }
-        .overlay(alignment: .bottom) {
+        .overlay {
             if showingCustomAmountKeypad {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        showingCustomAmountKeypad = false
+                        customAmountFocused = false
+                    }
+                
                 CustomNumericKeypad(
                     amount: $customAmount,
                     onDismiss: {
@@ -219,7 +226,7 @@ struct DonationHomeView: View {
                         customAmountFocused = false
                     }
                 )
-                .transition(.move(edge: .bottom))
+                .transition(.scale.combined(with: .opacity))
                 .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showingCustomAmountKeypad)
                 .zIndex(1000)
             }
