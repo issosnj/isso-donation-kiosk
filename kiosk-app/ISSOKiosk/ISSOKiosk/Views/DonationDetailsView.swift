@@ -477,6 +477,37 @@ struct ModernDonationDetailsView: View {
                                         )
                                 )
                             }
+                            
+                            // Address field with icon
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Mailing Address (Optional)")
+                                    .font(.custom("Inter-Regular", size: 14))
+                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                
+                                HStack(spacing: 12) {
+                                    Image(systemName: "map.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                        .frame(width: 24)
+                                    
+                                    TextField("Enter your mailing address", text: $donorAddress)
+                                        .focused($addressFocused)
+                                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                        .foregroundColor(detailsTextColor)
+                                }
+                                .padding(16)
+                                .background(Color.white.opacity(0.6))
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(
+                                            addressFocused 
+                                                ? detailsInputFocusColor
+                                                : Color.white.opacity(0.3),
+                                            lineWidth: addressFocused ? 2 : 1
+                                        )
+                                )
+                            }
                         }
                         .padding(.bottom, 32)
                         
@@ -542,12 +573,15 @@ struct ModernDonationDetailsView: View {
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
                     .padding(.trailing, detailsPageSidePadding)
                     
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 0)
+                    
+                    // Bottom spacing
                     Spacer()
+                        .frame(height: detailsPageBottomPadding)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 0)
-                
-                Spacer()
             }
             .onTapGesture {
                 // Dismiss keyboard when tapping background
