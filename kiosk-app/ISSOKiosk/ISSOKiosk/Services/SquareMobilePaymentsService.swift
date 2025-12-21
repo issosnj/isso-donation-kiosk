@@ -194,9 +194,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                 print("[SquareMobilePayments] 💰 Amount: $\(amount)")
                 print("[SquareMobilePayments] 🔑 Idempotency Key: \(idempotencyKey)")
                 
-                // Set delegate before starting payment
-                MobilePaymentsSDK.shared.paymentManager.delegate = self
-                
+                // Start payment - delegate is passed as parameter to startPayment
                 let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
                     paymentParameters,
                     promptParameters: promptParameters,
