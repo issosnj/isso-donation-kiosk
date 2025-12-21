@@ -170,8 +170,8 @@ export class ReceiptPdfService {
   async generateReceiptPdfAsync(donation: Donation, temple: Temple): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       try {
-        // Use smaller margins and more compact layout to ensure content fits
-        const doc = new PDFDocument({ margin: 35, size: 'LETTER', autoFirstPage: true });
+        // Use minimal margins and very compact layout to ensure content fits
+        const doc = new PDFDocument({ margin: 30, size: 'LETTER', autoFirstPage: true });
         const buffers: Buffer[] = [];
 
         doc.on('data', buffers.push.bind(buffers));
@@ -187,13 +187,13 @@ export class ReceiptPdfService {
 
         const pageWidth = 612; // Letter size width in points
         const pageHeight = 792; // Letter size height in points
-        const margin = 35; // Further reduced margin
+        const margin = 30; // Minimal margin
         const contentWidth = pageWidth - (margin * 2);
         const maxContentHeight = pageHeight - (margin * 2); // Maximum usable height
         let currentY = margin;
 
         // Header Section - Logo on left, content in center
-        const logoSize = 70; // Further reduced logo size
+        const logoSize = 60; // Smaller logo to save space
         const logoX = margin;
         const logoY = currentY;
         let logoImage: Buffer | null = null;
@@ -223,40 +223,40 @@ export class ReceiptPdfService {
             console.error('[ReceiptPdfService] Could not embed logo image:', error.message);
             // Draw placeholder if embedding fails
             doc.rect(logoX, logoY, logoSize, logoSize).stroke();
-            doc.fontSize(9).font('Helvetica').fillColor('#999999').text('Logo', logoX + 10, logoY + 30);
+            doc.fontSize(8).font('Helvetica').fillColor('#999999').text('Logo', logoX + 8, logoY + 25);
           }
         }
 
-        // Header Center Content - Use smaller, more compact font sizes
+        // Header Center Content - Very compact font sizes
         const headerCenterX = pageWidth / 2;
         let headerY = currentY;
 
         if (receiptConfig.headerTitle) {
-          doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000'); // Further reduced
-          const titleHeight = doc.heightOfString(receiptConfig.headerTitle, { width: contentWidth - logoSize - 20, align: 'center' });
-          doc.text(receiptConfig.headerTitle, headerCenterX, headerY, { width: contentWidth - logoSize - 20, align: 'center' });
-          headerY += titleHeight + 5; // Further reduced spacing
+          doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
+          const titleHeight = doc.heightOfString(receiptConfig.headerTitle, { width: contentWidth - logoSize - 15, align: 'center' });
+          doc.text(receiptConfig.headerTitle, headerCenterX, headerY, { width: contentWidth - logoSize - 15, align: 'center' });
+          headerY += titleHeight + 3; // Minimal spacing
         }
 
         if (receiptConfig.organizationName) {
-          doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000'); // Further reduced
-          const orgHeight = doc.heightOfString(receiptConfig.organizationName, { width: contentWidth - logoSize - 20, align: 'center' });
-          doc.text(receiptConfig.organizationName, headerCenterX, headerY, { width: contentWidth - logoSize - 20, align: 'center' });
-          headerY += orgHeight + 2; // Further reduced spacing
+          doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
+          const orgHeight = doc.heightOfString(receiptConfig.organizationName, { width: contentWidth - logoSize - 15, align: 'center' });
+          doc.text(receiptConfig.organizationName, headerCenterX, headerY, { width: contentWidth - logoSize - 15, align: 'center' });
+          headerY += orgHeight + 1; // Minimal spacing
         }
 
         if (receiptConfig.organizationSubtitle) {
-          doc.fontSize(10).font('Helvetica').fillColor('#666666'); // Further reduced
-          const subtitleHeight = doc.heightOfString(receiptConfig.organizationSubtitle, { width: contentWidth - logoSize - 20, align: 'center' });
-          doc.text(receiptConfig.organizationSubtitle, headerCenterX, headerY, { width: contentWidth - logoSize - 20, align: 'center' });
-          headerY += subtitleHeight + 2; // Further reduced spacing
+          doc.fontSize(9).font('Helvetica').fillColor('#666666'); // Even smaller
+          const subtitleHeight = doc.heightOfString(receiptConfig.organizationSubtitle, { width: contentWidth - logoSize - 15, align: 'center' });
+          doc.text(receiptConfig.organizationSubtitle, headerCenterX, headerY, { width: contentWidth - logoSize - 15, align: 'center' });
+          headerY += subtitleHeight + 1; // Minimal spacing
         }
 
         if (temple.address) {
-          doc.fontSize(10).font('Helvetica').fillColor('#666666'); // Further reduced
-          const addressHeight = doc.heightOfString(temple.address, { width: contentWidth - logoSize - 20, align: 'center' });
-          doc.text(temple.address, headerCenterX, headerY, { width: contentWidth - logoSize - 20, align: 'center' });
-          headerY += addressHeight + 2; // Further reduced spacing
+          doc.fontSize(9).font('Helvetica').fillColor('#666666'); // Even smaller
+          const addressHeight = doc.heightOfString(temple.address, { width: contentWidth - logoSize - 15, align: 'center' });
+          doc.text(temple.address, headerCenterX, headerY, { width: contentWidth - logoSize - 15, align: 'center' });
+          headerY += addressHeight + 1; // Minimal spacing
         }
 
         // Contact Info
@@ -272,75 +272,45 @@ export class ReceiptPdfService {
             contactParts.push(`Visit: ${receiptConfig.website}`);
           }
           if (contactParts.length > 0) {
-            doc.fontSize(10).font('Helvetica').fillColor('#666666'); // Further reduced
+            doc.fontSize(9).font('Helvetica').fillColor('#666666'); // Even smaller
             const contactText = contactParts.join(' | ');
-            const contactHeight = doc.heightOfString(contactText, { width: contentWidth - logoSize - 20, align: 'center' });
-            doc.text(contactText, headerCenterX, headerY, { width: contentWidth - logoSize - 20, align: 'center' });
-            headerY += contactHeight + 2; // Further reduced spacing
+            const contactHeight = doc.heightOfString(contactText, { width: contentWidth - logoSize - 15, align: 'center' });
+            doc.text(contactText, headerCenterX, headerY, { width: contentWidth - logoSize - 15, align: 'center' });
+            headerY += contactHeight + 1; // Minimal spacing
           }
         }
 
         // Set Y position after header (use the maximum of logo bottom or header content bottom)
-        currentY = Math.max(logoY + logoSize, headerY) + 12; // Further reduced spacing
+        currentY = Math.max(logoY + logoSize, headerY) + 10; // Minimal spacing
 
-        // Receipt Number and Date - More compact
+        // Receipt Number and Date - Very compact
         const receiptLabelY = currentY;
-        doc.fontSize(10).font('Helvetica').fillColor('#666666').text('Receipt No:', margin, receiptLabelY); // Further reduced
-        doc.fontSize(13).font('Helvetica-Bold').fillColor('#000000').text(receiptNumber, margin, receiptLabelY + 13); // Further reduced
+        doc.fontSize(9).font('Helvetica').fillColor('#666666').text('Receipt No:', margin, receiptLabelY); // Even smaller
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#000000').text(receiptNumber, margin, receiptLabelY + 11); // Even smaller
         
-        doc.fontSize(10).font('Helvetica').fillColor('#666666').text('Date:', pageWidth - margin - 100, receiptLabelY, { align: 'right', width: 100 }); // Further reduced
-        doc.fontSize(13).font('Helvetica-Bold').fillColor('#000000').text(donationDate, pageWidth - margin - 100, receiptLabelY + 13, { align: 'right', width: 100 }); // Further reduced
+        doc.fontSize(9).font('Helvetica').fillColor('#666666').text('Date:', pageWidth - margin - 100, receiptLabelY, { align: 'right', width: 100 }); // Even smaller
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#000000').text(donationDate, pageWidth - margin - 100, receiptLabelY + 11, { align: 'right', width: 100 }); // Even smaller
         
-        currentY = receiptLabelY + 28; // Further reduced
+        currentY = receiptLabelY + 24; // Even smaller
         
         // Draw line
         doc.moveTo(margin, currentY).lineTo(pageWidth - margin, currentY).stroke();
-        currentY += 12; // Further reduced
+        currentY += 10; // Even smaller
 
-        // Received From - More compact
-        doc.fontSize(10).font('Helvetica').fillColor('#666666').text('Received From:', margin, currentY); // Further reduced
-        currentY += 13; // Further reduced
-        doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000').text(donation.donorName || 'Anonymous', margin, currentY); // Further reduced
-        currentY += 14; // Further reduced
+        // Received From - Very compact
+        doc.fontSize(9).font('Helvetica').fillColor('#666666').text('Received From:', margin, currentY); // Even smaller
+        currentY += 11; // Even smaller
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#000000').text(donation.donorName || 'Anonymous', margin, currentY); // Even smaller
+        currentY += 12; // Even smaller
         
         if (donation.donorName && donation.donorPhone) {
           const contactInfo = donation.donorPhone + (donation.donorEmail ? ` | ${donation.donorEmail}` : '');
-          doc.fontSize(10).font('Helvetica').fillColor('#666666').text(contactInfo, margin, currentY); // Further reduced
-          currentY += 14; // Further reduced
+          doc.fontSize(9).font('Helvetica').fillColor('#666666').text(contactInfo, margin, currentY); // Even smaller
+          currentY += 12; // Even smaller
         }
-        currentY += 6; // Further reduced
+        currentY += 5; // Even smaller
 
-        // Calculate total content height and apply scaling if needed
-        // Estimate remaining content height
-        let estimatedRemainingHeight = 0;
-        
-        // Transaction table
-        estimatedRemainingHeight += 30;
-        // Amount in words
-        if (amountInWords) estimatedRemainingHeight += 35;
-        // Payment method
-        if (receiptConfig.showPaymentMethod !== false) {
-          estimatedRemainingHeight += 20;
-          if (donation.cardType && donation.cardLast4) estimatedRemainingHeight += 15;
-          if (receiptConfig.showPreparedBy && receiptConfig.preparedBy) estimatedRemainingHeight += 15;
-        }
-        // Custom message
-        if (receiptConfig.customMessage) estimatedRemainingHeight += 30;
-        // Thank you
-        if (receiptConfig.thankYouMessage) estimatedRemainingHeight += 20;
-        // Footer
-        estimatedRemainingHeight += 30;
-        if (receiptConfig.footerText) estimatedRemainingHeight += 16;
-        if (receiptConfig.includeTaxId && receiptConfig.taxId) estimatedRemainingHeight += 20;
-        if (receiptConfig.taxExemptMessage) estimatedRemainingHeight += 16;
-        
-        const totalEstimatedHeight = currentY + estimatedRemainingHeight;
-        const scaleFactor = totalEstimatedHeight > maxContentHeight ? maxContentHeight / totalEstimatedHeight : 1;
-        
-        // Apply scaling to font sizes if needed
-        const baseFontScale = scaleFactor < 1 ? Math.max(0.75, scaleFactor) : 1;
-        
-        // Transaction Details Table - More compact
+        // Transaction Details Table - Very compact
         const tableTop = currentY;
         const tableLeft = margin;
         const tableWidth = contentWidth;
@@ -348,98 +318,98 @@ export class ReceiptPdfService {
         const col2Width = tableWidth * 0.3;
         
         // Table Header
-        doc.fontSize(9 * baseFontScale).font('Helvetica-Bold').fillColor('#000000'); // Further reduced
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
         doc.text('Particulars', tableLeft, tableTop);
         doc.text('Amount ($)', tableLeft + col1Width, tableTop, { width: col2Width, align: 'right' });
         
         // Draw header line
-        const headerLineY = tableTop + 10; // Further reduced
+        const headerLineY = tableTop + 9; // Even smaller
         doc.moveTo(tableLeft, headerLineY).lineTo(tableLeft + tableWidth, headerLineY).lineWidth(2).stroke();
-        currentY = headerLineY + 3; // Further reduced
+        currentY = headerLineY + 2; // Even smaller
         
         // Table Row
-        doc.fontSize(9 * baseFontScale).font('Helvetica').fillColor('#000000'); // Further reduced
+        doc.fontSize(8).font('Helvetica').fillColor('#000000'); // Even smaller
         // Show category name if category was selected, otherwise show "Donation" for preset amounts
         doc.text(donation.category?.name || 'Donation', tableLeft, currentY);
         doc.text(amount.toFixed(2), tableLeft + col1Width, currentY, { width: col2Width, align: 'right' });
-        currentY += 14; // Further reduced
+        currentY += 12; // Even smaller
         
         // Draw row line
         doc.moveTo(tableLeft, currentY).lineTo(tableLeft + tableWidth, currentY).stroke();
-        currentY += 3; // Further reduced
+        currentY += 2; // Even smaller
         
         // Total Row
-        doc.fontSize(9 * baseFontScale).font('Helvetica-Bold').fillColor('#000000'); // Further reduced
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
         doc.moveTo(tableLeft, currentY).lineTo(tableLeft + tableWidth, currentY).lineWidth(2).stroke();
-        currentY += 3; // Further reduced
+        currentY += 2; // Even smaller
         doc.text('Total', tableLeft, currentY);
         doc.text(`$${amount.toFixed(2)}`, tableLeft + col1Width, currentY, { width: col2Width, align: 'right' });
-        currentY += 18; // Further reduced
+        currentY += 15; // Even smaller
 
-        // Amount in Words - More compact
+        // Amount in Words - Very compact
         if (amountInWords) {
-          doc.fontSize(10 * baseFontScale).font('Helvetica').fillColor('#666666').text('Amount in Words:', margin, currentY); // Further reduced
-          currentY += 13; // Further reduced
-          doc.fontSize(12 * baseFontScale).font('Helvetica-Bold').fillColor('#000000'); // Further reduced
+          doc.fontSize(9).font('Helvetica').fillColor('#666666').text('Amount in Words:', margin, currentY); // Even smaller
+          currentY += 11; // Even smaller
+          doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
           const wordsText = amountInWords.charAt(0).toUpperCase() + amountInWords.slice(1);
           doc.text(wordsText, margin, currentY);
-          currentY += 18; // Further reduced
+          currentY += 15; // Even smaller
         }
 
-        // Payment Method - More compact
+        // Payment Method - Very compact
         if (receiptConfig.showPaymentMethod !== false) {
-          doc.fontSize(10 * baseFontScale).font('Helvetica').fillColor('#666666').text('Payment Method: Paid by Square', margin, currentY); // Further reduced
-          currentY += 13; // Further reduced
+          doc.fontSize(9).font('Helvetica').fillColor('#666666').text('Payment Method: Paid by Square', margin, currentY); // Even smaller
+          currentY += 11; // Even smaller
           
           if (donation.cardType && donation.cardLast4) {
-            doc.fontSize(10 * baseFontScale).font('Helvetica').fillColor('#666666').text(`Card: ${donation.cardType} ending in ${donation.cardLast4}`, margin, currentY); // Further reduced
-            currentY += 13; // Further reduced
+            doc.fontSize(9).font('Helvetica').fillColor('#666666').text(`Card: ${donation.cardType} ending in ${donation.cardLast4}`, margin, currentY); // Even smaller
+            currentY += 11; // Even smaller
           }
           
           if (receiptConfig.showPreparedBy && receiptConfig.preparedBy) {
-            doc.fontSize(10 * baseFontScale).font('Helvetica').fillColor('#666666').text(`Prepared by: ${receiptConfig.preparedBy}`, margin, currentY); // Further reduced
-            currentY += 13; // Further reduced
+            doc.fontSize(9).font('Helvetica').fillColor('#666666').text(`Prepared by: ${receiptConfig.preparedBy}`, margin, currentY); // Even smaller
+            currentY += 11; // Even smaller
           }
-          currentY += 6; // Further reduced
+          currentY += 5; // Even smaller
         }
 
-        // Custom Message - More compact
+        // Custom Message - Very compact
         if (receiptConfig.customMessage) {
-          doc.fontSize(10 * baseFontScale).font('Helvetica').fillColor('#000000'); // Further reduced
+          doc.fontSize(9).font('Helvetica').fillColor('#000000'); // Even smaller
           const messageHeight = doc.heightOfString(receiptConfig.customMessage, { width: contentWidth - 20 });
-          doc.rect(margin, currentY, contentWidth, messageHeight + 12).fillColor('#f9fafb').fill(); // Further reduced padding
-          doc.text(receiptConfig.customMessage, margin + 6, currentY + 6, { width: contentWidth - 20 }); // Further reduced padding
-          currentY += messageHeight + 20; // Further reduced
+          doc.rect(margin, currentY, contentWidth, messageHeight + 10).fillColor('#f9fafb').fill(); // Even smaller padding
+          doc.text(receiptConfig.customMessage, margin + 5, currentY + 5, { width: contentWidth - 20 }); // Even smaller padding
+          currentY += messageHeight + 18; // Even smaller
         }
 
-        // Thank You Message - More compact
+        // Thank You Message - Very compact
         if (receiptConfig.thankYouMessage) {
-          doc.fontSize(10 * baseFontScale).font('Helvetica').fillColor('#000000').text(receiptConfig.thankYouMessage, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Further reduced
-          currentY += 18; // Further reduced
+          doc.fontSize(9).font('Helvetica').fillColor('#000000').text(receiptConfig.thankYouMessage, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Even smaller
+          currentY += 15; // Even smaller
         }
 
-        // Footer - More compact
-        currentY += 6; // Further reduced
+        // Footer - Very compact
+        currentY += 5; // Even smaller
         const footerY = currentY;
         doc.moveTo(margin, footerY).lineTo(pageWidth - margin, footerY).stroke();
-        currentY = footerY + 10; // Further reduced
+        currentY = footerY + 8; // Even smaller
         
         if (receiptConfig.footerText) {
-          doc.fontSize(10 * baseFontScale).font('Helvetica').fillColor('#666666').text(receiptConfig.footerText, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Further reduced
-          currentY += 14; // Further reduced
+          doc.fontSize(9).font('Helvetica').fillColor('#666666').text(receiptConfig.footerText, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Even smaller
+          currentY += 12; // Even smaller
         }
         
-        // Tax Exempt Information - More compact
+        // Tax Exempt Information - Very compact
         // Use the same format as ReceiptGeneratorService (matches ReceiptView component)
         if (receiptConfig.includeTaxId && receiptConfig.taxId) {
           const orgName = receiptConfig.organizationName || 'This organization';
           const taxExemptText = `${orgName} (EIN#${receiptConfig.taxId}) is recognized by IRS as 501(c)(3) tax exempt organization${receiptConfig.website ? `, please visit us at ${receiptConfig.website}` : ''}`;
-          doc.fontSize(9 * baseFontScale).font('Helvetica').fillColor('#666666').text(taxExemptText, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Further reduced
-          currentY += 14; // Further reduced
+          doc.fontSize(8).font('Helvetica').fillColor('#666666').text(taxExemptText, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Even smaller
+          currentY += 12; // Even smaller
         }
         
         if (receiptConfig.taxExemptMessage) {
-          doc.fontSize(9 * baseFontScale).font('Helvetica').fillColor('#666666').text(receiptConfig.taxExemptMessage, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Further reduced
+          doc.fontSize(8).font('Helvetica').fillColor('#666666').text(receiptConfig.taxExemptMessage, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Even smaller
         }
 
         doc.end();
