@@ -597,15 +597,42 @@ export class DonationsService {
   }
 
   private decrypt(encryptedText: string): string {
-    const algorithm = 'aes-256-cbc';
-    const key = Buffer.from(this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!', 'utf8');
-    const parts = encryptedText.split(':');
-    const iv = Buffer.from(parts[0], 'hex');
-    const encrypted = parts[1];
-    const decipher = crypto.createDecipheriv(algorithm, key, iv);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    try {
+      const algorithm = 'aes-256-cbc';
+      const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!';
+      
+      if (!encryptionKey || encryptionKey.length < 32) {
+        throw new Error('ENCRYPTION_KEY must be at least 32 characters long');
+      }
+      
+      const key = Buffer.from(encryptionKey, 'utf8');
+      
+      if (!encryptedText || !encryptedText.includes(':')) {
+        throw new Error('Invalid encrypted text format');
+      }
+      
+      const parts = encryptedText.split(':');
+      if (parts.length !== 2) {
+        throw new Error('Invalid encrypted text format: expected iv:encrypted');
+      }
+      
+      const iv = Buffer.from(parts[0], 'hex');
+      const encrypted = parts[1];
+      
+      if (iv.length !== 16) {
+        throw new Error('Invalid IV length');
+      }
+      
+      const decipher = crypto.createDecipheriv(algorithm, key, iv);
+      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    } catch (error: any) {
+      console.error('[DonationsService] ❌ Decryption error:', error.message);
+      console.error('[DonationsService] ❌ Encrypted text length:', encryptedText?.length || 0);
+      console.error('[DonationsService] ❌ Encryption key length:', this.configService.get<string>('ENCRYPTION_KEY')?.length || 0);
+      throw new Error(`Decryption failed: ${error.message}`);
+    }
   }
 
   async sendReceiptEmail(donation: Donation): Promise<void> {
