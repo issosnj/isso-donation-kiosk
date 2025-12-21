@@ -229,38 +229,39 @@ export class ReceiptPdfService {
 
         // Header Center Content - Very compact font sizes
         // Calculate available width for header text (accounting for logo on left)
-        const headerTextWidth = contentWidth - logoSize - 20; // Space for logo + padding
+        // Ensure text doesn't extend beyond right margin
         const headerTextLeft = logoX + logoSize + 15; // Start after logo
-        const headerTextRight = pageWidth - margin;
-        const headerTextCenterX = headerTextLeft + (headerTextWidth / 2);
+        const headerTextRight = pageWidth - margin; // Right margin boundary
+        const headerTextWidth = headerTextRight - headerTextLeft; // Available width
+        const headerTextCenterX = headerTextLeft + (headerTextWidth / 2); // Center point within available space
         let headerY = currentY;
 
         if (receiptConfig.headerTitle) {
-          doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
+          doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000');
           const titleHeight = doc.heightOfString(receiptConfig.headerTitle, { width: headerTextWidth, align: 'center' });
-          doc.text(receiptConfig.headerTitle, headerTextCenterX, headerY, { width: headerTextWidth, align: 'center' });
-          headerY += titleHeight + 3; // Minimal spacing
+          doc.text(receiptConfig.headerTitle, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+          headerY += titleHeight + 3;
         }
 
         if (receiptConfig.organizationName) {
-          doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
+          doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
           const orgHeight = doc.heightOfString(receiptConfig.organizationName, { width: headerTextWidth, align: 'center' });
-          doc.text(receiptConfig.organizationName, headerTextCenterX, headerY, { width: headerTextWidth, align: 'center' });
-          headerY += orgHeight + 1; // Minimal spacing
+          doc.text(receiptConfig.organizationName, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+          headerY += orgHeight + 1;
         }
 
         if (receiptConfig.organizationSubtitle) {
-          doc.fontSize(9).font('Helvetica').fillColor('#666666'); // Even smaller
+          doc.fontSize(9).font('Helvetica').fillColor('#666666');
           const subtitleHeight = doc.heightOfString(receiptConfig.organizationSubtitle, { width: headerTextWidth, align: 'center' });
-          doc.text(receiptConfig.organizationSubtitle, headerTextCenterX, headerY, { width: headerTextWidth, align: 'center' });
-          headerY += subtitleHeight + 1; // Minimal spacing
+          doc.text(receiptConfig.organizationSubtitle, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+          headerY += subtitleHeight + 1;
         }
 
         if (temple.address) {
-          doc.fontSize(9).font('Helvetica').fillColor('#666666'); // Even smaller
+          doc.fontSize(9).font('Helvetica').fillColor('#666666');
           const addressHeight = doc.heightOfString(temple.address, { width: headerTextWidth, align: 'center' });
-          doc.text(temple.address, headerTextCenterX, headerY, { width: headerTextWidth, align: 'center' });
-          headerY += addressHeight + 1; // Minimal spacing
+          doc.text(temple.address, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+          headerY += addressHeight + 1;
         }
 
         // Contact Info
@@ -276,11 +277,11 @@ export class ReceiptPdfService {
             contactParts.push(`Visit: ${receiptConfig.website}`);
           }
           if (contactParts.length > 0) {
-            doc.fontSize(9).font('Helvetica').fillColor('#666666'); // Even smaller
+            doc.fontSize(9).font('Helvetica').fillColor('#666666');
             const contactText = contactParts.join(' | ');
             const contactHeight = doc.heightOfString(contactText, { width: headerTextWidth, align: 'center' });
-            doc.text(contactText, headerTextCenterX, headerY, { width: headerTextWidth, align: 'center' });
-            headerY += contactHeight + 1; // Minimal spacing
+            doc.text(contactText, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+            headerY += contactHeight + 1;
           }
         }
 
@@ -414,7 +415,7 @@ export class ReceiptPdfService {
 
         // Thank You Message - Very compact with scaling
         if (receiptConfig.thankYouMessage) {
-          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#000000').text(receiptConfig.thankYouMessage, pageWidth / 2, currentY, { width: contentWidth, align: 'center' });
+          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#000000').text(receiptConfig.thankYouMessage, margin, currentY, { width: contentWidth, align: 'center' });
           currentY += (15 * scaleFactor);
         }
 
@@ -425,7 +426,7 @@ export class ReceiptPdfService {
         currentY = footerY + (8 * scaleFactor);
         
         if (receiptConfig.footerText) {
-          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text(receiptConfig.footerText, pageWidth / 2, currentY, { width: contentWidth, align: 'center' });
+          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text(receiptConfig.footerText, margin, currentY, { width: contentWidth, align: 'center' });
           currentY += (12 * scaleFactor);
         }
         
@@ -435,12 +436,12 @@ export class ReceiptPdfService {
           const orgName = receiptConfig.organizationName || 'This organization';
           const taxExemptText = `${orgName} (EIN#${receiptConfig.taxId}) is recognized by IRS as 501(c)(3) tax exempt organization${receiptConfig.website ? `, please visit us at ${receiptConfig.website}` : ''}`;
           doc.fontSize(8 * scaleFactor).font('Helvetica').fillColor('#666666');
-          doc.text(taxExemptText, pageWidth / 2, currentY, { width: contentWidth, align: 'center' });
+          doc.text(taxExemptText, margin, currentY, { width: contentWidth, align: 'center' });
           currentY += (12 * scaleFactor);
         }
         
         if (receiptConfig.taxExemptMessage) {
-          doc.fontSize(8 * scaleFactor).font('Helvetica').fillColor('#666666').text(receiptConfig.taxExemptMessage, pageWidth / 2, currentY, { width: contentWidth, align: 'center' });
+          doc.fontSize(8 * scaleFactor).font('Helvetica').fillColor('#666666').text(receiptConfig.taxExemptMessage, margin, currentY, { width: contentWidth, align: 'center' });
         }
 
         doc.end();
