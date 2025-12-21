@@ -776,7 +776,7 @@ export class DonationsService {
 
       // Generate PDF receipt (do this once, before attempting to send)
       console.log('[DonationsService] 📄 Generating PDF receipt...');
-      let pdfBuffer: Buffer;
+      let pdfBuffer: Buffer | null = null;
       try {
         pdfBuffer = await this.receiptPdfService.generateReceiptPdfAsync(donation, temple);
         console.log('[DonationsService] ✅ PDF receipt generated, size:', pdfBuffer.length, 'bytes');
@@ -784,7 +784,7 @@ export class DonationsService {
         console.error('[DonationsService] ❌ Failed to generate PDF receipt:', pdfError.message);
         console.error('[DonationsService] ❌ PDF error details:', pdfError);
         // Continue without PDF attachment if generation fails
-        pdfBuffer = null as any;
+        pdfBuffer = null;
       }
 
       // Check if temple has Gmail connected
