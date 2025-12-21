@@ -405,11 +405,23 @@ struct DonationHomeView: View {
         .onChange(of: appState.temple?.kioskTheme) { _ in
             // Theme was updated, view will automatically refresh due to @EnvironmentObject
             print("[DonationHomeView] Theme updated, view will refresh")
+            // Also reload background image in case backgroundImageUrl changed
+            Task {
+                await appState.preloadBackgroundImage(forceReload: true)
+            }
+        }
+        .onChange(of: appState.temple?.kioskTheme?.layout?.backgroundImageUrl) { _ in
+            // Background URL in kioskTheme changed, force reload image
+            print("[DonationHomeView] Background URL in kioskTheme changed, reloading image")
+            Task {
+                await appState.preloadBackgroundImage(forceReload: true)
+            }
         }
         .onChange(of: appState.temple?.homeScreenConfig?.backgroundImageUrl) { _ in
-            // Background URL changed, reload image
+            // Background URL in homeScreenConfig changed, reload image (backward compatibility)
+            print("[DonationHomeView] Background URL in homeScreenConfig changed, reloading image")
             Task {
-                await appState.preloadBackgroundImage()
+                await appState.preloadBackgroundImage(forceReload: true)
             }
         }
         .onChange(of: appState.backgroundImage) { _ in

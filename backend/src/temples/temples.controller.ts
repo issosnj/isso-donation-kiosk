@@ -273,12 +273,22 @@ export class TemplesController {
       imageUrl = this.convertGoogleDriveLink(imageUrl);
     }
 
-    // Update temple's homeScreenConfig with the background image URL
+    // Update temple's kioskTheme.layout with the background image URL (primary location)
+    // Also update homeScreenConfig for backward compatibility
     const temple = await this.templesService.findOne(id);
+    
+    // Update kioskTheme.layout.backgroundImageUrl (primary location)
+    const kioskTheme = temple.kioskTheme || {};
+    const layout = kioskTheme.layout || {};
+    layout.backgroundImageUrl = imageUrl;
+    kioskTheme.layout = layout;
+    
+    // Also update homeScreenConfig for backward compatibility
     const homeScreenConfig = temple.homeScreenConfig || {};
     homeScreenConfig.backgroundImageUrl = imageUrl;
 
     await this.templesService.update(id, {
+      kioskTheme,
       homeScreenConfig,
     } as UpdateTempleDto);
 
