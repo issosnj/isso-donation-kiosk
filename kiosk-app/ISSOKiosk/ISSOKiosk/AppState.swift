@@ -85,8 +85,9 @@ class AppState: ObservableObject {
     }
     
     func preloadBackgroundImage(forceReload: Bool = false) async {
-        guard let backgroundUrl = temple?.homeScreenConfig?.backgroundImageUrl,
-              let url = URL(string: backgroundUrl) else {
+        // Check kioskTheme.layout first, then fallback to homeScreenConfig for backward compatibility
+        let backgroundUrl = temple?.kioskTheme?.layout?.backgroundImageUrl ?? temple?.homeScreenConfig?.backgroundImageUrl
+        guard let urlString = backgroundUrl, let url = URL(string: urlString) else {
             await MainActor.run {
                 self.backgroundImage = nil
             }

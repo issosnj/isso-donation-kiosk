@@ -87,11 +87,11 @@ struct DonationHomeView: View {
     }
     
     var amountSelectedColor: Color {
-        colorFromHex(buttonColors.amountSelected)
+        colorFromHex(amountSelectedColor)
     }
     
     var amountUnselectedColor: Color {
-        colorFromHex(buttonColors.amountUnselected)
+        colorFromHex(amountUnselectedColor)
     }
     
     // Theme helper properties with defaults
@@ -244,7 +244,7 @@ struct DonationHomeView: View {
                             showingPledgeOption = true
                         } else {
                             print("[DonationHomeView] ⏭️ Going directly to payment (pledge only available for sponsor tiers)")
-                            showingPayment = true
+                        showingPayment = true
                         }
                         donorName = name
                         donorPhone = phone
@@ -1026,7 +1026,7 @@ struct CleanCategoryButton: View {
                 // Category name and amount side by side
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(category.name)
+            Text(category.name)
                             .font(.custom("Inter-SemiBold", size: 18))
                             .foregroundColor(.white)
                             .lineLimit(1)

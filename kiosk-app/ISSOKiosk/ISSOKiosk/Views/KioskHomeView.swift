@@ -174,7 +174,9 @@ struct KioskHomeView: View {
                     // Main: Tap To Donate Button - Gold-Accented Design (centered vertically)
                     HStack {
                         Spacer()
-                        GoldAccentDonateButton(action: {
+                        GoldAccentDonateButton(
+                            buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
+                            action: {
                             // Preload background image before navigating
                             Task {
                                 await appState.preloadBackgroundImage()
@@ -623,14 +625,11 @@ struct GoldAccentDonateButton: View {
             .frame(width: 650)
             .frame(height: 240)
             .background(
-                // Blue gradient background - darker when pressed
+                // Use theme color for button background - darker when pressed
                 LinearGradient(
-                    gradient: Gradient(colors: isPressed ? [
-                        Color(red: 0.153, green: 0.357, blue: 0.776), // #275BC6 (pressed)
-                        Color(red: 0.165, green: 0.365, blue: 0.808)  // Slightly lighter pressed
-                    ] : [
-                        Color(red: 0.227, green: 0.478, blue: 0.894), // #3A7AF0
-                        Color(red: 0.184, green: 0.388, blue: 0.839)  // #2F6FE4
+                    gradient: Gradient(colors: [
+                        colorFromHex(buttonColor),
+                        colorFromHex(buttonColor).opacity(isPressed ? 0.85 : 0.95)
                     ]),
                     startPoint: .top,
                     endPoint: .bottom
@@ -638,10 +637,10 @@ struct GoldAccentDonateButton: View {
             )
             .cornerRadius(20)
             .overlay(
-                // Gold border
+                // Gold border using theme color
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(
-                        Color(red: 0.831, green: 0.686, blue: 0.216), // #D4AF37
+                        colorFromHex(buttonColor),
                         lineWidth: 2
                     )
             )
@@ -653,8 +652,8 @@ struct GoldAccentDonateButton: View {
             )
             .shadow(
                 color: isPressed
-                    ? Color(red: 0.831, green: 0.686, blue: 0.216).opacity(0.2)
-                    : Color(red: 0.831, green: 0.686, blue: 0.216).opacity(0.35),
+                    ? colorFromHex(buttonColor).opacity(0.2)
+                    : colorFromHex(buttonColor).opacity(0.35),
                 radius: isPressed ? 6 : 9,
                 x: 0,
                 y: 0
