@@ -66,8 +66,9 @@ class AppState: ObservableObject {
         
         do {
             let temple = try await APIService.shared.getTemple(templeId: templeId)
-            let oldBackgroundUrl = self.temple?.homeScreenConfig?.backgroundImageUrl
-            let newBackgroundUrl = temple.homeScreenConfig?.backgroundImageUrl
+            // Check if background URL changed (for cache invalidation)
+            let _ = self.temple?.homeScreenConfig?.backgroundImageUrl
+            let _ = temple.homeScreenConfig?.backgroundImageUrl
             
             await MainActor.run {
                 self.temple = temple
@@ -94,7 +95,7 @@ class AppState: ObservableObject {
             return
         }
         
-        print("[AppState] 🖼️ Preloading background image: \(backgroundUrl) (forceReload: \(forceReload))")
+        print("[AppState] 🖼️ Preloading background image: \(backgroundUrl ?? "nil") (forceReload: \(forceReload))")
         
         // If force reload, clear cache first
         if forceReload {
@@ -337,7 +338,7 @@ class AppState: ObservableObject {
     
     private func authorizeSquareSDK() async {
         // Step 2: Verify SDK is available
-        let sdk = MobilePaymentsSDK.shared
+        let _ = MobilePaymentsSDK.shared
         print("[AppState] ✅ Square Mobile Payments SDK is available")
         
         // Step 5: Request required permissions first
