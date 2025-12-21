@@ -860,10 +860,16 @@ struct CleanCustomAmountField: View {
                     }
             } else {
                 Button(action: onTap) {
-                    Text("Custom Amount")
-                        .font(.custom("Inter-Regular", size: 20))
-                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack {
+                        Text("Custom Amount")
+                            .font(.custom("Inter-Regular", size: 20))
+                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
