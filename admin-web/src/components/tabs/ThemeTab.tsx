@@ -4,6 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useRef } from 'react'
 import api from '@/lib/api'
 
+// Helper to get API base URL for proxy
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
+  }
+  return 'http://localhost:3000/api'
+}
+
 export default function ThemeTab() {
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
@@ -523,7 +531,11 @@ export default function ThemeTab() {
                   </div>
                 ) : (
                   <img
-                    src={formData.layout.backgroundImageUrl}
+                    src={
+                      formData.layout.backgroundImageUrl?.includes('drive.google.com')
+                        ? `${getApiBaseUrl()}/temples/proxy-image?url=${encodeURIComponent(formData.layout.backgroundImageUrl)}`
+                        : formData.layout.backgroundImageUrl
+                    }
                     alt="Background preview"
                     className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-300"
                     crossOrigin="anonymous"

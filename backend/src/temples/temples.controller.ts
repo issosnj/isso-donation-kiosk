@@ -11,8 +11,10 @@ import {
   UploadedFile,
   BadRequestException,
   Req,
+  Res,
+  Query,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { TemplesService } from './temples.service';
@@ -283,6 +285,53 @@ export class TemplesController {
       message: 'Background image URL set successfully',
       url: imageUrl,
     };
+  }
+
+  @Get('proxy-image')
+  @ApiOperation({ summary: 'Proxy external images (e.g., Google Drive) to bypass CORS' })
+  async proxyImage(
+    @Query('url') url: string,
+    @Res() res: Response,
+  ) {
+    if (!url) {
+      throw new BadRequestException('URL parameter is required');
+    }
+
+    try {
+      // Validate URL
+      new URL(url);
+    } catch {
+      throw new BadRequestException('Invalid URL format');
+    }
+
+    try {
+      // Fetch the image from the external URL
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+
+      // Get content type from response or default to image
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      
+      // Set appropriate headers
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+      res.setHeader('Access-Control-Allow-Origin', '*');
+
+      // Stream the image data to the response
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      res.send(buffer);
+    } catch (error) {
+      console.error('[Image Proxy] Error fetching image:', error);
+      throw new BadRequestException(`Failed to proxy image: ${error.message}`);
+    }
   }
 }
 
