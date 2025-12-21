@@ -158,9 +158,11 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             amountMoney: amountMoney
         )
         
+        // Enable all payment methods including Cash App Pay
+        // Cash App Pay will be available if enabled in Square Dashboard > Online > Settings > Checkout
         let promptParameters = PromptParameters(
             mode: .default,
-            additionalMethods: .all
+            additionalMethods: .all  // This includes Cash App Pay, Apple Pay, Google Pay, etc.
         )
         
         // Start payment - this will automatically detect Square Stand
@@ -169,38 +171,61 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         print("[SquareMobilePayments] 📱 ViewController isViewLoaded: \(viewController.isViewLoaded)")
         print("[SquareMobilePayments] 📱 ViewController viewIfLoaded: \(viewController.viewIfLoaded != nil ? "loaded" : "not loaded")")
         
+        // Check authorization state before starting payment
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        print("[SquareMobilePayments] 🔐 Authorization state: \(authState)")
+        
+        guard authState == .authorized else {
+            print("[SquareMobilePayments] ❌ SDK not authorized! State: \(authState)")
+            completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Square SDK not authorized. Please check Square connection in settings."
+            ])))
+            return
+        }
+        
         // Ensure we're on the main thread and view is loaded
         DispatchQueue.main.async {
-            // Ensure view is loaded
+            // Ensure view is loaded and view controller is ready
             _ = viewController.view
             
-            print("[SquareMobilePayments] 🚀 Starting Square SDK payment flow...")
-            let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
-                paymentParameters,
-                promptParameters: promptParameters,
-                from: viewController,
-                delegate: self
-            )
-            
-            if let handle = paymentHandle {
-                print("[SquareMobilePayments] ✅ Payment started successfully!")
-                print("[SquareMobilePayments] ✅ Payment handle: \(handle)")
-                print("[SquareMobilePayments] 💡 Square SDK should now show card entry UI")
-                print("[SquareMobilePayments] 💡 User can tap or insert card on Square Stand")
-                print("[SquareMobilePayments] 💡 SDK will automatically detect card interactions")
-            } else {
-                print("[SquareMobilePayments] ❌ Payment handle is nil!")
-                print("[SquareMobilePayments] ❌ SDK may not have started payment")
-                print("[SquareMobilePayments] ⚠️ Possible issues:")
-                print("[SquareMobilePayments]    1. Square Stand not connected")
-                print("[SquareMobilePayments]    2. SDK not properly authorized")
-                print("[SquareMobilePayments]    3. ViewController not ready")
+            // Small delay to ensure view controller is fully ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("[SquareMobilePayments] 🚀 Starting Square SDK payment flow...")
+                print("[SquareMobilePayments] 💰 Amount: $\(amount)")
+                print("[SquareMobilePayments] 🔑 Idempotency Key: \(idempotencyKey)")
                 
-                // Call completion with error
-                self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "Failed to start payment. Please check Square Stand connection."
-                ])))
-                self.currentPaymentCompletion = nil
+                // Set delegate before starting payment
+                MobilePaymentsSDK.shared.paymentManager.delegate = self
+                
+                let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
+                    paymentParameters,
+                    promptParameters: promptParameters,
+                    from: viewController,
+                    delegate: self
+                )
+                
+                if let handle = paymentHandle {
+                    print("[SquareMobilePayments] ✅ Payment started successfully!")
+                    print("[SquareMobilePayments] ✅ Payment handle: \(handle)")
+                    print("[SquareMobilePayments] 💡 Square SDK should now show card entry UI")
+                    print("[SquareMobilePayments] 💡 User can tap or insert card on Square Stand")
+                    print("[SquareMobilePayments] 💡 Cash App Pay will be available if enabled in Square Dashboard")
+                    print("[SquareMobilePayments] 💡 SDK will automatically detect card interactions")
+                } else {
+                    print("[SquareMobilePayments] ❌ Payment handle is nil!")
+                    print("[SquareMobilePayments] ❌ SDK may not have started payment")
+                    print("[SquareMobilePayments] ⚠️ Possible issues:")
+                    print("[SquareMobilePayments]    1. Square Stand not connected")
+                    print("[SquareMobilePayments]    2. SDK not properly authorized")
+                    print("[SquareMobilePayments]    3. ViewController not ready")
+                    print("[SquareMobilePayments]    4. iPad not properly inserted into Square Stand")
+                    
+                    // Call completion with error
+                    self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
+                        NSLocalizedDescriptionKey: "Failed to start payment. Please ensure:\n1. iPad is securely inserted into Square Stand\n2. Stand is powered on\n3. Square connection is active in settings"
+                    ])))
+                    self.currentPaymentCompletion = nil
+                }
             }
         }
     }

@@ -184,6 +184,9 @@ struct ModernPaymentView: View {
                 
                 // 2. Start payment using Square Mobile Payments SDK
                 // This will show card entry UI and detect card interactions from Square hardware
+                // Add small delay to ensure view is fully ready
+                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                
                 await MainActor.run {
                     print("[PaymentView] 📱 Step 2: Getting UIViewController for SDK...")
                     guard let viewController = UIViewController.topViewController() else {
@@ -194,7 +197,14 @@ struct ModernPaymentView: View {
                     }
                     
                     print("[PaymentView] ✅ Got viewController: \(type(of: viewController))")
+                    print("[PaymentView] 📱 ViewController isViewLoaded: \(viewController.isViewLoaded)")
+                    print("[PaymentView] 📱 ViewController viewIfLoaded: \(viewController.viewIfLoaded != nil ? "loaded" : "not loaded")")
+                    
+                    // Ensure view is loaded
+                    _ = viewController.view
+                    
                     print("[PaymentView] 🚀 Step 3: Starting Square SDK payment...")
+                    print("[PaymentView] 💡 Cash App Pay will be available if enabled in Square Dashboard")
                     
                     SquarePaymentService.shared.startPayment(
                         donationId: donation.id,
