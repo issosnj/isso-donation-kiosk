@@ -369,7 +369,8 @@ struct DonationHomeView: View {
     
     private var mainContent: some View {
         ZStack {
-            HStack(spacing: categoryAmountSectionSpacing) {
+            // Use reduced spacing when keypad is showing
+            HStack(spacing: showingCustomAmountKeypad ? 20 : categoryAmountSectionSpacing) {
                 // Show keypad in place of category section when active
                 if showingCustomAmountKeypad {
                     VStack(spacing: 0) {

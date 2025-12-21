@@ -46,15 +46,6 @@ struct CustomNumericKeypad: View {
                 .shadow(color: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0).opacity(0.6), radius: 15, x: 0, y: 0) // Glow effect
                 .shadow(color: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0).opacity(0.4), radius: 25, x: 0, y: 0) // Outer glow
         )
-        .overlay(alignment: .topTrailing) {
-            Button(action: onDismiss) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
-                    .background(Circle().fill(Color.white))
-            }
-            .padding(8)
-        }
         .onTapGesture {
             // Prevent taps on keypad from closing it
         }
