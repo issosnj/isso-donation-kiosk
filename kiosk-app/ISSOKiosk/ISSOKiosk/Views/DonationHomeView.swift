@@ -383,6 +383,7 @@ struct DonationHomeView: View {
                             .frame(height: headingSize + bodySize + 6 + 12)
                         
                         // Keypad aligned to start where category buttons start
+                        // Match the exact padding used by category buttons (16pt)
                         HStack {
                             CustomNumericKeypad(
                                 amount: $customAmount,
@@ -393,7 +394,7 @@ struct DonationHomeView: View {
                             )
                             Spacer()
                         }
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 16)
                         
                         Spacer()
                     }
