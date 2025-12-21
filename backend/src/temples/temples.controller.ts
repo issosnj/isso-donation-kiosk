@@ -298,8 +298,8 @@ export class TemplesController {
     };
   }
 
-  @Get('proxy-image')
   @Public()
+  @Get('proxy-image')
   @ApiOperation({ summary: 'Proxy external images (e.g., Google Drive) to bypass CORS' })
   async proxyImage(
     @Query('url') url: string,
