@@ -594,9 +594,35 @@ export class DonationsService {
   }
 
   // Simple encryption/decryption helpers (should match GmailController)
+  // Key derivation function - ensures we always have exactly 32 bytes for AES-256
+  private getKey(): Buffer {
+    const keyString = this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!';
+    
+    // If it's a hex string, parse it
+    if (/^[0-9a-fA-F]+$/.test(keyString)) {
+      // Hex string - convert to buffer
+      const hexKey = Buffer.from(keyString, 'hex');
+      // AES-256-CBC requires exactly 32 bytes
+      if (hexKey.length === 32) {
+        return hexKey;
+      } else if (hexKey.length < 32) {
+        // Pad with zeros if too short
+        const padded = Buffer.alloc(32);
+        hexKey.copy(padded);
+        return padded;
+      } else {
+        // Truncate if too long
+        return hexKey.slice(0, 32);
+      }
+    }
+    
+    // For non-hex strings, use SHA-256 to derive exactly 32 bytes
+    return crypto.createHash('sha256').update(keyString).digest();
+  }
+
   private encrypt(text: string): string {
     const algorithm = 'aes-256-cbc';
-    const key = Buffer.from(this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!', 'utf8');
+    const key = this.getKey();
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(algorithm, key, iv);
     let encrypted = cipher.update(text, 'utf8', 'hex');
@@ -607,13 +633,7 @@ export class DonationsService {
   private decrypt(encryptedText: string): string {
     try {
       const algorithm = 'aes-256-cbc';
-      const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!';
-      
-      if (!encryptionKey || encryptionKey.length < 32) {
-        throw new Error('ENCRYPTION_KEY must be at least 32 characters long');
-      }
-      
-      const key = Buffer.from(encryptionKey, 'utf8');
+      const key = this.getKey();
       
       if (!encryptedText || !encryptedText.includes(':')) {
         throw new Error('Invalid encrypted text format');
