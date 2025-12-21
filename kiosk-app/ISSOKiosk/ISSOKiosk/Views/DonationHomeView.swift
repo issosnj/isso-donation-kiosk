@@ -340,54 +340,60 @@ struct DonationHomeView: View {
     
     private var backgroundGradient: some View {
         Group {
-            // Background: Use preloaded image from AppState for instant display
             if let backgroundImage = appState.backgroundImage {
-                Image(uiImage: backgroundImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea(.all, edges: .all)
-            } else if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
-               let url = URL(string: backgroundUrl) {
-                // Show gradient immediately while loading, then overlay image when ready
-                ZStack {
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.white,
-                            Color(red: 0.95, green: 0.97, blue: 1.0)
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            Color.clear
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        case .failure:
-                            Color.clear
-                        @unknown default:
-                            Color.clear
-                        }
-                    }
-                }
-                .ignoresSafeArea(.all, edges: .all)
+                preloadedBackgroundImage
+            } else if let backgroundUrl = backgroundImageUrl, let url = URL(string: backgroundUrl) {
+                asyncBackgroundImage(url: url)
             } else {
-                // Default gradient background
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.white,
-                        Color(red: 0.95, green: 0.97, blue: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea(.all, edges: .all)
+                defaultGradientBackground
             }
         }
+    }
+    
+    private var backgroundImageUrl: String? {
+        appState.temple?.kioskTheme?.layout?.backgroundImageUrl ?? appState.temple?.homeScreenConfig?.backgroundImageUrl
+    }
+    
+    private var preloadedBackgroundImage: some View {
+        Image(uiImage: appState.backgroundImage!)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .ignoresSafeArea(.all, edges: .all)
+    }
+    
+    private func asyncBackgroundImage(url: URL) -> some View {
+        ZStack {
+            defaultGradientBackground
+            
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    Color.clear
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .failure:
+                    Color.clear
+                @unknown default:
+                    Color.clear
+                }
+            }
+        }
+        .ignoresSafeArea(.all, edges: .all)
+    }
+    
+    private var defaultGradientBackground: some View {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color.white,
+                Color(red: 0.95, green: 0.97, blue: 1.0)
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea(.all, edges: .all)
+    }
         .task {
             // Ensure background image is preloaded
             if appState.backgroundImage == nil {
