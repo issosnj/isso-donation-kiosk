@@ -526,11 +526,16 @@ export default function ThemeTab() {
                     src={formData.layout.backgroundImageUrl}
                     alt="Background preview"
                     className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-300"
-                    onError={() => {
+                    crossOrigin="anonymous"
+                    onError={(e) => {
                       console.error('Failed to load background image:', formData.layout.backgroundImageUrl)
+                      console.error('Image load error details:', e)
                       setImageLoadError(true)
                     }}
-                    onLoad={() => setImageLoadError(false)}
+                    onLoad={() => {
+                      setImageLoadError(false)
+                      console.log('Background image loaded successfully')
+                    }}
                   />
                 )}
               </div>

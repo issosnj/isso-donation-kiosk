@@ -107,14 +107,31 @@ export class TemplesController {
     return this.templesService.remove(id);
   }
 
-  // Helper function to convert Google Drive share link to direct download link
+  // Helper function to convert Google Drive share link to direct view link (for images)
   private convertGoogleDriveLink(url: string): string {
-    // Pattern: https://drive.google.com/file/d/{FILE_ID}/view?usp=sharing
-    const driveFileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (driveFileIdMatch) {
-      const fileId = driveFileIdMatch[1];
-      return `https://drive.google.com/uc?export=download&id=${fileId}`;
+    let fileId: string | null = null;
+    
+    // Pattern 1: https://drive.google.com/file/d/{FILE_ID}/view?usp=sharing
+    const shareLinkMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (shareLinkMatch) {
+      fileId = shareLinkMatch[1];
     }
+    
+    // Pattern 2: Already a direct link like https://drive.google.com/uc?export=download&id={FILE_ID}
+    // or https://drive.google.com/uc?export=view&id={FILE_ID}
+    if (!fileId) {
+      const directLinkMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (directLinkMatch) {
+        fileId = directLinkMatch[1];
+      }
+    }
+    
+    if (fileId) {
+      // Use 'view' instead of 'download' for images - this works better for image previews
+      // and avoids the "virus scan warning" page that Google Drive shows for downloads
+      return `https://drive.google.com/uc?export=view&id=${fileId}`;
+    }
+    
     // Return original URL if it doesn't match Google Drive pattern
     return url;
   }
@@ -247,9 +264,9 @@ export class TemplesController {
       throw new BadRequestException('Invalid URL format');
     }
 
-    // Convert Google Drive share links to direct download links
+    // Convert Google Drive share links or direct download links to direct view links (for images)
     let imageUrl = body.url.trim();
-    if (imageUrl.includes('drive.google.com/file/d/')) {
+    if (imageUrl.includes('drive.google.com')) {
       imageUrl = this.convertGoogleDriveLink(imageUrl);
     }
 
