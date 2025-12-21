@@ -20,6 +20,10 @@ struct ModernDonationDetailsView: View {
     @FocusState private var phoneFocused: Bool
     @FocusState private var emailFocused: Bool
     @FocusState private var addressFocused: Bool
+    @State private var showingPhoneKeypad = false
+    @State private var showingNameKeypad = false
+    @State private var showingEmailKeypad = false
+    @State private var showingAddressKeypad = false
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
     
@@ -358,31 +362,33 @@ struct ModernDonationDetailsView: View {
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
-                                HStack(spacing: 12) {
-                                    Image(systemName: "person.fill")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                        .frame(width: 24)
-                                    
-                                    TextField("Enter your name", text: $donorName)
-                                        .focused($nameFocused)
-                                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                        .foregroundColor(detailsTextColor)
-                                }
-                                .padding(16)
-                                .background(Color.white.opacity(0.6))
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(
-                                            nameFocused 
-                                                ? detailsInputFocusColor
-                                                : (category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty
+                                Button(action: {
+                                    showingNameKeypad = true
+                                }) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                            .frame(width: 24)
+                                        
+                                        Text(donorName.isEmpty ? "Enter your name" : donorName)
+                                            .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                            .foregroundColor(donorName.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .padding(16)
+                                    .background(Color.white.opacity(0.6))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(
+                                                (category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty
                                                     ? Color.red.opacity(0.5)
                                                     : Color.white.opacity(0.3)),
-                                            lineWidth: nameFocused ? 2 : 1
-                                        )
-                                )
+                                                lineWidth: 1
+                                            )
+                                    )
+                                }
                             }
                             
                             // Phone field with icon
@@ -391,32 +397,33 @@ struct ModernDonationDetailsView: View {
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
-                                HStack(spacing: 12) {
-                                    Image(systemName: "phone.fill")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                        .frame(width: 24)
-                                    
-                                    TextField("Enter your phone number", text: $donorPhone)
-                                        .focused($phoneFocused)
-                                        .keyboardType(.phonePad)
-                                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                        .foregroundColor(detailsTextColor)
-                                }
-                                .padding(16)
-                                .background(Color.white.opacity(0.6))
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(
-                                            phoneFocused 
-                                                ? detailsInputFocusColor
-                                                : (category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty
+                                Button(action: {
+                                    showingPhoneKeypad = true
+                                }) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "phone.fill")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                            .frame(width: 24)
+                                        
+                                        Text(donorPhone.isEmpty ? "Enter your phone number" : formatPhoneDisplay(donorPhone))
+                                            .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                            .foregroundColor(donorPhone.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .padding(16)
+                                    .background(Color.white.opacity(0.6))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(
+                                                (category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty
                                                     ? Color.red.opacity(0.5)
                                                     : Color.white.opacity(0.3)),
-                                            lineWidth: phoneFocused ? 2 : 1
-                                        )
-                                )
+                                                lineWidth: 1
+                                            )
+                                    )
+                                }
                             }
                             
                             // Email field with icon
@@ -425,31 +432,31 @@ struct ModernDonationDetailsView: View {
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
-                                HStack(spacing: 12) {
-                                    Image(systemName: "envelope.fill")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                        .frame(width: 24)
-                                    
-                                    TextField("Enter your email", text: $donorEmail)
-                                        .focused($emailFocused)
-                                        .keyboardType(.emailAddress)
-                                        .autocapitalization(.none)
-                                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                        .foregroundColor(detailsTextColor)
+                                Button(action: {
+                                    showingEmailKeypad = true
+                                }) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "envelope.fill")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                            .frame(width: 24)
+                                        
+                                        Text(donorEmail.isEmpty ? "Enter your email" : donorEmail)
+                                            .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                            .foregroundColor(donorEmail.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .padding(16)
+                                    .background(Color.white.opacity(0.6))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(
+                                                Color.white.opacity(0.3),
+                                                lineWidth: 1
+                                            )
+                                    )
                                 }
-                                .padding(16)
-                                .background(Color.white.opacity(0.6))
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(
-                                            emailFocused 
-                                                ? detailsInputFocusColor
-                                                : Color.white.opacity(0.3),
-                                            lineWidth: emailFocused ? 2 : 1
-                                        )
-                                )
                             }
                             
                             // Address field with icon and autocomplete
@@ -459,39 +466,31 @@ struct ModernDonationDetailsView: View {
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
                                 ZStack(alignment: .topLeading) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "map.fill")
-                                            .font(.system(size: 18))
-                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                            .frame(width: 24)
-                                        
-                                        TextField("Enter your mailing address", text: $donorAddress)
-                                            .focused($addressFocused)
-                                            .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                            .foregroundColor(detailsTextColor)
-                                            .onChange(of: donorAddress) { newValue in
-                                                if newValue.count >= 3 {
-                                                    Task {
-                                                        await searchAddresses(input: newValue)
-                                                    }
-                                                } else {
-                                                    addressSuggestions = []
-                                                    showAddressSuggestions = false
-                                                }
-                                            }
+                                    Button(action: {
+                                        showingAddressKeypad = true
+                                    }) {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "map.fill")
+                                                .font(.system(size: 18))
+                                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                                .frame(width: 24)
+                                            
+                                            Text(donorAddress.isEmpty ? "Enter your mailing address" : donorAddress)
+                                                .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                                                .foregroundColor(donorAddress.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                        .padding(16)
+                                        .background(Color.white.opacity(0.6))
+                                        .cornerRadius(12)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(
+                                                    Color.white.opacity(0.3),
+                                                    lineWidth: 1
+                                                )
+                                        )
                                     }
-                                    .padding(16)
-                                    .background(Color.white.opacity(0.6))
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(
-                                                addressFocused 
-                                                    ? detailsInputFocusColor
-                                                    : Color.white.opacity(0.3),
-                                                lineWidth: addressFocused ? 2 : 1
-                                            )
-                                    )
                                     
                                     // Address suggestions dropdown
                                     if showAddressSuggestions && !addressSuggestions.isEmpty && addressFocused {
@@ -621,6 +620,26 @@ struct ModernDonationDetailsView: View {
                         .padding(.top, 20)
                 }
                 Spacer()
+            }
+        }
+        .sheet(isPresented: $showingPhoneKeypad) {
+            PhoneNumberKeypadView(phoneNumber: $donorPhone) {
+                showingPhoneKeypad = false
+            }
+        }
+        .sheet(isPresented: $showingNameKeypad) {
+            NameKeypadView(name: $donorName) {
+                showingNameKeypad = false
+            }
+        }
+        .sheet(isPresented: $showingEmailKeypad) {
+            EmailKeypadView(email: $donorEmail) {
+                showingEmailKeypad = false
+            }
+        }
+        .sheet(isPresented: $showingAddressKeypad) {
+            AddressKeypadView(address: $donorAddress) {
+                showingAddressKeypad = false
             }
         }
         .sheet(isPresented: $showingYajmanOpportunities) {
@@ -755,6 +774,26 @@ struct ModernDonationDetailsView: View {
                 addressFocused = false
                 addressSessionToken = nil
             }
+        }
+    }
+    
+    private func formatPhoneDisplay(_ phone: String) -> String {
+        let digits = phone.filter { $0.isNumber }
+        if digits.isEmpty {
+            return ""
+        }
+        
+        if digits.count <= 3 {
+            return "(\(digits)"
+        } else if digits.count <= 6 {
+            let areaCode = String(digits.prefix(3))
+            let firstPart = String(digits.dropFirst(3))
+            return "(\(areaCode)) \(firstPart)"
+        } else {
+            let areaCode = String(digits.prefix(3))
+            let firstPart = String(digits.dropFirst(3).prefix(3))
+            let lastPart = String(digits.dropFirst(6))
+            return "(\(areaCode)) \(firstPart)-\(lastPart)"
         }
     }
 }
