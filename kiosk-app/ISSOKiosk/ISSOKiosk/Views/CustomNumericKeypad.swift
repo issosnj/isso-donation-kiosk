@@ -5,96 +5,53 @@ struct CustomNumericKeypad: View {
     let onDismiss: () -> Void
     
     var body: some View {
-        HStack(spacing: 0) {
-            // Keypad on the left
-            VStack(spacing: 12) {
-                // Row 1: 1, 2, 3
-                HStack(spacing: 12) {
-                    KeypadButton(number: "1", amount: $amount, showLetters: false)
-                    KeypadButton(number: "2", amount: $amount, showLetters: true, letters: "ABC")
-                    KeypadButton(number: "3", amount: $amount, showLetters: true, letters: "DEF")
-                }
-                
-                // Row 2: 4, 5, 6
-                HStack(spacing: 12) {
-                    KeypadButton(number: "4", amount: $amount, showLetters: true, letters: "GHI")
-                    KeypadButton(number: "5", amount: $amount, showLetters: true, letters: "JKL")
-                    KeypadButton(number: "6", amount: $amount, showLetters: true, letters: "MNO")
-                }
-                
-                // Row 3: 7, 8, 9
-                HStack(spacing: 12) {
-                    KeypadButton(number: "7", amount: $amount, showLetters: true, letters: "PQRS")
-                    KeypadButton(number: "8", amount: $amount, showLetters: true, letters: "TUV")
-                    KeypadButton(number: "9", amount: $amount, showLetters: true, letters: "WXYZ")
-                }
-                
-                // Row 4: ., 0, Delete
-                HStack(spacing: 12) {
-                    KeypadButton(number: ".", amount: $amount, isDecimal: true, showLetters: false)
-                    KeypadButton(number: "0", amount: $amount, showLetters: false)
-                    KeypadDeleteButton(amount: $amount)
-                }
+        VStack(spacing: 12) {
+            // Row 1: 1, 2, 3
+            HStack(spacing: 12) {
+                KeypadButton(number: "1", amount: $amount, showLetters: false)
+                KeypadButton(number: "2", amount: $amount, showLetters: true, letters: "ABC")
+                KeypadButton(number: "3", amount: $amount, showLetters: true, letters: "DEF")
             }
-            .padding(16)
-            .frame(width: 320)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(red: 0.85, green: 0.75, blue: 0.55)) // Golden/bronze background
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color(red: 0.7, green: 0.6, blue: 0.4), lineWidth: 3) // Darker gold border
-                    )
-            )
             
-            // Input field on the right
-            VStack {
-                Spacer()
-                HStack {
-                    Text("$")
-                        .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                        .padding(.leading, 16)
-                    
-                    if amount.isEmpty {
-                        Text("Custom Amount")
-                            .font(.custom("Inter-Regular", size: 20))
-                            .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.65))
-                    } else {
-                        Text(amount)
-                            .font(.custom("Inter-Regular", size: 24))
-                            .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
-                    }
-                    
-                    Spacer()
-                }
-                .frame(height: 60)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(red: 0.98, green: 0.97, blue: 0.95)) // Cream/white interior
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color(red: 0.85, green: 0.75, blue: 0.55), lineWidth: 2) // Light gold border
-                        )
-                )
-                .padding(.horizontal, 20)
-                Spacer()
+            // Row 2: 4, 5, 6
+            HStack(spacing: 12) {
+                KeypadButton(number: "4", amount: $amount, showLetters: true, letters: "GHI")
+                KeypadButton(number: "5", amount: $amount, showLetters: true, letters: "JKL")
+                KeypadButton(number: "6", amount: $amount, showLetters: true, letters: "MNO")
             }
-            .frame(maxWidth: .infinity)
+            
+            // Row 3: 7, 8, 9
+            HStack(spacing: 12) {
+                KeypadButton(number: "7", amount: $amount, showLetters: true, letters: "PQRS")
+                KeypadButton(number: "8", amount: $amount, showLetters: true, letters: "TUV")
+                KeypadButton(number: "9", amount: $amount, showLetters: true, letters: "WXYZ")
+            }
+            
+            // Row 4: ., 0, Delete
+            HStack(spacing: 12) {
+                KeypadButton(number: ".", amount: $amount, isDecimal: true, showLetters: false)
+                KeypadButton(number: "0", amount: $amount, showLetters: false)
+                KeypadDeleteButton(amount: $amount)
+            }
         }
-        .frame(height: 400)
+        .padding(16)
+        .frame(width: 320)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white.opacity(0.95))
-                .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(red: 0.85, green: 0.75, blue: 0.55)) // Golden/bronze background
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color(red: 0.7, green: 0.6, blue: 0.4), lineWidth: 3) // Darker gold border
+                )
         )
         .overlay(alignment: .topTrailing) {
             Button(action: onDismiss) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
+                    .background(Circle().fill(Color.white))
             }
-            .padding(12)
+            .padding(8)
         }
     }
 }
