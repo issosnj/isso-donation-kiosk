@@ -339,67 +339,67 @@ export class ReceiptPdfService {
         const totalEstimatedHeight = currentY + estimatedRemainingHeight;
         const scaleFactor = totalEstimatedHeight > maxContentHeight ? Math.max(0.7, maxContentHeight / totalEstimatedHeight) : 1;
         
-        // Transaction Details Table - Very compact with scaling
+        // Transaction Details Table - Better sizing and spacing with scaling
         const tableTop = currentY;
         const tableLeft = margin;
         const tableWidth = contentWidth;
-        const col1Width = tableWidth * 0.7;
-        const col2Width = tableWidth * 0.3;
+        const col1Width = tableWidth * 0.6;
+        const col2Width = tableWidth * 0.4;
         
-        // Table Header
-        doc.fontSize(8 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');
+        // Table Header - Larger fonts
+        doc.fontSize(11 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');
         doc.text('Particulars', tableLeft, tableTop);
         doc.text('Amount ($)', tableLeft + col1Width, tableTop, { width: col2Width, align: 'right' });
         
         // Draw header line
-        const headerLineY = tableTop + (9 * scaleFactor);
+        const headerLineY = tableTop + (13 * scaleFactor);
         doc.moveTo(tableLeft, headerLineY).lineTo(tableLeft + tableWidth, headerLineY).lineWidth(2).stroke();
-        currentY = headerLineY + (2 * scaleFactor);
+        currentY = headerLineY + (4 * scaleFactor);
         
-        // Table Row
-        doc.fontSize(8 * scaleFactor).font('Helvetica').fillColor('#000000');
+        // Table Row - Larger fonts for donation type and amount
+        doc.fontSize(11 * scaleFactor).font('Helvetica').fillColor('#000000');
         // Show category name if category was selected, otherwise show "Donation" for preset amounts
         doc.text(donation.category?.name || 'Donation', tableLeft, currentY);
         doc.text(amount.toFixed(2), tableLeft + col1Width, currentY, { width: col2Width, align: 'right' });
-        currentY += (12 * scaleFactor);
+        currentY += (16 * scaleFactor);
         
         // Draw row line
         doc.moveTo(tableLeft, currentY).lineTo(tableLeft + tableWidth, currentY).stroke();
-        currentY += (2 * scaleFactor);
+        currentY += (4 * scaleFactor);
         
-        // Total Row
-        doc.fontSize(8 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');
+        // Total Row - Larger and more prominent
+        doc.fontSize(12 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');
         doc.moveTo(tableLeft, currentY).lineTo(tableLeft + tableWidth, currentY).lineWidth(2).stroke();
-        currentY += (2 * scaleFactor);
+        currentY += (4 * scaleFactor);
         doc.text('Total', tableLeft, currentY);
         doc.text(`$${amount.toFixed(2)}`, tableLeft + col1Width, currentY, { width: col2Width, align: 'right' });
-        currentY += (15 * scaleFactor);
+        currentY += (20 * scaleFactor);
 
-        // Amount in Words - Very compact with scaling
+        // Amount in Words - Better sizing with scaling
         if (amountInWords) {
-          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text('Amount in Words:', margin, currentY);
-          currentY += (11 * scaleFactor);
-          doc.fontSize(10 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');
+          doc.fontSize(10 * scaleFactor).font('Helvetica').fillColor('#666666').text('Amount in Words:', margin, currentY);
+          currentY += (13 * scaleFactor);
+          doc.fontSize(11 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');
           const wordsText = amountInWords.charAt(0).toUpperCase() + amountInWords.slice(1);
           doc.text(wordsText, margin, currentY);
-          currentY += (15 * scaleFactor);
+          currentY += (18 * scaleFactor);
         }
 
-        // Payment Method - Very compact with scaling
+        // Payment Method - Better sizing with scaling
         if (receiptConfig.showPaymentMethod !== false) {
-          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text('Payment Method: Paid by Square', margin, currentY);
-          currentY += (11 * scaleFactor);
+          doc.fontSize(10 * scaleFactor).font('Helvetica').fillColor('#666666').text('Payment Method: Paid by Square', margin, currentY);
+          currentY += (13 * scaleFactor);
           
           if (donation.cardType && donation.cardLast4) {
-            doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text(`Card: ${donation.cardType} ending in ${donation.cardLast4}`, margin, currentY);
-            currentY += (11 * scaleFactor);
+            doc.fontSize(10 * scaleFactor).font('Helvetica').fillColor('#666666').text(`Card: ${donation.cardType.toUpperCase()} ending in ${donation.cardLast4}`, margin, currentY);
+            currentY += (13 * scaleFactor);
           }
           
           if (receiptConfig.showPreparedBy && receiptConfig.preparedBy) {
-            doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text(`Prepared by: ${receiptConfig.preparedBy}`, margin, currentY);
-            currentY += (11 * scaleFactor);
+            doc.fontSize(10 * scaleFactor).font('Helvetica').fillColor('#666666').text(`Prepared by: ${receiptConfig.preparedBy}`, margin, currentY);
+            currentY += (13 * scaleFactor);
           }
-          currentY += (5 * scaleFactor);
+          currentY += (8 * scaleFactor);
         }
 
         // Custom Message - Very compact with scaling
