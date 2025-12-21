@@ -68,6 +68,27 @@ struct DonationHomeView: View {
         return Color(red: r, green: g, blue: b)
     }
     
+    // Get button colors from kioskTheme.colors, fallback to homeScreenConfig.buttonColors for backward compatibility
+    var categorySelectedColor: String {
+        appState.temple?.kioskTheme?.colors?.categorySelectedColor ?? 
+        appState.temple?.homeScreenConfig?.buttonColors?.categorySelected ?? "#3366CC"
+    }
+    
+    var categoryUnselectedColor: String {
+        appState.temple?.kioskTheme?.colors?.categoryUnselectedColor ?? 
+        appState.temple?.homeScreenConfig?.buttonColors?.categoryUnselected ?? "#3366CC"
+    }
+    
+    var amountSelectedColor: String {
+        appState.temple?.kioskTheme?.colors?.amountSelectedColor ?? 
+        appState.temple?.homeScreenConfig?.buttonColors?.amountSelected ?? "#3366CC"
+    }
+    
+    var amountUnselectedColor: String {
+        appState.temple?.kioskTheme?.colors?.amountUnselectedColor ?? 
+        appState.temple?.homeScreenConfig?.buttonColors?.amountUnselected ?? "#3366CC"
+    }
+    
     // Get colors with defaults (Color values)
     var categorySelectedColorValue: Color {
         // Default to red for selected category if not configured
