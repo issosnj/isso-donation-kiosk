@@ -117,10 +117,12 @@ class AppState: ObservableObject {
         do {
             // Create request with cache policy to bypass cache if force reload
             var request = URLRequest(url: url)
+            request.timeoutInterval = 10.0 // 10 second timeout to prevent hanging
             if forceReload {
                 request.cachePolicy = .reloadIgnoringLocalCacheData
             }
             
+            // Use URLSession with timeout to prevent hanging on slow/failed requests
             let (data, response) = try await URLSession.shared.data(for: request)
             
             // Log response details for debugging
