@@ -7,6 +7,8 @@ import { ReceiptGeneratorService } from './receipt-generator.service';
 
 @Injectable()
 export class ReceiptPdfService {
+  constructor(private receiptGeneratorService: ReceiptGeneratorService) {}
+
   generateReceiptPdf(donation: Donation, temple: Temple): Buffer {
     const doc = new PDFDocument({ margin: 50 });
     const buffers: Buffer[] = [];
