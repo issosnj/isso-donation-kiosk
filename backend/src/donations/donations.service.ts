@@ -8,6 +8,7 @@ import { TemplesService } from '../temples/temples.service';
 import { GmailService } from '../gmail/gmail.service';
 import { SquareService } from '../square/square.service';
 import { ReceiptPdfService } from './receipt-pdf.service';
+import { formatAmountInWords } from './receipt-helpers';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
@@ -686,88 +687,191 @@ export class DonationsService {
       const fromEmail = receiptConfig.fromEmail || temple.gmailEmail || 'donations@temple.org';
       const fromName = receiptConfig.fromName || temple.name;
       const subject = receiptConfig.subject?.replace('{{templeName}}', temple.name) || `Donation Receipt - ${temple.name}`;
-      const headerText = receiptConfig.headerText || 'Thank You for Your Donation';
-      const footerText = receiptConfig.footerText || 'Your donation helps support our temple';
-      const customMessage = receiptConfig.customMessage || '';
+      
+      const amount = Number(donation.amount);
+      const amountInWords = formatAmountInWords(amount, receiptConfig.showAmountInWords !== false);
+      const receiptNumber = donation.receiptNumber || donation.id.substring(0, 8).toUpperCase();
+      const donationDate = new Date(donation.createdAt).toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+      });
 
-      // Build receipt HTML
+      // Build receipt HTML matching ReceiptView format exactly
       const receiptHtml = `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #4a5568; color: white; padding: 20px; text-align: center; }
-            .content { background-color: #f7fafc; padding: 30px; }
-            .receipt-details { background-color: white; padding: 20px; margin: 20px 0; border-radius: 5px; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
-            .detail-row:last-child { border-bottom: none; }
-            .label { font-weight: bold; color: #4a5568; }
-            .value { color: #2d3748; }
-            .amount { font-size: 24px; font-weight: bold; color: #38a169; }
-            .footer { text-align: center; padding: 20px; color: #718096; font-size: 14px; }
-            ${receiptConfig.taxId ? '.tax-id { margin-top: 20px; padding-top: 20px; border-top: 2px solid #e2e8f0; }' : ''}
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f9fafb; }
+            .receipt-container { max-width: 800px; margin: 0 auto; background-color: white; padding: 32px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .header-section { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+            .logo-section { flex-shrink: 0; }
+            .logo-section img { width: 96px; height: 96px; object-fit: contain; }
+            .header-center { flex: 1; text-align: center; }
+            .header-center h1 { font-size: 24px; font-weight: bold; margin-bottom: 8px; margin-top: 0; }
+            .header-center h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; margin-top: 0; }
+            .header-center p { font-size: 14px; color: #666; margin: 4px 0; }
+            .header-right { flex-shrink: 0; width: 96px; }
+            .receipt-number-date { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb; }
+            .receipt-number-date div { }
+            .receipt-number-date p { margin: 4px 0; }
+            .receipt-number-date .label { font-size: 14px; color: #666; }
+            .receipt-number-date .value { font-size: 18px; font-weight: 600; }
+            .received-from { margin-bottom: 24px; }
+            .received-from .label { font-size: 14px; color: #666; margin-bottom: 4px; }
+            .received-from .name { font-size: 16px; font-weight: 600; }
+            .received-from .contact { font-size: 14px; color: #666; margin-top: 4px; }
+            .transaction-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+            .transaction-table thead tr { border-bottom: 2px solid #1f2937; }
+            .transaction-table th { text-align: left; padding: 8px 16px; font-weight: 600; }
+            .transaction-table th.amount-header { text-align: right; }
+            .transaction-table tbody tr { border-bottom: 1px solid #d1d5db; }
+            .transaction-table td { padding: 8px 16px; }
+            .transaction-table td.amount-cell { text-align: right; }
+            .transaction-table .total-row { border-top: 2px solid #1f2937; font-weight: 600; }
+            .amount-in-words { margin-bottom: 24px; }
+            .amount-in-words .label { font-size: 14px; color: #666; margin-bottom: 4px; }
+            .amount-in-words .value { font-size: 16px; font-weight: 600; text-transform: capitalize; }
+            .payment-method { margin-bottom: 24px; }
+            .payment-method p { font-size: 14px; color: #666; margin: 4px 0; }
+            .custom-message { margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 4px; }
+            .custom-message p { font-size: 14px; margin: 0; }
+            .thank-you { margin-bottom: 24px; }
+            .thank-you p { font-size: 14px; text-align: center; }
+            .footer-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+            .footer-section p { font-size: 14px; text-align: center; color: #666; margin: 8px 0; }
+            .footer-section .tax-exempt { font-size: 12px; color: #666; }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="header">
-              <h1>${headerText}</h1>
-            </div>
-            <div class="content">
-              ${donation.donorName ? `<p>Dear ${donation.donorName},</p>` : '<p>Dear Donor,</p>'}
-              ${customMessage ? `<p>${customMessage}</p>` : ''}
-              <div class="receipt-details">
-                <h2>Donation Receipt</h2>
-                <div class="detail-row">
-                  <span class="label">Temple:</span>
-                  <span class="value">${temple.name}</span>
-                </div>
-                ${temple.address ? `
-                <div class="detail-row">
-                  <span class="label">Address:</span>
-                  <span class="value">${temple.address}</span>
-                </div>
-                ` : ''}
-                <div class="detail-row">
-                  <span class="label">Donation Date:</span>
-                  <span class="value">${new Date(donation.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                </div>
-                ${donation.receiptNumber ? `
-                <div class="detail-row">
-                  <span class="label">Receipt Number:</span>
-                  <span class="value" style="font-weight: bold; font-size: 18px; color: #2d3748;">${donation.receiptNumber}</span>
-                </div>
-                ` : ''}
-                <div class="detail-row">
-                  <span class="label">Donation ID:</span>
-                  <span class="value">${donation.id}</span>
-                </div>
-                ${donation.category ? `
-                <div class="detail-row">
-                  <span class="label">Category:</span>
-                  <span class="value">${donation.category.name}</span>
-                </div>
-                ` : ''}
-                <div class="detail-row">
-                  <span class="label">Amount:</span>
-                  <span class="value amount">$${Number(donation.amount).toFixed(2)}</span>
-                </div>
-                ${receiptConfig.includeTaxId && receiptConfig.taxId ? `
-                <div class="tax-id">
-                  <div class="detail-row">
-                    <span class="label">Tax ID (EIN):</span>
-                    <span class="value">${receiptConfig.taxId}</span>
-                  </div>
+          <div class="receipt-container">
+            <!-- Header -->
+            <div class="header-section">
+              ${receiptConfig.logoUrl ? `
+              <div class="logo-section">
+                <img src="${receiptConfig.logoUrl}" alt="Logo" />
+              </div>
+              ` : '<div class="logo-section"></div>'}
+              <div class="header-center">
+                ${receiptConfig.headerTitle ? `<h1>${receiptConfig.headerTitle}</h1>` : ''}
+                ${receiptConfig.organizationName ? `<h2>${receiptConfig.organizationName}</h2>` : ''}
+                ${receiptConfig.organizationSubtitle ? `<p>${receiptConfig.organizationSubtitle}</p>` : ''}
+                ${temple.address ? `<p>${temple.address}</p>` : ''}
+                ${receiptConfig.showContactInfo !== false ? `
+                <div style="font-size: 14px; color: #666; margin-top: 8px;">
+                  ${receiptConfig.phone && receiptConfig.phone.trim() ? `<span>Phone: ${receiptConfig.phone}</span>` : ''}
+                  ${receiptConfig.phone && receiptConfig.phone.trim() && receiptConfig.email && receiptConfig.email.trim() ? '<span> | </span>' : ''}
+                  ${receiptConfig.email && receiptConfig.email.trim() ? `<span>Email: ${receiptConfig.email}</span>` : ''}
+                  ${receiptConfig.website && receiptConfig.website.trim() ? `
+                    ${((receiptConfig.phone && receiptConfig.phone.trim()) || (receiptConfig.email && receiptConfig.email.trim())) ? '<span> | </span>' : ''}
+                    <span>Visit: ${receiptConfig.website}</span>
+                  ` : ''}
+                  ${(!receiptConfig.phone || !receiptConfig.phone.trim()) && (!receiptConfig.email || !receiptConfig.email.trim()) && (!receiptConfig.website || !receiptConfig.website.trim()) ? `
+                    <span style="color: #9ca3af; font-style: italic;">No contact information provided</span>
+                  ` : ''}
                 </div>
                 ` : ''}
               </div>
-              <p>${footerText}</p>
+              <div class="header-right"></div>
             </div>
-            <div class="footer">
-              <p>This is an automated receipt. Please keep this for your records.</p>
+
+            <!-- Receipt Number and Date -->
+            <div class="receipt-number-date">
+              <div>
+                <p class="label">Receipt No:</p>
+                <p class="value">${receiptNumber}</p>
+              </div>
+              <div style="text-align: right;">
+                <p class="label">Date:</p>
+                <p class="value">${donationDate}</p>
+              </div>
+            </div>
+
+            <!-- Recipient Information -->
+            <div class="received-from">
+              <p class="label">Received From:</p>
+              <p class="name">${donation.donorName || 'Anonymous'}</p>
+              ${donation.donorName && donation.donorPhone ? `
+              <p class="contact">
+                ${donation.donorPhone}
+                ${donation.donorEmail ? ` | ${donation.donorEmail}` : ''}
+              </p>
+              ` : ''}
+            </div>
+
+            <!-- Transaction Details Table -->
+            <table class="transaction-table">
+              <thead>
+                <tr>
+                  <th>Particulars</th>
+                  <th class="amount-header">Amount ($)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${donation.category?.name || 'Donation/Aarti'}</td>
+                  <td class="amount-cell">${amount.toFixed(2)}</td>
+                </tr>
+                <tr class="total-row">
+                  <td>Total</td>
+                  <td class="amount-cell">$${amount.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Amount in Words -->
+            ${amountInWords ? `
+            <div class="amount-in-words">
+              <p class="label">Amount in Words:</p>
+              <p class="value">${amountInWords}</p>
+            </div>
+            ` : ''}
+
+            <!-- Payment Method -->
+            ${receiptConfig.showPaymentMethod !== false ? `
+            <div class="payment-method">
+              <p>Payment Method: Paid by Square</p>
+              ${donation.cardType && donation.cardLast4 ? `
+              <p>Card: ${donation.cardType} ending in ${donation.cardLast4}</p>
+              ` : ''}
+              ${receiptConfig.showPreparedBy && receiptConfig.preparedBy ? `
+              <p>Prepared by: ${receiptConfig.preparedBy}</p>
+              ` : ''}
+            </div>
+            ` : ''}
+
+            <!-- Custom Message -->
+            ${receiptConfig.customMessage ? `
+            <div class="custom-message">
+              <p>${receiptConfig.customMessage}</p>
+            </div>
+            ` : ''}
+
+            <!-- Thank You Message -->
+            ${receiptConfig.thankYouMessage ? `
+            <div class="thank-you">
+              <p>${receiptConfig.thankYouMessage}</p>
+            </div>
+            ` : ''}
+
+            <!-- Footer -->
+            <div class="footer-section">
+              ${receiptConfig.footerText ? `
+              <p>${receiptConfig.footerText}</p>
+              ` : ''}
+              
+              <!-- Tax Exempt Information -->
+              ${receiptConfig.includeTaxId && receiptConfig.taxId ? `
+              <p class="tax-exempt">
+                ${receiptConfig.organizationName || 'This organization'} (EIN#${receiptConfig.taxId}) is recognized by IRS as 501(c)(3) tax exempt organization
+                ${receiptConfig.website ? `, please visit us at ${receiptConfig.website}` : ''}
+              </p>
+              ` : ''}
+              ${receiptConfig.taxExemptMessage ? `
+              <p class="tax-exempt">${receiptConfig.taxExemptMessage}</p>
+              ` : ''}
             </div>
           </div>
         </body>
