@@ -59,6 +59,8 @@ export default function ThemeTab() {
       quantityTotalSpacing: 24,
       donationSelectionPageLeftPadding: 40,
       donationSelectionPageRightPadding: 40,
+      customAmountKeypadX: 0,
+      customAmountKeypadY: 0,
       // Donation Details Page Layout
       detailsPageHorizontalSpacing: 40,
       detailsPageSidePadding: 60,

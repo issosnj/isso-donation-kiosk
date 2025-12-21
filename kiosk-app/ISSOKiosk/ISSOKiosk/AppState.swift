@@ -566,6 +566,8 @@ struct ThemeLayout: Codable, Equatable {
     let quantityTotalSpacing: Double?
     let donationSelectionPageLeftPadding: Double?
     let donationSelectionPageRightPadding: Double?
+    let customAmountKeypadX: Double?
+    let customAmountKeypadY: Double?
     // Donation Details Page Layout
     let detailsPageHorizontalSpacing: Double?
     let detailsPageSidePadding: Double?

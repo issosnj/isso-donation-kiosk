@@ -179,6 +179,14 @@ struct DonationHomeView: View {
         CGFloat(theme?.layout?.donationSelectionPageRightPadding ?? 40)
     }
     
+    var customAmountKeypadX: CGFloat {
+        CGFloat(theme?.layout?.customAmountKeypadX ?? 0)
+    }
+    
+    var customAmountKeypadY: CGFloat {
+        CGFloat(theme?.layout?.customAmountKeypadY ?? 0)
+    }
+    
     var buttonSpacing: CGFloat {
         CGFloat(theme?.layout?.buttonSpacing ?? 12)
     }

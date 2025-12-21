@@ -125,7 +125,7 @@ struct KeypadDeleteButton: View {
                 amount.removeLast()
             }
         }) {
-            Image(systemName: "xmark")
+            Image(systemName: "delete.backward.fill")
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
                 .frame(maxWidth: .infinity)

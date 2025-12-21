@@ -127,6 +127,8 @@ export class Temple {
       quantityTotalSpacing?: number; // Spacing between quantity and total when category selected (e.g., 24)
       donationSelectionPageLeftPadding?: number; // Left padding for donation selection page (e.g., 40)
       donationSelectionPageRightPadding?: number; // Right padding for donation selection page (e.g., 40)
+      customAmountKeypadX?: number; // X position of custom amount keypad (e.g., 0)
+      customAmountKeypadY?: number; // Y position of custom amount keypad (e.g., 0)
       // Donation Details Page Layout
       detailsPageHorizontalSpacing?: number; // Spacing between left and right sections (e.g., 40)
       detailsPageSidePadding?: number; // Padding on left/right sides (e.g., 60)
