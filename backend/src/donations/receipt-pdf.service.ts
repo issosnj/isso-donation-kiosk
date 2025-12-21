@@ -5,9 +5,41 @@ import { Temple } from '../temples/entities/temple.entity';
 import { formatAmountInWords } from './receipt-helpers';
 import { ReceiptGeneratorService } from './receipt-generator.service';
 
+interface ReceiptData {
+  receiptConfig: any;
+  amount: number;
+  amountInWords: string;
+  receiptNumber: string;
+  donationDate: string;
+}
+
 @Injectable()
 export class ReceiptPdfService {
   constructor(private receiptGeneratorService: ReceiptGeneratorService) {}
+
+  /**
+   * Gets receipt data using the same logic as ReceiptGeneratorService
+   * This ensures PDF uses the exact same data as HTML receipt
+   */
+  private getReceiptData(donation: Donation, temple: Temple): ReceiptData {
+    const receiptConfig = temple.receiptConfig || {};
+    const amount = Number(donation.amount);
+    const amountInWords = formatAmountInWords(amount, receiptConfig.showAmountInWords !== false);
+    const receiptNumber = donation.receiptNumber || donation.id.substring(0, 8).toUpperCase();
+    const donationDate = new Date(donation.createdAt).toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+    });
+
+    return {
+      receiptConfig,
+      amount,
+      amountInWords,
+      receiptNumber,
+      donationDate,
+    };
+  }
 
   generateReceiptPdf(donation: Donation, temple: Temple): Buffer {
     const doc = new PDFDocument({ margin: 50 });
@@ -146,15 +178,10 @@ export class ReceiptPdfService {
         });
         doc.on('error', reject);
 
-        const receiptConfig = temple.receiptConfig || {};
-        const amount = Number(donation.amount);
-        const amountInWords = formatAmountInWords(amount, receiptConfig.showAmountInWords !== false);
-        const receiptNumber = donation.receiptNumber || donation.id.substring(0, 8).toUpperCase();
-        const donationDate = new Date(donation.createdAt).toLocaleDateString('en-US', {
-          month: '2-digit',
-          day: '2-digit',
-          year: 'numeric',
-        });
+        // Use the same data extraction logic as ReceiptGeneratorService
+        // This ensures PDF matches HTML receipt exactly
+        const receiptData = this.getReceiptData(donation, temple);
+        const { receiptConfig, amount, amountInWords, receiptNumber, donationDate } = receiptData;
 
         const pageWidth = 612; // Letter size width in points
         const pageHeight = 792; // Letter size height in points
