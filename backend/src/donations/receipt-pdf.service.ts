@@ -230,37 +230,37 @@ export class ReceiptPdfService {
         // Header Center Content - Very compact font sizes
         // Calculate available width for header text (accounting for logo on left)
         // Ensure text doesn't extend beyond right margin
-        const headerTextLeft = logoX + logoSize + 15; // Start after logo
+        const logoRightEdge = logoX + logoSize;
+        const headerTextLeft = logoRightEdge + 10; // Start after logo with padding
         const headerTextRight = pageWidth - margin; // Right margin boundary
-        const headerTextWidth = headerTextRight - headerTextLeft; // Available width
-        const headerTextCenterX = headerTextLeft + (headerTextWidth / 2); // Center point within available space
+        const headerTextWidth = Math.max(0, headerTextRight - headerTextLeft); // Available width, ensure non-negative
         let headerY = currentY;
 
         if (receiptConfig.headerTitle) {
           doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000');
-          const titleHeight = doc.heightOfString(receiptConfig.headerTitle, { width: headerTextWidth, align: 'center' });
-          doc.text(receiptConfig.headerTitle, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+          const titleHeight = doc.heightOfString(receiptConfig.headerTitle, { width: headerTextWidth });
+          doc.text(receiptConfig.headerTitle, headerTextLeft, headerY, { width: headerTextWidth, align: 'left' });
           headerY += titleHeight + 3;
         }
 
         if (receiptConfig.organizationName) {
           doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
-          const orgHeight = doc.heightOfString(receiptConfig.organizationName, { width: headerTextWidth, align: 'center' });
-          doc.text(receiptConfig.organizationName, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+          const orgHeight = doc.heightOfString(receiptConfig.organizationName, { width: headerTextWidth });
+          doc.text(receiptConfig.organizationName, headerTextLeft, headerY, { width: headerTextWidth, align: 'left' });
           headerY += orgHeight + 1;
         }
 
         if (receiptConfig.organizationSubtitle) {
           doc.fontSize(9).font('Helvetica').fillColor('#666666');
-          const subtitleHeight = doc.heightOfString(receiptConfig.organizationSubtitle, { width: headerTextWidth, align: 'center' });
-          doc.text(receiptConfig.organizationSubtitle, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+          const subtitleHeight = doc.heightOfString(receiptConfig.organizationSubtitle, { width: headerTextWidth });
+          doc.text(receiptConfig.organizationSubtitle, headerTextLeft, headerY, { width: headerTextWidth, align: 'left' });
           headerY += subtitleHeight + 1;
         }
 
         if (temple.address) {
           doc.fontSize(9).font('Helvetica').fillColor('#666666');
-          const addressHeight = doc.heightOfString(temple.address, { width: headerTextWidth, align: 'center' });
-          doc.text(temple.address, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+          const addressHeight = doc.heightOfString(temple.address, { width: headerTextWidth });
+          doc.text(temple.address, headerTextLeft, headerY, { width: headerTextWidth, align: 'left' });
           headerY += addressHeight + 1;
         }
 
@@ -279,8 +279,8 @@ export class ReceiptPdfService {
           if (contactParts.length > 0) {
             doc.fontSize(9).font('Helvetica').fillColor('#666666');
             const contactText = contactParts.join(' | ');
-            const contactHeight = doc.heightOfString(contactText, { width: headerTextWidth, align: 'center' });
-            doc.text(contactText, headerTextLeft, headerY, { width: headerTextWidth, align: 'center' });
+            const contactHeight = doc.heightOfString(contactText, { width: headerTextWidth });
+            doc.text(contactText, headerTextLeft, headerY, { width: headerTextWidth, align: 'left' });
             headerY += contactHeight + 1;
           }
         }
