@@ -35,7 +35,7 @@ struct CustomNumericKeypad: View {
             }
         }
         .padding(16)
-        .frame(width: 320)
+        .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(red: 0.85, green: 0.75, blue: 0.55)) // Golden/bronze background
@@ -52,6 +52,9 @@ struct CustomNumericKeypad: View {
                     .background(Circle().fill(Color.white))
             }
             .padding(8)
+        }
+        .onTapGesture {
+            // Prevent taps on keypad from closing it
         }
     }
 }

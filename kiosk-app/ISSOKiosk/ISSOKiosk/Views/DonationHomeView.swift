@@ -210,28 +210,6 @@ struct DonationHomeView: View {
                 )
             }
         }
-        .overlay(alignment: .leading) {
-            if showingCustomAmountKeypad {
-                VStack {
-                    Spacer()
-                    HStack {
-                        CustomNumericKeypad(
-                            amount: $customAmount,
-                            onDismiss: {
-                                showingCustomAmountKeypad = false
-                                customAmountFocused = false
-                            }
-                        )
-                        .padding(.leading, 20)
-                        .padding(.bottom, 100)
-                        Spacer()
-                    }
-                }
-                .transition(.move(edge: .leading).combined(with: .opacity))
-                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showingCustomAmountKeypad)
-                .zIndex(1000)
-            }
-        }
         .fullScreenCover(isPresented: $showingDetails) {
             ModernDonationDetailsView(
                     amount: currentAmount,
