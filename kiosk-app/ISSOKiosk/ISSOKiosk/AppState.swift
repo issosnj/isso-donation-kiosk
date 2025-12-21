@@ -655,7 +655,7 @@ struct YajmanOpportunity: Codable, Identifiable {
     let description: String?
 }
 
-struct DonationCategory: Codable, Identifiable {
+struct DonationCategory: Codable, Identifiable, Equatable {
     let id: String
     let name: String
     let defaultAmount: Double?
