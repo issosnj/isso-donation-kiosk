@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import OverviewTab from './tabs/OverviewTab'
 import TemplesTab from './tabs/TemplesTab'
 import DonationsTab from './tabs/DonationsTab'
@@ -13,6 +14,17 @@ interface MasterDashboardProps {
 }
 
 export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
+  // Get templeId from URL if present (for viewing specific temple's donors)
+  const [templeId, setTempleId] = useState<string | undefined>(undefined)
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const templeIdParam = urlParams.get('templeId')
+      setTempleId(templeIdParam || undefined)
+    }
+  }, [])
+
   const renderTab = () => {
     switch (activeTab) {
       case 'overview':
@@ -21,6 +33,8 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
         return <TemplesTab />
       case 'donations':
         return <DonationsTab isMasterAdmin={true} />
+      case 'donors':
+        return <DonorsTab isMasterAdmin={true} templeId={templeId} />
       case 'users':
         return <UsersTab />
       case 'theme':
