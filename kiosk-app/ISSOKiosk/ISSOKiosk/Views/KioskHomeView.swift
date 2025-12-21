@@ -282,7 +282,6 @@ struct KioskHomeView: View {
                 
                 Spacer()
             }
-        }
     }
     
     var body: some View {
