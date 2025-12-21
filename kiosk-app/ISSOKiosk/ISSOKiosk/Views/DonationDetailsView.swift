@@ -690,6 +690,68 @@ struct ModernDonationDetailsView: View {
             print("[DonationDetailsView] Failed to lookup donor: \(error.localizedDescription)")
         }
     }
+    
+    private func searchAddresses(input: String) async {
+        guard input.count >= 3 else {
+            await MainActor.run {
+                addressSuggestions = []
+                showAddressSuggestions = false
+            }
+            return
+        }
+        
+        // Generate session token if not exists
+        if addressSessionToken == nil {
+            addressSessionToken = UUID().uuidString
+        }
+        
+        do {
+            let response = try await APIService.shared.autocompleteAddress(
+                input: input,
+                sessionToken: addressSessionToken
+            )
+            await MainActor.run {
+                addressSuggestions = response.predictions
+                showAddressSuggestions = !response.predictions.isEmpty
+            }
+        } catch {
+            // Silently fail - don't show error for autocomplete failures
+            print("[DonationDetailsView] Failed to autocomplete address: \(error.localizedDescription)")
+            await MainActor.run {
+                addressSuggestions = []
+                showAddressSuggestions = false
+            }
+        }
+    }
+    
+    private func selectAddress(suggestion: AddressPrediction) async {
+        do {
+            let details = try await APIService.shared.getPlaceDetails(
+                placeId: suggestion.place_id,
+                sessionToken: addressSessionToken
+            )
+            
+            await MainActor.run {
+                if let formattedAddress = details.formatted_address {
+                    donorAddress = formattedAddress
+                } else {
+                    donorAddress = suggestion.description
+                }
+                showAddressSuggestions = false
+                addressFocused = false
+                // Reset session token after selection
+                addressSessionToken = nil
+            }
+        } catch {
+            // Fallback to description if details fetch fails
+            await MainActor.run {
+                donorAddress = suggestion.description
+                showAddressSuggestions = false
+                addressFocused = false
+                addressSessionToken = nil
+            }
+        }
+    }
 }
 
 // Keep old view for compatibility
