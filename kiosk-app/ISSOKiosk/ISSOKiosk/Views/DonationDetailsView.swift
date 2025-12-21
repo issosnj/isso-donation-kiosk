@@ -206,12 +206,13 @@ struct ModernDonationDetailsView: View {
             
             ScrollView {
                 VStack(spacing: 0) {
-                    // Top spacing - reduced to prevent cutoff
+                    // Top spacing
                     Spacer()
-                        .frame(height: min(detailsPageTopPadding, 40))
+                        .frame(height: detailsPageTopPadding)
                     
                     // Main content: Left (Review Donation) and Right (Optional Information)
                     HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
+                        Spacer()
                     // LEFT SIDE: Review Donation Panel
                     VStack(alignment: .leading, spacing: 0) {
                         // Panel Title
@@ -287,7 +288,7 @@ struct ModernDonationDetailsView: View {
                         
                         Spacer()
                         
-                        // Cancel button at bottom (similar to Proceed to Payment)
+                        // Cancel button at bottom (same style as Proceed to Payment)
                         Button(action: {
                             withAnimation {
                                 dismiss()
@@ -305,8 +306,8 @@ struct ModernDonationDetailsView: View {
                             .background(
                                 LinearGradient(
                                     gradient: Gradient(colors: [
-                                        Color.gray.opacity(0.6),
-                                        Color.gray.opacity(0.4)
+                                        Color(red: 0.85, green: 0.75, blue: 0.5),
+                                        Color(red: 0.95, green: 0.85, blue: 0.6)
                                     ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -332,7 +333,6 @@ struct ModernDonationDetailsView: View {
                     )
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
-                    .padding(.leading, min(detailsPageSidePadding, 40))
                     
                     // RIGHT SIDE: Optional Information Panel
                     VStack(alignment: .leading, spacing: 0) {
@@ -536,16 +536,14 @@ struct ModernDonationDetailsView: View {
                     )
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
-                    .padding(.trailing, min(detailsPageSidePadding, 40))
                     
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 0)
-                    
-                    // Bottom spacing - reduced to prevent cutoff
                     Spacer()
-                        .frame(height: min(detailsPageBottomPadding, 40))
+                    }
+                    .padding(.horizontal, detailsPageSidePadding)
+                    
+                    // Bottom spacing
+                    Spacer()
+                        .frame(height: detailsPageBottomPadding)
                 }
             }
             .onTapGesture {
