@@ -123,52 +123,127 @@ export class GmailService {
     htmlBody: string,
     fromEmail?: string,
     fromName?: string,
+    attachment?: { filename: string; content: Buffer; contentType: string },
   ): Promise<void> {
-    // Create email message in RFC 2822 format
     const from = fromName ? `${fromName} <${fromEmail || to}>` : (fromEmail || to);
-    const message = [
-      `From: ${from}`,
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      'Content-Type: text/html; charset=utf-8',
-      '',
-      htmlBody,
-    ].join('\n');
+    
+    // Build multipart message if attachment exists
+    if (attachment) {
+      const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
+      // Build multipart message
+      const parts: string[] = [];
+      
+      // HTML body part
+      parts.push(
+        `--${boundary}`,
+        'Content-Type: text/html; charset=utf-8',
+        'Content-Transfer-Encoding: quoted-printable',
+        '',
+        htmlBody.replace(/=/g, '=3D').replace(/\n/g, '=\n'),
+      );
+      
+      // Attachment part
+      const attachmentBase64 = attachment.content.toString('base64');
+      parts.push(
+        `--${boundary}`,
+        `Content-Type: ${attachment.contentType}`,
+        'Content-Transfer-Encoding: base64',
+        `Content-Disposition: attachment; filename="${attachment.filename}"`,
+        '',
+        attachmentBase64,
+        `--${boundary}--`,
+      );
+      
+      const message = [
+        `From: ${from}`,
+        `To: ${to}`,
+        `Subject: ${subject}`,
+        `MIME-Version: 1.0`,
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        '',
+        parts.join('\n'),
+      ].join('\n');
 
-    // Encode message in base64url format (Gmail API requirement)
-    const encodedMessage = Buffer.from(message)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
+      // Encode message in base64url format (Gmail API requirement)
+      const encodedMessage = Buffer.from(message)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
 
-    const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        raw: encodedMessage,
-      }),
-    });
+      const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          raw: encodedMessage,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let error: any;
-      try {
-        error = JSON.parse(errorText);
-      } catch {
-        error = { message: errorText };
+      if (!response.ok) {
+        const errorText = await response.text();
+        let error: any;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { message: errorText };
+        }
+        console.error('[Gmail Service] Failed to send email with attachment - Status:', response.status);
+        console.error('[Gmail Service] Failed to send email - Error:', JSON.stringify(error, null, 2));
+        throw new Error(`Failed to send email (${response.status}): ${error.error?.message || error.message || JSON.stringify(error)}`);
       }
-      console.error('[Gmail Service] Failed to send email - Status:', response.status);
-      console.error('[Gmail Service] Failed to send email - Error:', JSON.stringify(error, null, 2));
-      console.error('[Gmail Service] Failed to send email - Response headers:', Object.fromEntries(response.headers.entries()));
-      throw new Error(`Failed to send email (${response.status}): ${error.error?.message || error.message || JSON.stringify(error)}`);
-    }
 
-    const responseData = await response.json();
-    console.log('[Gmail Service] ✅ Email sent successfully - Message ID:', responseData.id);
+      const responseData = await response.json();
+      console.log('[Gmail Service] ✅ Email with attachment sent successfully - Message ID:', responseData.id);
+    } else {
+      // Original simple message without attachment
+      const message = [
+        `From: ${from}`,
+        `To: ${to}`,
+        `Subject: ${subject}`,
+        'Content-Type: text/html; charset=utf-8',
+        '',
+        htmlBody,
+      ].join('\n');
+
+      // Encode message in base64url format (Gmail API requirement)
+      const encodedMessage = Buffer.from(message)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          raw: encodedMessage,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let error: any;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { message: errorText };
+        }
+        console.error('[Gmail Service] Failed to send email - Status:', response.status);
+        console.error('[Gmail Service] Failed to send email - Error:', JSON.stringify(error, null, 2));
+        console.error('[Gmail Service] Failed to send email - Response headers:', Object.fromEntries(response.headers.entries()));
+        throw new Error(`Failed to send email (${response.status}): ${error.error?.message || error.message || JSON.stringify(error)}`);
+      }
+
+      const responseData = await response.json();
+      console.log('[Gmail Service] ✅ Email sent successfully - Message ID:', responseData.id);
+    }
   }
 }
 

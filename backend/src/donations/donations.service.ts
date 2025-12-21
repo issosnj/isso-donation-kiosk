@@ -7,6 +7,7 @@ import { CompleteDonationDto } from './dto/complete-donation.dto';
 import { TemplesService } from '../temples/temples.service';
 import { GmailService } from '../gmail/gmail.service';
 import { SquareService } from '../square/square.service';
+import { ReceiptPdfService } from './receipt-pdf.service';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
@@ -20,6 +21,7 @@ export class DonationsService {
     @Inject(forwardRef(() => SquareService))
     private squareService: SquareService,
     private configService: ConfigService,
+    private receiptPdfService: ReceiptPdfService,
   ) {}
 
   async initiate(initiateDonationDto: InitiateDonationDto): Promise<Donation> {
@@ -772,6 +774,19 @@ export class DonationsService {
         </html>
       `;
 
+      // Generate PDF receipt (do this once, before attempting to send)
+      console.log('[DonationsService] 📄 Generating PDF receipt...');
+      let pdfBuffer: Buffer;
+      try {
+        pdfBuffer = await this.receiptPdfService.generateReceiptPdfAsync(donation, temple);
+        console.log('[DonationsService] ✅ PDF receipt generated, size:', pdfBuffer.length, 'bytes');
+      } catch (pdfError: any) {
+        console.error('[DonationsService] ❌ Failed to generate PDF receipt:', pdfError.message);
+        console.error('[DonationsService] ❌ PDF error details:', pdfError);
+        // Continue without PDF attachment if generation fails
+        pdfBuffer = null as any;
+      }
+
       // Check if temple has Gmail connected
       if (temple.gmailAccessToken && temple.gmailEmail) {
         try {
@@ -789,7 +804,10 @@ export class DonationsService {
           
           // Try to send email, refresh token if needed
           try {
-            console.log('[DonationsService] 📤 Attempting to send email via Gmail API...');
+            console.log('[DonationsService] 📤 Attempting to send email via Gmail API with PDF attachment...');
+            const receiptNumber = donation.receiptNumber || donation.id.substring(0, 8);
+            const pdfFilename = `Receipt_${receiptNumber}.pdf`;
+            
             await this.gmailService.sendEmail(
               accessToken,
               donation.donorEmail,
@@ -797,8 +815,13 @@ export class DonationsService {
               receiptHtml,
               temple.gmailEmail,
               fromName,
+              pdfBuffer ? {
+                filename: pdfFilename,
+                content: pdfBuffer,
+                contentType: 'application/pdf',
+              } : undefined,
             );
-            console.log('[DonationsService] ✅ Receipt email sent via Gmail successfully');
+            console.log('[DonationsService] ✅ Receipt email with PDF attachment sent via Gmail successfully');
             return;
           } catch (error: any) {
             console.error('[DonationsService] ⚠️ Gmail send error:', error.message);
@@ -827,18 +850,26 @@ export class DonationsService {
                   });
                   console.log('[DonationsService] ✅ Updated temple with new access token');
                   
-                  // Retry sending email
-                  console.log('[DonationsService] 📤 Retrying email send with refreshed token...');
-                  await this.gmailService.sendEmail(
-                    accessToken,
-                    donation.donorEmail,
-                    subject,
-                    receiptHtml,
-                    temple.gmailEmail,
-                    fromName,
-                  );
-                  console.log('[DonationsService] ✅ Receipt email sent via Gmail (after refresh)');
-                  return;
+                // Retry sending email with PDF
+                console.log('[DonationsService] 📤 Retrying email send with refreshed token and PDF attachment...');
+                const receiptNumber = donation.receiptNumber || donation.id.substring(0, 8);
+                const pdfFilename = `Receipt_${receiptNumber}.pdf`;
+                
+                await this.gmailService.sendEmail(
+                  accessToken,
+                  donation.donorEmail,
+                  subject,
+                  receiptHtml,
+                  temple.gmailEmail,
+                  fromName,
+                  pdfBuffer ? {
+                    filename: pdfFilename,
+                    content: pdfBuffer,
+                    contentType: 'application/pdf',
+                  } : undefined,
+                );
+                console.log('[DonationsService] ✅ Receipt email with PDF attachment sent via Gmail (after refresh)');
+                return;
                 } catch (refreshError: any) {
                   console.error('[DonationsService] ❌ Failed to refresh access token:', refreshError.message);
                   console.error('[DonationsService] ❌ Refresh error details:', JSON.stringify(refreshError, null, 2));

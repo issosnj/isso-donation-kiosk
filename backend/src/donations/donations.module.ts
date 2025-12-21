@@ -12,6 +12,7 @@ import { TemplesModule } from '../temples/temples.module';
 import { DevicesModule } from '../devices/devices.module';
 import { SquareModule } from '../square/square.module';
 import { GmailModule } from '../gmail/gmail.module';
+import { ReceiptPdfService } from './receipt-pdf.service';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { GmailModule } from '../gmail/gmail.module';
     }),
   ],
   controllers: [DonationsController, DonationCategoriesController],
-  providers: [DonationsService, DonationCategoriesService],
+  providers: [DonationsService, DonationCategoriesService, ReceiptPdfService],
   exports: [DonationsService, DonationCategoriesService],
 })
 export class DonationsModule {}
