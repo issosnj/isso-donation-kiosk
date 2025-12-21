@@ -293,6 +293,10 @@ struct DonationHomeView: View {
                         donorPhone = phone
                         donorEmail = email
                         donorAddress = address
+                    },
+                    onCancel: {
+                        showingDetails = false
+                        onDismiss()
                     }
                 )
             }

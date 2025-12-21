@@ -4,6 +4,7 @@ struct ModernDonationDetailsView: View {
     let amount: Double
     let category: DonationCategory?
     let onConfirm: (String?, String?, String?, String?) -> Void // name, phone, email, address
+    let onCancel: (() -> Void)? // Optional callback to return to home
     
     @State private var donorName = ""
     @State private var donorPhone = ""
@@ -292,16 +293,20 @@ struct ModernDonationDetailsView: View {
                         
                         Spacer()
                         
-                        // Cancel button at bottom (same style as Proceed to Payment)
+                        // Return to Home button at bottom (same style as Proceed to Payment)
                         Button(action: {
                             withAnimation {
-                                dismiss()
+                                if let onCancel = onCancel {
+                                    onCancel()
+                                } else {
+                                    dismiss()
+                                }
                             }
                         }) {
                             HStack(spacing: 12) {
-                                Image(systemName: "xmark")
+                                Image(systemName: "house.fill")
                                     .font(.system(size: detailsButtonFontSize - 4, weight: .semibold))
-                                Text("Cancel")
+                                Text("Return to Home")
                                     .font(.custom("Inter-Medium", size: detailsButtonFontSize))
                             }
                             .foregroundColor(Color.white)
