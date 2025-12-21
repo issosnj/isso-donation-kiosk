@@ -130,6 +130,7 @@ export default function ThemeTab() {
           donationSelectionPageRightPadding: temple.kioskTheme.layout?.donationSelectionPageRightPadding || 40,
           customAmountKeypadX: temple.kioskTheme.layout?.customAmountKeypadX || 0,
           customAmountKeypadY: temple.kioskTheme.layout?.customAmountKeypadY || 0,
+          backgroundImageUrl: temple.kioskTheme.layout?.backgroundImageUrl || temple.homeScreenConfig?.backgroundImageUrl || '',
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
           detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
