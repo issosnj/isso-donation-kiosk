@@ -310,7 +310,33 @@ export class ReceiptPdfService {
         }
         currentY += 5; // Even smaller
 
-        // Transaction Details Table - Very compact
+        // Calculate estimated remaining height to determine if we need scaling
+        let estimatedRemainingHeight = 0;
+        
+        // Transaction table
+        estimatedRemainingHeight += 25;
+        // Amount in words
+        if (amountInWords) estimatedRemainingHeight += 26;
+        // Payment method
+        if (receiptConfig.showPaymentMethod !== false) {
+          estimatedRemainingHeight += 11;
+          if (donation.cardType && donation.cardLast4) estimatedRemainingHeight += 11;
+          if (receiptConfig.showPreparedBy && receiptConfig.preparedBy) estimatedRemainingHeight += 11;
+        }
+        // Custom message (estimate)
+        if (receiptConfig.customMessage) estimatedRemainingHeight += 30;
+        // Thank you
+        if (receiptConfig.thankYouMessage) estimatedRemainingHeight += 15;
+        // Footer
+        estimatedRemainingHeight += 13;
+        if (receiptConfig.footerText) estimatedRemainingHeight += 12;
+        if (receiptConfig.includeTaxId && receiptConfig.taxId) estimatedRemainingHeight += 12;
+        if (receiptConfig.taxExemptMessage) estimatedRemainingHeight += 12;
+        
+        const totalEstimatedHeight = currentY + estimatedRemainingHeight;
+        const scaleFactor = totalEstimatedHeight > maxContentHeight ? Math.max(0.7, maxContentHeight / totalEstimatedHeight) : 1;
+        
+        // Transaction Details Table - Very compact with scaling
         const tableTop = currentY;
         const tableLeft = margin;
         const tableWidth = contentWidth;
@@ -318,98 +344,101 @@ export class ReceiptPdfService {
         const col2Width = tableWidth * 0.3;
         
         // Table Header
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
+        doc.fontSize(8 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');
         doc.text('Particulars', tableLeft, tableTop);
         doc.text('Amount ($)', tableLeft + col1Width, tableTop, { width: col2Width, align: 'right' });
         
         // Draw header line
-        const headerLineY = tableTop + 9; // Even smaller
+        const headerLineY = tableTop + (9 * scaleFactor);
         doc.moveTo(tableLeft, headerLineY).lineTo(tableLeft + tableWidth, headerLineY).lineWidth(2).stroke();
-        currentY = headerLineY + 2; // Even smaller
+        currentY = headerLineY + (2 * scaleFactor);
         
         // Table Row
-        doc.fontSize(8).font('Helvetica').fillColor('#000000'); // Even smaller
+        doc.fontSize(8 * scaleFactor).font('Helvetica').fillColor('#000000');
         // Show category name if category was selected, otherwise show "Donation" for preset amounts
         doc.text(donation.category?.name || 'Donation', tableLeft, currentY);
         doc.text(amount.toFixed(2), tableLeft + col1Width, currentY, { width: col2Width, align: 'right' });
-        currentY += 12; // Even smaller
+        currentY += (12 * scaleFactor);
         
         // Draw row line
         doc.moveTo(tableLeft, currentY).lineTo(tableLeft + tableWidth, currentY).stroke();
-        currentY += 2; // Even smaller
+        currentY += (2 * scaleFactor);
         
         // Total Row
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
+        doc.fontSize(8 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');
         doc.moveTo(tableLeft, currentY).lineTo(tableLeft + tableWidth, currentY).lineWidth(2).stroke();
-        currentY += 2; // Even smaller
+        currentY += (2 * scaleFactor);
         doc.text('Total', tableLeft, currentY);
         doc.text(`$${amount.toFixed(2)}`, tableLeft + col1Width, currentY, { width: col2Width, align: 'right' });
-        currentY += 15; // Even smaller
+        currentY += (15 * scaleFactor);
 
-        // Amount in Words - Very compact
+        // Amount in Words - Very compact with scaling
         if (amountInWords) {
-          doc.fontSize(9).font('Helvetica').fillColor('#666666').text('Amount in Words:', margin, currentY); // Even smaller
-          currentY += 11; // Even smaller
-          doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000'); // Even smaller
+          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text('Amount in Words:', margin, currentY);
+          currentY += (11 * scaleFactor);
+          doc.fontSize(10 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');
           const wordsText = amountInWords.charAt(0).toUpperCase() + amountInWords.slice(1);
           doc.text(wordsText, margin, currentY);
-          currentY += 15; // Even smaller
+          currentY += (15 * scaleFactor);
         }
 
-        // Payment Method - Very compact
+        // Payment Method - Very compact with scaling
         if (receiptConfig.showPaymentMethod !== false) {
-          doc.fontSize(9).font('Helvetica').fillColor('#666666').text('Payment Method: Paid by Square', margin, currentY); // Even smaller
-          currentY += 11; // Even smaller
+          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text('Payment Method: Paid by Square', margin, currentY);
+          currentY += (11 * scaleFactor);
           
           if (donation.cardType && donation.cardLast4) {
-            doc.fontSize(9).font('Helvetica').fillColor('#666666').text(`Card: ${donation.cardType} ending in ${donation.cardLast4}`, margin, currentY); // Even smaller
-            currentY += 11; // Even smaller
+            doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text(`Card: ${donation.cardType} ending in ${donation.cardLast4}`, margin, currentY);
+            currentY += (11 * scaleFactor);
           }
           
           if (receiptConfig.showPreparedBy && receiptConfig.preparedBy) {
-            doc.fontSize(9).font('Helvetica').fillColor('#666666').text(`Prepared by: ${receiptConfig.preparedBy}`, margin, currentY); // Even smaller
-            currentY += 11; // Even smaller
+            doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text(`Prepared by: ${receiptConfig.preparedBy}`, margin, currentY);
+            currentY += (11 * scaleFactor);
           }
-          currentY += 5; // Even smaller
+          currentY += (5 * scaleFactor);
         }
 
-        // Custom Message - Very compact
+        // Custom Message - Very compact with scaling
         if (receiptConfig.customMessage) {
-          doc.fontSize(9).font('Helvetica').fillColor('#000000'); // Even smaller
+          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#000000');
           const messageHeight = doc.heightOfString(receiptConfig.customMessage, { width: contentWidth - 20 });
-          doc.rect(margin, currentY, contentWidth, messageHeight + 10).fillColor('#f9fafb').fill(); // Even smaller padding
-          doc.text(receiptConfig.customMessage, margin + 5, currentY + 5, { width: contentWidth - 20 }); // Even smaller padding
-          currentY += messageHeight + 18; // Even smaller
+          doc.rect(margin, currentY, contentWidth, messageHeight + (10 * scaleFactor)).fillColor('#f9fafb').fill();
+          doc.text(receiptConfig.customMessage, margin + (5 * scaleFactor), currentY + (5 * scaleFactor), { width: contentWidth - 20 });
+          currentY += messageHeight + (18 * scaleFactor);
         }
 
-        // Thank You Message - Very compact
+        // Thank You Message - Very compact with scaling
         if (receiptConfig.thankYouMessage) {
-          doc.fontSize(9).font('Helvetica').fillColor('#000000').text(receiptConfig.thankYouMessage, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Even smaller
-          currentY += 15; // Even smaller
+          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#000000').text(receiptConfig.thankYouMessage, headerCenterX, currentY, { width: contentWidth, align: 'center' });
+          currentY += (15 * scaleFactor);
         }
 
-        // Footer - Very compact
-        currentY += 5; // Even smaller
+        // Footer - Very compact with scaling
+        currentY += (5 * scaleFactor);
         const footerY = currentY;
         doc.moveTo(margin, footerY).lineTo(pageWidth - margin, footerY).stroke();
-        currentY = footerY + 8; // Even smaller
+        currentY = footerY + (8 * scaleFactor);
         
         if (receiptConfig.footerText) {
-          doc.fontSize(9).font('Helvetica').fillColor('#666666').text(receiptConfig.footerText, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Even smaller
-          currentY += 12; // Even smaller
+          doc.fontSize(9 * scaleFactor).font('Helvetica').fillColor('#666666').text(receiptConfig.footerText, headerCenterX, currentY, { width: contentWidth, align: 'center' });
+          currentY += (12 * scaleFactor);
         }
         
-        // Tax Exempt Information - Very compact
+        // Tax Exempt Information - Very compact with scaling
         // Use the same format as ReceiptGeneratorService (matches ReceiptView component)
         if (receiptConfig.includeTaxId && receiptConfig.taxId) {
           const orgName = receiptConfig.organizationName || 'This organization';
           const taxExemptText = `${orgName} (EIN#${receiptConfig.taxId}) is recognized by IRS as 501(c)(3) tax exempt organization${receiptConfig.website ? `, please visit us at ${receiptConfig.website}` : ''}`;
-          doc.fontSize(8).font('Helvetica').fillColor('#666666').text(taxExemptText, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Even smaller
-          currentY += 12; // Even smaller
+          // Split long text into multiple lines if needed
+          doc.fontSize(8 * scaleFactor).font('Helvetica').fillColor('#666666');
+          const lines = doc.heightOfString(taxExemptText, { width: contentWidth, align: 'center' }) / (8 * scaleFactor);
+          doc.text(taxExemptText, headerCenterX, currentY, { width: contentWidth, align: 'center' });
+          currentY += (12 * scaleFactor);
         }
         
         if (receiptConfig.taxExemptMessage) {
-          doc.fontSize(8).font('Helvetica').fillColor('#666666').text(receiptConfig.taxExemptMessage, headerCenterX, currentY, { width: contentWidth, align: 'center' }); // Even smaller
+          doc.fontSize(8 * scaleFactor).font('Helvetica').fillColor('#666666').text(receiptConfig.taxExemptMessage, headerCenterX, currentY, { width: contentWidth, align: 'center' });
         }
 
         doc.end();
