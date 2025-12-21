@@ -372,8 +372,17 @@ struct DonationHomeView: View {
             HStack(spacing: categoryAmountSectionSpacing) {
                 // Show keypad in place of category section when active
                 if showingCustomAmountKeypad {
-                    VStack {
+                    VStack(spacing: 0) {
+                        // Match the same top padding as category section header
                         Spacer()
+                            .frame(height: categoryHeaderTopPadding)
+                        
+                        // Match the header height and bottom padding (approximately)
+                        // Header is typically around 50-60pt, plus 12pt bottom padding
+                        Spacer()
+                            .frame(height: 62) // Approximate header height + bottom padding
+                        
+                        // Keypad aligned to start where category buttons start
                         HStack {
                             CustomNumericKeypad(
                                 amount: $customAmount,
@@ -385,6 +394,7 @@ struct DonationHomeView: View {
                             Spacer()
                         }
                         .padding(.horizontal, 20)
+                        
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)
