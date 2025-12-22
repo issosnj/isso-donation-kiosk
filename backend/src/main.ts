@@ -1,3 +1,8 @@
+// Import crypto and make it available globally for @nestjs/schedule
+// @nestjs/schedule uses crypto.randomUUID() which requires crypto to be available as a global
+import * as crypto from 'crypto';
+(globalThis as any).crypto = crypto;
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
