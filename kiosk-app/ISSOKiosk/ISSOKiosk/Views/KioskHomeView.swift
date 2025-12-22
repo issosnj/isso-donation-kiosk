@@ -1307,7 +1307,25 @@ struct ReligiousEventsView: View {
     @State private var isLoadingEvents = false
     
     var body: some View {
-        NavigationView {
+        VStack(spacing: 0) {
+            // Centered header
+            VStack(spacing: 4) {
+                Text("Religious Observances")
+                    .font(.custom("Inter-SemiBold", size: 17))
+                    .multilineTextAlignment(.center)
+                Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
+                    .font(.custom("Inter-Regular", size: 11))
+                    .italic()
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+            .background(Color(.systemBackground))
+            
+            // Scrollable content
             ScrollView {
                 VStack(spacing: 16) {
                     if religiousEvents.isEmpty {
@@ -1331,28 +1349,25 @@ struct ReligiousEventsView: View {
                 }
                 .padding()
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    VStack(spacing: 4) {
-                        Text("Religious Observances")
-                            .font(.custom("Inter-SemiBold", size: 17))
-                        Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
-                            .font(.custom("Inter-Regular", size: 11))
-                            .italic()
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
+            
+            // Done button at bottom center
+            Button(action: {
+                dismiss()
+            }) {
+                Text("Done")
+                    .font(.custom("Inter-SemiBold", size: 17))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color(red: 0.6, green: 0.4, blue: 0.8))
+                    .cornerRadius(12)
             }
-            .task {
-                await loadCalendarEvents()
-            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+            .padding(.top, 8)
+        }
+        .task {
+            await loadCalendarEvents()
         }
     }
     
