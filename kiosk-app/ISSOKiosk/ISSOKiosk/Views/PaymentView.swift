@@ -722,31 +722,99 @@ struct ModernPaymentResultView: View {
     let status: PaymentStatus
     let amount: Double
     let onDismiss: () -> Void
+    @EnvironmentObject var appState: AppState
     @State private var appearAnimation = false
     @State private var autoDismissTimer: Timer?
     
+    // Helper to convert hex string to Color
+    private func colorFromHex(_ hex: String?, defaultColor: Color = Color(red: 0.26, green: 0.20, blue: 0.20)) -> Color {
+        guard let hex = hex, !hex.isEmpty else {
+            return defaultColor
+        }
+        
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        
+        if hexSanitized.count == 3 {
+            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
+        }
+        
+        guard hexSanitized.count == 6,
+              let rgb = UInt32(hexSanitized, radix: 16) else {
+            return defaultColor
+        }
+        
+        let red = Double((rgb >> 16) & 0xFF) / 255.0
+        let green = Double((rgb >> 8) & 0xFF) / 255.0
+        let blue = Double(rgb & 0xFF) / 255.0
+        
+        return Color(red: red, green: green, blue: blue)
+    }
+    
+    // Background view matching theme
+    private var backgroundView: some View {
+        Group {
+            // First try to use asset (local, no network needed)
+            if UIImage(named: "KioskBackground") != nil {
+                Image("KioskBackground")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+            } else if let backgroundImage = appState.backgroundImage {
+                // Fallback to preloaded URL image
+                Image(uiImage: backgroundImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+            } else {
+                // Final fallback to default gradient
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.white,
+                        Color(red: 0.95, green: 0.97, blue: 1.0)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            }
+        }
+    }
+    
+    // Theme colors
+    private var headingColor: Color {
+        if let theme = appState.temple?.kioskTheme,
+           let hex = theme.colors?.headingColor {
+            return colorFromHex(hex)
+        }
+        return Color(red: 0.26, green: 0.20, blue: 0.20) // #423232
+    }
+    
+    private var bodyTextColor: Color {
+        Color(red: 0.5, green: 0.5, blue: 0.6)
+    }
+    
+    private var buttonColor: Color {
+        Color(red: 1.0, green: 0.58, blue: 0.0) // Orange matching theme
+    }
+    
     var body: some View {
         ZStack {
-            // Modern gradient background
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.92, green: 0.96, blue: 1.0),
-                    Color(red: 0.88, green: 0.94, blue: 1.0)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            backgroundView
             
-        VStack(spacing: 40) {
+            VStack(spacing: 40) {
+                Spacer()
+                
                 // Result icon with animation
                 ZStack {
-                    // Glow effect
+                    // Glow effect - subtle for theme
                     Circle()
                         .fill(
                             RadialGradient(
                                 gradient: Gradient(colors: [
-                                    (status == .success ? Color.green : Color.red).opacity(0.3),
+                                    (status == .success ? Color.green : Color.red).opacity(0.2),
                                     Color.clear
                                 ]),
                                 center: .center,
@@ -755,91 +823,81 @@ struct ModernPaymentResultView: View {
                             )
                         )
                         .frame(width: 240, height: 240)
-                        .scaleEffect(appearAnimation ? 1.2 : 0.8)
-                        .opacity(appearAnimation ? 0.6 : 0.0)
+                        .scaleEffect(appearAnimation ? 1.1 : 0.8)
+                        .opacity(appearAnimation ? 0.5 : 0.0)
                     
                     Image(systemName: status == .success ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.system(size: 120))
-                        .foregroundColor(status == .success ? .green : .red)
-                        .shadow(color: (status == .success ? Color.green : Color.red).opacity(0.4), radius: 20, x: 0, y: 10)
+                        .font(.system(size: 100))
+                        .foregroundColor(status == .success ? Color.green : Color.red)
+                        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
                 }
                 .scaleEffect(appearAnimation ? 1.0 : 0.3)
                 .opacity(appearAnimation ? 1.0 : 0.0)
                 
                 VStack(spacing: 20) {
                     Text(status == .success ? "Thank You!" : "Payment Failed")
-                        .font(.custom("Inter-SemiBold", size: 48))
-                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
+                        .font(.custom("Inter-SemiBold", size: 42))
+                        .foregroundColor(headingColor)
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
                     
                     if case .success = status {
-                Text("Your donation of $\(String(format: "%.2f", amount)) has been processed successfully.")
-                            .font(.system(size: 22, weight: .regular))
-                            .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                        Text("Your donation of $\(String(format: "%.2f", amount)) has been processed successfully.")
+                            .font(.custom("Inter-Regular", size: 20))
+                            .foregroundColor(bodyTextColor)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
                             .opacity(appearAnimation ? 1.0 : 0.0)
                             .offset(y: appearAnimation ? 0 : 20)
                     } else if case .failure(let error) = status {
                         Text(error)
-                            .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                            .font(.custom("Inter-Medium", size: 18))
+                            .foregroundColor(Color.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
                             .opacity(appearAnimation ? 1.0 : 0.0)
                             .offset(y: appearAnimation ? 0 : 20)
                     }
-            }
-            
-                // Action button
-            Button(action: onDismiss) {
+                }
+                
+                // Action button - matching theme orange
+                Button(action: onDismiss) {
                     HStack(spacing: 12) {
                         Image(systemName: status == .success ? "checkmark.circle.fill" : "arrow.clockwise")
-                            .font(.system(size: 24))
-                Text(status == .success ? "Done" : "Try Again")
-                            .font(.custom("Inter-SemiBold", size: 24))
+                            .font(.system(size: 22))
+                        Text(status == .success ? "Done" : "Try Again")
+                            .font(.custom("Inter-Medium", size: 20))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
+                    .padding(.vertical, 16)
                     .background(
-                        Group {
-                            if status == .success {
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color.green,
-                                        Color.green.opacity(0.8)
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            } else {
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.2, green: 0.4, blue: 0.8),
-                                        Color(red: 0.3, green: 0.5, blue: 0.9)
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            }
-                        }
+                        status == .success 
+                            ? Color.green
+                            : buttonColor
                     )
-                    .cornerRadius(20)
-                    .shadow(
-                        color: (status == .success ? Color.green : Color(red: 0.2, green: 0.4, blue: 0.8)).opacity(0.4),
-                        radius: 15,
-                        x: 0,
-                        y: 8
-                    )
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                 }
                 .padding(.horizontal, 40)
                 .scaleEffect(appearAnimation ? 1.0 : 0.9)
                 .opacity(appearAnimation ? 1.0 : 0.0)
                 .offset(y: appearAnimation ? 0 : 30)
+                
+                Spacer()
             }
             .padding(40)
+            
+            // Time and Network Status in top right
+            VStack {
+                HStack {
+                    Spacer()
+                    TimeAndNetworkStatusView()
+                        .padding(.trailing, 20)
+                        .padding(.top, 17)
+                }
+                Spacer()
+            }
         }
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {

@@ -17,7 +17,8 @@ class APIService {
         endpoint: String,
         method: String = "GET",
         body: [String: Any]? = nil,
-        requiresAuth: Bool = true
+        requiresAuth: Bool = true,
+        maxRetries: Int = 3
     ) async throws -> T {
         let fullURL = "\(baseURL)\(endpoint)"
         print("[APIService] 🌐 Request: \(method) \(fullURL)")
@@ -27,59 +28,122 @@ class APIService {
             throw APIError.invalidURL
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 30.0 // 30 second timeout (increased from 15)
+        var lastError: Error?
         
-        if requiresAuth, let token = deviceToken {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            print("[APIService] 🔐 Using authentication token")
-        } else if requiresAuth {
-            print("[APIService] ⚠️ Auth required but no token available")
-        }
-        
-        if let body = body {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            print("[APIService] 📦 Request body: \(body)")
-        }
-        
-        print("[APIService] ⏳ Starting network request...")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        print("[APIService] ✅ Network request completed")
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("[APIService] ❌ Invalid response type")
-            throw APIError.invalidResponse
-        }
-        
-        print("[APIService] 📊 HTTP Status: \(httpResponse.statusCode)")
-        print("[APIService] 📊 Response data size: \(data.count) bytes")
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            print("[APIService] ❌ HTTP Error: \(httpResponse.statusCode)")
-            // Try to parse error message from response body
-            if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let message = errorData["message"] as? String {
-                print("[APIService] ❌ Server error message: \(message)")
-                throw APIError.serverError(message)
+        // Retry loop with exponential backoff
+        for attempt in 0..<maxRetries {
+            if attempt > 0 {
+                // Exponential backoff: 1s, 2s, 4s
+                let delay = pow(2.0, Double(attempt - 1))
+                print("[APIService] 🔄 Retry attempt \(attempt + 1)/\(maxRetries) after \(delay)s delay...")
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("[APIService] ❌ Response body: \(responseString)")
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = method
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.timeoutInterval = 30.0 // 30 second timeout
+            
+            if requiresAuth, let token = deviceToken {
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                if attempt == 0 {
+                    print("[APIService] 🔐 Using authentication token")
+                }
+            } else if requiresAuth {
+                print("[APIService] ⚠️ Auth required but no token available")
             }
-            throw APIError.httpError(httpResponse.statusCode)
+            
+            if let body = body {
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                if attempt == 0 {
+                    print("[APIService] 📦 Request body: \(body)")
+                }
+            }
+            
+            if attempt == 0 {
+                print("[APIService] ⏳ Starting network request...")
+            }
+            
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                if attempt > 0 {
+                    print("[APIService] ✅ Network request completed on retry \(attempt + 1)")
+                } else {
+                    print("[APIService] ✅ Network request completed")
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    print("[APIService] ❌ Invalid response type")
+                    throw APIError.invalidResponse
+                }
+                
+                print("[APIService] 📊 HTTP Status: \(httpResponse.statusCode)")
+                print("[APIService] 📊 Response data size: \(data.count) bytes")
+                
+                guard (200...299).contains(httpResponse.statusCode) else {
+                    print("[APIService] ❌ HTTP Error: \(httpResponse.statusCode)")
+                    // Try to parse error message from response body
+                    if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let message = errorData["message"] as? String {
+                        print("[APIService] ❌ Server error message: \(message)")
+                        throw APIError.serverError(message)
+                    }
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("[APIService] ❌ Response body: \(responseString)")
+                    }
+                    throw APIError.httpError(httpResponse.statusCode)
+                }
+                
+                do {
+                    let decoded = try JSONDecoder().decode(T.self, from: data)
+                    print("[APIService] ✅ Successfully decoded response")
+                    return decoded
+                } catch {
+                    print("[APIService] ❌ Decoding error: \(error)")
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("[APIService] ❌ Response body (for debugging): \(responseString.prefix(500))")
+                    }
+                    throw APIError.decodingError(error)
+                }
+            } catch let error as NSError {
+                lastError = error
+                
+                // Check if it's a network error that should be retried
+                let isNetworkError = error.domain == NSURLErrorDomain && (
+                    error.code == NSURLErrorTimedOut ||
+                    error.code == NSURLErrorNetworkConnectionLost ||
+                    error.code == NSURLErrorNotConnectedToInternet ||
+                    error.code == NSURLErrorCannotConnectToHost ||
+                    error.code == NSURLErrorCannotFindHost ||
+                    error.code == NSURLErrorDNSLookupFailed ||
+                    error.code == -1005 // Connection lost
+                )
+                
+                if isNetworkError && attempt < maxRetries - 1 {
+                    print("[APIService] ⚠️ Network error (code: \(error.code)): \(error.localizedDescription)")
+                    print("[APIService] 💡 Will retry...")
+                    continue
+                } else {
+                    // Not a retryable error or max retries reached
+                    print("[APIService] ❌ Request failed: \(error.localizedDescription)")
+                    if let apiError = error as? APIError {
+                        throw apiError
+                    }
+                    throw APIError.networkError(error)
+                }
+            } catch {
+                // Non-NSError, don't retry
+                print("[APIService] ❌ Request failed: \(error.localizedDescription)")
+                throw error
+            }
         }
         
-        do {
-            let decoded = try JSONDecoder().decode(T.self, from: data)
-            print("[APIService] ✅ Successfully decoded response")
-            return decoded
-        } catch {
-            print("[APIService] ❌ Decoding error: \(error)")
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("[APIService] ❌ Response body (for debugging): \(responseString.prefix(500))")
-            }
-            throw APIError.decodingError(error)
+        // If we get here, all retries failed
+        if let lastError = lastError {
+            throw APIError.networkError(lastError)
+        } else {
+            throw APIError.networkError(NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: [NSLocalizedDescriptionKey: "Request failed after \(maxRetries) attempts"]))
         }
     }
     
@@ -117,21 +181,52 @@ class APIService {
                 throw APIError.invalidResponse
             }
             
+            print("[APIService] 📊 HTTP Status: \(httpResponse.statusCode)")
+            print("[APIService] 📊 Response data size: \(data.count) bytes")
+            
+            // Log response body for debugging
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("[APIService] 📄 Response body: \(responseString.prefix(500))")
+            }
+            
             // Handle specific HTTP status codes
             switch httpResponse.statusCode {
             case 200...299:
                 do {
                     let result = try JSONDecoder().decode(DeviceActivationResponse.self, from: data)
+                    print("[APIService] ✅ Successfully decoded activation response")
                     setDeviceToken(result.deviceToken)
                     return result
-                } catch {
-                    throw APIError.decodingError(error)
+                } catch let decodingError {
+                    print("[APIService] ❌ Decoding error: \(decodingError)")
+                    // Try to extract error message from response if it's actually an error
+                    if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let message = errorData["message"] as? String {
+                        print("[APIService] ⚠️ Found error message in response: \(message)")
+                        throw APIError.serverError(message)
+                    }
+                    throw APIError.decodingError(decodingError)
                 }
             case 400:
+                // Try to extract error message
+                if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let message = errorData["message"] as? String {
+                    throw APIError.serverError(message)
+                }
                 throw APIError.invalidDeviceCode
             case 401, 404:
+                // Try to extract error message
+                if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let message = errorData["message"] as? String {
+                    throw APIError.serverError(message)
+                }
                 throw APIError.deviceNotFound
             case 409:
+                // Try to extract error message
+                if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let message = errorData["message"] as? String {
+                    throw APIError.serverError(message)
+                }
                 throw APIError.deviceAlreadyActivated
             case 500...599:
                 // Try to extract error message from response
@@ -141,12 +236,18 @@ class APIService {
                 }
                 throw APIError.httpError(httpResponse.statusCode)
             default:
+                // For any other status code, try to extract error message
+                if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let message = errorData["message"] as? String {
+                    throw APIError.serverError(message)
+                }
                 throw APIError.httpError(httpResponse.statusCode)
             }
         } catch let error as APIError {
             throw error
         } catch {
             // Network errors
+            print("[APIService] ❌ Network error: \(error.localizedDescription)")
             throw APIError.networkError(error)
         }
     }
@@ -384,6 +485,25 @@ class APIService {
         }
     }
     
+    func getReligiousEvents() async throws -> [ReligiousEvent] {
+        print("[APIService] 📡 Fetching religious events")
+        print("[APIService] 📡 Endpoint: /religious-events/kiosk")
+        print("[APIService] 📡 Device token available: \(deviceToken != nil)")
+        
+        do {
+            let events: [ReligiousEvent] = try await request(
+                endpoint: "/religious-events/kiosk",
+                method: "GET",
+                requiresAuth: true
+            )
+            print("[APIService] ✅ Successfully fetched \(events.count) religious events")
+            return events
+        } catch {
+            print("[APIService] ❌ Failed to fetch religious events: \(error)")
+            throw error
+        }
+    }
+    
     private func encodeToDict<T: Codable>(_ value: T) throws -> [String: Any] {
         let data = try JSONEncoder().encode(value)
         return try JSONSerialization.jsonObject(with: data) as! [String: Any]
@@ -478,6 +598,50 @@ struct Donation: Codable {
     let pledgeToken: String?
     let pledgeExpiryDate: String?
     let pledgePaymentLink: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case templeId
+        case deviceId
+        case amount
+        case status
+        case pledgeToken
+        case pledgeExpiryDate
+        case pledgePaymentLink
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        templeId = try container.decode(String.self, forKey: .templeId)
+        deviceId = try container.decode(String.self, forKey: .deviceId)
+        
+        // Handle amount as either String or Double
+        if let amountString = try? container.decode(String.self, forKey: .amount) {
+            amount = Double(amountString) ?? 0.0
+        } else if let amountDouble = try? container.decode(Double.self, forKey: .amount) {
+            amount = amountDouble
+        } else {
+            amount = 0.0
+        }
+        
+        status = try container.decode(String.self, forKey: .status)
+        pledgeToken = try container.decodeIfPresent(String.self, forKey: .pledgeToken)
+        pledgeExpiryDate = try container.decodeIfPresent(String.self, forKey: .pledgeExpiryDate)
+        pledgePaymentLink = try container.decodeIfPresent(String.self, forKey: .pledgePaymentLink)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(templeId, forKey: .templeId)
+        try container.encode(deviceId, forKey: .deviceId)
+        try container.encode(amount, forKey: .amount)
+        try container.encode(status, forKey: .status)
+        try container.encodeIfPresent(pledgeToken, forKey: .pledgeToken)
+        try container.encodeIfPresent(pledgeExpiryDate, forKey: .pledgeExpiryDate)
+        try container.encodeIfPresent(pledgePaymentLink, forKey: .pledgePaymentLink)
+    }
 }
 
 // Suggestion submission

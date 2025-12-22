@@ -106,7 +106,7 @@ export class SquareController {
       );
       console.log('[Square Callback] Square credentials saved successfully, merchant ID:', updatedTemple.squareMerchantId);
 
-      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://issodonationkiosk.netlify.app';
+      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://kiosk.issousa.org';
       console.log('[Square Callback] Redirecting to:', `${adminWebUrl}/dashboard?squareConnected=true&templeId=${templeId}`);
       // Redirect to dashboard with success message - user can navigate to temple edit view
       res.redirect(`${adminWebUrl}/dashboard?squareConnected=true&templeId=${templeId}`);
@@ -115,7 +115,7 @@ export class SquareController {
       console.error('[Square Callback] Error message:', error.message);
       console.error('[Square Callback] Error stack:', error.stack);
       
-      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://issodonationkiosk.netlify.app';
+      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://kiosk.issousa.org';
       const errorMessage = error.message || 'Connection failed';
       console.log('[Square Callback] Redirecting to error page:', `${adminWebUrl}/dashboard?squareError=${encodeURIComponent(errorMessage)}`);
       // Redirect to dashboard with error message

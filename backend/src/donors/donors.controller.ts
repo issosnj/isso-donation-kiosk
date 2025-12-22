@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,13 +19,20 @@ import { UserRole } from '../users/entities/user.entity';
 import { DeviceAuthGuard } from '../auth/guards/device-auth.guard';
 import { DonorsService } from './donors.service';
 import { UpdateDonorDto } from './dto/update-donor.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Donation } from '../donations/entities/donation.entity';
 
 @ApiTags('donors')
 @Controller('donors')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class DonorsController {
-  constructor(private readonly donorsService: DonorsService) {}
+  constructor(
+    private readonly donorsService: DonorsService,
+    @InjectRepository(Donation)
+    private donationsRepository: Repository<Donation>,
+  ) {}
 
   @Get('lookup/:phone')
   @ApiOperation({ summary: 'Lookup donor by phone number (for kiosk auto-populate)' })
@@ -120,6 +128,31 @@ export class DonorsController {
   async deleteDonor(@Param('id') id: string) {
     await this.donorsService.deleteDonor(id);
     return { message: 'Donor deleted successfully' };
+  }
+
+  @Post('backfill')
+  @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
+  @ApiOperation({ summary: 'Backfill donors from past donations (Master Admin or Temple Admin)' })
+  async backfillDonors(
+    @Request() req,
+    @Query('templeId') templeId?: string,
+  ) {
+    // Temple admin can only backfill their own temple
+    const targetTempleId = req.user.role === UserRole.TEMPLE_ADMIN ? req.user.templeId : templeId;
+    
+    if (!targetTempleId && req.user.role === UserRole.TEMPLE_ADMIN) {
+      throw new ForbiddenException('Temple ID required');
+    }
+
+    const result = await this.donorsService.backfillDonorsFromDonations(
+      this.donationsRepository,
+      targetTempleId,
+    );
+    
+    return {
+      message: 'Donors backfilled successfully',
+      ...result,
+    };
   }
 }
 

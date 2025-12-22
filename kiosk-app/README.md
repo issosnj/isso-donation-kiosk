@@ -24,6 +24,21 @@ Native iOS app for donation kiosks using Square Mobile Payments SDK with Square 
    - Build and run (⌘R)
 
 
+## Deployment
+
+This app is designed for **private/internal distribution via MDM (Mobile Device Management)**.
+
+📖 **See [MDM_DEPLOYMENT.md](./MDM_DEPLOYMENT.md) for complete deployment guide**
+
+### Quick Deployment Checklist
+- [ ] Apple Developer Account (Enterprise recommended)
+- [ ] MDM solution configured
+- [ ] Bundle identifier configured
+- [ ] Archive and export app
+- [ ] Upload to MDM
+- [ ] Test on one device
+- [ ] Deploy to all kiosks
+
 ## Current Status
 
 ### ✅ Completed
@@ -38,6 +53,7 @@ Native iOS app for donation kiosks using Square Mobile Payments SDK with Square 
 - Home screen with configurable headers and quick actions
 - Anonymous suggestion box
 - Google Calendar integration for events
+- Square SDK automatic reconnection (prevents connection loss)
 - QR code scanning for device activation
 - Landscape orientation lock
 - Idle timer (returns to home after inactivity)
@@ -59,7 +75,7 @@ Native iOS app for donation kiosks using Square Mobile Payments SDK with Square 
 ### API Configuration
 The app is configured to use the production API:
 ```swift
-static let apiBaseURL = "https://isso-donation-kiosk-production.up.railway.app/api"
+static let apiBaseURL = "https://kiosk-backend.issousa.org/api"
 ```
 
 ### Square Configuration

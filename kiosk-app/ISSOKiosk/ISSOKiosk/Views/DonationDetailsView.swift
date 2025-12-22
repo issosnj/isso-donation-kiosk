@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ModernDonationDetailsView: View {
     let amount: Double
@@ -162,7 +163,15 @@ struct ModernDonationDetailsView: View {
             // Background: Use same background as donation page
             // Background is fixed and doesn't stretch with content width
             GeometryReader { geometry in
-                if let backgroundImage = appState.backgroundImage {
+                // First try to use asset (local, no network needed)
+                if UIImage(named: "KioskBackground") != nil {
+                    Image("KioskBackground")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                } else if let backgroundImage = appState.backgroundImage {
+                    // Fallback to preloaded URL image
                     Image(uiImage: backgroundImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -465,7 +474,7 @@ struct ModernDonationDetailsView: View {
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
-                                ZStack(alignment: .topLeading) {
+                                VStack(alignment: .leading, spacing: 0) {
                                     Button(action: {
                                         showingAddressKeypad = true
                                     }) {
@@ -492,7 +501,7 @@ struct ModernDonationDetailsView: View {
                                         )
                                     }
                                     
-                                    // Address suggestions dropdown
+                                    // Address suggestions dropdown - positioned below button without layout shift
                                     if showAddressSuggestions && !addressSuggestions.isEmpty && addressFocused {
                                         VStack(spacing: 0) {
                                             ForEach(addressSuggestions.prefix(5)) { suggestion in
@@ -524,7 +533,7 @@ struct ModernDonationDetailsView: View {
                                         .background(Color.white)
                                         .cornerRadius(12)
                                         .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                        .padding(.top, 60)
+                                        .padding(.top, 8)
                                     }
                                 }
                             }
@@ -631,6 +640,8 @@ struct ModernDonationDetailsView: View {
             NameKeypadView(name: $donorName) {
                 showingNameKeypad = false
             }
+            .presentationBackground(.clear)
+            .presentationDetents([.large])
         }
         .sheet(isPresented: $showingEmailKeypad) {
             EmailKeypadView(email: $donorEmail) {

@@ -164,5 +164,75 @@ export class DonorsService {
   async deleteDonor(donorId: string): Promise<void> {
     await this.donorsRepository.delete(donorId);
   }
+
+  /**
+   * Backfill donors from past donations
+   * Creates donor records for all successful donations that have a phone number
+   */
+  async backfillDonorsFromDonations(
+    donationsRepository: Repository<any>,
+    templeId?: string,
+  ): Promise<{ created: number; updated: number; errors: number }> {
+    let created = 0;
+    let updated = 0;
+    let errors = 0;
+
+    const queryBuilder = donationsRepository
+      .createQueryBuilder('donation')
+      .where('donation.donorPhone IS NOT NULL')
+      .andWhere("donation.donorPhone != ''")
+      .andWhere('donation.status = :status', { status: 'SUCCEEDED' });
+
+    if (templeId) {
+      queryBuilder.andWhere('donation.templeId = :templeId', { templeId });
+    }
+
+    const donations = await queryBuilder.getMany();
+
+    for (const donation of donations) {
+      try {
+        const normalizedPhone = donation.donorPhone.replace(/\D/g, '');
+        if (!normalizedPhone) continue;
+
+        let donor = await this.donorsRepository.findOne({
+          where: { templeId: donation.templeId, phone: normalizedPhone },
+        });
+
+        if (!donor) {
+          // Create new donor
+          donor = this.donorsRepository.create({
+            templeId: donation.templeId,
+            phone: normalizedPhone,
+            name: donation.donorName?.trim() || null,
+            email: donation.donorEmail?.trim() || null,
+            address: donation.donorAddress?.trim() || null,
+            totalDonations: 0,
+            totalAmount: 0,
+          });
+          created++;
+        } else {
+          // Update existing donor info if missing
+          if (!donor.name && donation.donorName) donor.name = donation.donorName.trim();
+          if (!donor.email && donation.donorEmail) donor.email = donation.donorEmail.trim();
+          if (!donor.address && donation.donorAddress) donor.address = donation.donorAddress.trim();
+          updated++;
+        }
+
+        // Update stats
+        donor.totalDonations += 1;
+        donor.totalAmount = (Number(donor.totalAmount) || 0) + Number(donation.amount);
+        if (!donor.lastDonationDate || donation.createdAt > donor.lastDonationDate) {
+          donor.lastDonationDate = donation.createdAt;
+        }
+
+        await this.donorsRepository.save(donor);
+      } catch (error) {
+        console.error(`[DonorsService] Error backfilling donor for donation ${donation.id}:`, error);
+        errors++;
+      }
+    }
+
+    return { created, updated, errors };
+  }
 }
 

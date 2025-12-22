@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { format } from 'date-fns'
 import { useState } from 'react'
+import DonorInfoPopup from '../DonorInfoPopup'
 
 interface DonationsTabProps {
   templeId?: string
@@ -19,6 +20,12 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   const [selectedTempleId, setSelectedTempleId] = useState<string>('all')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
+  const [viewingDonorInfo, setViewingDonorInfo] = useState<{
+    phone: string
+    name?: string | null
+    email?: string | null
+    address?: string | null
+  } | null>(null)
 
   // Fetch temples for master admin filter
   const { data: temples } = useQuery({
@@ -361,6 +368,19 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   {donation.donorEmail && (
                     <div className="text-xs text-gray-500 mt-1">✉️ {donation.donorEmail}</div>
                   )}
+                  {donation.donorPhone && (
+                    <button
+                      onClick={() => setViewingDonorInfo({
+                        phone: donation.donorPhone,
+                        name: donation.donorName,
+                        email: donation.donorEmail,
+                        address: donation.donorAddress,
+                      })}
+                      className="mt-2 text-xs text-purple-600 hover:text-purple-800 hover:underline"
+                    >
+                      View Info
+                    </button>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col gap-1">
@@ -471,6 +491,18 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
             </div>
           </div>
         </div>
+      )}
+      {/* Donor Info Popup */}
+      {viewingDonorInfo && (
+        <DonorInfoPopup
+          donorPhone={viewingDonorInfo.phone}
+          donorName={viewingDonorInfo.name}
+          donorEmail={viewingDonorInfo.email}
+          donorAddress={viewingDonorInfo.address}
+          templeId={isMasterAdmin ? selectedTempleId !== 'all' ? selectedTempleId : undefined : templeId}
+          isMasterAdmin={isMasterAdmin}
+          onClose={() => setViewingDonorInfo(null)}
+        />
       )}
     </div>
   )

@@ -158,8 +158,8 @@ export class DonationsService {
 
     const savedDonation = await this.donationsRepository.save(donation);
 
-    // Save/update donor information in Donor table if phone is provided
-    if (completeDonationDto.donorPhone && completeDonationDto.status === DonationStatus.SUCCEEDED) {
+    // Save/update donor information in Donor table if phone is provided (for both succeeded and other statuses to track all donors)
+    if (completeDonationDto.donorPhone) {
       try {
         await this.donorsService.findOrCreateDonor(
           donation.templeId,
@@ -169,13 +169,15 @@ export class DonationsService {
           completeDonationDto.donorAddress,
         );
         
-        // Update donor statistics
-        await this.donorsService.updateDonorStats(
-          donation.templeId,
-          completeDonationDto.donorPhone,
-          Number(donation.amount),
-          new Date(),
-        );
+        // Update donor statistics only for succeeded donations
+        if (completeDonationDto.status === DonationStatus.SUCCEEDED) {
+          await this.donorsService.updateDonorStats(
+            donation.templeId,
+            completeDonationDto.donorPhone,
+            Number(donation.amount),
+            new Date(),
+          );
+        }
       } catch (error) {
         console.error('[DonationsService] Failed to save donor information:', error);
         // Don't fail donation completion if donor save fails
@@ -246,6 +248,22 @@ export class DonationsService {
     });
     console.log(`[DonationsService] Deleted ${result.affected || 0} pending donations`);
     return { deleted: result.affected || 0 };
+  }
+
+  async findByDonorPhone(phone: string, templeId?: string): Promise<Donation[]> {
+    const queryBuilder = this.donationsRepository
+      .createQueryBuilder('donation')
+      .leftJoinAndSelect('donation.temple', 'temple')
+      .leftJoinAndSelect('donation.category', 'category')
+      .where('donation.donorPhone = :phone', { phone })
+      .andWhere('donation.status = :status', { status: DonationStatus.SUCCEEDED })
+      .orderBy('donation.createdAt', 'DESC');
+
+    if (templeId) {
+      queryBuilder.andWhere('donation.templeId = :templeId', { templeId });
+    }
+
+    return queryBuilder.getMany();
   }
 
   async backfillSquareFees(): Promise<{ updated: number; failed: number }> {

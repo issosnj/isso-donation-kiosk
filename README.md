@@ -127,9 +127,9 @@ You'll be prompted for email, password, name, and role.
 
 ### Current Production URLs
 
-- **Backend API**: `https://isso-donation-kiosk-production.up.railway.app`
-- **Admin Web Portal**: `https://issodonationkiosk.netlify.app`
-- **API Documentation**: `https://isso-donation-kiosk-production.up.railway.app/api/docs`
+- **Backend API**: `https://kiosk-backend.issousa.org/api`
+- **Admin Web Portal**: `https://kiosk.issousa.org`
+- **API Documentation**: `https://kiosk-backend.issousa.org/api/docs`
 
 ### Backend (Railway)
 
@@ -160,7 +160,7 @@ You'll be prompted for email, password, name, and role.
 
 4. **Deploy**
    - Railway will automatically deploy on push to main
-   - Get your backend URL from Railway (e.g., `https://isso-donation-kiosk-production.up.railway.app`)
+   - Backend URL: `https://kiosk-backend.issousa.org/api` (or Railway default domain during setup)
    - The backend automatically handles CORS for Netlify domains
 
 5. **Create Admin User**
@@ -185,19 +185,19 @@ You'll be prompted for email, password, name, and role.
    - Go to Site Settings → Environment Variables
    - Add:
      ```
-     NEXT_PUBLIC_API_URL=https://isso-donation-kiosk-production.up.railway.app/api
+     NEXT_PUBLIC_API_URL=https://kiosk-backend.issousa.org/api
      ```
    - **Important**: Use the exact backend URL from Railway
 
 4. **Deploy**
    - Netlify will automatically deploy on push to main
-   - Your admin portal will be live at `https://issodonationkiosk.netlify.app`
+   - Your admin portal will be live at `https://kiosk.issousa.org`
 
 5. **Update Backend CORS**
    - In Railway backend variables, set:
      ```
-     CORS_ORIGIN=https://issodonationkiosk.netlify.app
-     ADMIN_WEB_URL=https://issodonationkiosk.netlify.app
+     CORS_ORIGIN=https://kiosk.issousa.org
+     ADMIN_WEB_URL=https://kiosk.issousa.org
      ```
    - The backend automatically allows all `*.netlify.app` URLs for CORS
    - Setting `ADMIN_WEB_URL` ensures proper redirects for Square OAuth
@@ -339,7 +339,7 @@ npm run lint
 | `SQUARE_APPLICATION_ID` | Square application ID | Yes |
 | `SQUARE_APPLICATION_SECRET` | Square application secret | Yes |
 | `SQUARE_ENVIRONMENT` | `sandbox` or `production` | Yes |
-| `CORS_ORIGIN` | Frontend URL for CORS (e.g., `https://issodonationkiosk.netlify.app`) | Yes |
+| `CORS_ORIGIN` | Frontend URL for CORS (e.g., `https://kiosk.issousa.org`) | Yes |
 | `ADMIN_WEB_URL` | Frontend URL for Square OAuth redirects | Yes |
 | `PORT` | Server port (default: 3000) | No |
 | `NODE_ENV` | `development` or `production` | No |
@@ -356,7 +356,7 @@ Update `kiosk-app/ISSOKiosk/Config.swift`:
 
 ```swift
 struct Config {
-    static let apiBaseURL = "https://isso-donation-kiosk-production.up.railway.app/api"
+    static let apiBaseURL = "https://kiosk-backend.issousa.org/api"
     static let squareApplicationId = "your-square-app-id"
     static let squareLocationId = "your-square-location-id" // Set after OAuth
 }
@@ -414,12 +414,12 @@ See TypeORM entities in `backend/src/*/entities/` for full schema.
 
 **Health Check:**
 ```bash
-curl https://isso-donation-kiosk-production.up.railway.app/health
+curl https://kiosk-backend.issousa.org/api/health
 ```
 
 **API Root:**
 ```bash
-curl https://isso-donation-kiosk-production.up.railway.app/api
+curl https://kiosk-backend.issousa.org/api
 ```
 
 ## 📝 License

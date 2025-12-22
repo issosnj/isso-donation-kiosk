@@ -34,11 +34,13 @@ struct ISSOKioskApp: App {
                 }
         }
         .onChange(of: scenePhase) { newPhase in
-            // Refresh theme when app becomes active
+            // Refresh theme and reconnect Square SDK when app becomes active
             if newPhase == .active && appState.isActivated {
-                print("[App] 🔄 App became active - refreshing theme settings")
+                print("[App] 🔄 App became active - refreshing theme settings and checking Square connection")
                 Task {
                     await appState.refreshTempleConfig()
+                    // Check and reconnect Square SDK when app becomes active
+                    await appState.checkAndReconnectSquareSDK()
                 }
             }
         }

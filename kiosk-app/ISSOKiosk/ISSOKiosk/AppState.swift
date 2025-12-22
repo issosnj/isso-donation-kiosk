@@ -8,11 +8,13 @@ class AppState: ObservableObject {
     @Published var deviceId: String?
     @Published var temple: Temple?
     @Published var categories: [DonationCategory] = []
+    @Published var religiousEvents: [ReligiousEvent] = []
     @Published var backgroundImage: UIImage? = nil // Cached background image
     
     private let keychain = KeychainHelper()
     private var themeRefreshTimer: Timer?
     private var categoryRefreshTimer: Timer?
+    private var squareConnectionCheckTimer: Timer?
     
     init() {
         loadStoredCredentials()
@@ -21,6 +23,7 @@ class AppState: ObservableObject {
     deinit {
         themeRefreshTimer?.invalidate()
         categoryRefreshTimer?.invalidate()
+        squareConnectionCheckTimer?.invalidate()
     }
     
     func activate(deviceCode: String) async throws {
@@ -39,6 +42,21 @@ class AppState: ObservableObject {
             
             // Start automatic theme refresh timer
             startThemeRefreshTimer()
+            
+            // Start automatic category refresh timer
+            startCategoryRefreshTimer()
+        }
+        
+        // Preload background image if available (don't block - load in background)
+        Task.detached(priority: .background) { [weak self] in
+            await self?.preloadBackgroundImage()
+        }
+        
+        // Authorize Square Mobile Payments SDK after activation
+        Task {
+            await authorizeSquareSDK()
+            // Start periodic connection checks
+            startSquareConnectionMonitoring()
         }
     }
     
@@ -142,6 +160,13 @@ class AppState: ObservableObject {
             request.timeoutInterval = 10.0 // 10 second timeout to prevent hanging
             if forceReload {
                 request.cachePolicy = .reloadIgnoringLocalCacheData
+            }
+            
+            // Don't send auth token for proxy-image endpoint (it's public)
+            // The proxy endpoint is public and doesn't require authentication
+            if !finalUrlString.contains("/temples/proxy-image") {
+                // For non-proxy endpoints, we could add auth if needed in the future
+                // But currently background images are loaded without auth
             }
             
             // Use URLSession with timeout to prevent hanging on slow/failed requests
@@ -320,9 +345,14 @@ class AppState: ObservableObject {
             // Load categories after temple config is loaded
             await refreshCategories()
             
+            // Load religious events
+            await refreshReligiousEvents()
+            
             // Authorize Square Mobile Payments SDK if device token exists
             Task {
                 await authorizeSquareSDK()
+                // Start periodic connection checks
+                startSquareConnectionMonitoring()
             }
         } catch {
             print("[AppState] ❌ Failed to load temple config")
@@ -339,6 +369,8 @@ class AppState: ObservableObject {
             // Still try to authorize SDK even if temple fetch failed
             Task {
                 await authorizeSquareSDK()
+                // Start periodic connection checks
+                startSquareConnectionMonitoring()
             }
         }
     }
@@ -435,6 +467,35 @@ class AppState: ObservableObject {
             print("[AppState]   3. The backend API is unavailable")
             // Don't block app - Square SDK authorization can happen later
         }
+    }
+    
+    // Check Square SDK connection and reconnect if needed
+    func checkAndReconnectSquareSDK() async {
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        print("[AppState] 🔍 Checking Square SDK connection state: \(authState)")
+        
+        // If not authorized, try to reconnect
+        if authState != .authorized {
+            print("[AppState] ⚠️ Square SDK connection lost (state: \(authState)) - attempting reconnection...")
+            await authorizeSquareSDK()
+        } else {
+            print("[AppState] ✅ Square SDK connection is active")
+        }
+    }
+    
+    // Start periodic monitoring of Square SDK connection
+    private func startSquareConnectionMonitoring() {
+        // Stop any existing timer
+        squareConnectionCheckTimer?.invalidate()
+        
+        // Check connection every 30 seconds
+        squareConnectionCheckTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self, self.isActivated else { return }
+                await self.checkAndReconnectSquareSDK()
+            }
+        }
+        print("[AppState] 🔄 Started Square SDK connection monitoring (every 30 seconds)")
     }
     
     // Extract device ID from JWT token payload
@@ -670,6 +731,19 @@ struct LocalEvent: Codable, Identifiable {
     let isAllDay: Bool?
 }
 
+struct ReligiousEvent: Codable, Identifiable {
+    let id: String
+    let name: String
+    let description: String?
+    let date: String // ISO date string (YYYY-MM-DD)
+    let startTime: String?
+    let isRecurring: Bool?
+    let recurrencePattern: String?
+    let displayOrder: Int?
+    let isActive: Bool?
+    let googleCalendarLinks: [String]?
+}
+
 struct Branding: Codable {
     let primaryColor: String?
     let secondaryColor: String?
@@ -688,6 +762,44 @@ struct DonationCategory: Codable, Identifiable, Equatable {
     let showStartDate: String? // ISO date string (optional, for future use)
     let showEndDate: String? // ISO date string (optional, for future use)
     let yajmanOpportunities: [YajmanOpportunity]? // Included yajman opportunities for sponsorship tiers
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case defaultAmount
+        case showStartDate
+        case showEndDate
+        case yajmanOpportunities
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        
+        // Handle defaultAmount as either String or Double
+        if let amountString = try? container.decode(String.self, forKey: .defaultAmount) {
+            defaultAmount = Double(amountString)
+        } else if let amountDouble = try? container.decode(Double.self, forKey: .defaultAmount) {
+            defaultAmount = amountDouble
+        } else {
+            defaultAmount = nil
+        }
+        
+        showStartDate = try container.decodeIfPresent(String.self, forKey: .showStartDate)
+        showEndDate = try container.decodeIfPresent(String.self, forKey: .showEndDate)
+        yajmanOpportunities = try container.decodeIfPresent([YajmanOpportunity].self, forKey: .yajmanOpportunities)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(defaultAmount, forKey: .defaultAmount)
+        try container.encodeIfPresent(showStartDate, forKey: .showStartDate)
+        try container.encodeIfPresent(showEndDate, forKey: .showEndDate)
+        try container.encodeIfPresent(yajmanOpportunities, forKey: .yajmanOpportunities)
+    }
 }
 
 struct SocialMediaLink: Codable, Equatable {

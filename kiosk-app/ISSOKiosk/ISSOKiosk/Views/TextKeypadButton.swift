@@ -7,7 +7,18 @@ struct TextKeypadButton: View {
     
     var body: some View {
         Button(action: {
-            if capitalize {
+            // Check if character is a number
+            let isNumber = character.rangeOfCharacter(from: .decimalDigits) != nil
+            // Check if character is a letter
+            let isLetter = character.rangeOfCharacter(from: .letters) != nil
+            
+            if isNumber {
+                // Add numbers as-is
+                enteredText += character
+            } else if !isLetter {
+                // Add special characters (., @, etc.) as-is
+                enteredText += character
+            } else if capitalize {
                 // For names, capitalize first letter of each word
                 if enteredText.isEmpty || enteredText.last == " " {
                     enteredText += character.uppercased()
@@ -20,9 +31,10 @@ struct TextKeypadButton: View {
             }
         }) {
             Text(character)
-                .font(.custom("Inter-SemiBold", size: 20))
+                .font(.custom("Inter-SemiBold", size: 22))
                 .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                .frame(width: 50, height: 50)
+                .frame(maxWidth: .infinity)
+                .frame(height: 60)
                 .background(Color.white)
                 .cornerRadius(12)
                 .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)

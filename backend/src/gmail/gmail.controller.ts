@@ -144,13 +144,13 @@ export class GmailController {
         hasRefreshToken: !!updatedTemple.gmailRefreshToken,
       });
 
-      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://issodonationkiosk.netlify.app';
+      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://kiosk.issousa.org';
       const redirectUrl = `${adminWebUrl}/dashboard?gmailConnected=true&templeId=${templeId}`;
       
       res.redirect(redirectUrl);
     } catch (error: any) {
       console.error('[Gmail Callback] Error:', error);
-      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://issodonationkiosk.netlify.app';
+      const adminWebUrl = this.configService.get<string>('ADMIN_WEB_URL') || 'https://kiosk.issousa.org';
       const redirectUrl = `${adminWebUrl}/dashboard?gmailError=${encodeURIComponent(error.message)}`;
       res.redirect(redirectUrl);
     }

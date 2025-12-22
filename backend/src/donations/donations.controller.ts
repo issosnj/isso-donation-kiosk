@@ -292,6 +292,20 @@ export class DonationsController {
     return this.donationsService.backfillSquareFees();
   }
 
+  @Get('by-donor/:phone')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all donations by donor phone number' })
+  async getDonationsByDonor(
+    @Param('phone') phone: string,
+    @CurrentUser() user: any,
+    @Query('templeId') templeId?: string,
+  ) {
+    // For temple admin, use their templeId. For master admin, use provided templeId or all temples
+    const targetTempleId = user.role === 'TEMPLE_ADMIN' ? user.templeId : templeId;
+    return this.donationsService.findByDonorPhone(phone, targetTempleId);
+  }
+
   @Post('pledge')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

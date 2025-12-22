@@ -1,6 +1,6 @@
 'use client'
 
-import { OverviewIcon, TemplesIcon, DonationsIcon, UsersIcon, DevicesIcon, CategoriesIcon, SquareIcon, LogoutIcon, ThemeIcon, ReceiptIcon } from './Icons'
+import { OverviewIcon, TemplesIcon, DonationsIcon, UsersIcon, DevicesIcon, CategoriesIcon, SquareIcon, LogoutIcon, ThemeIcon, ReceiptIcon, ReligiousEventsIcon } from './Icons'
 
 interface SidebarProps {
   user: {
@@ -22,6 +22,7 @@ const iconMap: Record<string, () => JSX.Element> = {
   square: SquareIcon,
   theme: ThemeIcon,
   receipts: ReceiptIcon,
+  'religious-events': ReligiousEventsIcon,
 }
 
 export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: SidebarProps) {
@@ -43,6 +44,7 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
     { id: 'donations', label: 'All Donations' },
     { id: 'donors', label: 'All Donors' },
     { id: 'users', label: 'Users' },
+    { id: 'religious-events', label: 'Observances' },
     { id: 'theme', label: 'Kiosk Theme' },
     { id: 'receipts', label: 'Receipts' },
   ]

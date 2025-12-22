@@ -44,7 +44,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
     ? `/donors/temple/${templeId}`
     : isMasterAdmin
     ? null // Master admin needs to select a temple first
-    : '/donors/my-temple'
+    : '/donors/my-temple' // Temple admin uses their own temple
 
   const { data, isLoading } = useQuery({
     queryKey: ['donors', templeId, page, search, isMasterAdmin],
@@ -188,6 +188,26 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
         <p className="text-gray-600 mb-4">
           View and manage donor information. Donors are automatically created when they make donations.
         </p>
+        
+        {/* Backfill button for past donors */}
+        <div className="mb-4">
+          <button
+            onClick={async () => {
+              if (confirm('This will create donor records from all past successful donations. Continue?')) {
+                try {
+                  const response = await api.post('/donors/backfill' + (templeId ? `?templeId=${templeId}` : ''))
+                  alert(`Backfill complete! Created: ${response.data.created}, Updated: ${response.data.updated}${response.data.errors > 0 ? `, Errors: ${response.data.errors}` : ''}`)
+                  queryClient.invalidateQueries({ queryKey: ['donors'] })
+                } catch (error: any) {
+                  alert(error.response?.data?.message || 'Failed to backfill donors')
+                }
+              }
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+          >
+            Backfill Past Donors
+          </button>
+        </div>
         
         {/* Temple selector for master admin (if viewing specific temple) */}
         {isMasterAdmin && templeId && (

@@ -10,6 +10,7 @@ import { DonorsModule } from './donors/donors.module';
 import { SquareModule } from './square/square.module';
 import { GmailModule } from './gmail/gmail.module';
 import { PlacesModule } from './places/places.module';
+import { ReligiousEventsModule } from './religious-events/religious-events.module';
 import { typeOrmConfig } from './config/typeorm.config';
 
 @Module({
@@ -30,6 +31,7 @@ import { typeOrmConfig } from './config/typeorm.config';
     SquareModule,
     GmailModule,
     PlacesModule,
+    ReligiousEventsModule,
   ],
 })
 export class AppModule {}

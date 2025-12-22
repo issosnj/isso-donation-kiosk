@@ -3,168 +3,165 @@ import SwiftUI
 struct PhoneNumberKeypadView: View {
     @Binding var phoneNumber: String
     let onDismiss: () -> Void
-    @FocusState private var isPhoneFocused: Bool
     @State private var enteredPhone: String = ""
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                // Background gradient
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.white,
-                        Color(red: 0.95, green: 0.97, blue: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+        ZStack {
+            // Semi-transparent background overlay
+            Color.black.opacity(0.4)
                 .ignoresSafeArea()
-                
-                VStack(spacing: 32) {
-                    // Header
-                    VStack(spacing: 12) {
-                        Text("Enter Phone Number")
-                            .font(.custom("Inter-SemiBold", size: 32))
+                .onTapGesture {
+                    onDismiss()
+                }
+            
+            // Single smooth popup - wider and more appealing
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Header with Cancel button
+                    HStack {
+                        Button(action: {
+                            onDismiss()
+                        }) {
+                            Text("Cancel")
+                                .font(.custom("Inter-Medium", size: 16))
+                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                        }
+                        
+                        Spacer()
+                        
+                        Text("Phone Number")
+                            .font(.custom("Inter-SemiBold", size: 24))
                             .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                         
-                        Text("Enter your 10-digit phone number")
-                            .font(.custom("Inter-Regular", size: 18))
-                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 20)
-                    }
-                    .padding(.top, 40)
-                    
-                    // Phone input field
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("(")
-                                .font(.custom("Inter-SemiBold", size: 48))
-                                .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                            
-                            TextField("000) 000-0000", text: $enteredPhone)
-                                .keyboardType(.numberPad)
-                                .font(.custom("Inter-SemiBold", size: 48))
-                                .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                                .focused($isPhoneFocused)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .onChange(of: enteredPhone) { newValue in
-                                    // Format phone number as user types
-                                    let digits = newValue.filter { $0.isNumber }
-                                    if digits.count <= 10 {
-                                        enteredPhone = formatPhoneNumber(digits)
-                                    } else {
-                                        enteredPhone = formatPhoneNumber(String(digits.prefix(10)))
-                                    }
-                                }
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 20)
-                        .background(Color.white)
-                        .cornerRadius(16)
-                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                        .padding(.horizontal, 20)
+                        Spacer()
                         
-                        // Numeric keypad
-                        VStack(spacing: 12) {
-                            HStack(spacing: 12) {
-                                PhoneKeypadButton(number: "1", letters: "", enteredPhone: $enteredPhone)
-                                PhoneKeypadButton(number: "2", letters: "ABC", enteredPhone: $enteredPhone)
-                                PhoneKeypadButton(number: "3", letters: "DEF", enteredPhone: $enteredPhone)
-                            }
-                            HStack(spacing: 12) {
-                                PhoneKeypadButton(number: "4", letters: "GHI", enteredPhone: $enteredPhone)
-                                PhoneKeypadButton(number: "5", letters: "JKL", enteredPhone: $enteredPhone)
-                                PhoneKeypadButton(number: "6", letters: "MNO", enteredPhone: $enteredPhone)
-                            }
-                            HStack(spacing: 12) {
-                                PhoneKeypadButton(number: "7", letters: "PQRS", enteredPhone: $enteredPhone)
-                                PhoneKeypadButton(number: "8", letters: "TUV", enteredPhone: $enteredPhone)
-                                PhoneKeypadButton(number: "9", letters: "WXYZ", enteredPhone: $enteredPhone)
-                            }
-                            HStack(spacing: 12) {
-                                PhoneKeypadButton(number: "*", letters: "", enteredPhone: $enteredPhone)
-                                PhoneKeypadButton(number: "0", letters: "+", enteredPhone: $enteredPhone)
-                                PhoneKeypadButton(number: "#", letters: "", enteredPhone: $enteredPhone)
-                            }
-                            HStack(spacing: 12) {
-                                // Backspace button
-                                Button(action: {
-                                    if !enteredPhone.isEmpty {
-                                        let digits = enteredPhone.filter { $0.isNumber }
-                                        if !digits.isEmpty {
-                                            enteredPhone = formatPhoneNumber(String(digits.dropLast()))
-                                        }
-                                    }
-                                }) {
-                                    Image(systemName: "delete.left.fill")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 60)
-                                        .background(Color.white)
-                                        .cornerRadius(12)
-                                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                                }
-                                .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .padding(.horizontal, 20)
+                        // Invisible spacer to balance Cancel button
+                        Text("Cancel")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(.clear)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
                     }
-                    
-                    Spacer()
-                    
-                    // Continue button
-                    Button(action: {
-                        // Extract only digits
-                        let digits = enteredPhone.filter { $0.isNumber }
-                        phoneNumber = digits
-                        onDismiss()
-                    }) {
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+                
+                // Phone input display
+                HStack {
+                    Text(enteredPhone.isEmpty ? "(000) 000-0000" : enteredPhone)
+                        .font(.custom("Inter-SemiBold", size: 36))
+                        .foregroundColor(enteredPhone.isEmpty ? Color(red: 0.7, green: 0.7, blue: 0.7) : Color(red: 0.26, green: 0.20, blue: 0.20))
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 18)
+                .frame(maxWidth: .infinity)
+                .background(Color(red: 0.98, green: 0.98, blue: 0.98))
+                .cornerRadius(16)
+                .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+                .padding(.horizontal, 32)
+                .padding(.bottom, 16)
+                
+                // Numeric keypad
+                VStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        PhoneKeypadButton(number: "1", letters: "", enteredPhone: $enteredPhone)
+                        PhoneKeypadButton(number: "2", letters: "ABC", enteredPhone: $enteredPhone)
+                        PhoneKeypadButton(number: "3", letters: "DEF", enteredPhone: $enteredPhone)
+                    }
+                    HStack(spacing: 12) {
+                        PhoneKeypadButton(number: "4", letters: "GHI", enteredPhone: $enteredPhone)
+                        PhoneKeypadButton(number: "5", letters: "JKL", enteredPhone: $enteredPhone)
+                        PhoneKeypadButton(number: "6", letters: "MNO", enteredPhone: $enteredPhone)
+                    }
+                    HStack(spacing: 12) {
+                        PhoneKeypadButton(number: "7", letters: "PQRS", enteredPhone: $enteredPhone)
+                        PhoneKeypadButton(number: "8", letters: "TUV", enteredPhone: $enteredPhone)
+                        PhoneKeypadButton(number: "9", letters: "WXYZ", enteredPhone: $enteredPhone)
+                    }
+                    HStack(spacing: 12) {
+                        PhoneKeypadButton(number: "0", letters: "+", enteredPhone: $enteredPhone)
+                        // Backspace button
+                        Button(action: {
+                            if !enteredPhone.isEmpty {
+                                let digits = enteredPhone.filter { $0.isNumber }
+                                if !digits.isEmpty {
+                                    enteredPhone = formatPhoneNumber(String(digits.dropLast()))
+                                }
+                            }
+                        }) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(red: 0.4, green: 0.25, blue: 0.15))
+                                
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 60)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 24)
+                
+                // Continue button - matching Proceed to Payment style
+                Button(action: {
+                    // Extract only digits
+                    let digits = enteredPhone.filter { $0.isNumber }
+                    phoneNumber = digits
+                    onDismiss()
+                }) {
+                    HStack(spacing: 12) {
                         Text("Continue")
                             .font(.custom("Inter-Medium", size: 20))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.2, green: 0.4, blue: 0.8),
-                                        Color(red: 0.3, green: 0.5, blue: 0.9)
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
+                            .foregroundColor(enteredPhone.filter { $0.isNumber }.count >= 10 ? Color.white : Color.gray)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(enteredPhone.filter { $0.isNumber }.count >= 10 ? Color.white : Color.gray)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        enteredPhone.filter { $0.isNumber }.count >= 10
+                            ? LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color(red: 0.85, green: 0.75, blue: 0.5),
+                                    Color(red: 0.95, green: 0.85, blue: 0.6)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
                             )
-                            .cornerRadius(12)
-                            .shadow(color: Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.3), radius: 8, x: 0, y: 4)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
-                    .disabled(enteredPhone.filter { $0.isNumber }.count < 10)
-                    .opacity(enteredPhone.filter { $0.isNumber }.count < 10 ? 0.5 : 1.0)
+                            : LinearGradient(
+                                gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                    )
+                    .cornerRadius(12)
+                    .shadow(color: enteredPhone.filter { $0.isNumber }.count >= 10 ? Color.black.opacity(0.2) : Color.clear, radius: 8, x: 0, y: 4)
                 }
-            }
-            .navigationTitle("Phone Number")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        onDismiss()
-                    }
-                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                .padding(.horizontal, 32)
+                .padding(.bottom, 16)
+                .disabled(enteredPhone.filter { $0.isNumber }.count < 10)
                 }
+                .frame(maxWidth: 900) // Wider popup
+                .padding(.vertical, 16)
             }
-            .onAppear {
-                // Format existing phone number
-                let digits = phoneNumber.filter { $0.isNumber }
-                enteredPhone = formatPhoneNumber(digits)
-                // Focus the text field after a short delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    isPhoneFocused = true
-                }
-            }
+            .frame(maxWidth: 900)
+            .background(Color.white)
+            .cornerRadius(24)
+            .shadow(color: Color.black.opacity(0.25), radius: 30, x: 0, y: 15)
+        }
+        .onAppear {
+            // Format existing phone number
+            let digits = phoneNumber.filter { $0.isNumber }
+            enteredPhone = formatPhoneNumber(digits)
+            // Hide system keyboard when view appears
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
     }
     
@@ -195,9 +192,6 @@ struct PhoneKeypadButton: View {
     
     var body: some View {
         Button(action: {
-            if number == "*" || number == "#" {
-                return // Don't add * or # to phone number
-            }
             let digits = enteredPhone.filter { $0.isNumber }
             if digits.count < 10 {
                 enteredPhone = formatPhoneNumber(digits + number)
@@ -205,7 +199,7 @@ struct PhoneKeypadButton: View {
         }) {
             VStack(spacing: 4) {
                 Text(number)
-                    .font(.custom("Inter-SemiBold", size: 28))
+                    .font(.custom("Inter-SemiBold", size: 30))
                     .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                 
                 if !letters.isEmpty {
@@ -215,13 +209,11 @@ struct PhoneKeypadButton: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
-            .background(Color.white)
+            .frame(height: 70)
+            .background(Color(red: 0.98, green: 0.97, blue: 0.95))
             .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+            .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
         }
-        .disabled(number == "*" || number == "#")
-        .opacity((number == "*" || number == "#") ? 0.3 : 1.0)
     }
     
     private func formatPhoneNumber(_ digits: String) -> String {
@@ -243,4 +235,3 @@ struct PhoneKeypadButton: View {
         }
     }
 }
-

@@ -34,6 +34,8 @@ async function bootstrap() {
     'http://localhost:3000',
     'http://localhost:3001',
     'https://issodonationkiosk.netlify.app', // Explicitly allow Netlify domain
+    'https://kiosk.issousa.org', // Production frontend domain
+    'https://www.kiosk.issousa.org', // Allow www prefix as well
   ].filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
 
   console.log(`[CORS] ADMIN_WEB_URL: ${adminWebUrl}`);
@@ -57,6 +59,13 @@ async function bootstrap() {
     const isNetlifyUrl = origin.includes('.netlify.app') || origin.startsWith('https://issodonationkiosk');
     if (isNetlifyUrl) {
       console.log(`[CORS] ✓ Allowing Netlify origin: ${origin}`);
+      return true;
+    }
+    
+    // Check if it's an ISSO USA domain (allow any subdomain of issousa.org)
+    const isIssousaDomain = origin.includes('.issousa.org') || origin.includes('issousa.org');
+    if (isIssousaDomain) {
+      console.log(`[CORS] ✓ Allowing ISSO USA domain: ${origin}`);
       return true;
     }
     

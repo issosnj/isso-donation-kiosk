@@ -14,9 +14,9 @@ npm install
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ```
 
-For production, set this to your Railway backend URL:
+For production, set this to your backend API URL:
 ```env
-NEXT_PUBLIC_API_URL=https://isso-donation-kiosk-production.up.railway.app/api
+NEXT_PUBLIC_API_URL=https://kiosk-backend.issousa.org/api
 ```
 
 **Note**: This must be set as an environment variable in Netlify:

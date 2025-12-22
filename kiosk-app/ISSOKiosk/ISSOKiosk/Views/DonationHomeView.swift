@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct DonationHomeView: View {
     @EnvironmentObject var appState: AppState
@@ -246,7 +247,6 @@ struct DonationHomeView: View {
         ZStack {
             backgroundGradient
             mainContent
-            homeButtonOverlay
             // Time and Network Status in top right
             VStack {
                 HStack {
@@ -404,11 +404,20 @@ struct DonationHomeView: View {
     
     private var backgroundGradient: some View {
         Group {
-            if let backgroundImage = appState.backgroundImage {
+            // First try to use asset (local, no network needed)
+            if UIImage(named: "KioskBackground") != nil {
+                Image("KioskBackground")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea(.all, edges: .all)
+            } else if let backgroundImage = appState.backgroundImage {
+                // Fallback to preloaded URL image
                 preloadedBackgroundImage
             } else if let backgroundUrl = backgroundImageUrl, let url = URL(string: backgroundUrl) {
+                // Fallback to async URL loading
                 asyncBackgroundImage(url: url)
             } else {
+                // Final fallback to default gradient
                 defaultGradientBackground
             }
         }
@@ -547,30 +556,6 @@ struct DonationHomeView: View {
         }
     }
     
-    private var homeButtonOverlay: some View {
-        VStack {
-            HStack {
-                    Button(action: {
-                        onDismiss()
-                    }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "house.fill")
-                        Text("Home")
-                    }
-                    .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(colorFromHex("423232"))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Color.white.opacity(0.95))
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.15), radius: 6, x: 0, y: 3)
-                }
-                .padding()
-                Spacer()
-            }
-            Spacer()
-        }
-    }
     
     // Check if any categories have yajman opportunities (sponsorship tiers)
     private var hasSponsorshipTiers: Bool {
@@ -853,22 +838,42 @@ struct DonationHomeView: View {
                 .transition(.scale.combined(with: .opacity))
             }
             
-            Button(action: {
-                showingDetails = true
-            }) {
-                Text("Select Amount to Continue")
+            // Buttons side by side: Home and Continue
+            HStack(spacing: 16) {
+                // Home button - same theme as Continue button
+                Button(action: {
+                    onDismiss()
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "house.fill")
+                        Text("Home")
+                    }
                     .font(.custom("Inter-Medium", size: 18))
                     .foregroundColor(.white)
-                    .frame(maxWidth: 600) // Center the button with max width
+                    .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(
-                        hasValidAmount
-                            ? Color(red: 1.0, green: 0.58, blue: 0.0) // Orange color
-                            : Color.gray.opacity(0.4)
-                    )
+                    .background(Color(red: 1.0, green: 0.58, blue: 0.0)) // Orange color matching continue button
                     .cornerRadius(12)
+                }
+                
+                // Continue button
+                Button(action: {
+                    showingDetails = true
+                }) {
+                    Text("Select Amount to Continue")
+                        .font(.custom("Inter-Medium", size: 18))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            hasValidAmount
+                                ? Color(red: 1.0, green: 0.58, blue: 0.0) // Orange color
+                                : Color.gray.opacity(0.4)
+                        )
+                        .cornerRadius(12)
+                }
+                .disabled(!hasValidAmount)
             }
-            .disabled(!hasValidAmount)
             .frame(maxWidth: .infinity)
             .padding(.bottom, 30)
         }
