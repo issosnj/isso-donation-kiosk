@@ -165,10 +165,26 @@ export default function ReligiousEventsTab() {
       }
     } catch (error: any) {
       console.error('[ReligiousEventsTab] Error fetching calendar:', error)
-      const errorMessage = error.response?.data?.message || 
-                           error.response?.data?.error || 
-                           error.message || 
-                           'Failed to fetch events from Google Calendar. Please check that the calendar is public and the URL is correct.'
+      console.error('[ReligiousEventsTab] Error response:', error.response)
+      console.error('[ReligiousEventsTab] Error response data:', error.response?.data)
+      
+      let errorMessage = 'Failed to fetch events from Google Calendar.'
+      
+      if (error.response?.data) {
+        // Try to get the message from the error response
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      errorMessage += ' Please check that the calendar is public and the URL is correct.'
+      
       alert(errorMessage)
       setFetchedEvents([])
     } finally {

@@ -22,6 +22,7 @@ export class GoogleCalendarService {
    */
   private convertToICalUrl(url: string): string {
     console.log('[GoogleCalendarService] 🔄 Converting URL to iCal format');
+    console.log('[GoogleCalendarService] Input URL:', url);
     
     // If already an iCal URL, return as-is
     if (url.includes('/calendar/ical/') || url.includes('/calendar/feeds/') || url.endsWith('.ics')) {
@@ -29,31 +30,48 @@ export class GoogleCalendarService {
       return url;
     }
 
+    // Try to extract from shareable link format with cid parameter (highest priority)
+    // Format: https://calendar.google.com/calendar/u/0/r?cid=CALENDAR_ID
+    // Format: https://calendar.google.com/calendar?cid=CALENDAR_ID
+    const cidMatch = url.match(/[?&]cid=([^&]+)/);
+    if (cidMatch) {
+      // The cid parameter value might be URL-encoded, so decode it
+      let calendarId = decodeURIComponent(cidMatch[1]);
+      // Remove any additional parameters that might be in the cid value
+      calendarId = calendarId.split('&')[0].split('?')[0].trim();
+      console.log('[GoogleCalendarService] ✅ Extracted calendar ID from cid parameter:', calendarId.substring(0, 80) + '...');
+      console.log('[GoogleCalendarService] Calendar ID length:', calendarId.length);
+      
+      // For the iCal URL, we need to URL-encode the calendar ID
+      // But we should use the calendar ID as-is in the path, not double-encode
+      // Google Calendar iCal URLs use the calendar ID directly in the path
+      const iCalUrl = `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarId)}/public/basic.ics`;
+      console.log('[GoogleCalendarService] Generated iCal URL:', iCalUrl.substring(0, 100) + '...');
+      return iCalUrl;
+    }
+
     // Extract calendar ID from embed URL
     // Format: https://calendar.google.com/calendar/embed?src=CALENDAR_ID
     const embedMatch = url.match(/[?&]src=([^&]+)/);
     if (embedMatch) {
-      const calendarId = decodeURIComponent(embedMatch[1]);
+      let calendarId = decodeURIComponent(embedMatch[1]);
+      // Remove any additional parameters
+      calendarId = calendarId.split('&')[0].split('?')[0];
       console.log('[GoogleCalendarService] ✅ Extracted calendar ID from embed URL:', calendarId.substring(0, 50) + '...');
-      return `https://calendar.google.com/calendar/ical/${calendarId}/public/basic.ics`;
+      // URL encode the calendar ID for the iCal URL
+      const encodedCalendarId = encodeURIComponent(calendarId);
+      return `https://calendar.google.com/calendar/ical/${encodedCalendarId}/public/basic.ics`;
     }
 
     // Try to extract from other formats
     // Format: https://calendar.google.com/calendar/u/0/embed?src=CALENDAR_ID
     const calendarIdMatch = url.match(/calendar\.google\.com\/calendar\/u\/\d+\/embed[?&]src=([^&]+)/);
     if (calendarIdMatch) {
-      const calendarId = decodeURIComponent(calendarIdMatch[1]);
+      let calendarId = decodeURIComponent(calendarIdMatch[1]);
+      calendarId = calendarId.split('&')[0].split('?')[0];
       console.log('[GoogleCalendarService] ✅ Extracted calendar ID from user embed URL:', calendarId.substring(0, 50) + '...');
-      return `https://calendar.google.com/calendar/ical/${calendarId}/public/basic.ics`;
-    }
-
-    // Try to extract from shareable link format
-    // Format: https://calendar.google.com/calendar?cid=CALENDAR_ID
-    const cidMatch = url.match(/[?&]cid=([^&]+)/);
-    if (cidMatch) {
-      const calendarId = decodeURIComponent(cidMatch[1]);
-      console.log('[GoogleCalendarService] ✅ Extracted calendar ID from cid parameter:', calendarId.substring(0, 50) + '...');
-      return `https://calendar.google.com/calendar/ical/${calendarId}/public/basic.ics`;
+      const encodedCalendarId = encodeURIComponent(calendarId);
+      return `https://calendar.google.com/calendar/ical/${encodedCalendarId}/public/basic.ics`;
     }
 
     // If no match, try to use the URL as-is (might be a direct iCal URL)
