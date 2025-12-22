@@ -1320,10 +1320,11 @@ struct ReligiousEventsView: View {
                         }
                         .padding()
                     } else {
-                        ForEach(religiousEvents) { event in
+                        ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
                             ReligiousEventCard(
                                 event: event,
-                                calendarEvents: calendarEvents[event.id] ?? []
+                                calendarEvents: calendarEvents[event.id] ?? [],
+                                isFirst: index == 0
                             )
                         }
                     }
@@ -1396,72 +1397,56 @@ struct ReligiousEventsView: View {
 struct ReligiousEventCard: View {
     let event: ReligiousEvent
     let calendarEvents: [GoogleCalendarEvent]
+    let isFirst: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let date = parseDate(event.date) {
-                HStack {
-                    Image(systemName: "moon.stars.fill")
-                        .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
-                    Text(formatDate(date))
-                        .font(.custom("Inter-SemiBold", size: 16))
-                        .foregroundColor(.primary)
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 12) {
+                if let date = parseDate(event.date) {
+                    HStack {
+                        Image(systemName: "moon.stars.fill")
+                            .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
+                        Text(formatDate(date))
+                            .font(.custom("Inter-SemiBold", size: 16))
+                            .foregroundColor(.primary)
+                    }
+                }
+                
+                Text(event.name)
+                    .font(.custom("Inter-SemiBold", size: 20))
+                    .foregroundColor(.primary)
+                
+                if let description = event.description, !description.isEmpty {
+                    Text(description)
+                        .font(.custom("Inter-Regular", size: 16))
+                        .foregroundColor(.secondary)
+                        .lineLimit(3)
+                }
+                
+                if let startTime = event.startTime, !startTime.isEmpty {
+                    HStack {
+                        Image(systemName: "clock")
+                            .foregroundColor(.gray)
+                        Text(startTime)
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             
-            Text(event.name)
-                .font(.custom("Inter-SemiBold", size: 20))
-                .foregroundColor(.primary)
-            
-            if let description = event.description, !description.isEmpty {
-                Text(description)
-                    .font(.custom("Inter-Regular", size: 16))
-                    .foregroundColor(.secondary)
-                    .lineLimit(3)
-            }
-            
-            if let startTime = event.startTime, !startTime.isEmpty {
-                HStack {
-                    Image(systemName: "clock")
-                        .foregroundColor(.gray)
-                    Text(startTime)
-                        .font(.system(size: 14))
+            // Days until event indicator (only for first event)
+            if isFirst, let eventDate = parseDate(event.date) {
+                Spacer()
+                VStack {
+                    let daysUntil = daysUntilEvent(eventDate)
+                    Text("\(daysUntil)")
+                        .font(.custom("Inter-Bold", size: 32))
+                        .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
+                    Text(daysUntil == 1 ? "day" : "days")
+                        .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(.secondary)
                 }
-            }
-            
-            // Show calendar events if available
-            if !calendarEvents.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Upcoming Events")
-                        .font(.custom("Inter-SemiBold", size: 14))
-                        .foregroundColor(.primary)
-                        .padding(.top, 8)
-                    
-                    ForEach(calendarEvents.prefix(5)) { calendarEvent in
-                        HStack {
-                            if let eventDate = calendarEvent.start.displayDate {
-                                Text(formatDate(eventDate))
-                                    .font(.custom("Inter-Regular", size: 12))
-                                    .foregroundColor(.secondary)
-                            }
-                            Text(calendarEvent.summary)
-                                .font(.custom("Inter-Regular", size: 12))
-                                .foregroundColor(.primary)
-                        }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(Color(.systemGray5))
-                        .cornerRadius(6)
-                    }
-                    
-                    if calendarEvents.count > 5 {
-                        Text("+ \(calendarEvents.count - 5) more events")
-                            .font(.custom("Inter-Regular", size: 12))
-                            .foregroundColor(.secondary)
-                            .italic()
-                    }
-                }
+                .padding(.leading, 8)
             }
         }
         .padding()
@@ -1481,5 +1466,14 @@ struct ReligiousEventCard: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
+    }
+    
+    private func daysUntilEvent(_ eventDate: Date) -> Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let eventDay = calendar.startOfDay(for: eventDate)
+        
+        let components = calendar.dateComponents([.day], from: today, to: eventDay)
+        return max(0, components.day ?? 0)
     }
 }
