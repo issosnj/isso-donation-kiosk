@@ -23,6 +23,7 @@ export default function ReligiousEventsTab() {
   const queryClient = useQueryClient()
   const [isCreating, setIsCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [entryMode, setEntryMode] = useState<'manual' | 'google'>('manual') // New state for entry mode
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -35,6 +36,13 @@ export default function ReligiousEventsTab() {
     googleCalendarLinks: [] as string[],
   })
   const [newCalendarLink, setNewCalendarLink] = useState('')
+  const [entryMode, setEntryMode] = useState<'manual' | 'google'>('manual')
+  const [fetchCalendarUrl, setFetchCalendarUrl] = useState('')
+  const [isFetchingCalendar, setIsFetchingCalendar] = useState(false)
+  const [fetchedEvents, setFetchedEvents] = useState<any[]>([])
+  const [fetchCalendarUrl, setFetchCalendarUrl] = useState('')
+  const [isFetchingCalendar, setIsFetchingCalendar] = useState(false)
+  const [fetchedEvents, setFetchedEvents] = useState<any[]>([])
 
   const { data: events = [], isLoading } = useQuery<ReligiousEvent[]>({
     queryKey: ['religious-events'],
@@ -140,6 +148,63 @@ export default function ReligiousEventsTab() {
     }
   }
 
+  const handleFetchFromGoogle = async () => {
+    if (!fetchCalendarUrl.trim()) {
+      alert('Please enter a Google Calendar URL')
+      return
+    }
+
+    setIsFetchingCalendar(true)
+    try {
+      const response = await api.get(`/religious-events/google-calendar/fetch?url=${encodeURIComponent(fetchCalendarUrl)}&limit=50`)
+      setFetchedEvents(response.data || [])
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to fetch events from Google Calendar')
+      setFetchedEvents([])
+    } finally {
+      setIsFetchingCalendar(false)
+    }
+  }
+
+  const handleImportEvent = (event: any) => {
+    // Parse the event date
+    let eventDate = ''
+    let startTime = ''
+    
+    if (event.start?.dateTime) {
+      const date = new Date(event.start.dateTime)
+      eventDate = date.toISOString().split('T')[0]
+      startTime = date.toTimeString().slice(0, 5) // HH:mm format
+    } else if (event.start?.date) {
+      // All-day event
+      const dateStr = event.start.date
+      eventDate = `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`
+    }
+
+    // Create a new event from the fetched event
+    const newEvent = {
+      name: event.summary || 'Untitled Event',
+      description: event.description || '',
+      date: eventDate,
+      startTime: startTime,
+      isRecurring: false,
+      isActive: true,
+      displayOrder: 0,
+      googleCalendarLinks: [fetchCalendarUrl],
+    }
+
+    createMutation.mutate(newEvent)
+    // Remove from fetched events
+    setFetchedEvents(fetchedEvents.filter(e => e.id !== event.id))
+  }
+
+  const handleImportAllEvents = () => {
+    fetchedEvents.forEach(event => {
+      handleImportEvent(event)
+    })
+    setFetchedEvents([])
+  }
+
   // Sort events by date, then by display order
   const sortedEvents = [...events].sort((a, b) => {
     const dateA = new Date(a.date).getTime()
@@ -173,24 +238,127 @@ export default function ReligiousEventsTab() {
             Manage religious events like Poonam, Upvas, Ekadashi, etc. These are visible on all kiosks.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setIsCreating(true)
-            setEditingId(null)
-            resetForm()
-          }}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          + Add Observance
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => {
+              setIsCreating(true)
+              setEditingId(null)
+              setEntryMode('manual')
+              resetForm()
+            }}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            + Manual Entry
+          </button>
+          <button
+            onClick={() => {
+              setIsCreating(true)
+              setEditingId(null)
+              setEntryMode('google')
+              resetForm()
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            + Fetch from Google Calendar
+          </button>
+        </div>
       </div>
 
       {(isCreating || editingId) && (
         <div className="mb-6 bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">
-            {editingId ? 'Edit Observance' : 'New Observance'}
+            {editingId ? 'Edit Observance' : entryMode === 'google' ? 'Fetch from Google Calendar' : 'New Observance'}
           </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          
+          {entryMode === 'google' && !editingId ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Google Calendar URL *
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Enter a public Google Calendar URL (embed or iCal format)
+                </p>
+                <div className="flex space-x-2">
+                  <input
+                    type="url"
+                    value={fetchCalendarUrl}
+                    onChange={(e) => setFetchCalendarUrl(e.target.value)}
+                    placeholder="https://calendar.google.com/calendar/embed?src=..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFetchFromGoogle}
+                    disabled={isFetchingCalendar || !fetchCalendarUrl.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isFetchingCalendar ? 'Fetching...' : 'Fetch Events'}
+                  </button>
+                </div>
+              </div>
+
+              {fetchedEvents.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      Found {fetchedEvents.length} event(s)
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={handleImportAllEvents}
+                      className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                    >
+                      Import All
+                    </button>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                    {fetchedEvents.map((event) => (
+                      <div key={event.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h5 className="font-medium text-gray-900">{event.summary}</h5>
+                            {event.description && (
+                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{event.description}</p>
+                            )}
+                            <div className="text-xs text-gray-500 mt-2">
+                              {event.start?.dateTime ? (
+                                <span>{new Date(event.start.dateTime).toLocaleString()}</span>
+                              ) : event.start?.date ? (
+                                <span>{new Date(event.start.date).toLocaleDateString()} (All Day)</span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleImportEvent(event)}
+                            className="ml-3 px-3 py-1 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700"
+                          >
+                            Import
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreating(false)
+                    setFetchCalendarUrl('')
+                    setFetchedEvents([])
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

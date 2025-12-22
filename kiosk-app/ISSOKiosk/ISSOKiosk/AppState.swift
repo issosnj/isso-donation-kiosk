@@ -301,6 +301,23 @@ class AppState: ObservableObject {
         }
     }
     
+    func refreshReligiousEvents() async {
+        print("[AppState] 📡 Refreshing religious events")
+        
+        do {
+            let events = try await APIService.shared.getReligiousEvents()
+            await MainActor.run {
+                self.religiousEvents = events
+                print("[AppState] ✅ Religious events updated: \(events.count) events")
+            }
+        } catch {
+            print("[AppState] ❌ Failed to refresh religious events: \(error.localizedDescription)")
+            await MainActor.run {
+                self.religiousEvents = []
+            }
+        }
+    }
+    
     private func loadTempleConfig() async {
         // Fetch temple config from backend using templeId from JWT token
         guard let token = deviceToken,

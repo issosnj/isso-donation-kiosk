@@ -7,9 +7,11 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ReligiousEventsService } from './religious-events.service';
+import { GoogleCalendarService } from './google-calendar.service';
 import { CreateReligiousEventDto } from './dto/create-religious-event.dto';
 import { UpdateReligiousEventDto } from './dto/update-religious-event.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,7 +24,10 @@ import { Public } from '../auth/decorators/public.decorator';
 @ApiTags('religious-events')
 @Controller('religious-events')
 export class ReligiousEventsController {
-  constructor(private readonly religiousEventsService: ReligiousEventsService) {}
+  constructor(
+    private readonly religiousEventsService: ReligiousEventsService,
+    private readonly googleCalendarService: GoogleCalendarService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -82,6 +87,19 @@ export class ReligiousEventsController {
   @ApiOperation({ summary: 'Delete a religious event (Master Admin only)' })
   remove(@Param('id') id: string) {
     return this.religiousEventsService.remove(id);
+  }
+
+  @Get('google-calendar/fetch')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MASTER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Fetch events from Google Calendar (Master Admin only)' })
+  async fetchFromGoogleCalendar(@Query('url') url: string, @Query('limit') limit?: string) {
+    if (!url) {
+      throw new Error('Calendar URL is required');
+    }
+    const eventLimit = limit ? parseInt(limit, 10) : 50;
+    return this.googleCalendarService.fetchEventsFromCalendar(url, eventLimit);
   }
 }
 
