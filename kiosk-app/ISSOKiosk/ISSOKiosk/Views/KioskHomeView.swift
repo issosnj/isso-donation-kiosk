@@ -1331,9 +1331,9 @@ struct ReligiousEventsView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 12)
                 
-                // Scrollable content
-                ScrollView {
-                    VStack(spacing: 16) {
+                // Scrollable content with smooth scrolling configuration
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(spacing: 16) {
                         if religiousEvents.isEmpty {
                             VStack(spacing: 20) {
                                 Image(systemName: "moon.stars.fill")
@@ -1355,6 +1355,8 @@ struct ReligiousEventsView: View {
                     }
                     .padding()
                 }
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(maxWidth: .infinity)
                 
                 // Done button at bottom center
                 Button(action: {
