@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TemplesModule } from './temples/temples.module';
@@ -19,6 +20,7 @@ import { typeOrmConfig } from './config/typeorm.config';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(), // Enable scheduled tasks
     TypeOrmModule.forRootAsync({
       useFactory: typeOrmConfig,
     }),

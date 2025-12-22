@@ -15,6 +15,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ReligiousEventsService } from './religious-events.service';
 import { GoogleCalendarService } from './google-calendar.service';
+import { ReligiousEventsSyncService } from './religious-events-sync.service';
 import { CreateReligiousEventDto } from './dto/create-religious-event.dto';
 import { UpdateReligiousEventDto } from './dto/update-religious-event.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -30,6 +31,7 @@ export class ReligiousEventsController {
   constructor(
     private readonly religiousEventsService: ReligiousEventsService,
     private readonly googleCalendarService: GoogleCalendarService,
+    private readonly religiousEventsSyncService: ReligiousEventsSyncService,
   ) {}
 
   @Post()
@@ -126,6 +128,33 @@ export class ReligiousEventsController {
           error: 'Bad Request',
         },
         HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('sync')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MASTER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manually trigger Google Calendar sync (Master Admin only)' })
+  async triggerSync() {
+    console.log('[ReligiousEventsController] 🔄 Manual sync triggered via API');
+    try {
+      const result = await this.religiousEventsSyncService.manualSync();
+      return {
+        message: 'Sync completed successfully',
+        newEvents: result.newEvents,
+        updatedEvents: result.updatedEvents,
+      };
+    } catch (error) {
+      console.error('[ReligiousEventsController] ❌ Error during manual sync:', error);
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: error.message || 'Failed to sync events from Google Calendar',
+          error: 'Internal Server Error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

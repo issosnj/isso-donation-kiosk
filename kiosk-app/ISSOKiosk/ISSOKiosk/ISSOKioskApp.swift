@@ -34,11 +34,13 @@ struct ISSOKioskApp: App {
                 }
         }
         .onChange(of: scenePhase) { newPhase in
-            // Refresh theme and reconnect Square SDK when app becomes active
+            // Refresh theme, religious events, and reconnect Square SDK when app becomes active
             if newPhase == .active && appState.isActivated {
-                print("[App] 🔄 App became active - refreshing theme settings and checking Square connection")
+                print("[App] 🔄 App became active - refreshing theme settings, religious events, and checking Square connection")
                 Task {
                     await appState.refreshTempleConfig()
+                    // Refresh religious events when app comes to foreground (new events may have been synced)
+                    await appState.refreshReligiousEvents()
                     // Check and reconnect Square SDK when app becomes active
                     await appState.checkAndReconnectSquareSDK()
                 }

@@ -14,6 +14,7 @@ class AppState: ObservableObject {
     private let keychain = KeychainHelper()
     private var themeRefreshTimer: Timer?
     private var categoryRefreshTimer: Timer?
+    private var religiousEventsRefreshTimer: Timer?
     private var squareConnectionCheckTimer: Timer?
     
     init() {
@@ -23,6 +24,7 @@ class AppState: ObservableObject {
     deinit {
         themeRefreshTimer?.invalidate()
         categoryRefreshTimer?.invalidate()
+        religiousEventsRefreshTimer?.invalidate()
         squareConnectionCheckTimer?.invalidate()
     }
     
@@ -352,6 +354,11 @@ class AppState: ObservableObject {
                 if categoryRefreshTimer == nil {
                     startCategoryRefreshTimer()
                 }
+                
+                // Start automatic religious events refresh timer if not already started
+                if religiousEventsRefreshTimer == nil {
+                    startReligiousEventsRefreshTimer()
+                }
             }
             
             // Preload background image if available (don't block - load in background)
@@ -620,6 +627,42 @@ class AppState: ObservableObject {
         categoryRefreshTimer?.invalidate()
         categoryRefreshTimer = nil
         print("[AppState] ⏸️ Stopped category refresh timer")
+    }
+    
+    // Start automatic religious events refresh timer (refreshes every 5 minutes)
+    private func startReligiousEventsRefreshTimer() {
+        // Stop existing timer if any
+        religiousEventsRefreshTimer?.invalidate()
+        
+        // Only start if device is activated
+        guard isActivated else {
+            print("[AppState] ⏸️ Skipping religious events refresh timer - device not activated")
+            return
+        }
+        
+        print("[AppState] 🔄 Starting automatic religious events refresh timer (every 5 minutes)")
+        
+        // Refresh immediately on first start
+        Task {
+            await refreshReligiousEvents()
+        }
+        
+        // Then refresh every 5 minutes (300 seconds) - more frequent than categories since events change more often
+        religiousEventsRefreshTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
+            guard let self = self, self.isActivated else {
+                return
+            }
+            Task {
+                await self.refreshReligiousEvents()
+            }
+        }
+    }
+    
+    // Stop religious events refresh timer
+    private func stopReligiousEventsRefreshTimer() {
+        religiousEventsRefreshTimer?.invalidate()
+        religiousEventsRefreshTimer = nil
+        print("[AppState] ⏸️ Stopped religious events refresh timer")
     }
 }
 
