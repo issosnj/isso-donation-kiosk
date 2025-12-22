@@ -1331,9 +1331,19 @@ struct ReligiousEventsView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Religious Observances")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 4) {
+                        Text("Religious Observances")
+                            .font(.custom("Inter-SemiBold", size: 17))
+                        Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
+                            .font(.custom("Inter-Regular", size: 11))
+                            .italic()
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
@@ -1412,9 +1422,22 @@ struct ReligiousEventCard: View {
                     }
                 }
                 
-                Text(event.name)
-                    .font(.custom("Inter-SemiBold", size: 20))
-                    .foregroundColor(.primary)
+                HStack(spacing: 8) {
+                    Text(event.name)
+                        .font(.custom("Inter-SemiBold", size: 20))
+                        .foregroundColor(.primary)
+                    
+                    // Add icon based on event name
+                    if shouldShowFruitBasketIcon(event.name) {
+                        Image(systemName: "basket.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(Color(red: 1.0, green: 0.65, blue: 0.0)) // Orange color for fruit basket
+                    } else if shouldShowFullMoonIcon(event.name) {
+                        Image(systemName: "moon.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8)) // Purple color for full moon
+                    }
+                }
                 
                 if let description = event.description, !description.isEmpty {
                     Text(description)
@@ -1437,7 +1460,10 @@ struct ReligiousEventCard: View {
             // Days until event indicator (only for first event)
             if isFirst, let eventDate = parseDate(event.date) {
                 Spacer()
-                VStack {
+                VStack(spacing: 2) {
+                    Text("Until")
+                        .font(.custom("Inter-Regular", size: 12))
+                        .foregroundColor(.secondary)
                     let daysUntil = daysUntilEvent(eventDate)
                     Text("\(daysUntil)")
                         .font(.custom("Inter-Bold", size: 32))
@@ -1475,5 +1501,15 @@ struct ReligiousEventCard: View {
         
         let components = calendar.dateComponents([.day], from: today, to: eventDay)
         return max(0, components.day ?? 0)
+    }
+    
+    private func shouldShowFruitBasketIcon(_ eventName: String) -> Bool {
+        let name = eventName.lowercased()
+        return name.contains("fast") || name.contains("shree hari jayanti")
+    }
+    
+    private func shouldShowFullMoonIcon(_ eventName: String) -> Bool {
+        let name = eventName.lowercased()
+        return name.contains("poonam")
     }
 }
