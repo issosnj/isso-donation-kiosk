@@ -1307,64 +1307,85 @@ struct ReligiousEventsView: View {
     @State private var isLoadingEvents = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Centered header
-            VStack(spacing: 4) {
-                Text("Religious Observances")
-                    .font(.custom("Inter-SemiBold", size: 17))
-                    .multilineTextAlignment(.center)
-                Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
-                    .font(.custom("Inter-Regular", size: 11))
-                    .italic()
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
-            .background(Color(.systemBackground))
+        ZStack {
+            // Blurred background
+            Color.clear
+                .ignoresSafeArea()
             
-            // Scrollable content
-            ScrollView {
-                VStack(spacing: 16) {
-                    if religiousEvents.isEmpty {
-                        VStack(spacing: 20) {
-                            Image(systemName: "moon.stars.fill")
-                                .font(.system(size: 50))
-                                .foregroundColor(.gray)
-                            Text("No upcoming observances")
-                                .font(.custom("Inter-SemiBold", size: 20))
-                        }
-                        .padding()
-                    } else {
-                        ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
-                            ReligiousEventCard(
-                                event: event,
-                                calendarEvents: calendarEvents[event.id] ?? [],
-                                isFirst: index == 0
-                            )
+            // Main glass effect container
+            VStack(spacing: 0) {
+                // Centered header
+                VStack(spacing: 4) {
+                    Text("Religious Observances")
+                        .font(.custom("Inter-SemiBold", size: 17))
+                        .multilineTextAlignment(.center)
+                    Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
+                        .font(.custom("Inter-Regular", size: 11))
+                        .italic()
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+                
+                // Scrollable content
+                ScrollView {
+                    VStack(spacing: 16) {
+                        if religiousEvents.isEmpty {
+                            VStack(spacing: 20) {
+                                Image(systemName: "moon.stars.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.gray)
+                                Text("No upcoming observances")
+                                    .font(.custom("Inter-SemiBold", size: 20))
+                            }
+                            .padding()
+                        } else {
+                            ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
+                                ReligiousEventCard(
+                                    event: event,
+                                    calendarEvents: calendarEvents[event.id] ?? [],
+                                    isFirst: index == 0
+                                )
+                            }
                         }
                     }
+                    .padding()
                 }
-                .padding()
+                
+                // Done button at bottom center
+                Button(action: {
+                    dismiss()
+                }) {
+                    Text("Done")
+                        .font(.custom("Inter-SemiBold", size: 17))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color(red: 0.6, green: 0.4, blue: 0.8))
+                        .cornerRadius(12)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+                .padding(.top, 8)
             }
-            
-            // Done button at bottom center
-            Button(action: {
-                dismiss()
-            }) {
-                Text("Done")
-                    .font(.custom("Inter-SemiBold", size: 17))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color(red: 0.6, green: 0.4, blue: 0.8))
-                    .cornerRadius(12)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
-            .padding(.top, 8)
+            .background(
+                // Liquid glass effect
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Color.white.opacity(0.25))
+                        .background(
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(.ultraThinMaterial)
+                        )
+                }
+            )
+            .cornerRadius(24)
+            .shadow(color: Color.black.opacity(0.25), radius: 30, x: 0, y: 15)
+            .frame(maxWidth: 900)
+            .padding(.horizontal, 40)
         }
         .task {
             await loadCalendarEvents()
