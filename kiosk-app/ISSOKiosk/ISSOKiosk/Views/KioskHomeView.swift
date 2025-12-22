@@ -1372,8 +1372,9 @@ struct ReligiousEventsView: View {
                 .padding(.top, 8)
             }
             .background(
-                // Liquid glass effect
+                // Liquid glass effect - matching donation review cards
                 ZStack {
+                    // Blur effect
                     RoundedRectangle(cornerRadius: 24)
                         .fill(Color.white.opacity(0.25))
                         .background(
@@ -1383,7 +1384,7 @@ struct ReligiousEventsView: View {
                 }
             )
             .cornerRadius(24)
-            .shadow(color: Color.black.opacity(0.25), radius: 30, x: 0, y: 15)
+            .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
             .frame(maxWidth: 900)
             .padding(.horizontal, 40)
         }
