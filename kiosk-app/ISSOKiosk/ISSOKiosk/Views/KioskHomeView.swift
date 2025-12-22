@@ -1504,12 +1504,16 @@ struct ReligiousEventCard: View {
     }
     
     private func shouldShowFruitBasketIcon(_ eventName: String) -> Bool {
-        let name = eventName.lowercased()
+        // Case-insensitive matching for any event containing "fast" or "shree hari jayanti"
+        // Works for variations like "Ekadashi Fast", "Putrada Ekadashi Fast", "Shree Hari Jayanti", etc.
+        let name = eventName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         return name.contains("fast") || name.contains("shree hari jayanti")
     }
     
     private func shouldShowFullMoonIcon(_ eventName: String) -> Bool {
-        let name = eventName.lowercased()
+        // Case-insensitive matching for any event containing "poonam"
+        // Works for variations like "Poonam", "Mukutotsav Poonam", "Kartik Poonam", etc.
+        let name = eventName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         return name.contains("poonam")
     }
 }
