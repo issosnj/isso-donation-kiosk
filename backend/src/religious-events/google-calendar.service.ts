@@ -39,14 +39,17 @@ export class GoogleCalendarService {
       let calendarId = decodeURIComponent(cidMatch[1]);
       // Remove any additional parameters that might be in the cid value
       calendarId = calendarId.split('&')[0].split('?')[0].trim();
-      console.log('[GoogleCalendarService] ✅ Extracted calendar ID from cid parameter:', calendarId.substring(0, 80) + '...');
+      console.log('[GoogleCalendarService] ✅ Extracted calendar ID from cid parameter');
+      console.log('[GoogleCalendarService] Calendar ID (first 80 chars):', calendarId.substring(0, 80) + '...');
       console.log('[GoogleCalendarService] Calendar ID length:', calendarId.length);
+      console.log('[GoogleCalendarService] Calendar ID ends with:', calendarId.substring(calendarId.length - 20));
       
-      // For the iCal URL, we need to URL-encode the calendar ID
-      // But we should use the calendar ID as-is in the path, not double-encode
-      // Google Calendar iCal URLs use the calendar ID directly in the path
-      const iCalUrl = `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarId)}/public/basic.ics`;
-      console.log('[GoogleCalendarService] Generated iCal URL:', iCalUrl.substring(0, 100) + '...');
+      // For Google Calendar iCal URLs, the calendar ID should be URL-encoded in the path
+      // But we need to be careful - if it's already encoded, we don't want to double-encode
+      // The calendar ID from cid is usually already the raw ID, so we encode it
+      const encodedCalendarId = encodeURIComponent(calendarId);
+      const iCalUrl = `https://calendar.google.com/calendar/ical/${encodedCalendarId}/public/basic.ics`;
+      console.log('[GoogleCalendarService] Generated iCal URL (first 100 chars):', iCalUrl.substring(0, 100) + '...');
       return iCalUrl;
     }
 
