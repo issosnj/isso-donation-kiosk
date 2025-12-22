@@ -303,6 +303,7 @@ struct KioskHomeView: View {
         }
         .sheet(isPresented: $showReligiousEvents) {
             ReligiousEventsView(religiousEvents: appState.religiousEvents)
+                .presentationBackground(.clear)
         }
         .sheet(item: Binding(
             get: { showSocialMediaQR.map { SocialMediaItem(url: $0) } },
@@ -1308,11 +1309,11 @@ struct ReligiousEventsView: View {
     
     var body: some View {
         ZStack {
-            // Blurred background
+            // Clear background to show the blurred background behind
             Color.clear
                 .ignoresSafeArea()
             
-            // Main glass effect container
+            // Main glass effect container - matching donation review cards exactly
             VStack(spacing: 0) {
                 // Centered header
                 VStack(spacing: 4) {
@@ -1371,20 +1372,21 @@ struct ReligiousEventsView: View {
                 .padding(.bottom, 16)
                 .padding(.top, 8)
             }
+            .padding(24) // Internal padding matching donation cards
             .background(
-                // Liquid glass effect - matching donation review cards
+                // Glass effect background - EXACT match to donation review cards
                 ZStack {
                     // Blur effect
-                    RoundedRectangle(cornerRadius: 24)
+                    RoundedRectangle(cornerRadius: 16)
                         .fill(Color.white.opacity(0.25))
                         .background(
-                            RoundedRectangle(cornerRadius: 24)
+                            RoundedRectangle(cornerRadius: 16)
                                 .fill(.ultraThinMaterial)
                         )
                 }
             )
-            .cornerRadius(24)
-            .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
+            .cornerRadius(16) // Match donation cards corner radius
+            .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10) // Exact match
             .frame(maxWidth: 900)
             .padding(.horizontal, 40)
         }
