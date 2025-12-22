@@ -231,6 +231,18 @@ export default function ReligiousEventsTab() {
     setFetchedEvents([])
   }
 
+  // Helper function to format date without timezone issues
+  const formatDate = (dateString: string): string => {
+    // Parse date string (YYYY-MM-DD) as local date to avoid timezone conversion
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month is 0-indexed
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+  }
+
   // Sort events by date, then by display order
   const sortedEvents = [...events].sort((a, b) => {
     const dateA = new Date(a.date).getTime()
@@ -592,7 +604,7 @@ export default function ReligiousEventsTab() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(event.date).toLocaleDateString()}
+                        {formatDate(event.date)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {event.startTime || 'All Day'}
@@ -668,7 +680,7 @@ export default function ReligiousEventsTab() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(event.date).toLocaleDateString()}
+                        {formatDate(event.date)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {event.startTime || 'All Day'}
