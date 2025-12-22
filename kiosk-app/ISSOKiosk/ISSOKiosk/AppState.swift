@@ -311,9 +311,22 @@ class AppState: ObservableObject {
             await MainActor.run {
                 self.religiousEvents = events
                 print("[AppState] ✅ Religious events updated: \(events.count) events")
+                if events.isEmpty {
+                    print("[AppState] ⚠️ No religious events found. Make sure:")
+                    print("[AppState]   1. Religious events are created in the admin portal")
+                    print("[AppState]   2. Events are marked as active (isActive = true)")
+                } else {
+                    print("[AppState] 📋 Events list:")
+                    for (index, event) in events.enumerated() {
+                        print("[AppState]   \(index + 1). \(event.name) - Date: \(event.date), Active: \(event.isActive ?? false)")
+                    }
+                }
             }
         } catch {
             print("[AppState] ❌ Failed to refresh religious events: \(error.localizedDescription)")
+            if let apiError = error as? APIError {
+                print("[AppState] ❌ API Error: \(apiError)")
+            }
             await MainActor.run {
                 self.religiousEvents = []
             }
