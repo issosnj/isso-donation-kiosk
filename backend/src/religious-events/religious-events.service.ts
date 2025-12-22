@@ -28,23 +28,25 @@ export class ReligiousEventsService {
   }
 
   async findUpcoming(limit: number = 50): Promise<ReligiousEvent[]> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // For kiosk display, show all active events regardless of date
+    // This allows religious observances to be visible even if they're in the past
+    // Events are ordered by date (ascending) and displayOrder
+    console.log('[ReligiousEventsService] Finding upcoming events for kiosk (limit:', limit, ')');
     
-    return this.religiousEventsRepository.find({
+    const events = await this.religiousEventsRepository.find({
       where: {
         isActive: true,
       },
       order: { date: 'ASC', displayOrder: 'ASC' },
-    }).then(events => 
-      events
-        .filter(event => {
-          const eventDate = new Date(event.date);
-          eventDate.setHours(0, 0, 0, 0);
-          return eventDate >= today;
-        })
-        .slice(0, limit)
-    );
+      take: limit,
+    });
+    
+    console.log('[ReligiousEventsService] Found', events.length, 'active religious events');
+    if (events.length > 0) {
+      console.log('[ReligiousEventsService] Sample events:', events.slice(0, 3).map(e => ({ name: e.name, date: e.date, isActive: e.isActive })));
+    }
+    
+    return events;
   }
 
   async findOne(id: string): Promise<ReligiousEvent> {
