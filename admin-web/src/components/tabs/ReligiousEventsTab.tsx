@@ -151,11 +151,25 @@ export default function ReligiousEventsTab() {
     }
 
     setIsFetchingCalendar(true)
+    setFetchedEvents([]) // Clear previous results
+    
     try {
-      const response = await api.get(`/religious-events/google-calendar/fetch?url=${encodeURIComponent(fetchCalendarUrl)}&limit=50`)
+      console.log('[ReligiousEventsTab] Fetching from Google Calendar:', fetchCalendarUrl)
+      const encodedUrl = encodeURIComponent(fetchCalendarUrl.trim())
+      const response = await api.get(`/religious-events/google-calendar/fetch?url=${encodedUrl}&limit=50`)
+      console.log('[ReligiousEventsTab] Received events:', response.data)
       setFetchedEvents(response.data || [])
+      
+      if (!response.data || response.data.length === 0) {
+        alert('No upcoming events found in this calendar. Make sure the calendar is public and has future events.')
+      }
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to fetch events from Google Calendar')
+      console.error('[ReligiousEventsTab] Error fetching calendar:', error)
+      const errorMessage = error.response?.data?.message || 
+                           error.response?.data?.error || 
+                           error.message || 
+                           'Failed to fetch events from Google Calendar. Please check that the calendar is public and the URL is correct.'
+      alert(errorMessage)
       setFetchedEvents([])
     } finally {
       setIsFetchingCalendar(false)

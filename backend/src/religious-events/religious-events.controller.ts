@@ -8,6 +8,9 @@ import {
   Delete,
   UseGuards,
   Query,
+  BadRequestException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ReligiousEventsService } from './religious-events.service';
@@ -95,11 +98,36 @@ export class ReligiousEventsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Fetch events from Google Calendar (Master Admin only)' })
   async fetchFromGoogleCalendar(@Query('url') url: string, @Query('limit') limit?: string) {
-    if (!url) {
-      throw new Error('Calendar URL is required');
+    console.log('[ReligiousEventsController] 📅 Fetching from Google Calendar');
+    console.log('[ReligiousEventsController] URL:', url);
+    console.log('[ReligiousEventsController] Limit:', limit);
+    
+    if (!url || !url.trim()) {
+      console.error('[ReligiousEventsController] ❌ Calendar URL is required');
+      throw new BadRequestException('Calendar URL is required');
     }
-    const eventLimit = limit ? parseInt(limit, 10) : 50;
-    return this.googleCalendarService.fetchEventsFromCalendar(url, eventLimit);
+
+    try {
+      const eventLimit = limit ? parseInt(limit, 10) : 50;
+      console.log('[ReligiousEventsController] 🔄 Calling GoogleCalendarService...');
+      const events = await this.googleCalendarService.fetchEventsFromCalendar(url.trim(), eventLimit);
+      console.log('[ReligiousEventsController] ✅ Successfully fetched', events.length, 'events');
+      return events;
+    } catch (error) {
+      console.error('[ReligiousEventsController] ❌ Error fetching calendar:', error);
+      console.error('[ReligiousEventsController] Error message:', error.message);
+      console.error('[ReligiousEventsController] Error stack:', error.stack);
+      
+      // Return proper HTTP error
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: error.message || 'Failed to fetch events from Google Calendar',
+          error: 'Bad Request',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 }
 
