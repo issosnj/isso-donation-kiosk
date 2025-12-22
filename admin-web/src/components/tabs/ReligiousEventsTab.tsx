@@ -23,7 +23,6 @@ export default function ReligiousEventsTab() {
   const queryClient = useQueryClient()
   const [isCreating, setIsCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [entryMode, setEntryMode] = useState<'manual' | 'google'>('manual') // New state for entry mode
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -37,9 +36,6 @@ export default function ReligiousEventsTab() {
   })
   const [newCalendarLink, setNewCalendarLink] = useState('')
   const [entryMode, setEntryMode] = useState<'manual' | 'google'>('manual')
-  const [fetchCalendarUrl, setFetchCalendarUrl] = useState('')
-  const [isFetchingCalendar, setIsFetchingCalendar] = useState(false)
-  const [fetchedEvents, setFetchedEvents] = useState<any[]>([])
   const [fetchCalendarUrl, setFetchCalendarUrl] = useState('')
   const [isFetchingCalendar, setIsFetchingCalendar] = useState(false)
   const [fetchedEvents, setFetchedEvents] = useState<any[]>([])
@@ -527,6 +523,7 @@ export default function ReligiousEventsTab() {
               </button>
             </div>
           </form>
+          )}
         </div>
       )}
 
