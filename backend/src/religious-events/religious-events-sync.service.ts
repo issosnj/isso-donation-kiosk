@@ -26,6 +26,12 @@ export class ReligiousEventsSyncService {
     this.logger.log('🔄 Starting scheduled sync of Google Calendar events...');
     
     try {
+      // Check if repository is available
+      if (!this.religiousEventsRepository) {
+        this.logger.error('❌ ReligiousEventsRepository is not available');
+        return;
+      }
+
       // Get all religious events that have Google Calendar links
       const eventsWithLinks = await this.religiousEventsRepository.find({
         where: {
@@ -38,6 +44,11 @@ export class ReligiousEventsSyncService {
       );
 
       this.logger.log(`📅 Found ${eventsWithCalendarLinks.length} religious events with Google Calendar links`);
+
+      if (eventsWithCalendarLinks.length === 0) {
+        this.logger.log('ℹ️ No religious events with Google Calendar links found');
+        return;
+      }
 
       let totalNewEvents = 0;
       let totalUpdatedEvents = 0;
