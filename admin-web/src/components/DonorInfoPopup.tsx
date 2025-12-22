@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect, useRef } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { format } from 'date-fns'
 import ReceiptView from './ReceiptView'
@@ -27,6 +27,19 @@ export default function DonorInfoPopup({
 }: DonorInfoPopupProps) {
   const [viewingReceiptId, setViewingReceiptId] = useState<string | null>(null)
   const [receiptData, setReceiptData] = useState<any>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: donorName || '',
+    email: donorEmail || '',
+    address: donorAddress || '',
+    phone: donorPhone,
+  })
+  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([])
+  const [isSearchingAddresses, setIsSearchingAddresses] = useState(false)
+  const [sessionToken, setSessionToken] = useState<string | null>(null)
+  const addressInputRef = useRef<HTMLInputElement>(null)
+  const addressDropdownRef = useRef<HTMLDivElement>(null)
+  const queryClient = useQueryClient()
 
   // Fetch donations for this donor
   const { data: donations = [], isLoading } = useQuery({
@@ -61,6 +74,139 @@ export default function DonorInfoPopup({
       console.error('Failed to load receipt:', error)
       alert('Failed to load receipt')
     }
+  }
+
+  // Generate session token for Google Places API
+  useEffect(() => {
+    setSessionToken(crypto.randomUUID())
+  }, [])
+
+  // Update edit form when donor info changes
+  useEffect(() => {
+    setEditForm({
+      name: donorName || '',
+      email: donorEmail || '',
+      address: donorAddress || '',
+      phone: donorPhone,
+    })
+  }, [donorPhone, donorName, donorEmail, donorAddress])
+
+  // Close address suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (
+        addressInputRef.current &&
+        !addressInputRef.current.contains(target) &&
+        addressDropdownRef.current &&
+        !addressDropdownRef.current.contains(target)
+      ) {
+        setAddressSuggestions([])
+      }
+    }
+
+    if (isEditing) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isEditing])
+
+  // Search addresses using Google Places API
+  const searchAddresses = async (input: string) => {
+    if (!input || input.length < 3) {
+      setAddressSuggestions([])
+      return
+    }
+
+    setIsSearchingAddresses(true)
+    try {
+      // Use the backend proxy endpoint (device endpoint, but we can use it from admin too)
+      // Or create a public/admin endpoint for Places API
+      const params = new URLSearchParams({
+        input,
+      })
+      if (sessionToken) {
+        params.append('sessionToken', sessionToken)
+      }
+
+      // For admin, we might need a different endpoint or use the device endpoint
+      // Let's check if we need to create an admin endpoint or use the existing one
+      const response = await api.get(`/places/autocomplete?${params.toString()}`)
+      const predictions = response.data.predictions || []
+      setAddressSuggestions(predictions.map((p: any) => p.description))
+    } catch (error) {
+      console.error('Failed to search addresses:', error)
+      setAddressSuggestions([])
+    } finally {
+      setIsSearchingAddresses(false)
+    }
+  }
+
+  // Get place details and update address
+  const selectAddress = async (address: string) => {
+    setEditForm({ ...editForm, address })
+    setAddressSuggestions([])
+    
+    // Optionally get full place details
+    try {
+      // Find the place_id from the prediction
+      const params = new URLSearchParams({ input: address })
+      if (sessionToken) {
+        params.append('sessionToken', sessionToken)
+      }
+      const autocompleteResponse = await api.get(`/places/autocomplete?${params.toString()}`)
+      const prediction = autocompleteResponse.data.predictions?.find(
+        (p: any) => p.description === address
+      )
+      
+      if (prediction?.place_id) {
+        const detailsParams = new URLSearchParams({
+          placeId: prediction.place_id,
+        })
+        if (sessionToken) {
+          detailsParams.append('sessionToken', sessionToken)
+        }
+        const detailsResponse = await api.get(`/places/details?${detailsParams.toString()}`)
+        if (detailsResponse.data?.formatted_address) {
+          setEditForm({ ...editForm, address: detailsResponse.data.formatted_address })
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get place details:', error)
+    }
+  }
+
+  // Update donor mutation
+  const updateDonorMutation = useMutation({
+    mutationFn: async (updates: { name?: string; email?: string; address?: string; phone?: string }) => {
+      // First, we need to find the donor ID by phone
+      const donorsResponse = await api.get(`/donors/my-temple?search=${donorPhone}`)
+      const donors = donorsResponse.data.donors || []
+      const donor = donors.find((d: any) => d.phone === donorPhone.replace(/\D/g, ''))
+      
+      if (!donor) {
+        throw new Error('Donor not found')
+      }
+
+      const response = await api.put(`/donors/${donor.id}`, updates)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['donations-by-donor', donorPhone] })
+      queryClient.invalidateQueries({ queryKey: ['donors'] })
+      setIsEditing(false)
+      alert('Donor information updated successfully!')
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to update donor information')
+    },
+  })
+
+  const handleSave = () => {
+    updateDonorMutation.mutate(editForm)
   }
 
   const formatCurrency = (amount: number) => {
@@ -118,25 +264,136 @@ export default function DonorInfoPopup({
         <div className="p-6">
           {/* Donor Info */}
           <div className="mb-6 pb-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-600">Name</label>
-                <p className="text-base text-gray-900">{donorName || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Phone</label>
-                <p className="text-base text-gray-900">{donorPhone}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Email</label>
-                <p className="text-base text-gray-900">{donorEmail || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Address</label>
-                <p className="text-base text-gray-900">{donorAddress || 'N/A'}</p>
-              </div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Contact Information</h3>
+              {!isEditing && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                >
+                  Edit
+                </button>
+              )}
             </div>
+            
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input
+                      type="text"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mailing Address</label>
+                  <input
+                    ref={addressInputRef}
+                    type="text"
+                    value={editForm.address}
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, address: e.target.value })
+                      searchAddresses(e.target.value)
+                    }}
+                    placeholder="Start typing an address..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  {addressSuggestions.length > 0 && (
+                    <div
+                      ref={addressDropdownRef}
+                      className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                    >
+                      {addressSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => selectAddress(suggestion)}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="text-sm text-gray-900">{suggestion}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {isSearchingAddresses && (
+                    <div className="absolute right-3 top-9">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={updateDonorMutation.isPending}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                  >
+                    {updateDonorMutation.isPending ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false)
+                      setEditForm({
+                        name: donorName || '',
+                        email: donorEmail || '',
+                        address: donorAddress || '',
+                        phone: donorPhone,
+                      })
+                      setAddressSuggestions([])
+                    }}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Name</label>
+                  <p className="text-base text-gray-900">{donorName || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Phone</label>
+                  <p className="text-base text-gray-900">{donorPhone}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Email</label>
+                  <p className="text-base text-gray-900">{donorEmail || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Address</label>
+                  <p className="text-base text-gray-900">{donorAddress || 'N/A'}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Past Donations */}

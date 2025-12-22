@@ -361,14 +361,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 font-medium">{donation.donorName || 'Anonymous'}</div>
-                  {donation.donorPhone && (
-                    <div className="text-xs text-gray-500 mt-1">📞 {donation.donorPhone}</div>
-                  )}
-                  {donation.donorEmail && (
-                    <div className="text-xs text-gray-500 mt-1">✉️ {donation.donorEmail}</div>
-                  )}
-                  {donation.donorPhone && (
+                  {donation.donorPhone ? (
                     <button
                       onClick={() => setViewingDonorInfo({
                         phone: donation.donorPhone,
@@ -376,10 +369,12 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                         email: donation.donorEmail,
                         address: donation.donorAddress,
                       })}
-                      className="mt-2 text-xs text-purple-600 hover:text-purple-800 hover:underline"
+                      className="text-sm text-purple-600 hover:text-purple-800 hover:underline font-medium"
                     >
                       View Info
                     </button>
+                  ) : (
+                    <span className="text-sm text-gray-400">Anonymous</span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

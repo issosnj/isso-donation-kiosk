@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PlacesController } from './places.controller';
 import { PlacesService } from './places.service';
 
 @Module({
   imports: [
+    PassportModule, // Required for JwtOrDeviceAuthGuard
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -14,6 +16,7 @@ import { PlacesService } from './places.service';
       }),
       inject: [ConfigService],
     }),
+    ConfigModule, // Required for ConfigService in guard
   ],
   controllers: [PlacesController],
   providers: [PlacesService],

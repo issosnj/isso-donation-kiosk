@@ -5,7 +5,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { DeviceAuthGuard } from '../auth/guards/device-auth.guard';
+import { JwtOrDeviceAuthGuard } from '../auth/guards/jwt-or-device-auth.guard';
 import { PlacesService } from './places.service';
 
 @ApiTags('places')
@@ -14,7 +14,8 @@ export class PlacesController {
   constructor(private readonly placesService: PlacesService) {}
 
   @Get('autocomplete')
-  @UseGuards(DeviceAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard) // Allow either JWT (admin) or Device auth
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get address autocomplete suggestions from Google Places API' })
   async autocomplete(
     @Query('input') input: string,
@@ -28,7 +29,8 @@ export class PlacesController {
   }
 
   @Get('details')
-  @UseGuards(DeviceAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard) // Allow either JWT (admin) or Device auth
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get place details from Google Places API' })
   async getPlaceDetails(
     @Query('placeId') placeId: string,
