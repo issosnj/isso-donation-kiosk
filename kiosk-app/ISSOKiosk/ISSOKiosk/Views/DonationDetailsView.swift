@@ -637,24 +637,6 @@ struct ModernDonationDetailsView: View {
                     }
                 }
             }
-            .onTapGesture {
-                // Dismiss keyboard when tapping background
-                nameFocused = false
-                phoneFocused = false
-                emailFocused = false
-                addressFocused = false
-            }
-            
-            // Time and Network Status in top right
-            VStack {
-                HStack {
-                    Spacer()
-                    TimeAndNetworkStatusView()
-                        .padding(.trailing, 20)
-                        .padding(.top, 20)
-                }
-                Spacer()
-            }
         }
     }
     
@@ -670,6 +652,24 @@ struct ModernDonationDetailsView: View {
             GeometryReader { geometry in
                 mainContentView
                     .frame(width: geometry.size.width)
+                    .onTapGesture {
+                        // Dismiss keyboard when tapping background
+                        nameFocused = false
+                        phoneFocused = false
+                        emailFocused = false
+                        addressFocused = false
+                    }
+            }
+            
+            // Time and Network Status in top right
+            VStack {
+                HStack {
+                    Spacer()
+                    TimeAndNetworkStatusView()
+                        .padding(.trailing, 20)
+                        .padding(.top, 20)
+                }
+                Spacer()
             }
         }
         .sheet(isPresented: $showingPhoneKeypad) {
