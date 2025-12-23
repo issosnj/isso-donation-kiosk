@@ -67,7 +67,7 @@ struct ModernPaymentView: View {
                     Spacer()
                     TimeAndNetworkStatusView()
                         .padding(.trailing, 20)
-                        .padding(.top, 17)
+                        .padding(.top, 7)
                 }
                 Spacer()
             }
@@ -754,32 +754,32 @@ struct ModernPaymentResultView: View {
     }
     
     // Background view matching theme
-    private var backgroundView: some View {
-        Group {
-            // First try to use asset (local, no network needed)
-            if UIImage(named: "KioskBackground") != nil {
-                Image("KioskBackground")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
-            } else if let backgroundImage = appState.backgroundImage {
-                // Fallback to preloaded URL image
-                Image(uiImage: backgroundImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
-            } else {
-                // Final fallback to default gradient
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.white,
-                        Color(red: 0.95, green: 0.97, blue: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            }
+    @ViewBuilder
+    private func backgroundView(geometry: GeometryProxy) -> some View {
+        // First try to use asset (local, no network needed)
+        if UIImage(named: "KioskBackground") != nil {
+            Image("KioskBackground")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else if let backgroundImage = appState.backgroundImage {
+            // Fallback to preloaded URL image
+            Image(uiImage: backgroundImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else {
+            // Final fallback to default gradient
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.white,
+                    Color(red: 0.95, green: 0.97, blue: 1.0)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
     }
     
@@ -802,7 +802,10 @@ struct ModernPaymentResultView: View {
     
     var body: some View {
         ZStack {
-            backgroundView
+            GeometryReader { geometry in
+                backgroundView(geometry: geometry)
+            }
+            .ignoresSafeArea(.all, edges: .all)
             
             VStack(spacing: 40) {
                 Spacer()
@@ -894,7 +897,7 @@ struct ModernPaymentResultView: View {
                     Spacer()
                     TimeAndNetworkStatusView()
                         .padding(.trailing, 20)
-                        .padding(.top, 17)
+                        .padding(.top, 7)
                 }
                 Spacer()
             }

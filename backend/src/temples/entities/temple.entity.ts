@@ -161,6 +161,12 @@ export class Temple {
       customAmountKeypadPadding?: number; // Internal padding of keypad (e.g., 16)
       customAmountKeypadCornerRadius?: number; // Corner radius of keypad container (e.g., 16)
       backgroundImageUrl?: string; // URL to custom background image for kiosk home screen
+      // Home Screen Layout Positioning
+      homeScreenHeaderTopPadding?: number; // Top padding for home screen headers (e.g., 60)
+      homeScreenSpacerMaxHeight?: number; // Max height of spacer above Tap to Donate button (e.g., 100)
+      homeScreenContentSpacing?: number; // Spacing between home screen content elements (e.g., 20)
+      homeScreenBottomButtonsPadding?: number; // Bottom padding for WhatsApp/Observances buttons (e.g., 50)
+      homeScreenBottomButtonsLeftPadding?: number; // Left padding for bottom buttons (e.g., 20)
       // Donation Details Page Layout
       detailsPageHorizontalSpacing?: number; // Spacing between left and right sections (e.g., 40)
       detailsPageSidePadding?: number; // Padding on left/right sides (e.g., 60)

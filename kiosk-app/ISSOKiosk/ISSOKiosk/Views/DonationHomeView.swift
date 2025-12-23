@@ -268,7 +268,11 @@ struct DonationHomeView: View {
     
     var body: some View {
         ZStack {
-            backgroundGradient
+            GeometryReader { geometry in
+                backgroundView(geometry: geometry)
+            }
+            .ignoresSafeArea(.all, edges: .all)
+            
             mainContent
             // Time and Network Status in top right
             VStack {
@@ -276,7 +280,7 @@ struct DonationHomeView: View {
                     Spacer()
                     TimeAndNetworkStatusView()
                         .padding(.trailing, 20)
-                        .padding(.top, 17)
+                        .padding(.top, 7)
                 }
                 Spacer()
             }
@@ -425,58 +429,53 @@ struct DonationHomeView: View {
         }
     }
     
-    private var backgroundGradient: some View {
-        Group {
-            // First try to use asset (local, no network needed)
-            if UIImage(named: "KioskBackground") != nil {
-                Image("KioskBackground")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea(.all, edges: .all)
-            } else if let backgroundImage = appState.backgroundImage {
-                // Fallback to preloaded URL image
-                preloadedBackgroundImage
-            } else if let backgroundUrl = backgroundImageUrl, let url = URL(string: backgroundUrl) {
-                // Fallback to async URL loading
-                asyncBackgroundImage(url: url)
-            } else {
-                // Final fallback to default gradient
-                defaultGradientBackground
-            }
-        }
-    }
-    
     private var backgroundImageUrl: String? {
         appState.temple?.kioskTheme?.layout?.backgroundImageUrl ?? appState.temple?.homeScreenConfig?.backgroundImageUrl
     }
     
-    private var preloadedBackgroundImage: some View {
-        Image(uiImage: appState.backgroundImage!)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-            .ignoresSafeArea(.all, edges: .all)
-    }
-    
-    private func asyncBackgroundImage(url: URL) -> some View {
-        ZStack {
-            defaultGradientBackground
-            
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .empty:
-                    Color.clear
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                case .failure:
-                    Color.clear
-                @unknown default:
-                    Color.clear
+    // Background view using GeometryReader for consistent sizing
+    @ViewBuilder
+    private func backgroundView(geometry: GeometryProxy) -> some View {
+        // First try to use asset (local, no network needed)
+        if UIImage(named: "KioskBackground") != nil {
+            Image("KioskBackground")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else if let backgroundImage = appState.backgroundImage {
+            // Fallback to preloaded URL image
+            Image(uiImage: backgroundImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else if let backgroundUrl = backgroundImageUrl, let url = URL(string: backgroundUrl) {
+            // Fallback to async URL loading
+            ZStack {
+                defaultGradientBackground
+                
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        Color.clear
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .clipped()
+                    case .failure:
+                        Color.clear
+                    @unknown default:
+                        Color.clear
+                    }
                 }
             }
+        } else {
+            // Final fallback to default gradient
+            defaultGradientBackground
         }
-        .ignoresSafeArea(.all, edges: .all)
     }
     
     private var defaultGradientBackground: some View {

@@ -9,8 +9,6 @@ struct KioskHomeView: View {
     @State private var showWhatsAppQR = false
     @State private var showEvents = false
     @State private var showReligiousEvents = false
-    @State private var showSocialMediaQR: String? = nil
-    @State private var showSuggestionBox = false
     @State private var currentTime = Date()
     @State private var timer: Timer?
     
@@ -49,42 +47,44 @@ struct KioskHomeView: View {
     }
     
     // Background view
-    private var backgroundView: some View {
-        Group {
-            // First try to use asset (local, no network needed)
-            if UIImage(named: "KioskBackground") != nil {
-                Image("KioskBackground")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
-            } else if let backgroundImage = appState.backgroundImage {
-                // Fallback to preloaded URL image
-                Image(uiImage: backgroundImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
-            } else if let backgroundUrl = appState.temple?.kioskTheme?.layout?.backgroundImageUrl ?? appState.temple?.homeScreenConfig?.backgroundImageUrl,
-               let url = URL(string: backgroundUrl) {
-                // Fallback to async URL loading
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        defaultGradient
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .failure:
-                        defaultGradient
-                    @unknown default:
-                        defaultGradient
-                    }
+    @ViewBuilder
+    private func backgroundView(geometry: GeometryProxy) -> some View {
+        // First try to use asset (local, no network needed)
+        if UIImage(named: "KioskBackground") != nil {
+            Image("KioskBackground")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else if let backgroundImage = appState.backgroundImage {
+            // Fallback to preloaded URL image
+            Image(uiImage: backgroundImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else if let backgroundUrl = appState.temple?.kioskTheme?.layout?.backgroundImageUrl ?? appState.temple?.homeScreenConfig?.backgroundImageUrl,
+           let url = URL(string: backgroundUrl) {
+            // Fallback to async URL loading
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    defaultGradient
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                case .failure:
+                    defaultGradient
+                @unknown default:
+                    defaultGradient
                 }
-                .ignoresSafeArea()
-            } else {
-                // Final fallback to default gradient
-                defaultGradient
             }
+        } else {
+            // Final fallback to default gradient
+            defaultGradient
         }
     }
     
@@ -101,7 +101,8 @@ struct KioskHomeView: View {
     
     // Main content view
     private var mainContentView: some View {
-        VStack(spacing: 0) {
+        ZStack {
+            VStack(spacing: 0) {
                 // Header at top, transparent background
                 ZStack {
                     VStack(spacing: 0) {
@@ -114,7 +115,7 @@ struct KioskHomeView: View {
                             .minimumScaleFactor(0.5)
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 20)
-                            .padding(.top, 95)
+                            .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60))
                             .padding(.bottom, 4)
                         
                         // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
@@ -156,13 +157,14 @@ struct KioskHomeView: View {
                     // Time and Network Status in top right
                     TimeAndNetworkStatusView()
                         .padding(.trailing, 20)
-                        .padding(.top, 17)
+                        .padding(.top, 7)
                 }
                 
                 Spacer()
+                    .frame(maxHeight: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenSpacerMaxHeight ?? 100))
                 
                 // Centered content
-                VStack(spacing: 30) {
+                VStack(spacing: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenContentSpacing ?? 20)) {
                     
                     // Main: Tap To Donate Button - Gold-Accented Design (centered vertically)
                     HStack {
@@ -186,79 +188,27 @@ struct KioskHomeView: View {
                     
                     // Bottom: Action Buttons (only show active ones)
                     VStack(spacing: 20) {
-                        // Quick Actions Section (WhatsApp, Events, Social Media as icons)
-                        // Only show if there are any active buttons
-                        let hasWhatsApp = appState.temple?.homeScreenConfig?.whatsAppLink?.isEmpty == false
+                        // Quick Actions Section (Events only)
                         let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
                         let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
                         let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
                         let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
-                        let hasSocialMedia = appState.temple?.homeScreenConfig?.socialMedia?.isEmpty == false
-                        let hasAnyQuickActions = hasWhatsApp || hasEvents || hasSocialMedia || true // Suggestion Box is always available
                         
-                        if hasAnyQuickActions {
+                        if hasEvents {
                             VStack(spacing: 12) {
                                 Text("Quick Actions")
                                     .font(.custom("Inter-SemiBold", size: 20))
                                     .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                                 
                                 HStack(spacing: 16) {
-                                    // Join WhatsApp - only show if configured
-                                    if hasWhatsApp, let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
-                                        ModernQuickActionButton(
-                                            icon: "message.fill",
-                                            title: "WhatsApp",
-                                            color: Color(red: 0.18, green: 0.64, blue: 0.33),
-                                            isActive: true
-                                        ) {
-                                            showWhatsAppQR = true
-                                        }
-                                    }
-                                    
                                     // Upcoming Events - only show if configured
-                                    if hasEvents {
-                                        ModernQuickActionButton(
-                                            icon: "calendar",
-                                            title: "Events",
-                                            color: Color(red: 1.0, green: 0.58, blue: 0.0),
-                                            isActive: true
-                                        ) {
-                                            showEvents = true
-                                        }
-                                    }
-                                    
-                                    // Religious Observances - always show (master admin controlled)
                                     ModernQuickActionButton(
-                                        icon: "moon.stars.fill",
-                                        title: "Observances",
-                                        color: Color(red: 0.6, green: 0.4, blue: 0.8),
+                                        icon: "calendar",
+                                        title: "Events",
+                                        color: Color(red: 1.0, green: 0.58, blue: 0.0),
                                         isActive: true
                                     ) {
-                                        showReligiousEvents = true
-                                    }
-                                    
-                                    // Social Media - only show if configured
-                                    if hasSocialMedia, let socialMedia = appState.temple?.homeScreenConfig?.socialMedia {
-                                        ForEach(socialMedia, id: \.platform) { link in
-                                            ModernQuickActionButton(
-                                                icon: iconForPlatform(link.platform),
-                                                title: link.platform.capitalized,
-                                                color: colorForPlatform(link.platform),
-                                                isActive: true
-                                            ) {
-                                                showSocialMediaQR = link.url
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Suggestion Box (always available)
-                                    ModernQuickActionButton(
-                                        icon: "text.bubble.fill",
-                                        title: "Suggestions",
-                                        color: Color(red: 0.5, green: 0.3, blue: 0.8),
-                                        isActive: true
-                                    ) {
-                                        showSuggestionBox = true
+                                        showEvents = true
                                     }
                                 }
                                 .padding(.horizontal, 20)
@@ -282,11 +232,98 @@ struct KioskHomeView: View {
                 
                 Spacer()
             }
+            
+            // WhatsApp and Observances buttons in bottom left corner (horizontal layout)
+            HStack(spacing: 12) {
+                // WhatsApp Group
+                if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
+                    Button(action: {
+                        showWhatsAppQR = true
+                    }) {
+                        HStack(spacing: 8) {
+                            // WhatsApp icon (custom asset)
+                            if UIImage(named: "WhatsAppIcon") != nil {
+                                Image("WhatsAppIcon")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 32, height: 32)
+                                    .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+                            } else {
+                                // Fallback to system icon if asset not found
+                                Image(systemName: "message.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.white)
+                                    .frame(width: 32, height: 32)
+                                    .background(Color(red: 0.18, green: 0.64, blue: 0.33))
+                                    .clipShape(Circle())
+                                    .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+                            }
+                            
+                            Text("WhatsApp Group")
+                                .font(.custom("Inter-Medium", size: 16))
+                                .foregroundColor(colorFromHex("423232")) // Matches header color
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    // Vertical separator
+                    Rectangle()
+                        .fill(Color(red: 0.26, green: 0.20, blue: 0.20).opacity(0.3))
+                        .frame(width: 1, height: 30)
+                }
+                
+                // Observance
+                Button(action: {
+                    showReligiousEvents = true
+                }) {
+                    HStack(spacing: 8) {
+                        // Observances icon (custom asset)
+                        if UIImage(named: "ObservancesIcon") != nil {
+                            Image("ObservancesIcon")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 32, height: 32)
+                                .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        } else {
+                            // Fallback to system bell icon if asset not found
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                                .frame(width: 32, height: 32)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.85, green: 0.7, blue: 0.3),
+                                            Color(red: 0.95, green: 0.8, blue: 0.4)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(Circle())
+                                .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        }
+                        
+                        Text("Observance")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(colorFromHex("423232"))
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.leading, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20))
+            .padding(.bottom, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+        }
     }
     
     var body: some View {
         ZStack {
-            backgroundView
+            GeometryReader { geometry in
+                backgroundView(geometry: geometry)
+            }
+            .ignoresSafeArea(.all, edges: .all)
+            
             mainContentView
         }
         .sheet(isPresented: $showWhatsAppQR) {
@@ -305,15 +342,6 @@ struct KioskHomeView: View {
             ReligiousEventsView(religiousEvents: appState.religiousEvents)
                 .environmentObject(appState)
         }
-        .sheet(item: Binding(
-            get: { showSocialMediaQR.map { SocialMediaItem(url: $0) } },
-            set: { showSocialMediaQR = $0?.url }
-        )) { item in
-            QRCodeDisplayView(url: item.url, title: "Social Media", cachedImage: qrCodeCache[item.url])
-        }
-        .sheet(isPresented: $showSuggestionBox) {
-            SuggestionBoxView()
-        }
         .onAppear {
             // Start timer to update time every second - optimized for performance
             currentTime = Date()
@@ -329,10 +357,6 @@ struct KioskHomeView: View {
         }
         .onChange(of: appState.temple?.homeScreenConfig?.whatsAppLink) { _ in
             // Regenerate QR codes when config changes
-            pregenerateQRCodes()
-        }
-        .onChange(of: appState.temple?.homeScreenConfig?.socialMedia) { _ in
-            // Regenerate QR codes when social media changes
             pregenerateQRCodes()
         }
         .onDisappear {
@@ -577,16 +601,6 @@ struct QRCodeDisplayView: View {
     }
 }
 
-struct SocialMediaItem: Identifiable {
-    let id: String // Use URL as stable identifier
-    let url: String
-    
-    init(url: String) {
-        self.id = url
-        self.url = url
-    }
-}
-
 // Custom button style for donation button with scale animation
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -631,31 +645,22 @@ struct GoldAccentDonateButton: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Image background - ornate gold frame with orange interior
+                // Image background - new 1600x400 ratio (4:1)
                 Image("DonateButtonBackground")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 800, maxHeight: 300)
+                    .frame(maxWidth: 800, maxHeight: 200)
                     .opacity(isPressed ? 0.9 : 1.0)
                 
-                // Content overlay
-                VStack(spacing: 20) {
-                    // Icon
-                    Image(systemName: "hand.tap.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.white)
-                        .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 2)
-                    
-                    // Text
-                    Text("Tap To Donate")
-                        .font(.custom("Inter-Bold", size: 52))
-                        .foregroundColor(.white)
-                        .tracking(1.5) // Letter spacing for elegance
-                        .shadow(color: Color.black.opacity(0.6), radius: 6, x: 0, y: 3)
-                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                }
+                // Text overlay - centered on the button
+                Text("Tap To Donate")
+                    .font(.custom("Inter-Bold", size: 52))
+                    .foregroundColor(.white)
+                    .tracking(1.5) // Letter spacing for elegance
+                    .shadow(color: Color.black.opacity(0.6), radius: 6, x: 0, y: 3)
+                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
             }
-            .frame(width: 800, height: 300)
+            .frame(width: 800, height: 200)
             .cornerRadius(20)
             .shadow(
                 color: isPressed ? Color.black.opacity(0.15) : Color.black.opacity(0.25),
@@ -705,204 +710,6 @@ struct GoldAccentDonateButton: View {
                     }
                 }
         )
-    }
-}
-
-// Suggestion Box View
-struct SuggestionBoxView: View {
-    @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var appState: AppState
-    @State private var suggestionText = ""
-    @State private var isSubmitting = false
-    @State private var showSuccess = false
-    @State private var errorMessage: String?
-    @FocusState private var isTextFocused: Bool
-    
-    var body: some View {
-        NavigationView {
-            ZStack {
-                // Background
-                Color(red: 0.98, green: 0.98, blue: 0.99)
-                    .ignoresSafeArea()
-                
-                if showSuccess {
-                    // Success view
-                    VStack(spacing: 30) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(Color(red: 0.18, green: 0.64, blue: 0.33))
-                        
-                        Text("Thank You!")
-                            .font(.custom("Inter-SemiBold", size: 32))
-                            .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                        
-                        Text("Your anonymous suggestion has been submitted.")
-                            .font(.custom("Inter-Regular", size: 18))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                        
-                        Button(action: {
-                            dismiss()
-                        }) {
-                            Text("Done")
-                                .font(.custom("Inter-Medium", size: 18))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: 300)
-                                .padding(.vertical, 16)
-                                .background(Color(red: 0.5, green: 0.3, blue: 0.8))
-                                .cornerRadius(12)
-                        }
-                        .padding(.top, 20)
-                    }
-                } else {
-                    // Form view
-                    ScrollView {
-                        VStack(spacing: 30) {
-                            // Header
-                            VStack(spacing: 12) {
-                                Image(systemName: "text.bubble.fill")
-                                    .font(.system(size: 60))
-                                    .foregroundColor(Color(red: 0.5, green: 0.3, blue: 0.8))
-                                
-                                Text("Anonymous Suggestion Box")
-                                    .font(.custom("Inter-SemiBold", size: 28))
-                                    .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                                
-                                Text("Share your thoughts, ideas, or feedback anonymously")
-                                    .font(.custom("Inter-Regular", size: 16))
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .padding(.top, 40)
-                            .padding(.horizontal, 40)
-                            
-                            // Suggestion text field
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Your Suggestion")
-                                    .font(.custom("Inter-SemiBold", size: 18))
-                                    .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-                                
-                                ZStack(alignment: .topLeading) {
-                                    if suggestionText.isEmpty {
-                                        Text("Type your suggestion here...")
-                                            .font(.system(size: 16))
-                                            .foregroundColor(.gray.opacity(0.6))
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 16)
-                                    }
-                                    
-                                    TextEditor(text: $suggestionText)
-                                        .font(.system(size: 16))
-                                        .frame(minHeight: 200)
-                                        .focused($isTextFocused)
-                                        .padding(8)
-                                        .background(Color.white)
-                                        .cornerRadius(12)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(
-                                                    isTextFocused 
-                                                        ? Color(red: 0.5, green: 0.3, blue: 0.8)
-                                                        : Color.gray.opacity(0.3),
-                                                    lineWidth: isTextFocused ? 2 : 1
-                                                )
-                                        )
-                                }
-                                
-                                Text("Your suggestion is completely anonymous")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 40)
-                            
-                            // Error message
-                            if let error = errorMessage {
-                                Text(error)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.red)
-                                    .padding(.horizontal, 40)
-                            }
-                            
-                            // Submit button
-                            Button(action: {
-                                submitSuggestion()
-                            }) {
-                                HStack(spacing: 12) {
-                                    if isSubmitting {
-                                        ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    } else {
-                                        Image(systemName: "paperplane.fill")
-                                            .font(.system(size: 18))
-                                    }
-                                    Text(isSubmitting ? "Submitting..." : "Submit Suggestion")
-                                        .font(.custom("Inter-Medium", size: 18))
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 18)
-                                .background(
-                                    suggestionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting
-                                        ? Color.gray.opacity(0.4)
-                                        : Color(red: 0.5, green: 0.3, blue: 0.8)
-                                )
-                                .cornerRadius(12)
-                            }
-                            .disabled(suggestionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
-                            .padding(.horizontal, 40)
-                            .padding(.bottom, 40)
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Suggestion Box")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-    
-    private func submitSuggestion() {
-        let trimmedSuggestion = suggestionText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedSuggestion.isEmpty,
-              let templeId = appState.temple?.id,
-              let deviceId = appState.deviceId else {
-            errorMessage = "Please enter a suggestion"
-            return
-        }
-        
-        isSubmitting = true
-        errorMessage = nil
-        
-        Task {
-            do {
-                _ = try await APIService.shared.submitSuggestion(
-                    templeId: templeId,
-                    deviceId: deviceId,
-                    suggestion: trimmedSuggestion
-                )
-                
-                await MainActor.run {
-                    isSubmitting = false
-                    showSuccess = true
-                }
-            } catch {
-                await MainActor.run {
-                    isSubmitting = false
-                    if let apiError = error as? APIError {
-                        errorMessage = apiError.localizedDescription
-                    } else {
-                        errorMessage = "Failed to submit suggestion. Please try again."
-                    }
-                }
-            }
-        }
     }
 }
 

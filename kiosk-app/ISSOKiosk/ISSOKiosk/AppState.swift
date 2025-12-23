@@ -735,6 +735,12 @@ struct ThemeLayout: Codable, Equatable {
     let categoryButtonHeight: Double?
     let headerTopPadding: Double?
     let categoryHeaderTopPadding: Double?
+    // Home Screen Layout Positioning
+    let homeScreenHeaderTopPadding: Double?
+    let homeScreenSpacerMaxHeight: Double?
+    let homeScreenContentSpacing: Double?
+    let homeScreenBottomButtonsPadding: Double?
+    let homeScreenBottomButtonsLeftPadding: Double?
     let sectionSpacing: Double?
     let categoryAmountSectionSpacing: Double?
     let buttonSpacing: Double?

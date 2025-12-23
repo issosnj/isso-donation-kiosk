@@ -99,6 +99,12 @@ export default function ThemeTab() {
       customAmountKeypadLetterFontSize: 10,
       customAmountKeypadPadding: 16,
       customAmountKeypadCornerRadius: 16,
+      // Home Screen Layout Positioning
+      homeScreenHeaderTopPadding: 60,
+      homeScreenSpacerMaxHeight: 100,
+      homeScreenContentSpacing: 20,
+      homeScreenBottomButtonsPadding: 50,
+      homeScreenBottomButtonsLeftPadding: 20,
       // Donation Details Page Layout
       detailsPageHorizontalSpacing: 40,
       detailsPageSidePadding: 60,
@@ -186,6 +192,12 @@ export default function ThemeTab() {
           customAmountKeypadLetterFontSize: temple.kioskTheme.layout?.customAmountKeypadLetterFontSize || 10,
           customAmountKeypadPadding: temple.kioskTheme.layout?.customAmountKeypadPadding || 16,
           customAmountKeypadCornerRadius: temple.kioskTheme.layout?.customAmountKeypadCornerRadius || 16,
+          // Home Screen Layout Positioning
+          homeScreenHeaderTopPadding: temple.kioskTheme.layout?.homeScreenHeaderTopPadding || 60,
+          homeScreenSpacerMaxHeight: temple.kioskTheme.layout?.homeScreenSpacerMaxHeight || 100,
+          homeScreenContentSpacing: temple.kioskTheme.layout?.homeScreenContentSpacing || 20,
+          homeScreenBottomButtonsPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsPadding || 50,
+          homeScreenBottomButtonsLeftPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsLeftPadding || 20,
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
           detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -319,6 +331,12 @@ export default function ThemeTab() {
                       customAmountKeypadLetterFontSize: temple.kioskTheme.layout?.customAmountKeypadLetterFontSize || 10,
                       customAmountKeypadPadding: temple.kioskTheme.layout?.customAmountKeypadPadding || 16,
                       customAmountKeypadCornerRadius: temple.kioskTheme.layout?.customAmountKeypadCornerRadius || 16,
+                      // Home Screen Layout Positioning
+                      homeScreenHeaderTopPadding: temple.kioskTheme.layout?.homeScreenHeaderTopPadding || 60,
+                      homeScreenSpacerMaxHeight: temple.kioskTheme.layout?.homeScreenSpacerMaxHeight || 100,
+                      homeScreenContentSpacing: temple.kioskTheme.layout?.homeScreenContentSpacing || 20,
+                      homeScreenBottomButtonsPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsPadding || 50,
+                      homeScreenBottomButtonsLeftPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsLeftPadding || 20,
                       // Donation Details Page Layout
                       detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
                       detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -1191,6 +1209,104 @@ export default function ThemeTab() {
 
           {/* Layout Settings */}
           <div className="space-y-6">
+            {/* Home Screen Layout Positioning */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h4 className="text-md font-semibold text-gray-900 mb-2">Home Screen Layout Positioning</h4>
+              <p className="text-xs text-gray-500 mb-4">Control the positioning of elements on the home screen</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Header Top Padding
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Distance from top of screen to headers (default: 60)</p>
+                  <input
+                    type="number"
+                    value={formData.layout.homeScreenHeaderTopPadding ?? 60}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenHeaderTopPadding: parseInt(e.target.value) || 60 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Spacer Above Button
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Max height of space above "Tap to Donate" button (default: 100)</p>
+                  <input
+                    type="number"
+                    value={formData.layout.homeScreenSpacerMaxHeight ?? 100}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenSpacerMaxHeight: parseInt(e.target.value) || 100 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="300"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Content Spacing
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Spacing between content elements (default: 20)</p>
+                  <input
+                    type="number"
+                    value={formData.layout.homeScreenContentSpacing ?? 20}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenContentSpacing: parseInt(e.target.value) || 20 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bottom Buttons Padding
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Distance from bottom for WhatsApp/Observances buttons (default: 50)</p>
+                  <input
+                    type="number"
+                    value={formData.layout.homeScreenBottomButtonsPadding ?? 50}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenBottomButtonsPadding: parseInt(e.target.value) || 50 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="150"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bottom Buttons Left Padding
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Distance from left edge for bottom buttons (default: 20)</p>
+                  <input
+                    type="number"
+                    value={formData.layout.homeScreenBottomButtonsLeftPadding ?? 20}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenBottomButtonsLeftPadding: parseInt(e.target.value) || 20 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Donation Selection Page Layout */}
             <div className="bg-white rounded-lg shadow p-6">
               <h4 className="text-md font-semibold text-gray-900 mb-2">Donation Selection Page</h4>
