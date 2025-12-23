@@ -1,4 +1,4 @@
-a# ISSO Donation Kiosk System
+# ISSO Donation Kiosk System
 
 A modern, multi-tenant donation kiosk system for temples with Square payment integration. Features a NestJS backend, Next.js admin portal, and native iOS kiosk app.
 
@@ -62,7 +62,6 @@ DATABASE_URL=postgresql://user:password@localhost:5432/isso_donation_kiosk
 JWT_SECRET=your-super-secret-jwt-key-change-this
 
 # Square (get from Square Developer Dashboard)
-# See SQUARE_SETUP.md for detailed setup instructions
 SQUARE_APPLICATION_ID=your-square-app-id
 SQUARE_APPLICATION_SECRET=your-square-app-secret
 SQUARE_REDIRECT_URI=http://localhost:3000/api/square/callback
@@ -270,8 +269,6 @@ You'll be prompted for email, password, name, and role.
 - `GET /api/square/connect?templeId=xxx` - Get Square OAuth URL
 - `GET /api/square/callback` - OAuth callback handler
 - `POST /api/square/webhook` - Webhook handler for Square events
-
-**📖 Square Setup Guide**: See [SQUARE_SETUP.md](./SQUARE_SETUP.md) for detailed setup instructions
 
 **Full API Documentation**: Visit `/api/docs` when backend is running (Swagger UI)
 
