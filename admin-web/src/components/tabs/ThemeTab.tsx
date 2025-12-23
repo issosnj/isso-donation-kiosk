@@ -624,10 +624,16 @@ export default function ThemeTab() {
                   </div>
                 </div>
 
+                {/* Donation Selection Page Buttons Section */}
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-gray-800 mb-2">Donation Selection Page Buttons</h3>
+                  <p className="text-xs text-gray-500 mb-3">Controls the "Home" and "Select Amount to Continue" buttons at the bottom of the donation selection page</p>
+                </div>
+
                 {/* Return to Home Button */}
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-medium text-gray-700">Return to Home Button</label>
+                    <label className="text-sm font-medium text-gray-700">Home Button (Donation Selection Page)</label>
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <span className="text-xs text-gray-600">Gradient</span>
                       <input
@@ -670,7 +676,7 @@ export default function ThemeTab() {
                 {/* Proceed to Payment Button */}
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-medium text-gray-700">Proceed to Payment Button</label>
+                    <label className="text-sm font-medium text-gray-700">Select Amount to Continue Button</label>
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <span className="text-xs text-gray-600">Gradient</span>
                       <input
