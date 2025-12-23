@@ -125,6 +125,16 @@ export default function ThemeTab() {
       homeScreenCustomMessageY: undefined as number | undefined,
       homeScreenWhatsAppButtonsX: undefined as number | undefined,
       homeScreenWhatsAppButtonsY: undefined as number | undefined,
+      // Home Screen Element Visibility (hide/unhide)
+      homeScreenWelcomeTextVisible: true,
+      homeScreenHeader1Visible: true,
+      homeScreenUnderGadiTextVisible: true,
+      homeScreenAddressVisible: true,
+      homeScreenTimeStatusVisible: true,
+      homeScreenTapToDonateVisible: true,
+      homeScreenQuickActionsVisible: true,
+      homeScreenCustomMessageVisible: true,
+      homeScreenWhatsAppButtonsVisible: true,
       // Donation Details Page Layout
       detailsPageHorizontalSpacing: 40,
       detailsPageSidePadding: 60,
@@ -237,6 +247,16 @@ export default function ThemeTab() {
           homeScreenCustomMessageY: temple.kioskTheme.layout?.homeScreenCustomMessageY,
           homeScreenWhatsAppButtonsX: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
           homeScreenWhatsAppButtonsY: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
+          // Home Screen Element Visibility
+          homeScreenWelcomeTextVisible: temple.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
+          homeScreenHeader1Visible: temple.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
+          homeScreenUnderGadiTextVisible: temple.kioskTheme.layout?.homeScreenUnderGadiTextVisible ?? true,
+          homeScreenAddressVisible: temple.kioskTheme.layout?.homeScreenAddressVisible ?? true,
+          homeScreenTimeStatusVisible: temple.kioskTheme.layout?.homeScreenTimeStatusVisible ?? true,
+          homeScreenTapToDonateVisible: temple.kioskTheme.layout?.homeScreenTapToDonateVisible ?? true,
+          homeScreenQuickActionsVisible: temple.kioskTheme.layout?.homeScreenQuickActionsVisible ?? true,
+          homeScreenCustomMessageVisible: temple.kioskTheme.layout?.homeScreenCustomMessageVisible ?? true,
+          homeScreenWhatsAppButtonsVisible: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
           detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -1585,6 +1605,176 @@ export default function ThemeTab() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Home Screen Element Visibility (Hide/Unhide) */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h4 className="text-md font-semibold text-gray-900 mb-2">Home Screen Element Visibility</h4>
+              <p className="text-xs text-gray-500 mb-4">
+                Toggle visibility of elements on the home screen. Uncheck to hide an element.
+              </p>
+              
+              <div className="space-y-4">
+                {/* Welcome Text */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Welcome Text</label>
+                    <p className="text-xs text-gray-500">"Welcome to Shree Swaminarayan Hindu Temple"</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenWelcomeTextVisible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenWelcomeTextVisible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
+                </div>
+
+                {/* Header 1 */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Header 1 (ISSO Text)</label>
+                    <p className="text-xs text-gray-500">"International Swaminarayan Satsang Organization (ISSO)"</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenHeader1Visible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenHeader1Visible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
+                </div>
+
+                {/* Under Gadi Text */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">"Under Shree NarNarayan Dev Gadi" Text</label>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenUnderGadiTextVisible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenUnderGadiTextVisible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
+                </div>
+
+                {/* Temple Address */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Temple Address</label>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenAddressVisible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenAddressVisible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
+                </div>
+
+                {/* Time and Network Status */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Time and Network Status</label>
+                    <p className="text-xs text-gray-500">Top right corner indicator</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenTimeStatusVisible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenTimeStatusVisible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
+                </div>
+
+                {/* Tap to Donate Button */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Tap to Donate Button</label>
+                    <p className="text-xs text-gray-500">Main donation button</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenTapToDonateVisible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenTapToDonateVisible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
+                </div>
+
+                {/* Quick Actions */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Quick Actions Section</label>
+                    <p className="text-xs text-gray-500">Events button</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenQuickActionsVisible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenQuickActionsVisible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
+                </div>
+
+                {/* Custom Message */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Custom Message</label>
+                    <p className="text-xs text-gray-500">Custom message text (if configured)</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenCustomMessageVisible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenCustomMessageVisible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
+                </div>
+
+                {/* WhatsApp/Observances Buttons */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">WhatsApp/Observances Buttons</label>
+                    <p className="text-xs text-gray-500">Bottom left corner buttons</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenWhatsAppButtonsVisible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenWhatsAppButtonsVisible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
                 </div>
               </div>
             </div>
