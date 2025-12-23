@@ -348,67 +348,102 @@ class AppState: ObservableObject {
         print("[AppState] 📡 Fetching temple config for templeId: \(templeId)")
         print("[AppState] 📡 API Base URL: \(Config.apiBaseURL)")
         
-        do {
-            // Fetch temple data from backend (no timeout wrapper - let URLSession handle it)
-            print("[AppState] 📡 Starting temple fetch request...")
-            let temple = try await APIService.shared.getTemple(templeId: templeId)
+        // Retry logic for initial load - keep trying until successful
+        let maxRetries = 5
+        var lastError: Error?
+        
+        for attempt in 0..<maxRetries {
+            if attempt > 0 {
+                // Exponential backoff: 2s, 4s, 8s, 16s
+                let delay = pow(2.0, Double(attempt))
+                print("[AppState] 🔄 Retry attempt \(attempt + 1)/\(maxRetries) after \(delay)s delay...")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
             
-            await MainActor.run {
-                self.temple = temple
-                self.isActivated = true
-                print("[AppState] ✅ Temple config loaded: \(temple.name)")
-                print("[AppState] ✅ Temple ID: \(temple.id)")
+            do {
+                // Fetch temple data from backend
+                print("[AppState] 📡 Starting temple fetch request (attempt \(attempt + 1))...")
+                let temple = try await APIService.shared.getTemple(templeId: templeId)
                 
-                // Start automatic theme refresh timer if not already started
-                if themeRefreshTimer == nil {
-                    startThemeRefreshTimer()
+                await MainActor.run {
+                    self.temple = temple
+                    self.isActivated = true
+                    print("[AppState] ✅ Temple config loaded: \(temple.name)")
+                    print("[AppState] ✅ Temple ID: \(temple.id)")
+                    
+                    // Start automatic theme refresh timer if not already started
+                    if themeRefreshTimer == nil {
+                        startThemeRefreshTimer()
+                    }
+                    
+                    // Start automatic category refresh timer if not already started
+                    if categoryRefreshTimer == nil {
+                        startCategoryRefreshTimer()
+                    }
+                    
+                    // Start automatic religious events refresh timer if not already started
+                    if religiousEventsRefreshTimer == nil {
+                        startReligiousEventsRefreshTimer()
+                    }
                 }
                 
-                // Start automatic category refresh timer if not already started
-                if categoryRefreshTimer == nil {
-                    startCategoryRefreshTimer()
+                // Preload background image if available (don't block - load in background)
+                Task.detached(priority: .background) { [weak self] in
+                    await self?.preloadBackgroundImage()
                 }
                 
-                // Start automatic religious events refresh timer if not already started
-                if religiousEventsRefreshTimer == nil {
-                    startReligiousEventsRefreshTimer()
+                // Load categories after temple config is loaded
+                await refreshCategories()
+                
+                // Load religious events
+                await refreshReligiousEvents()
+                
+                // Authorize Square Mobile Payments SDK if device token exists
+                Task {
+                    await authorizeSquareSDK()
+                    // Start periodic connection checks
+                    startSquareConnectionMonitoring()
                 }
-            }
-            
-            // Preload background image if available (don't block - load in background)
-            Task.detached(priority: .background) { [weak self] in
-                await self?.preloadBackgroundImage()
-            }
-            
-            // Load categories after temple config is loaded
-            await refreshCategories()
-            
-            // Load religious events
-            await refreshReligiousEvents()
-            
-            // Authorize Square Mobile Payments SDK if device token exists
-            Task {
-                await authorizeSquareSDK()
-                // Start periodic connection checks
-                startSquareConnectionMonitoring()
-            }
-        } catch {
-            print("[AppState] ❌ Failed to load temple config")
-            print("[AppState] ❌ Error type: \(type(of: error))")
-            print("[AppState] ❌ Error description: \(error.localizedDescription)")
-            if let apiError = error as? APIError {
-                print("[AppState] ❌ API Error details: \(apiError)")
-            }
-            // Still set activated so app can function, but temple will be nil
-            await MainActor.run {
-                self.isActivated = true
-            }
-            
-            // Still try to authorize SDK even if temple fetch failed
-            Task {
-                await authorizeSquareSDK()
-                // Start periodic connection checks
-                startSquareConnectionMonitoring()
+                
+                // Success! Exit retry loop
+                return
+                
+            } catch {
+                lastError = error
+                print("[AppState] ❌ Failed to load temple config (attempt \(attempt + 1)/\(maxRetries))")
+                print("[AppState] ❌ Error type: \(type(of: error))")
+                print("[AppState] ❌ Error description: \(error.localizedDescription)")
+                if let apiError = error as? APIError {
+                    print("[AppState] ❌ API Error details: \(apiError)")
+                }
+                
+                // If this was the last attempt, give up and set activated anyway
+                if attempt == maxRetries - 1 {
+                    print("[AppState] ⚠️ Max retries reached. Setting activated with nil temple.")
+                    await MainActor.run {
+                        self.isActivated = true
+                    }
+                    
+                    // Still try to authorize SDK even if temple fetch failed
+                    Task {
+                        await authorizeSquareSDK()
+                        // Start periodic connection checks
+                        startSquareConnectionMonitoring()
+                    }
+                    
+                    // Continue trying to refresh in background
+                    Task.detached(priority: .background) { [weak self] in
+                        // Keep trying to refresh every 10 seconds until successful
+                        while self?.temple == nil {
+                            try? await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds
+                            await self?.refreshTempleConfig()
+                            if self?.temple != nil {
+                                print("[AppState] ✅ Successfully loaded temple config in background retry")
+                                break
+                            }
+                        }
+                    }
+                }
             }
         }
     }
