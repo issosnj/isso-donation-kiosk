@@ -750,8 +750,8 @@ struct KioskHomeView: View {
     
     // Computed properties for headers with defaults
     private var header1Text: String {
-        // Default Header 1 for all kiosks
-        return "International Swaminarayan Satsang Organization (ISSO)"
+        // Use localized ISSO text
+        return "isso".localized
     }
     
     private var timeString: String {
@@ -1077,7 +1077,7 @@ struct UnifiedCalendarEventsView: View {
                     eventsText: eventsText
                 )
             }
-            .navigationTitle("Upcoming Events")
+            .navigationTitle("upcomingEvents".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

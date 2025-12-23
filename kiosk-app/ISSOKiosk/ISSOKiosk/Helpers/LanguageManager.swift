@@ -59,6 +59,7 @@ class LanguageManager: ObservableObject {
             "done": "Done",
             "observanceNote": "Please note that certain fasting dates are subject to change based on the lunar calendar.",
             "noUpcomingObservances": "No upcoming observances",
+            "upcomingEvents": "Upcoming Events",
             
             // Donation Flow
             "selectCategory": "Select Category",
@@ -119,6 +120,7 @@ class LanguageManager: ObservableObject {
             "done": "પૂર્ણ",
             "observanceNote": "કૃપા કરીને નોંધ કરો કે ચંદ્ર પંચાંગના આધારે કેટલાક ઉપવાસની તારીખો બદલાઈ શકે છે.",
             "noUpcomingObservances": "કોઈ આગામી અવલોકનો નથી",
+            "upcomingEvents": "આગામી ઇવેન્ટ્સ",
             
             // Donation Flow
             "selectCategory": "કેટેગરી પસંદ કરો",
@@ -179,6 +181,7 @@ class LanguageManager: ObservableObject {
             "done": "पूर्ण",
             "observanceNote": "कृपया ध्यान दें कि चंद्र पंचांग के आधार पर कुछ उपवास की तारीखें बदल सकती हैं।",
             "noUpcomingObservances": "कोई आगामी अवलोकन नहीं",
+            "upcomingEvents": "आगामी इवेंट्स",
             
             // Donation Flow
             "selectCategory": "श्रेणी चुनें",
