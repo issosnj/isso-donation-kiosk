@@ -1388,14 +1388,31 @@ struct ReligiousEventsView: View {
             .frame(maxWidth: 820)
             .padding(24)
             .background(
-                RoundedRectangle(cornerRadius: 28)
-                    .fill(Color.white.opacity(0.92))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 28)
-                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
-                    )
+                ZStack {
+                    // Back plate (right)
+                    RoundedRectangle(cornerRadius: 30)
+                        .fill(Color(.systemGray5).opacity(0.55))
+                        .scaleEffect(1.03)
+                        .offset(x: 34, y: 0)
+                        .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 10)
+
+                    // Back plate (left)
+                    RoundedRectangle(cornerRadius: 30)
+                        .fill(Color(.systemGray5).opacity(0.35))
+                        .scaleEffect(1.06)
+                        .offset(x: -34, y: 0)
+                        .shadow(color: Color.black.opacity(0.06), radius: 18, x: 0, y: 8)
+
+                    // Main card
+                    RoundedRectangle(cornerRadius: 28)
+                        .fill(Color.white.opacity(0.92))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 28)
+                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.18), radius: 30, x: 0, y: 16)
+                }
             )
-            .shadow(color: Color.black.opacity(0.18), radius: 30, x: 0, y: 16)
             .padding(.horizontal, 40)
         }
     }
