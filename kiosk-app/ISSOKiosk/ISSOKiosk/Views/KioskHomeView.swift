@@ -1317,7 +1317,7 @@ struct ReligiousEventsView: View {
                         .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
 
                     Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
-                        .font(.custom("Inter-Regular", size: 14))
+                        .font(.custom("Inter-Regular", size: 13))
                         .italic()
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -1326,61 +1326,76 @@ struct ReligiousEventsView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 16)
 
-                // CONTENT
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 16) {
-                        if religiousEvents.isEmpty {
-                            VStack(spacing: 20) {
-                                Image(systemName: "moon.stars.fill")
-                                    .font(.system(size: 50))
-                                    .foregroundColor(.gray)
-                                Text("No upcoming observances")
-                                    .font(.custom("Inter-SemiBold", size: 20))
-                            }
-                            .padding()
-                        } else {
-                            ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
-                                ReligiousEventRow(
-                                    event: event,
-                                    showCountdown: index == 0
-                                )
+                // INNER PANEL WITH LIST
+                VStack(spacing: 0) {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            if religiousEvents.isEmpty {
+                                VStack(spacing: 20) {
+                                    Image(systemName: "moon.stars.fill")
+                                        .font(.system(size: 50))
+                                        .foregroundColor(.gray)
+                                    Text("No upcoming observances")
+                                        .font(.custom("Inter-SemiBold", size: 20))
+                                }
+                                .padding()
+                            } else {
+                                ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
+                                    ReligiousEventRow(
+                                        event: event,
+                                        showCountdown: index == 0
+                                    )
+                                    
+                                    if index < religiousEvents.count - 1 {
+                                        Divider()
+                                            .padding(.leading, 18)
+                                    }
+                                }
                             }
                         }
+                        .padding(.vertical, 8)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
                 }
+                .frame(minHeight: 320, maxHeight: 520)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(.systemGray6).opacity(0.95))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal, 20)
 
                 // DONE BUTTON
                 Button {
                     dismiss()
                 } label: {
                     Text("Done")
-                        .font(.custom("Inter-Medium", size: 18))
+                        .font(.custom("Inter-SemiBold", size: 18))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
                             Color(red: 0.6, green: 0.4, blue: 0.8)
                         )
-                        .cornerRadius(12)
+                        .cornerRadius(16)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 12)
+                .padding(.top, 16)
                 .padding(.bottom, 20)
             }
             .frame(maxWidth: 820)
             .padding(24)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white.opacity(0.25))
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(Color.white.opacity(0.92))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28)
+                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
                     )
             )
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
+            .shadow(color: Color.black.opacity(0.18), radius: 30, x: 0, y: 16)
             .padding(.horizontal, 40)
         }
     }
@@ -1392,10 +1407,12 @@ struct ReligiousEventRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
+            // LEFT SIDE: Date and Event Name
             VStack(alignment: .leading, spacing: 10) {
-                // DATE
+                // DATE with purple moon icon
                 HStack(spacing: 6) {
                     Image(systemName: "moon.stars.fill")
+                        .font(.system(size: 14))
                         .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
 
                     Text(formattedDate(event.date))
@@ -1411,17 +1428,19 @@ struct ReligiousEventRow: View {
 
                     if showsBasket(event.name) {
                         Image(systemName: "basket.fill")
+                            .font(.system(size: 16))
                             .foregroundColor(.orange)
                     }
 
                     if showsMoon(event.name) {
                         Image(systemName: "moon.fill")
+                            .font(.system(size: 16))
                             .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
                     }
                 }
             }
 
-            // COUNTDOWN (only first event)
+            // RIGHT SIDE: Countdown (only first event)
             if showCountdown, let date = parseDate(event.date) {
                 Spacer()
                 VStack(spacing: 2) {
@@ -1437,15 +1456,12 @@ struct ReligiousEventRow: View {
                         .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(.secondary)
                 }
-            } else {
-                // Add spacer for non-first events to maintain consistent width
-                Spacer()
+                .frame(width: 90, alignment: .trailing)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.white.opacity(0.6))
-        .cornerRadius(12)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
     }
 
     // MARK: Helpers
