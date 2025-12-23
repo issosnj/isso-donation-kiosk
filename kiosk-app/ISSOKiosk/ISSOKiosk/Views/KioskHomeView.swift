@@ -223,38 +223,39 @@ struct KioskHomeView: View {
                     .frame(maxWidth: .infinity)
                 }
                 
-                    // Bottom: Action Buttons (only show active ones)
-                    if appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsVisible != false {
-                        VStack(spacing: 20) {
-                            // Quick Actions Section (Events only)
-                            let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
-                            let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
-                            let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
-                            let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
-                            
-                            if hasEvents {
-                        VStack(spacing: 12) {
-                            Text("Quick Actions")
-                                .font(.custom("Inter-SemiBold", size: 20))
-                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                            
-                            HStack(spacing: 16) {
-                                // Upcoming Events - only show if configured
-                                ModernQuickActionButton(
-                                    icon: "calendar",
-                                    title: "Events",
-                                    color: Color(red: 1.0, green: 0.58, blue: 0.0),
-                                    isActive: true
-                                ) {
-                                    showEvents = true
+                // Bottom: Action Buttons (only show active ones)
+                if appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsVisible != false {
+                    VStack(spacing: 20) {
+                        // Quick Actions Section (Events only)
+                        let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
+                        let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
+                        let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
+                        let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
+                        
+                        if hasEvents {
+                            VStack(spacing: 12) {
+                                Text("Quick Actions")
+                                    .font(.custom("Inter-SemiBold", size: 20))
+                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                                
+                                HStack(spacing: 16) {
+                                    // Upcoming Events - only show if configured
+                                    ModernQuickActionButton(
+                                        icon: "calendar",
+                                        title: "Events",
+                                        color: Color(red: 1.0, green: 0.58, blue: 0.0),
+                                        isActive: true
+                                    ) {
+                                        showEvents = true
+                                    }
                                 }
+                                .padding(.horizontal, 20)
                             }
-                            .padding(.horizontal, 20)
                         }
                     }
+                    .padding(.horizontal, 40)
+                    .padding(.top, 20)
                 }
-                .padding(.horizontal, 40)
-                .padding(.top, 20)
                 
                     // Custom Message at Bottom (if configured)
                     if appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageVisible != false,
