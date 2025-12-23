@@ -634,7 +634,6 @@ struct ModernDonationDetailsView: View {
                     }
                 }
         }
-    }
     
     var body: some View {
         ZStack {
