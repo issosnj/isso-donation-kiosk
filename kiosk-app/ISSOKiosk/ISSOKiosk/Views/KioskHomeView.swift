@@ -200,22 +200,13 @@ struct KioskHomeView: View {
                     if appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorVisible != false {
                         if let x = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorX,
                            let y = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorY {
-                            Button(action: {
-                                showLanguageSelector = true
-                            }) {
-                                LanguageSelectorView(languageManager: languageManager)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .position(x: CGFloat(x), y: CGFloat(y))
+                            // Positioned using X/Y coordinates
+                            LanguageSelectorView(languageManager: languageManager)
+                                .position(x: CGFloat(x), y: CGFloat(y))
                         } else {
                             // Default position (top left)
                             VStack {
-                                Button(action: {
-                                    showLanguageSelector = true
-                                }) {
-                                    LanguageSelectorView(languageManager: languageManager)
-                                }
-                                .buttonStyle(PlainButtonStyle())
+                                LanguageSelectorView(languageManager: languageManager)
                                 Spacer()
                             }
                             .padding(.leading, 20)
