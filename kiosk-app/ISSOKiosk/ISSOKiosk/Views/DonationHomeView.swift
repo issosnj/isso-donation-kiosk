@@ -876,17 +876,17 @@ struct DonationHomeView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(
-                        appState.temple?.kioskTheme?.colors?.returnToHomeButtonGradient == true
-                            ? gradientFromColor(
-                                colorFromHex(
-                                    appState.temple?.kioskTheme?.colors?.returnToHomeButtonColor,
-                                    defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                )
-                            )
-                            : colorFromHex(
+                        Group {
+                            let buttonColor = colorFromHex(
                                 appState.temple?.kioskTheme?.colors?.returnToHomeButtonColor,
                                 defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
                             )
+                            if appState.temple?.kioskTheme?.colors?.returnToHomeButtonGradient == true {
+                                gradientFromColor(buttonColor)
+                            } else {
+                                buttonColor
+                            }
+                        }
                     )
                     .cornerRadius(12)
                 }
@@ -901,19 +901,21 @@ struct DonationHomeView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(
-                            hasValidAmount
-                                ? (appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonGradient == true
-                                    ? gradientFromColor(
-                                        colorFromHex(
-                                            appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonColor,
-                                            defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                        )
-                                    )
-                                    : colorFromHex(
+                            Group {
+                                if hasValidAmount {
+                                    let buttonColor = colorFromHex(
                                         appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonColor,
                                         defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                    ))
-                                : Color.gray.opacity(0.4)
+                                    )
+                                    if appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonGradient == true {
+                                        gradientFromColor(buttonColor)
+                                    } else {
+                                        buttonColor
+                                    }
+                                } else {
+                                    Color.gray.opacity(0.4)
+                                }
+                            }
                         )
                         .cornerRadius(12)
                 }

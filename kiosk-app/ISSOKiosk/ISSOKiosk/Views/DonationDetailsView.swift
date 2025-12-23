@@ -181,65 +181,67 @@ struct ModernDonationDetailsView: View {
         colorFromHex(theme?.layout?.detailsButtonTextColor, defaultColor: Color.white)
     }
     
+    // Helper view for background
+    @ViewBuilder
+    private func backgroundView(geometry: GeometryProxy) -> some View {
+        if UIImage(named: "KioskBackground") != nil {
+            Image("KioskBackground")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else if let backgroundImage = appState.backgroundImage {
+            Image(uiImage: backgroundImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
+           let url = URL(string: backgroundUrl) {
+            ZStack {
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.white,
+                        Color(red: 0.95, green: 0.97, blue: 1.0)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        Color.clear
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .clipped()
+                    case .failure:
+                        Color.clear
+                    @unknown default:
+                        Color.clear
+                    }
+                }
+            }
+        } else {
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.white,
+                    Color(red: 0.95, green: 0.97, blue: 1.0)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+    }
+    
     var body: some View {
         ZStack {
             // Background: Use same background as donation page
-            // Background is fixed and doesn't stretch with content width
             GeometryReader { geometry in
-                // First try to use asset (local, no network needed)
-                if UIImage(named: "KioskBackground") != nil {
-                    Image("KioskBackground")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                } else if let backgroundImage = appState.backgroundImage {
-                    // Fallback to preloaded URL image
-                    Image(uiImage: backgroundImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                } else if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
-                   let url = URL(string: backgroundUrl) {
-                    ZStack {
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white,
-                                Color(red: 0.95, green: 0.97, blue: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .empty:
-                                Color.clear
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: geometry.size.width, height: geometry.size.height)
-                                    .clipped()
-                            case .failure:
-                                Color.clear
-                            @unknown default:
-                                Color.clear
-                            }
-                        }
-                    }
-                } else {
-                    // Default gradient background
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.white,
-                            Color(red: 0.95, green: 0.97, blue: 1.0)
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                }
+                backgroundView(geometry: geometry)
             }
             .ignoresSafeArea(.all, edges: .all)
             
@@ -590,23 +592,25 @@ struct ModernDonationDetailsView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(
-                                canProceed
-                                    ? (theme?.colors?.proceedToPaymentButtonGradient == true
-                                        ? gradientFromColor(
-                                            colorFromHex(
-                                                theme?.colors?.proceedToPaymentButtonColor,
-                                                defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                            )
-                                        )
-                                        : colorFromHex(
+                                Group {
+                                    if canProceed {
+                                        let buttonColor = colorFromHex(
                                             theme?.colors?.proceedToPaymentButtonColor,
                                             defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                        ))
-                                    : LinearGradient(
-                                        gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                        )
+                                        if theme?.colors?.proceedToPaymentButtonGradient == true {
+                                            gradientFromColor(buttonColor)
+                                        } else {
+                                            buttonColor
+                                        }
+                                    } else {
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    }
+                                }
                             )
                             .cornerRadius(12)
                             .shadow(color: canProceed ? Color.black.opacity(0.2) : Color.clear, radius: 8, x: 0, y: 4)
