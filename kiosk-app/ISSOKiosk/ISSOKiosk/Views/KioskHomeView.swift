@@ -1326,41 +1326,31 @@ struct ReligiousEventsView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 16)
 
-                // INNER PANEL WITH LIST
-                VStack(spacing: 0) {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 16) {
-                            if religiousEvents.isEmpty {
-                                VStack(spacing: 20) {
-                                    Image(systemName: "moon.stars.fill")
-                                        .font(.system(size: 50))
-                                        .foregroundColor(.gray)
-                                    Text("No upcoming observances")
-                                        .font(.custom("Inter-SemiBold", size: 20))
-                                }
-                                .padding()
-                            } else {
-                                ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
-                                    ReligiousEventRow(
-                                        event: event,
-                                        showCountdown: index == 0
-                                    )
-                                }
+                // LIST CONTENT
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        if religiousEvents.isEmpty {
+                            VStack(spacing: 20) {
+                                Image(systemName: "moon.stars.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.gray)
+                                Text("No upcoming observances")
+                                    .font(.custom("Inter-SemiBold", size: 20))
+                            }
+                            .padding()
+                        } else {
+                            ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
+                                ReligiousEventRow(
+                                    event: event,
+                                    showCountdown: index == 0
+                                )
                             }
                         }
-                        .padding(.vertical, 12)
                     }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 20)
                 }
                 .frame(minHeight: 320, maxHeight: 520)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color(.systemGray6).opacity(0.95))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.black.opacity(0.05), lineWidth: 1)
-                        )
-                )
-                .padding(.horizontal, 20)
 
                 // DONE BUTTON
                 Button {
