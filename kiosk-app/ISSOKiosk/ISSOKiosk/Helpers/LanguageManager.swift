@@ -66,9 +66,17 @@ class LanguageManager: ObservableObject {
             "reviewDonation": "Review Donation",
             "donorInformation": "Donor Information",
             "phoneNumber": "Phone Number",
+            "phoneOptional": "Phone (Optional)",
             "name": "Name",
+            "nameOptional": "Name (Optional)",
             "email": "Email",
+            "emailForReceipt": "Email for Receipt (Optional)",
             "mailingAddress": "Mailing Address",
+            "mailingAddressOptional": "Mailing Address (Optional)",
+            "enterYourName": "Enter your name",
+            "enterYourPhone": "Enter your phone number",
+            "enterYourEmail": "Enter your email",
+            "enterYourAddress": "Enter your mailing address",
             "continue": "Continue",
             "proceedToPayment": "Proceed to Payment",
             "returnToHome": "Return to Home",
@@ -87,7 +95,17 @@ class LanguageManager: ObservableObject {
             "confirm": "Confirm",
             "back": "Back",
             "next": "Next",
-            "submit": "Submit"
+            "submit": "Submit",
+            
+            // Donation Selection Page
+            "selectCategory": "Select Category",
+            "selectAmount": "Select Amount",
+            "customAmount": "Custom Amount",
+            "enterAmount": "Enter Amount",
+            "quantity": "Quantity",
+            "total": "Total",
+            "yajmanOpportunities": "Yajman Opportunities",
+            "pledgeOption": "Pledge Option"
         ],
         .gujarati: [
             // Home Screen
@@ -111,9 +129,17 @@ class LanguageManager: ObservableObject {
             "reviewDonation": "દાનની સમીક્ષા કરો",
             "donorInformation": "દાતાની માહિતી",
             "phoneNumber": "ફોન નંબર",
+            "phoneOptional": "ફોન (વૈકલ્પિક)",
             "name": "નામ",
+            "nameOptional": "નામ (વૈકલ્પિક)",
             "email": "ઇમેઇલ",
+            "emailForReceipt": "રસીદ માટે ઇમેઇલ (વૈકલ્પિક)",
             "mailingAddress": "મેઇલિંગ સરનામું",
+            "mailingAddressOptional": "મેઇલિંગ સરનામું (વૈકલ્પિક)",
+            "enterYourName": "તમારું નામ દાખલ કરો",
+            "enterYourPhone": "તમારો ફોન નંબર દાખલ કરો",
+            "enterYourEmail": "તમારું ઇમેઇલ દાખલ કરો",
+            "enterYourAddress": "તમારું મેઇલિંગ સરનામું દાખલ કરો",
             "continue": "ચાલુ રાખો",
             "proceedToPayment": "પેમેન્ટ પર આગળ વધો",
             "returnToHome": "હોમ પર પાછા જાઓ",
@@ -132,7 +158,17 @@ class LanguageManager: ObservableObject {
             "confirm": "પુષ્ટિ કરો",
             "back": "પાછળ",
             "next": "આગળ",
-            "submit": "સબમિટ કરો"
+            "submit": "સબમિટ કરો",
+            
+            // Donation Selection Page
+            "selectCategory": "કેટેગરી પસંદ કરો",
+            "selectAmount": "રકમ પસંદ કરો",
+            "customAmount": "કસ્ટમ રકમ",
+            "enterAmount": "રકમ દાખલ કરો",
+            "quantity": "પ્રમાણ",
+            "total": "કુલ",
+            "yajmanOpportunities": "યજમાન તકો",
+            "pledgeOption": "વચન વિકલ્પ"
         ],
         .hindi: [
             // Home Screen
@@ -156,9 +192,17 @@ class LanguageManager: ObservableObject {
             "reviewDonation": "दान की समीक्षा करें",
             "donorInformation": "दाता की जानकारी",
             "phoneNumber": "फोन नंबर",
+            "phoneOptional": "फोन (वैकल्पिक)",
             "name": "नाम",
+            "nameOptional": "नाम (वैकल्पिक)",
             "email": "ईमेल",
+            "emailForReceipt": "रसीद के लिए ईमेल (वैकल्पिक)",
             "mailingAddress": "मेलिंग पता",
+            "mailingAddressOptional": "मेलिंग पता (वैकल्पिक)",
+            "enterYourName": "अपना नाम दर्ज करें",
+            "enterYourPhone": "अपना फोन नंबर दर्ज करें",
+            "enterYourEmail": "अपना ईमेल दर्ज करें",
+            "enterYourAddress": "अपना मेलिंग पता दर्ज करें",
             "continue": "जारी रखें",
             "proceedToPayment": "भुगतान पर आगे बढ़ें",
             "returnToHome": "होम पर वापस जाएं",
@@ -177,7 +221,17 @@ class LanguageManager: ObservableObject {
             "confirm": "पुष्टि करें",
             "back": "पीछे",
             "next": "आगे",
-            "submit": "सबमिट करें"
+            "submit": "सबमिट करें",
+            
+            // Donation Selection Page
+            "selectCategory": "श्रेणी चुनें",
+            "selectAmount": "राशि चुनें",
+            "customAmount": "कस्टम राशि",
+            "enterAmount": "राशि दर्ज करें",
+            "quantity": "मात्रा",
+            "total": "कुल",
+            "yajmanOpportunities": "यजमान अवसर",
+            "pledgeOption": "प्रतिज्ञा विकल्प"
         ]
     ]
     

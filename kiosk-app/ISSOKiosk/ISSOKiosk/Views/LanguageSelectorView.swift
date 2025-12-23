@@ -2,86 +2,50 @@ import SwiftUI
 
 struct LanguageSelectorView: View {
     @ObservedObject var languageManager: LanguageManager
-    @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Select Language")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
+        HStack(spacing: 0) {
+            ForEach(Array(AppLanguage.allCases.enumerated()), id: \.element) { index, language in
                 Button(action: {
-                    dismiss()
+                    languageManager.setLanguage(language)
                 }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            
-            Divider()
-            
-            // Language Options
-            ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(AppLanguage.allCases, id: \.self) { language in
-                        LanguageOptionRow(
-                            language: language,
-                            isSelected: languageManager.currentLanguage == language
-                        ) {
-                            languageManager.setLanguage(language)
-                            dismiss()
-                        }
-                    }
-                }
-            }
-        }
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(radius: 10)
-        .frame(width: 400, height: 300)
-    }
-}
-
-struct LanguageOptionRow: View {
-    let language: AppLanguage
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
                     Text(language.nativeName)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.primary)
-                    
-                    Text(language.displayName)
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 18, weight: .bold, design: .serif))
+                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20)) // Dark reddish-brown #423232
                 }
+                .buttonStyle(PlainButtonStyle())
                 
-                Spacer()
-                
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.blue)
+                // Add vertical separator between languages (not after the last one)
+                if index < AppLanguage.allCases.count - 1 {
+                    Text("|")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                        .padding(.horizontal, 8)
                 }
             }
-            .padding()
-            .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
         }
-        .buttonStyle(PlainButtonStyle())
-        
-        Divider()
-            .padding(.leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            // Textured background effect
+            ZStack {
+                Color(red: 0.98, green: 0.97, blue: 0.95) // Light beige/off-white
+                // Subtle texture effect
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(red: 0.98, green: 0.97, blue: 0.95),
+                                Color(red: 0.96, green: 0.95, blue: 0.93)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+        )
+        .cornerRadius(8)
+        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 

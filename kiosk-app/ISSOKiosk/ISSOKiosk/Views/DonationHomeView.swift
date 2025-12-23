@@ -3,6 +3,7 @@ import UIKit
 
 struct DonationHomeView: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject private var languageManager = LanguageManager.shared
     let onDismiss: () -> Void
     @State private var selectedAmount: Double?
     @State private var customAmount: String = ""
@@ -591,7 +592,7 @@ struct DonationHomeView: View {
         VStack(spacing: 0) {
             // Header
             VStack(spacing: 6) {
-                Text("Select Category")
+                Text("selectCategory".localized)
                     .font(.custom(headingFont, size: headingSize))
                     .foregroundColor(headingColor)
                 
@@ -711,7 +712,7 @@ struct DonationHomeView: View {
         VStack(spacing: 0) {
             // Header
             VStack(spacing: 6) {
-                Text("Select Amount")
+                Text("selectAmount".localized)
                     .font(.custom(headingFont, size: headingSize))
                     .foregroundColor(headingColor)
                 
@@ -796,7 +797,7 @@ struct DonationHomeView: View {
                 HStack(spacing: quantityTotalSpacing) {
                     // Quantity selector
                     VStack(spacing: 8) {
-                        Text("Quantity")
+                        Text("quantity".localized)
                             .font(.custom(bodyFont, size: bodySize))
                             .foregroundColor(subtitleColor)
                         
@@ -834,7 +835,7 @@ struct DonationHomeView: View {
                     
                     // Total display
                     VStack(spacing: 6) {
-                        Text("Total")
+                        Text("total".localized)
                             .font(.custom(bodyFont, size: bodySize))
                             .foregroundColor(subtitleColor)
                         
@@ -868,7 +869,7 @@ struct DonationHomeView: View {
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "house.fill")
-                        Text("Return to Home")
+                        Text("returnToHome".localized)
                     }
                     .font(.custom("Inter-Medium", size: 18))
                     .foregroundColor(.white)
@@ -1067,7 +1068,7 @@ struct CleanCustomAmountField: View {
                 // Display field that shows amount or placeholder - styled like the image
                 HStack {
                     if text.isEmpty {
-                        Text("Custom Amount")
+                        Text("customAmount".localized)
                             .font(.custom("Inter-Regular", size: 20))
                             .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.65))
                     } else {
@@ -1110,7 +1111,7 @@ struct CleanCustomAmountField: View {
                                 .font(.custom("Inter-Regular", size: 20))
                                 .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
                         } else {
-                            Text("Custom Amount")
+                            Text("customAmount".localized)
                                 .font(.custom("Inter-Regular", size: 20))
                                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                         }

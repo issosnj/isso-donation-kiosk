@@ -14,6 +14,7 @@ struct ModernPaymentView: View {
     let donorEmail: String?
     let donorAddress: String?
     let onComplete: () -> Void
+    @ObservedObject private var languageManager = LanguageManager.shared
     
     @EnvironmentObject var appState: AppState
     @State private var isProcessing = false
@@ -685,7 +686,7 @@ struct ModernProcessingView: View {
                 }
                 
                 VStack(spacing: 15) {
-            Text("Processing Payment...")
+            Text("processingPayment".localized)
                         .font(.custom("Inter-SemiBold", size: 32))
                         .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
             
@@ -838,7 +839,7 @@ struct ModernPaymentResultView: View {
                 .opacity(appearAnimation ? 1.0 : 0.0)
                 
                 VStack(spacing: 20) {
-                    Text(status == .success ? "Thank You!" : "Payment Failed")
+                    Text(status == .success ? "thankYou".localized : "paymentFailed".localized)
                         .font(.custom("Inter-SemiBold", size: 42))
                         .foregroundColor(headingColor)
                         .opacity(appearAnimation ? 1.0 : 0.0)

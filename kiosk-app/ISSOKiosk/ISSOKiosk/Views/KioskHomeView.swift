@@ -196,23 +196,12 @@ struct KioskHomeView: View {
                             .padding(.top, 7)
                     }
                     
-                    // Language Selector Button (top left)
+                    // Language Selector (top left) - Horizontal layout with separators
                     VStack {
                         Button(action: {
                             showLanguageSelector = true
                         }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "globe")
-                                    .font(.system(size: 18))
-                                Text(languageManager.currentLanguage.nativeName)
-                                    .font(.system(size: 16, weight: .medium))
-                            }
-                            .foregroundColor(colorFromHex("423232"))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.white.opacity(0.8))
-                            .cornerRadius(8)
-                            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                            LanguageSelectorView(languageManager: languageManager)
                         }
                         .buttonStyle(PlainButtonStyle())
                         Spacer()
@@ -667,9 +656,6 @@ struct KioskHomeView: View {
         .sheet(isPresented: $showReligiousEvents) {
             ReligiousEventsView(religiousEvents: appState.religiousEvents)
                 .environmentObject(appState)
-        }
-        .sheet(isPresented: $showLanguageSelector) {
-            LanguageSelectorView(languageManager: languageManager)
         }
         .onAppear {
             // Start timer to update time every second - optimized for performance

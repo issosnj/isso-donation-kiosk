@@ -6,6 +6,7 @@ struct ModernDonationDetailsView: View {
     let category: DonationCategory?
     let onConfirm: (String?, String?, String?, String?) -> Void // name, phone, email, address
     let onCancel: (() -> Void)? // Optional callback to return to home
+    @ObservedObject private var languageManager = LanguageManager.shared
     
     @State private var donorName = ""
     @State private var donorPhone = ""
@@ -251,7 +252,7 @@ struct ModernDonationDetailsView: View {
                             // LEFT SIDE: Review Donation Panel
                     VStack(alignment: .leading, spacing: 0) {
                         // Panel Title
-                        Text("Review Donation")
+                        Text("reviewDonation".localized)
                             .font(.custom("Inter-SemiBold", size: 24))
                             .foregroundColor(detailsTextColor)
                             .padding(.bottom, 24)
@@ -336,7 +337,7 @@ struct ModernDonationDetailsView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "house.fill")
                                     .font(.system(size: detailsButtonFontSize - 4, weight: .semibold))
-                                Text("Return to Home")
+                                Text("returnToHome".localized)
                                     .font(.custom("Inter-Medium", size: detailsButtonFontSize))
                             }
                             .foregroundColor(Color.white)
@@ -387,7 +388,7 @@ struct ModernDonationDetailsView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             // Name field with icon
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Name (Optional)")
+                                Text("nameOptional".localized)
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
@@ -400,7 +401,7 @@ struct ModernDonationDetailsView: View {
                                             .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                             .frame(width: 24)
                                         
-                                        Text(donorName.isEmpty ? "Enter your name" : donorName)
+                                        Text(donorName.isEmpty ? "enterYourName".localized : donorName)
                                             .font(.custom("Inter-Regular", size: detailsInputFontSize))
                                             .foregroundColor(donorName.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
                                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -422,7 +423,7 @@ struct ModernDonationDetailsView: View {
                             
                             // Phone field with icon
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Phone (Optional)")
+                                Text("phoneOptional".localized)
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
@@ -435,7 +436,7 @@ struct ModernDonationDetailsView: View {
                                             .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                             .frame(width: 24)
                                         
-                                        Text(donorPhone.isEmpty ? "Enter your phone number" : formatPhoneDisplay(donorPhone))
+                                        Text(donorPhone.isEmpty ? "enterYourPhone".localized : formatPhoneDisplay(donorPhone))
                                             .font(.custom("Inter-Regular", size: detailsInputFontSize))
                                             .foregroundColor(donorPhone.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
                                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -457,7 +458,7 @@ struct ModernDonationDetailsView: View {
                             
                             // Email field with icon
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Email for Receipt (Optional)")
+                                Text("emailForReceipt".localized)
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
@@ -470,7 +471,7 @@ struct ModernDonationDetailsView: View {
                                             .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                             .frame(width: 24)
                                         
-                                        Text(donorEmail.isEmpty ? "Enter your email" : donorEmail)
+                                        Text(donorEmail.isEmpty ? "enterYourEmail".localized : donorEmail)
                                             .font(.custom("Inter-Regular", size: detailsInputFontSize))
                                             .foregroundColor(donorEmail.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
                                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -490,7 +491,7 @@ struct ModernDonationDetailsView: View {
                             
                             // Address field with icon and autocomplete
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Mailing Address (Optional)")
+                                Text("mailingAddressOptional".localized)
                                     .font(.custom("Inter-Regular", size: 14))
                                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                 
@@ -504,7 +505,7 @@ struct ModernDonationDetailsView: View {
                                                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                                                 .frame(width: 24)
                                             
-                                            Text(donorAddress.isEmpty ? "Enter your mailing address" : donorAddress)
+                                            Text(donorAddress.isEmpty ? "enterYourAddress".localized : donorAddress)
                                                 .font(.custom("Inter-Regular", size: detailsInputFontSize))
                                                 .foregroundColor(donorAddress.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
                                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -574,7 +575,7 @@ struct ModernDonationDetailsView: View {
                             }
                         }) {
                             HStack(spacing: 12) {
-                                Text("Proceed to Payment")
+                                Text("proceedToPayment".localized)
                                     .font(.custom("Inter-Medium", size: detailsButtonFontSize))
                                     .foregroundColor(canProceed ? Color.white : Color.gray)
                                 Image(systemName: "arrow.right")
