@@ -1437,8 +1437,12 @@ struct ReligiousEventRow: View {
                         .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(.secondary)
                 }
+            } else {
+                // Add spacer for non-first events to maintain consistent width
+                Spacer()
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(Color.white.opacity(0.6))
         .cornerRadius(12)
