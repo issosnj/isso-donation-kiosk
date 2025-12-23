@@ -343,17 +343,17 @@ struct ModernDonationDetailsView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(
-                                theme?.colors?.returnToHomeButtonGradient == true
-                                    ? gradientFromColor(
-                                        colorFromHex(
-                                            theme?.colors?.returnToHomeButtonColor,
-                                            defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
-                                        )
-                                    )
-                                    : colorFromHex(
+                                Group {
+                                    let buttonColor = colorFromHex(
                                         theme?.colors?.returnToHomeButtonColor,
                                         defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
                                     )
+                                    if theme?.colors?.returnToHomeButtonGradient == true {
+                                        gradientFromColor(buttonColor)
+                                    } else {
+                                        buttonColor
+                                    }
+                                }
                             )
                             .cornerRadius(12)
                             .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
@@ -609,9 +609,7 @@ struct ModernDonationDetailsView: View {
                         }
                         .disabled(!canProceed)
                     }
-                    .frame(
-                        width: max(200, min(donorFormMaxWidth, max(0, (geometry.size.width - detailsPageSidePadding * 2 - detailsPageHorizontalSpacing) / 2)))
-                    )
+                    .frame(width: donorFormMaxWidth)
                     .padding(detailsCardPadding)
                     .background(
                         // Glass effect background
