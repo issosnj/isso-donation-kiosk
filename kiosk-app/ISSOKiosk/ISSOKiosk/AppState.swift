@@ -763,6 +763,8 @@ struct ThemeLayout: Codable, Equatable {
     let homeScreenCustomMessageY: Double?
     let homeScreenWhatsAppButtonsX: Double?
     let homeScreenWhatsAppButtonsY: Double?
+    let homeScreenLanguageSelectorX: Double?
+    let homeScreenLanguageSelectorY: Double?
     // Home Screen Element Visibility (hide/unhide)
     let homeScreenWelcomeTextVisible: Bool?
     let homeScreenHeader1Visible: Bool?
@@ -773,6 +775,7 @@ struct ThemeLayout: Codable, Equatable {
     let homeScreenQuickActionsVisible: Bool?
     let homeScreenCustomMessageVisible: Bool?
     let homeScreenWhatsAppButtonsVisible: Bool?
+    let homeScreenLanguageSelectorVisible: Bool?
     let sectionSpacing: Double?
     let categoryAmountSectionSpacing: Double?
     let buttonSpacing: Double?

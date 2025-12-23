@@ -188,6 +188,8 @@ export class Temple {
       homeScreenCustomMessageY?: number; // Y coordinate for custom message
       homeScreenWhatsAppButtonsX?: number; // X coordinate for WhatsApp/Observances buttons
       homeScreenWhatsAppButtonsY?: number; // Y coordinate for WhatsApp/Observances buttons
+      homeScreenLanguageSelectorX?: number; // X coordinate for language selector (top left)
+      homeScreenLanguageSelectorY?: number; // Y coordinate for language selector
       // Home Screen Element Visibility (hide/unhide)
       homeScreenWelcomeTextVisible?: boolean; // Whether to show "Welcome to..." text (default: true)
       homeScreenHeader1Visible?: boolean; // Whether to show header 1 (ISSO text) (default: true)
@@ -198,6 +200,7 @@ export class Temple {
       homeScreenQuickActionsVisible?: boolean; // Whether to show Quick Actions section (default: true)
       homeScreenCustomMessageVisible?: boolean; // Whether to show custom message (default: true)
       homeScreenWhatsAppButtonsVisible?: boolean; // Whether to show WhatsApp/Observances buttons (default: true)
+      homeScreenLanguageSelectorVisible?: boolean; // Whether to show language selector (default: true)
       // Donation Details Page Layout
       detailsPageHorizontalSpacing?: number; // Spacing between left and right sections (e.g., 40)
       detailsPageSidePadding?: number; // Padding on left/right sides (e.g., 60)

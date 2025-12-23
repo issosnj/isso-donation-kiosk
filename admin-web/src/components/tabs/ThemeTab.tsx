@@ -125,6 +125,8 @@ export default function ThemeTab() {
       homeScreenCustomMessageY: undefined as number | undefined,
       homeScreenWhatsAppButtonsX: undefined as number | undefined,
       homeScreenWhatsAppButtonsY: undefined as number | undefined,
+      homeScreenLanguageSelectorX: undefined as number | undefined,
+      homeScreenLanguageSelectorY: undefined as number | undefined,
       // Home Screen Element Visibility (hide/unhide)
       homeScreenWelcomeTextVisible: true,
       homeScreenHeader1Visible: true,
@@ -135,6 +137,7 @@ export default function ThemeTab() {
       homeScreenQuickActionsVisible: true,
       homeScreenCustomMessageVisible: true,
       homeScreenWhatsAppButtonsVisible: true,
+      homeScreenLanguageSelectorVisible: true,
       // Donation Details Page Layout
       detailsPageHorizontalSpacing: 40,
       detailsPageSidePadding: 60,
@@ -247,6 +250,8 @@ export default function ThemeTab() {
           homeScreenCustomMessageY: temple.kioskTheme.layout?.homeScreenCustomMessageY,
           homeScreenWhatsAppButtonsX: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
           homeScreenWhatsAppButtonsY: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
+          homeScreenLanguageSelectorX: temple.kioskTheme.layout?.homeScreenLanguageSelectorX,
+          homeScreenLanguageSelectorY: temple.kioskTheme.layout?.homeScreenLanguageSelectorY,
           // Home Screen Element Visibility
           homeScreenWelcomeTextVisible: temple.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
           homeScreenHeader1Visible: temple.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
@@ -257,6 +262,7 @@ export default function ThemeTab() {
           homeScreenQuickActionsVisible: temple.kioskTheme.layout?.homeScreenQuickActionsVisible ?? true,
           homeScreenCustomMessageVisible: temple.kioskTheme.layout?.homeScreenCustomMessageVisible ?? true,
           homeScreenWhatsAppButtonsVisible: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
+          homeScreenLanguageSelectorVisible: temple.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
           detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -415,6 +421,8 @@ export default function ThemeTab() {
                       homeScreenCustomMessageY: temple.kioskTheme.layout?.homeScreenCustomMessageY,
                       homeScreenWhatsAppButtonsX: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
                       homeScreenWhatsAppButtonsY: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
+                      homeScreenLanguageSelectorX: temple.kioskTheme.layout?.homeScreenLanguageSelectorX,
+                      homeScreenLanguageSelectorY: temple.kioskTheme.layout?.homeScreenLanguageSelectorY,
                       // Home Screen Element Visibility
                       homeScreenWelcomeTextVisible: temple.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
                       homeScreenHeader1Visible: temple.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
@@ -425,6 +433,7 @@ export default function ThemeTab() {
                       homeScreenQuickActionsVisible: temple.kioskTheme.layout?.homeScreenQuickActionsVisible ?? true,
                       homeScreenCustomMessageVisible: temple.kioskTheme.layout?.homeScreenCustomMessageVisible ?? true,
                       homeScreenWhatsAppButtonsVisible: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
+                      homeScreenLanguageSelectorVisible: temple.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
                       // Donation Details Page Layout
                       detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
                       detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -1617,6 +1626,41 @@ export default function ThemeTab() {
                   </div>
                 </div>
               </div>
+
+              {/* Language Selector */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Language Selector (Top Left)</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenLanguageSelectorX ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenLanguageSelectorX: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenLanguageSelectorY ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenLanguageSelectorY: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Home Screen Element Visibility (Hide/Unhide) */}
@@ -1781,6 +1825,24 @@ export default function ThemeTab() {
                     onChange={(e) => setFormData({
                       ...formData,
                       layout: { ...formData.layout, homeScreenWhatsAppButtonsVisible: e.target.checked }
+                    })}
+                    disabled={!isEditing}
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
+                  />
+                </div>
+
+                {/* Language Selector */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Language Selector</label>
+                    <p className="text-xs text-gray-500">Language selection (English | Gujarati | हिंदी)</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.layout.homeScreenLanguageSelectorVisible ?? true}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, homeScreenLanguageSelectorVisible: e.target.checked }
                     })}
                     disabled={!isEditing}
                     className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
