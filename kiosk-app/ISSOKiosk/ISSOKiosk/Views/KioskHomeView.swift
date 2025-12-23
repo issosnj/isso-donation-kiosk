@@ -310,6 +310,7 @@ struct KioskHomeView: View {
                 .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60))
                 .padding(.bottom, 4)
         }
+        }
         
         // Header 1
         if appState.temple?.kioskTheme?.layout?.homeScreenHeader1Visible != false {
@@ -336,6 +337,7 @@ struct KioskHomeView: View {
                 .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 60)
                 .padding(.bottom, 4)
         }
+        }
         
         // Under Gadi Text
         if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
@@ -358,6 +360,7 @@ struct KioskHomeView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 120)
                 .padding(.bottom, 4)
+        }
         }
         
         // Temple Address
@@ -398,6 +401,7 @@ struct KioskHomeView: View {
                 .padding(.top, 7)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
+        }
         
         // Tap to Donate Button
         if appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateVisible != false {
@@ -431,6 +435,7 @@ struct KioskHomeView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
         }
         
         // Quick Actions
@@ -485,6 +490,7 @@ struct KioskHomeView: View {
                 .frame(maxWidth: 800)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 .offset(y: 200) // Position below Tap to Donate button
+            }
             }
         }
         
