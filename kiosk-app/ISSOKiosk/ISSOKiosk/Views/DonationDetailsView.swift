@@ -629,14 +629,12 @@ struct ModernDonationDetailsView: View {
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
                         }
                         .padding(.horizontal, detailsPageSidePadding)
-                        .frame(maxWidth: geometry.size.width)
                         
                         // Bottom spacing
                         Spacer()
                             .frame(height: detailsPageBottomPadding)
                     }
                 }
-            }
         }
     }
     
