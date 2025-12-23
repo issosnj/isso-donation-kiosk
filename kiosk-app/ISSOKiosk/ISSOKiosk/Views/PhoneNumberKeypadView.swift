@@ -4,6 +4,7 @@ struct PhoneNumberKeypadView: View {
     @Binding var phoneNumber: String
     let onDismiss: () -> Void
     @State private var enteredPhone: String = ""
+    @EnvironmentObject var appState: AppState
     
     var body: some View {
         ZStack {
@@ -108,7 +109,7 @@ struct PhoneNumberKeypadView: View {
                 .padding(.horizontal, 32)
                 .padding(.bottom, 24)
                 
-                // Continue button - matching Proceed to Payment style
+                // Continue button - using theme properties
                 Button(action: {
                     // Extract only digits
                     let digits = enteredPhone.filter { $0.isNumber }
@@ -126,20 +127,26 @@ struct PhoneNumberKeypadView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(
-                        enteredPhone.filter { $0.isNumber }.count >= 10
-                            ? LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.85, green: 0.75, blue: 0.5),
-                                    Color(red: 0.95, green: 0.85, blue: 0.6)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            : LinearGradient(
-                                gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                        Group {
+                            let isValid = enteredPhone.filter { $0.isNumber }.count >= 10
+                            if isValid {
+                                let buttonColor = colorFromHex(
+                                    appState.temple?.kioskTheme?.colors?.continueButtonColor,
+                                    defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
+                                )
+                                if appState.temple?.kioskTheme?.colors?.continueButtonGradient == true {
+                                    gradientFromColor(buttonColor)
+                                } else {
+                                    buttonColor
+                                }
+                            } else {
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            }
+                        }
                     )
                     .cornerRadius(12)
                     .shadow(color: enteredPhone.filter { $0.isNumber }.count >= 10 ? Color.black.opacity(0.2) : Color.clear, radius: 8, x: 0, y: 4)
@@ -163,6 +170,58 @@ struct PhoneNumberKeypadView: View {
             // Hide system keyboard when view appears
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
+    }
+    
+    // Helper to convert hex string to Color
+    private func colorFromHex(_ hex: String?, defaultColor: Color) -> Color {
+        guard let hex = hex, !hex.isEmpty else {
+            return defaultColor
+        }
+        
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        
+        if hexSanitized.count == 3 {
+            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
+        }
+        
+        guard hexSanitized.count == 6 else {
+            return defaultColor
+        }
+        
+        var rgb: UInt64 = 0
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else {
+            return defaultColor
+        }
+        
+        let r = Double((rgb & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgb & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgb & 0x0000FF) / 255.0
+        
+        return Color(red: r, green: g, blue: b)
+    }
+    
+    // Helper to create a gradient from a color
+    private func gradientFromColor(_ color: Color) -> LinearGradient {
+        let uiColor = UIColor(color)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        
+        let lighterColor = Color(
+            red: min(1.0, Double(r) * 1.15),
+            green: min(1.0, Double(g) * 1.15),
+            blue: min(1.0, Double(b) * 1.15)
+        )
+        return LinearGradient(
+            gradient: Gradient(colors: [color, lighterColor]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
     
     private func formatPhoneNumber(_ digits: String) -> String {

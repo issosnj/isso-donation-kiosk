@@ -8,6 +8,7 @@ struct AddressKeypadView: View {
     @State private var showAddressSuggestions: Bool = false
     @State private var isSearchingAddresses: Bool = false
     @State private var addressSessionToken: String? = nil
+    @EnvironmentObject var appState: AppState
     
     var body: some View {
         ZStack {
@@ -192,6 +193,7 @@ struct AddressKeypadView: View {
                     .padding(.bottom, 16)
                     
                     // Continue button - matching Proceed to Payment style
+                    // Continue button - using theme properties
                     Button(action: {
                         address = enteredAddress
                         onDismiss()
@@ -207,14 +209,17 @@ struct AddressKeypadView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
                         .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.85, green: 0.75, blue: 0.5),
-                                    Color(red: 0.95, green: 0.85, blue: 0.6)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                            Group {
+                                let buttonColor = colorFromHex(
+                                    appState.temple?.kioskTheme?.colors?.continueButtonColor,
+                                    defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
+                                )
+                                if appState.temple?.kioskTheme?.colors?.continueButtonGradient == true {
+                                    gradientFromColor(buttonColor)
+                                } else {
+                                    buttonColor
+                                }
+                            }
                         )
                         .cornerRadius(12)
                         .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
@@ -241,6 +246,58 @@ struct AddressKeypadView: View {
                 await searchAddresses(input: newValue)
             }
         }
+    }
+    
+    // Helper to convert hex string to Color
+    private func colorFromHex(_ hex: String?, defaultColor: Color) -> Color {
+        guard let hex = hex, !hex.isEmpty else {
+            return defaultColor
+        }
+        
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        
+        if hexSanitized.count == 3 {
+            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
+        }
+        
+        guard hexSanitized.count == 6 else {
+            return defaultColor
+        }
+        
+        var rgb: UInt64 = 0
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else {
+            return defaultColor
+        }
+        
+        let r = Double((rgb & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgb & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgb & 0x0000FF) / 255.0
+        
+        return Color(red: r, green: g, blue: b)
+    }
+    
+    // Helper to create a gradient from a color
+    private func gradientFromColor(_ color: Color) -> LinearGradient {
+        let uiColor = UIColor(color)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        
+        let lighterColor = Color(
+            red: min(1.0, Double(r) * 1.15),
+            green: min(1.0, Double(g) * 1.15),
+            blue: min(1.0, Double(b) * 1.15)
+        )
+        return LinearGradient(
+            gradient: Gradient(colors: [color, lighterColor]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
     
     private func searchAddresses(input: String) async {

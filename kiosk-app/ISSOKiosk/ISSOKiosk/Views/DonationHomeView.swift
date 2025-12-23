@@ -869,7 +869,7 @@ struct DonationHomeView: View {
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "house.fill")
-                        Text("Home")
+                        Text("Return to Home")
                     }
                     .font(.custom("Inter-Medium", size: 18))
                     .foregroundColor(.white)
@@ -895,7 +895,7 @@ struct DonationHomeView: View {
                 Button(action: {
                     showingDetails = true
                 }) {
-                    Text("Select Amount to Continue")
+                    Text("Review Donation")
                         .font(.custom("Inter-Medium", size: 18))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

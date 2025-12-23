@@ -65,11 +65,13 @@ export default function ThemeTab() {
       doneButtonColor: '#007AFF', // Default iOS blue for Done button
       returnToHomeButtonColor: '#D9C080', // Default gold color for Return to Home button
       proceedToPaymentButtonColor: '#FF9500', // Default orange color for Proceed to Payment button
+      continueButtonColor: '#D9C080', // Default gold color for Continue button in keypad popups
       // Button gradient preferences
       tapToDonateButtonGradient: false,
       returnToHomeButtonGradient: true,
       proceedToPaymentButtonGradient: true,
       doneButtonGradient: false,
+      continueButtonGradient: true,
     },
     layout: {
       categoryBoxMaxWidth: 400,
@@ -152,10 +154,12 @@ export default function ThemeTab() {
           doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
           returnToHomeButtonColor: temple.kioskTheme.colors?.returnToHomeButtonColor || '#D9C080',
           proceedToPaymentButtonColor: temple.kioskTheme.colors?.proceedToPaymentButtonColor || '#FF9500',
+          continueButtonColor: temple.kioskTheme.colors?.continueButtonColor || '#D9C080',
           tapToDonateButtonGradient: temple.kioskTheme.colors?.tapToDonateButtonGradient ?? false,
           returnToHomeButtonGradient: temple.kioskTheme.colors?.returnToHomeButtonGradient ?? true,
           proceedToPaymentButtonGradient: temple.kioskTheme.colors?.proceedToPaymentButtonGradient ?? true,
           doneButtonGradient: temple.kioskTheme.colors?.doneButtonGradient ?? false,
+          continueButtonGradient: temple.kioskTheme.colors?.continueButtonGradient ?? true,
         },
         layout: {
           categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
@@ -284,10 +288,12 @@ export default function ThemeTab() {
                       doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
                       returnToHomeButtonColor: temple.kioskTheme.colors?.returnToHomeButtonColor || '#D9C080',
                       proceedToPaymentButtonColor: temple.kioskTheme.colors?.proceedToPaymentButtonColor || '#FF9500',
+                      continueButtonColor: temple.kioskTheme.colors?.continueButtonColor || '#D9C080',
                       tapToDonateButtonGradient: temple.kioskTheme.colors?.tapToDonateButtonGradient ?? false,
                       returnToHomeButtonGradient: temple.kioskTheme.colors?.returnToHomeButtonGradient ?? true,
                       proceedToPaymentButtonGradient: temple.kioskTheme.colors?.proceedToPaymentButtonGradient ?? true,
                       doneButtonGradient: temple.kioskTheme.colors?.doneButtonGradient ?? false,
+                      continueButtonGradient: temple.kioskTheme.colors?.continueButtonGradient ?? true,
                     },
                     layout: {
                       categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
@@ -751,6 +757,49 @@ export default function ThemeTab() {
                       onChange={(e) => setFormData({
                         ...formData,
                         colors: { ...formData.colors, doneButtonColor: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="#000000"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Continue Button (Keypad Popups) */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-gray-700">Continue Button (Donor Info Keypads)</label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <span className="text-xs text-gray-600">Gradient</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.colors.continueButtonGradient}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          colors: { ...formData.colors, continueButtonGradient: e.target.checked }
+                        })}
+                        disabled={!isEditing}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:opacity-50"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={formData.colors.continueButtonColor}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: { ...formData.colors, continueButtonColor: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={formData.colors.continueButtonColor}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: { ...formData.colors, continueButtonColor: e.target.value }
                       })}
                       disabled={!isEditing}
                       placeholder="#000000"

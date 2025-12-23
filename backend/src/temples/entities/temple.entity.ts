@@ -119,11 +119,13 @@ export class Temple {
       doneButtonColor?: string; // Hex color for Done button in modals (e.g., Religious Observances)
       returnToHomeButtonColor?: string; // Hex color for Return to Home button
       proceedToPaymentButtonColor?: string; // Hex color for Proceed to Payment button
+      continueButtonColor?: string; // Hex color for Continue button in keypad popups (donor info)
       // Button style preferences (gradient vs solid)
       tapToDonateButtonGradient?: boolean; // Use gradient for Tap to Donate button
       returnToHomeButtonGradient?: boolean; // Use gradient for Return to Home button
       proceedToPaymentButtonGradient?: boolean; // Use gradient for Proceed to Payment button
       doneButtonGradient?: boolean; // Use gradient for Done button
+      continueButtonGradient?: boolean; // Use gradient for Continue button in keypad popups
     };
     // Layout settings
     layout?: {

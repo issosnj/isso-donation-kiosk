@@ -720,10 +720,12 @@ struct ThemeColors: Codable, Equatable {
     let doneButtonColor: String? // Color for Done button in modals (e.g., Religious Observances)
     let returnToHomeButtonColor: String? // Color for Return to Home button
     let proceedToPaymentButtonColor: String? // Color for Proceed to Payment button
+    let continueButtonColor: String? // Color for Continue button in keypad popups (donor info)
     let tapToDonateButtonGradient: Bool? // Use gradient for Tap to Donate button
     let returnToHomeButtonGradient: Bool? // Use gradient for Return to Home button
     let proceedToPaymentButtonGradient: Bool? // Use gradient for Proceed to Payment button
     let doneButtonGradient: Bool? // Use gradient for Done button
+    let continueButtonGradient: Bool? // Use gradient for Continue button in keypad popups
 }
 
 struct ThemeLayout: Codable, Equatable {
