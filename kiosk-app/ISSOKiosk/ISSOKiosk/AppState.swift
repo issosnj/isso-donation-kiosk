@@ -735,12 +735,33 @@ struct ThemeLayout: Codable, Equatable {
     let categoryButtonHeight: Double?
     let headerTopPadding: Double?
     let categoryHeaderTopPadding: Double?
-    // Home Screen Layout Positioning
+    // Home Screen Layout Positioning (Legacy - kept for backward compatibility)
     let homeScreenHeaderTopPadding: Double?
     let homeScreenSpacerMaxHeight: Double?
     let homeScreenContentSpacing: Double?
     let homeScreenBottomButtonsPadding: Double?
     let homeScreenBottomButtonsLeftPadding: Double?
+    // Home Screen Element Positioning (X/Y Coordinates)
+    // X and Y coordinates are in points (pixels) relative to screen top-left (0,0)
+    // If not set, elements use default layout positioning
+    let homeScreenWelcomeTextX: Double?
+    let homeScreenWelcomeTextY: Double?
+    let homeScreenHeader1X: Double?
+    let homeScreenHeader1Y: Double?
+    let homeScreenUnderGadiTextX: Double?
+    let homeScreenUnderGadiTextY: Double?
+    let homeScreenAddressX: Double?
+    let homeScreenAddressY: Double?
+    let homeScreenTimeStatusX: Double?
+    let homeScreenTimeStatusY: Double?
+    let homeScreenTapToDonateX: Double?
+    let homeScreenTapToDonateY: Double?
+    let homeScreenQuickActionsX: Double?
+    let homeScreenQuickActionsY: Double?
+    let homeScreenCustomMessageX: Double?
+    let homeScreenCustomMessageY: Double?
+    let homeScreenWhatsAppButtonsX: Double?
+    let homeScreenWhatsAppButtonsY: Double?
     let sectionSpacing: Double?
     let categoryAmountSectionSpacing: Double?
     let buttonSpacing: Double?

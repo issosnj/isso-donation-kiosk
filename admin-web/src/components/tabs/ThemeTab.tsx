@@ -99,12 +99,32 @@ export default function ThemeTab() {
       customAmountKeypadLetterFontSize: 10,
       customAmountKeypadPadding: 16,
       customAmountKeypadCornerRadius: 16,
-      // Home Screen Layout Positioning
+      // Home Screen Layout Positioning (Legacy)
       homeScreenHeaderTopPadding: 60,
       homeScreenSpacerMaxHeight: 100,
       homeScreenContentSpacing: 20,
       homeScreenBottomButtonsPadding: 50,
       homeScreenBottomButtonsLeftPadding: 20,
+      // Home Screen Element Positioning (X/Y Coordinates)
+      // Leave undefined to use default layout positioning
+      homeScreenWelcomeTextX: undefined,
+      homeScreenWelcomeTextY: undefined,
+      homeScreenHeader1X: undefined,
+      homeScreenHeader1Y: undefined,
+      homeScreenUnderGadiTextX: undefined,
+      homeScreenUnderGadiTextY: undefined,
+      homeScreenAddressX: undefined,
+      homeScreenAddressY: undefined,
+      homeScreenTimeStatusX: undefined,
+      homeScreenTimeStatusY: undefined,
+      homeScreenTapToDonateX: undefined,
+      homeScreenTapToDonateY: undefined,
+      homeScreenQuickActionsX: undefined,
+      homeScreenQuickActionsY: undefined,
+      homeScreenCustomMessageX: undefined,
+      homeScreenCustomMessageY: undefined,
+      homeScreenWhatsAppButtonsX: undefined,
+      homeScreenWhatsAppButtonsY: undefined,
       // Donation Details Page Layout
       detailsPageHorizontalSpacing: 40,
       detailsPageSidePadding: 60,
@@ -192,12 +212,31 @@ export default function ThemeTab() {
           customAmountKeypadLetterFontSize: temple.kioskTheme.layout?.customAmountKeypadLetterFontSize || 10,
           customAmountKeypadPadding: temple.kioskTheme.layout?.customAmountKeypadPadding || 16,
           customAmountKeypadCornerRadius: temple.kioskTheme.layout?.customAmountKeypadCornerRadius || 16,
-          // Home Screen Layout Positioning
+          // Home Screen Layout Positioning (Legacy)
           homeScreenHeaderTopPadding: temple.kioskTheme.layout?.homeScreenHeaderTopPadding || 60,
           homeScreenSpacerMaxHeight: temple.kioskTheme.layout?.homeScreenSpacerMaxHeight || 100,
           homeScreenContentSpacing: temple.kioskTheme.layout?.homeScreenContentSpacing || 20,
           homeScreenBottomButtonsPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsPadding || 50,
           homeScreenBottomButtonsLeftPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsLeftPadding || 20,
+          // Home Screen Element Positioning (X/Y Coordinates)
+          homeScreenWelcomeTextX: temple.kioskTheme.layout?.homeScreenWelcomeTextX,
+          homeScreenWelcomeTextY: temple.kioskTheme.layout?.homeScreenWelcomeTextY,
+          homeScreenHeader1X: temple.kioskTheme.layout?.homeScreenHeader1X,
+          homeScreenHeader1Y: temple.kioskTheme.layout?.homeScreenHeader1Y,
+          homeScreenUnderGadiTextX: temple.kioskTheme.layout?.homeScreenUnderGadiTextX,
+          homeScreenUnderGadiTextY: temple.kioskTheme.layout?.homeScreenUnderGadiTextY,
+          homeScreenAddressX: temple.kioskTheme.layout?.homeScreenAddressX,
+          homeScreenAddressY: temple.kioskTheme.layout?.homeScreenAddressY,
+          homeScreenTimeStatusX: temple.kioskTheme.layout?.homeScreenTimeStatusX,
+          homeScreenTimeStatusY: temple.kioskTheme.layout?.homeScreenTimeStatusY,
+          homeScreenTapToDonateX: temple.kioskTheme.layout?.homeScreenTapToDonateX,
+          homeScreenTapToDonateY: temple.kioskTheme.layout?.homeScreenTapToDonateY,
+          homeScreenQuickActionsX: temple.kioskTheme.layout?.homeScreenQuickActionsX,
+          homeScreenQuickActionsY: temple.kioskTheme.layout?.homeScreenQuickActionsY,
+          homeScreenCustomMessageX: temple.kioskTheme.layout?.homeScreenCustomMessageX,
+          homeScreenCustomMessageY: temple.kioskTheme.layout?.homeScreenCustomMessageY,
+          homeScreenWhatsAppButtonsX: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
+          homeScreenWhatsAppButtonsY: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
           detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -331,12 +370,31 @@ export default function ThemeTab() {
                       customAmountKeypadLetterFontSize: temple.kioskTheme.layout?.customAmountKeypadLetterFontSize || 10,
                       customAmountKeypadPadding: temple.kioskTheme.layout?.customAmountKeypadPadding || 16,
                       customAmountKeypadCornerRadius: temple.kioskTheme.layout?.customAmountKeypadCornerRadius || 16,
-                      // Home Screen Layout Positioning
+                      // Home Screen Layout Positioning (Legacy)
                       homeScreenHeaderTopPadding: temple.kioskTheme.layout?.homeScreenHeaderTopPadding || 60,
                       homeScreenSpacerMaxHeight: temple.kioskTheme.layout?.homeScreenSpacerMaxHeight || 100,
                       homeScreenContentSpacing: temple.kioskTheme.layout?.homeScreenContentSpacing || 20,
                       homeScreenBottomButtonsPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsPadding || 50,
                       homeScreenBottomButtonsLeftPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsLeftPadding || 20,
+                      // Home Screen Element Positioning (X/Y Coordinates)
+                      homeScreenWelcomeTextX: temple.kioskTheme.layout?.homeScreenWelcomeTextX,
+                      homeScreenWelcomeTextY: temple.kioskTheme.layout?.homeScreenWelcomeTextY,
+                      homeScreenHeader1X: temple.kioskTheme.layout?.homeScreenHeader1X,
+                      homeScreenHeader1Y: temple.kioskTheme.layout?.homeScreenHeader1Y,
+                      homeScreenUnderGadiTextX: temple.kioskTheme.layout?.homeScreenUnderGadiTextX,
+                      homeScreenUnderGadiTextY: temple.kioskTheme.layout?.homeScreenUnderGadiTextY,
+                      homeScreenAddressX: temple.kioskTheme.layout?.homeScreenAddressX,
+                      homeScreenAddressY: temple.kioskTheme.layout?.homeScreenAddressY,
+                      homeScreenTimeStatusX: temple.kioskTheme.layout?.homeScreenTimeStatusX,
+                      homeScreenTimeStatusY: temple.kioskTheme.layout?.homeScreenTimeStatusY,
+                      homeScreenTapToDonateX: temple.kioskTheme.layout?.homeScreenTapToDonateX,
+                      homeScreenTapToDonateY: temple.kioskTheme.layout?.homeScreenTapToDonateY,
+                      homeScreenQuickActionsX: temple.kioskTheme.layout?.homeScreenQuickActionsX,
+                      homeScreenQuickActionsY: temple.kioskTheme.layout?.homeScreenQuickActionsY,
+                      homeScreenCustomMessageX: temple.kioskTheme.layout?.homeScreenCustomMessageX,
+                      homeScreenCustomMessageY: temple.kioskTheme.layout?.homeScreenCustomMessageY,
+                      homeScreenWhatsAppButtonsX: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
+                      homeScreenWhatsAppButtonsY: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
                       // Donation Details Page Layout
                       detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
                       detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -1204,8 +1262,332 @@ export default function ThemeTab() {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
-          </div>
+
+            {/* Home Screen Element Positioning (X/Y Coordinates) */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h4 className="text-md font-semibold text-gray-900 mb-2">Home Screen Element Positioning (X/Y Coordinates)</h4>
+              <p className="text-xs text-gray-500 mb-4">
+                Control exact position of each element using X and Y coordinates (in pixels from top-left corner).
+                Leave empty to use default layout positioning. iPad 11-inch screen is 2388 × 1668 pixels.
+              </p>
+              
+              {/* Welcome Text */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Welcome Text</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenWelcomeTextX ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenWelcomeTextX: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenWelcomeTextY ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenWelcomeTextY: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Header 1 (ISSO Text) */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Header 1 (ISSO Text)</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenHeader1X ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenHeader1X: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenHeader1Y ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenHeader1Y: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Under Gadi Text */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">"Under Shree NarNarayan Dev Gadi" Text</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenUnderGadiTextX ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenUnderGadiTextX: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenUnderGadiTextY ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenUnderGadiTextY: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Temple Address */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Temple Address</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenAddressX ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenAddressX: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenAddressY ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenAddressY: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Time and Network Status */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Time and Network Status (Top Right)</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenTimeStatusX ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenTimeStatusX: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenTimeStatusY ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenTimeStatusY: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tap to Donate Button */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Tap to Donate Button (Center Point)</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenTapToDonateX ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenTapToDonateX: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenTapToDonateY ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenTapToDonateY: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Quick Actions Section</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenQuickActionsX ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenQuickActionsX: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenQuickActionsY ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenQuickActionsY: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Message */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">Custom Message</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenCustomMessageX ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenCustomMessageX: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenCustomMessageY ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenCustomMessageY: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* WhatsApp/Observances Buttons */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-800 mb-3">WhatsApp/Observances Buttons (Bottom Left)</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenWhatsAppButtonsX ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenWhatsAppButtonsX: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
+                    <input
+                      type="number"
+                      value={formData.layout.homeScreenWhatsAppButtonsY ?? ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        layout: { ...formData.layout, homeScreenWhatsAppButtonsY: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="Auto (default layout)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
 
           {/* Layout Settings */}
           <div className="space-y-6">

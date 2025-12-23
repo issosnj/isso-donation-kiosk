@@ -161,12 +161,33 @@ export class Temple {
       customAmountKeypadPadding?: number; // Internal padding of keypad (e.g., 16)
       customAmountKeypadCornerRadius?: number; // Corner radius of keypad container (e.g., 16)
       backgroundImageUrl?: string; // URL to custom background image for kiosk home screen
-      // Home Screen Layout Positioning
+      // Home Screen Layout Positioning (Legacy - kept for backward compatibility)
       homeScreenHeaderTopPadding?: number; // Top padding for home screen headers (e.g., 60)
       homeScreenSpacerMaxHeight?: number; // Max height of spacer above Tap to Donate button (e.g., 100)
       homeScreenContentSpacing?: number; // Spacing between home screen content elements (e.g., 20)
       homeScreenBottomButtonsPadding?: number; // Bottom padding for WhatsApp/Observances buttons (e.g., 50)
       homeScreenBottomButtonsLeftPadding?: number; // Left padding for bottom buttons (e.g., 20)
+      // Home Screen Element Positioning (X/Y Coordinates)
+      // X and Y coordinates are in points (pixels) relative to screen top-left (0,0)
+      // If not set, elements use default layout positioning
+      homeScreenWelcomeTextX?: number; // X coordinate for "Welcome to..." text
+      homeScreenWelcomeTextY?: number; // Y coordinate for "Welcome to..." text
+      homeScreenHeader1X?: number; // X coordinate for header 1 (ISSO text)
+      homeScreenHeader1Y?: number; // Y coordinate for header 1
+      homeScreenUnderGadiTextX?: number; // X coordinate for "Under Shree NarNarayan Dev Gadi" text
+      homeScreenUnderGadiTextY?: number; // Y coordinate for "Under Shree NarNarayan Dev Gadi" text
+      homeScreenAddressX?: number; // X coordinate for temple address
+      homeScreenAddressY?: number; // Y coordinate for temple address
+      homeScreenTimeStatusX?: number; // X coordinate for time/network status (top right)
+      homeScreenTimeStatusY?: number; // Y coordinate for time/network status
+      homeScreenTapToDonateX?: number; // X coordinate for "Tap to Donate" button center
+      homeScreenTapToDonateY?: number; // Y coordinate for "Tap to Donate" button center
+      homeScreenQuickActionsX?: number; // X coordinate for Quick Actions section
+      homeScreenQuickActionsY?: number; // Y coordinate for Quick Actions section
+      homeScreenCustomMessageX?: number; // X coordinate for custom message
+      homeScreenCustomMessageY?: number; // Y coordinate for custom message
+      homeScreenWhatsAppButtonsX?: number; // X coordinate for WhatsApp/Observances buttons
+      homeScreenWhatsAppButtonsY?: number; // Y coordinate for WhatsApp/Observances buttons
       // Donation Details Page Layout
       detailsPageHorizontalSpacing?: number; // Spacing between left and right sections (e.g., 40)
       detailsPageSidePadding?: number; // Padding on left/right sides (e.g., 60)

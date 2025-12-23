@@ -101,219 +101,486 @@ struct KioskHomeView: View {
     
     // Main content view
     private var mainContentView: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                // Header at top, transparent background
-                ZStack {
-                    VStack(spacing: 0) {
-                        // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller) - Bold
-                        Text("Welcome to Shree Swaminarayan Hindu Temple")
-                            .font(.system(size: 42, weight: .bold, design: .default))
-                            .foregroundColor(colorFromHex("423232"))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(nil)
-                            .minimumScaleFactor(0.5)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 20)
-                            .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60))
-                            .padding(.bottom, 4)
-                        
-                        // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
-                        Text(header1Text)
-                            .font(.custom("Inter-SemiBold", size: 32))
-                            .foregroundColor(colorFromHex("423232"))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(nil)
-                            .minimumScaleFactor(0.5)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 4)
-                        
-                        // Under Shree NarNarayan Dev Gadi - Italic
-                        Text("Under Shree NarNarayan Dev Gadi")
-                            .font(.system(size: 20, weight: .regular, design: .default))
-                            .italic()
-                            .foregroundColor(colorFromHex("423232"))
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity)
-                            .padding(.bottom, 4)
-                        
-                        // Temple Address
-                        if let temple = appState.temple, let address = temple.address, !address.isEmpty {
-                            Text(address)
-                                .font(.custom("Inter-Regular", size: 18))
-                                .foregroundColor(colorFromHex("423232"))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity)
-                                .padding(.bottom, 16)
-                        } else {
-                            // Add padding if no address
-                            Spacer()
-                                .frame(height: 16)
-                        }
-                    }
-                    
-                    // Time and Network Status in top right
-                    TimeAndNetworkStatusView()
-                        .padding(.trailing, 20)
-                        .padding(.top, 7)
+        GeometryReader { geometry in
+            ZStack {
+                // Check if any element uses X/Y positioning
+                let usesXYPositioning = appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextX != nil ||
+                    appState.temple?.kioskTheme?.layout?.homeScreenHeader1X != nil ||
+                    appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextX != nil ||
+                    appState.temple?.kioskTheme?.layout?.homeScreenAddressX != nil ||
+                    appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusX != nil ||
+                    appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateX != nil ||
+                    appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsX != nil ||
+                    appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageX != nil ||
+                    appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsX != nil
+                
+                if usesXYPositioning {
+                    // Use absolute positioning for elements with X/Y coordinates
+                    positionedElements(geometry: geometry)
+                } else {
+                    // Use default VStack layout
+                    defaultLayout
                 }
-                
-                Spacer()
-                    .frame(maxHeight: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenSpacerMaxHeight ?? 100))
-                
-                // Centered content
-                VStack(spacing: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenContentSpacing ?? 20)) {
+            }
+        }
+    }
+    
+    // Default layout (VStack-based, used when no X/Y coordinates are set)
+    private var defaultLayout: some View {
+        VStack(spacing: 0) {
+            // Header at top, transparent background
+            ZStack {
+                VStack(spacing: 0) {
+                    // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller) - Bold
+                    Text("Welcome to Shree Swaminarayan Hindu Temple")
+                        .font(.system(size: 42, weight: .bold, design: .default))
+                        .foregroundColor(colorFromHex("423232"))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .minimumScaleFactor(0.5)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 20)
+                        .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60))
+                        .padding(.bottom, 4)
                     
-                    // Main: Tap To Donate Button - Gold-Accented Design (centered vertically)
-                    HStack {
-                        Spacer()
-                        GoldAccentDonateButton(
-                            buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
-                            action: {
-                            // Preload background image before navigating
-                            Task {
-                                await appState.preloadBackgroundImage()
-                                await MainActor.run {
-                                    navigationState.showDonationFlow = true
-                                }
-                            }
-                        })
-                        .padding(.horizontal, 20) // Add padding to prevent clipping during animation
-                        .padding(.vertical, 10) // Add vertical padding for zoom animation
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity)
+                    // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
+                    Text(header1Text)
+                        .font(.custom("Inter-SemiBold", size: 32))
+                        .foregroundColor(colorFromHex("423232"))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .minimumScaleFactor(0.5)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 4)
                     
-                    // Bottom: Action Buttons (only show active ones)
-                    VStack(spacing: 20) {
-                        // Quick Actions Section (Events only)
-                        let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
-                        let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
-                        let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
-                        let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
-                        
-                        if hasEvents {
-                            VStack(spacing: 12) {
-                                Text("Quick Actions")
-                                    .font(.custom("Inter-SemiBold", size: 20))
-                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                                
-                                HStack(spacing: 16) {
-                                    // Upcoming Events - only show if configured
-                                    ModernQuickActionButton(
-                                        icon: "calendar",
-                                        title: "Events",
-                                        color: Color(red: 1.0, green: 0.58, blue: 0.0),
-                                        isActive: true
-                                    ) {
-                                        showEvents = true
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.top, 20)
+                    // Under Shree NarNarayan Dev Gadi - Italic
+                    Text("Under Shree NarNarayan Dev Gadi")
+                        .font(.system(size: 20, weight: .regular, design: .default))
+                        .italic()
+                        .foregroundColor(colorFromHex("423232"))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .padding(.bottom, 4)
                     
-                    // Custom Message at Bottom (if configured)
-                    if let customMessage = appState.temple?.homeScreenConfig?.customMessage, !customMessage.isEmpty {
-                        Text(customMessage)
+                    // Temple Address
+                    if let temple = appState.temple, let address = temple.address, !address.isEmpty {
+                        Text(address)
                             .font(.custom("Inter-Regular", size: 18))
-                            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+                            .foregroundColor(colorFromHex("423232"))
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                            .padding(.top, 20)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity)
+                            .padding(.bottom, 16)
+                    } else {
+                        // Add padding if no address
+                        Spacer()
+                            .frame(height: 16)
                     }
                 }
-                .frame(maxWidth: 800) // Limit width for better centering
                 
-                Spacer()
+                // Time and Network Status in top right
+                TimeAndNetworkStatusView()
+                    .padding(.trailing, 20)
+                    .padding(.top, 7)
             }
             
-            // WhatsApp and Observances buttons in bottom left corner (horizontal layout)
-            HStack(spacing: 12) {
-                // WhatsApp Group
-                if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
-                    Button(action: {
-                        showWhatsAppQR = true
-                    }) {
-                        HStack(spacing: 8) {
-                            // WhatsApp icon (custom asset)
-                            if UIImage(named: "WhatsAppIcon") != nil {
-                                Image("WhatsAppIcon")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 32, height: 32)
-                                    .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
-                            } else {
-                                // Fallback to system icon if asset not found
-                                Image(systemName: "message.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.white)
-                                    .frame(width: 32, height: 32)
-                                    .background(Color(red: 0.18, green: 0.64, blue: 0.33))
-                                    .clipShape(Circle())
-                                    .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+            Spacer()
+                .frame(maxHeight: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenSpacerMaxHeight ?? 100))
+            
+            // Centered content
+            VStack(spacing: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenContentSpacing ?? 20)) {
+                
+                // Main: Tap To Donate Button - Gold-Accented Design (centered vertically)
+                HStack {
+                    Spacer()
+                    GoldAccentDonateButton(
+                        buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
+                        action: {
+                        // Preload background image before navigating
+                        Task {
+                            await appState.preloadBackgroundImage()
+                            await MainActor.run {
+                                navigationState.showDonationFlow = true
                             }
+                        }
+                    })
+                    .padding(.horizontal, 20) // Add padding to prevent clipping during animation
+                    .padding(.vertical, 10) // Add vertical padding for zoom animation
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                
+                // Bottom: Action Buttons (only show active ones)
+                VStack(spacing: 20) {
+                    // Quick Actions Section (Events only)
+                    let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
+                    let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
+                    let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
+                    let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
+                    
+                    if hasEvents {
+                        VStack(spacing: 12) {
+                            Text("Quick Actions")
+                                .font(.custom("Inter-SemiBold", size: 20))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                             
-                            Text("WhatsApp Group")
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(colorFromHex("423232")) // Matches header color
+                            HStack(spacing: 16) {
+                                // Upcoming Events - only show if configured
+                                ModernQuickActionButton(
+                                    icon: "calendar",
+                                    title: "Events",
+                                    color: Color(red: 1.0, green: 0.58, blue: 0.0),
+                                    isActive: true
+                                ) {
+                                    showEvents = true
+                                }
+                            }
+                            .padding(.horizontal, 20)
                         }
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    // Vertical separator
-                    Rectangle()
-                        .fill(Color(red: 0.26, green: 0.20, blue: 0.20).opacity(0.3))
-                        .frame(width: 1, height: 30)
                 }
+                .padding(.horizontal, 40)
+                .padding(.top, 20)
                 
-                // Observance
+                // Custom Message at Bottom (if configured)
+                if let customMessage = appState.temple?.homeScreenConfig?.customMessage, !customMessage.isEmpty {
+                    Text(customMessage)
+                        .font(.custom("Inter-Regular", size: 18))
+                        .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                        .padding(.top, 20)
+                }
+            }
+            .frame(maxWidth: 800) // Limit width for better centering
+            
+            Spacer()
+        }
+        .overlay(alignment: .bottomLeading) {
+            // WhatsApp and Observances buttons in bottom left corner (horizontal layout)
+            whatsAppButtonsView
+                .padding(.leading, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20))
+                .padding(.bottom, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50))
+        }
+    }
+    
+    // Positioned elements (using X/Y coordinates)
+    // Elements with X/Y coordinates are positioned absolutely, others use default positions
+    @ViewBuilder
+    private func positionedElements(geometry: GeometryProxy) -> some View {
+        // Welcome Text
+        if let x = appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextX,
+           let y = appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextY {
+            Text("Welcome to Shree Swaminarayan Hindu Temple")
+                .font(.system(size: 42, weight: .bold, design: .default))
+                .foregroundColor(colorFromHex("423232"))
+                .multilineTextAlignment(.center)
+                .lineLimit(nil)
+                .minimumScaleFactor(0.5)
+                .frame(maxWidth: geometry.size.width * 0.9)
+                .position(x: CGFloat(x), y: CGFloat(y))
+        } else {
+            // Default position if not set
+            Text("Welcome to Shree Swaminarayan Hindu Temple")
+                .font(.system(size: 42, weight: .bold, design: .default))
+                .foregroundColor(colorFromHex("423232"))
+                .multilineTextAlignment(.center)
+                .lineLimit(nil)
+                .minimumScaleFactor(0.5)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
+                .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60))
+                .padding(.bottom, 4)
+        }
+        
+        // Header 1
+        if let x = appState.temple?.kioskTheme?.layout?.homeScreenHeader1X,
+           let y = appState.temple?.kioskTheme?.layout?.homeScreenHeader1Y {
+            Text(header1Text)
+                .font(.custom("Inter-SemiBold", size: 32))
+                .foregroundColor(colorFromHex("423232"))
+                .multilineTextAlignment(.center)
+                .lineLimit(nil)
+                .minimumScaleFactor(0.5)
+                .frame(maxWidth: geometry.size.width * 0.9)
+                .position(x: CGFloat(x), y: CGFloat(y))
+        } else {
+            // Default position if not set
+            Text(header1Text)
+                .font(.custom("Inter-SemiBold", size: 32))
+                .foregroundColor(colorFromHex("423232"))
+                .multilineTextAlignment(.center)
+                .lineLimit(nil)
+                .minimumScaleFactor(0.5)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
+                .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 60)
+                .padding(.bottom, 4)
+        }
+        
+        // Under Gadi Text
+        if let x = appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextX,
+           let y = appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextY {
+            Text("Under Shree NarNarayan Dev Gadi")
+                .font(.system(size: 20, weight: .regular, design: .default))
+                .italic()
+                .foregroundColor(colorFromHex("423232"))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: geometry.size.width * 0.9)
+                .position(x: CGFloat(x), y: CGFloat(y))
+        } else {
+            // Default position if not set
+            Text("Under Shree NarNarayan Dev Gadi")
+                .font(.system(size: 20, weight: .regular, design: .default))
+                .italic()
+                .foregroundColor(colorFromHex("423232"))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 120)
+                .padding(.bottom, 4)
+        }
+        
+        // Temple Address
+        if let temple = appState.temple, let address = temple.address, !address.isEmpty {
+            if let x = appState.temple?.kioskTheme?.layout?.homeScreenAddressX,
+               let y = appState.temple?.kioskTheme?.layout?.homeScreenAddressY {
+                Text(address)
+                    .font(.custom("Inter-Regular", size: 18))
+                    .foregroundColor(colorFromHex("423232"))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .frame(maxWidth: geometry.size.width * 0.9)
+                    .position(x: CGFloat(x), y: CGFloat(y))
+            } else {
+                // Default position if not set
+                Text(address)
+                    .font(.custom("Inter-Regular", size: 18))
+                    .foregroundColor(colorFromHex("423232"))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 160)
+                    .padding(.bottom, 16)
+            }
+        }
+        
+        // Time and Network Status
+        if let x = appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusX,
+           let y = appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusY {
+            TimeAndNetworkStatusView()
+                .position(x: CGFloat(x), y: CGFloat(y))
+        } else {
+            // Default position (top right)
+            TimeAndNetworkStatusView()
+                .padding(.trailing, 20)
+                .padding(.top, 7)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        }
+        
+        // Tap to Donate Button
+        if let x = appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateX,
+           let y = appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateY {
+            GoldAccentDonateButton(
+                buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
+                action: {
+                Task {
+                    await appState.preloadBackgroundImage()
+                    await MainActor.run {
+                        navigationState.showDonationFlow = true
+                    }
+                }
+            })
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .position(x: CGFloat(x), y: CGFloat(y))
+        } else {
+            // Default position (centered)
+            GoldAccentDonateButton(
+                buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
+                action: {
+                Task {
+                    await appState.preloadBackgroundImage()
+                    await MainActor.run {
+                        navigationState.showDonationFlow = true
+                    }
+                }
+            })
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+        
+        // Quick Actions
+        let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
+        let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
+        let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
+        let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
+        
+        if hasEvents {
+            if let x = appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsX,
+               let y = appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsY {
+                VStack(spacing: 12) {
+                    Text("Quick Actions")
+                        .font(.custom("Inter-SemiBold", size: 20))
+                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                    
+                    HStack(spacing: 16) {
+                        ModernQuickActionButton(
+                            icon: "calendar",
+                            title: "Events",
+                            color: Color(red: 1.0, green: 0.58, blue: 0.0),
+                            isActive: true
+                        ) {
+                            showEvents = true
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .position(x: CGFloat(x), y: CGFloat(y))
+            } else {
+                // Default position
+                VStack(spacing: 12) {
+                    Text("Quick Actions")
+                        .font(.custom("Inter-SemiBold", size: 20))
+                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                    
+                    HStack(spacing: 16) {
+                        ModernQuickActionButton(
+                            icon: "calendar",
+                            title: "Events",
+                            color: Color(red: 1.0, green: 0.58, blue: 0.0),
+                            isActive: true
+                        ) {
+                            showEvents = true
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 20)
+                .frame(maxWidth: 800)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .offset(y: 200) // Position below Tap to Donate button
+            }
+        }
+        
+        // Custom Message
+        if let customMessage = appState.temple?.homeScreenConfig?.customMessage, !customMessage.isEmpty {
+            if let x = appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageX,
+               let y = appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageY {
+                Text(customMessage)
+                    .font(.custom("Inter-Regular", size: 18))
+                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: geometry.size.width * 0.9)
+                    .position(x: CGFloat(x), y: CGFloat(y))
+            } else {
+                // Default position
+                Text(customMessage)
+                    .font(.custom("Inter-Regular", size: 18))
+                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 20)
+                    .frame(maxWidth: 800)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .offset(y: 300) // Position below Quick Actions
+            }
+        }
+        
+        // WhatsApp/Observances Buttons
+        if let x = appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsX,
+           let y = appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsY {
+            whatsAppButtonsView
+                .position(x: CGFloat(x), y: CGFloat(y))
+        } else {
+            // Default position (bottom left)
+            whatsAppButtonsView
+                .padding(.leading, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20))
+                .padding(.bottom, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+        }
+    }
+    
+    // WhatsApp buttons view (reusable)
+    private var whatsAppButtonsView: some View {
+        HStack(spacing: 12) {
+            // WhatsApp Group
+            if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
                 Button(action: {
-                    showReligiousEvents = true
+                    showWhatsAppQR = true
                 }) {
                     HStack(spacing: 8) {
-                        // Observances icon (custom asset)
-                        if UIImage(named: "ObservancesIcon") != nil {
-                            Image("ObservancesIcon")
+                        // WhatsApp icon (custom asset)
+                        if UIImage(named: "WhatsAppIcon") != nil {
+                            Image("WhatsAppIcon")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 32, height: 32)
                                 .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
                         } else {
-                            // Fallback to system bell icon if asset not found
-                            Image(systemName: "bell.fill")
-                                .font(.system(size: 20))
+                            // Fallback to system icon if asset not found
+                            Image(systemName: "message.fill")
+                                .font(.system(size: 24))
                                 .foregroundColor(.white)
                                 .frame(width: 32, height: 32)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.85, green: 0.7, blue: 0.3),
-                                            Color(red: 0.95, green: 0.8, blue: 0.4)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                .background(Color(red: 0.18, green: 0.64, blue: 0.33))
                                 .clipShape(Circle())
                                 .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
                         }
                         
-                        Text("Observance")
+                        Text("WhatsApp Group")
                             .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(colorFromHex("423232"))
+                            .foregroundColor(colorFromHex("423232")) // Matches header color
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
+                
+                // Vertical separator
+                Rectangle()
+                    .fill(Color(red: 0.26, green: 0.20, blue: 0.20).opacity(0.3))
+                    .frame(width: 1, height: 30)
             }
-            .padding(.leading, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20))
-            .padding(.bottom, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            
+            // Observance
+            Button(action: {
+                showReligiousEvents = true
+            }) {
+                HStack(spacing: 8) {
+                    // Observances icon (custom asset)
+                    if UIImage(named: "ObservancesIcon") != nil {
+                        Image("ObservancesIcon")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 32, height: 32)
+                            .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+                    } else {
+                        // Fallback to system bell icon if asset not found
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.85, green: 0.7, blue: 0.3),
+                                        Color(red: 0.95, green: 0.8, blue: 0.4)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+                    }
+                    
+                    Text("Observance")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(colorFromHex("423232"))
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
         }
     }
     
