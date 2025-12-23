@@ -65,6 +65,11 @@ export default function ThemeTab() {
       doneButtonColor: '#007AFF', // Default iOS blue for Done button
       returnToHomeButtonColor: '#D9C080', // Default gold color for Return to Home button
       proceedToPaymentButtonColor: '#FF9500', // Default orange color for Proceed to Payment button
+      // Button gradient preferences
+      tapToDonateButtonGradient: false,
+      returnToHomeButtonGradient: true,
+      proceedToPaymentButtonGradient: true,
+      doneButtonGradient: false,
     },
     layout: {
       categoryBoxMaxWidth: 400,
@@ -147,6 +152,10 @@ export default function ThemeTab() {
           doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
           returnToHomeButtonColor: temple.kioskTheme.colors?.returnToHomeButtonColor || '#D9C080',
           proceedToPaymentButtonColor: temple.kioskTheme.colors?.proceedToPaymentButtonColor || '#FF9500',
+          tapToDonateButtonGradient: temple.kioskTheme.colors?.tapToDonateButtonGradient ?? false,
+          returnToHomeButtonGradient: temple.kioskTheme.colors?.returnToHomeButtonGradient ?? true,
+          proceedToPaymentButtonGradient: temple.kioskTheme.colors?.proceedToPaymentButtonGradient ?? true,
+          doneButtonGradient: temple.kioskTheme.colors?.doneButtonGradient ?? false,
         },
         layout: {
           categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
@@ -275,6 +284,10 @@ export default function ThemeTab() {
                       doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
                       returnToHomeButtonColor: temple.kioskTheme.colors?.returnToHomeButtonColor || '#D9C080',
                       proceedToPaymentButtonColor: temple.kioskTheme.colors?.proceedToPaymentButtonColor || '#FF9500',
+                      tapToDonateButtonGradient: temple.kioskTheme.colors?.tapToDonateButtonGradient ?? false,
+                      returnToHomeButtonGradient: temple.kioskTheme.colors?.returnToHomeButtonGradient ?? true,
+                      proceedToPaymentButtonGradient: temple.kioskTheme.colors?.proceedToPaymentButtonGradient ?? true,
+                      doneButtonGradient: temple.kioskTheme.colors?.doneButtonGradient ?? false,
                     },
                     layout: {
                       categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
@@ -479,32 +492,130 @@ export default function ThemeTab() {
             </div>
           </div>
 
-          {/* Color Settings */}
+          {/* Color Settings - Organized */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-md font-semibold text-gray-900 mb-4">Color Settings</h4>
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(formData.colors).map(([key, value]) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                  </label>
+            <h4 className="text-md font-semibold text-gray-900 mb-6">Color Settings</h4>
+            
+            {/* Text Colors */}
+            <div className="mb-8">
+              <h5 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-200">Text Colors</h5>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: 'headingColor', label: 'Heading Color' },
+                  { key: 'bodyTextColor', label: 'Body Text Color' },
+                  { key: 'subtitleColor', label: 'Subtitle Color' },
+                  { key: 'quantityTotalColor', label: 'Quantity Total Color' },
+                  { key: 'buttonTextColor', label: 'Button Text Color' },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.colors[key as keyof typeof formData.colors] as string}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          colors: { ...formData.colors, [key]: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.colors[key as keyof typeof formData.colors] as string}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          colors: { ...formData.colors, [key]: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        placeholder="#000000"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Category & Amount Button Colors */}
+            <div className="mb-8">
+              <h5 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-200">Category & Amount Buttons</h5>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: 'categorySelectedColor', label: 'Category Selected' },
+                  { key: 'categoryUnselectedColor', label: 'Category Unselected' },
+                  { key: 'amountSelectedColor', label: 'Amount Selected' },
+                  { key: 'amountUnselectedColor', label: 'Amount Unselected' },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={formData.colors[key as keyof typeof formData.colors] as string}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          colors: { ...formData.colors, [key]: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <input
+                        type="text"
+                        value={formData.colors[key as keyof typeof formData.colors] as string}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          colors: { ...formData.colors, [key]: e.target.value }
+                        })}
+                        disabled={!isEditing}
+                        placeholder="#000000"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mb-8">
+              <h5 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-200">Action Buttons</h5>
+              <div className="space-y-4">
+                {/* Tap to Donate Button */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-gray-700">Tap to Donate Button</label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <span className="text-xs text-gray-600">Gradient</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.colors.tapToDonateButtonGradient}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          colors: { ...formData.colors, tapToDonateButtonGradient: e.target.checked }
+                        })}
+                        disabled={!isEditing}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:opacity-50"
+                      />
+                    </label>
+                  </div>
                   <div className="flex items-center space-x-2">
                     <input
                       type="color"
-                      value={value}
+                      value={formData.colors.tapToDonateButtonColor}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: { ...formData.colors, [key]: e.target.value }
+                        colors: { ...formData.colors, tapToDonateButtonColor: e.target.value }
                       })}
                       disabled={!isEditing}
                       className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                     />
                     <input
                       type="text"
-                      value={value}
+                      value={formData.colors.tapToDonateButtonColor}
                       onChange={(e) => setFormData({
                         ...formData,
-                        colors: { ...formData.colors, [key]: e.target.value }
+                        colors: { ...formData.colors, tapToDonateButtonColor: e.target.value }
                       })}
                       disabled={!isEditing}
                       placeholder="#000000"
@@ -512,7 +623,136 @@ export default function ThemeTab() {
                     />
                   </div>
                 </div>
-              ))}
+
+                {/* Return to Home Button */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-gray-700">Return to Home Button</label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <span className="text-xs text-gray-600">Gradient</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.colors.returnToHomeButtonGradient}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          colors: { ...formData.colors, returnToHomeButtonGradient: e.target.checked }
+                        })}
+                        disabled={!isEditing}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:opacity-50"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={formData.colors.returnToHomeButtonColor}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: { ...formData.colors, returnToHomeButtonColor: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={formData.colors.returnToHomeButtonColor}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: { ...formData.colors, returnToHomeButtonColor: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="#000000"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Proceed to Payment Button */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-gray-700">Proceed to Payment Button</label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <span className="text-xs text-gray-600">Gradient</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.colors.proceedToPaymentButtonGradient}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          colors: { ...formData.colors, proceedToPaymentButtonGradient: e.target.checked }
+                        })}
+                        disabled={!isEditing}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:opacity-50"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={formData.colors.proceedToPaymentButtonColor}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: { ...formData.colors, proceedToPaymentButtonColor: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={formData.colors.proceedToPaymentButtonColor}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: { ...formData.colors, proceedToPaymentButtonColor: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="#000000"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Done Button */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-gray-700">Done Button</label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <span className="text-xs text-gray-600">Gradient</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.colors.doneButtonGradient}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          colors: { ...formData.colors, doneButtonGradient: e.target.checked }
+                        })}
+                        disabled={!isEditing}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:opacity-50"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={formData.colors.doneButtonColor}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: { ...formData.colors, doneButtonColor: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={formData.colors.doneButtonColor}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        colors: { ...formData.colors, doneButtonColor: e.target.value }
+                      })}
+                      disabled={!isEditing}
+                      placeholder="#000000"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

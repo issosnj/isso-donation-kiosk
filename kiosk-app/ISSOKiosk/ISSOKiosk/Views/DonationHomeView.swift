@@ -70,6 +70,29 @@ struct DonationHomeView: View {
         return Color(red: r, green: g, blue: b)
     }
     
+    // Helper to create a gradient from a color (lighter variant for gradient effect)
+    private func gradientFromColor(_ color: Color) -> LinearGradient {
+        // Convert Color to UIColor to extract components
+        let uiColor = UIColor(color)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        
+        // Create a lighter variant by increasing brightness
+        let lighterColor = Color(
+            red: min(1.0, Double(r) * 1.15),
+            green: min(1.0, Double(g) * 1.15),
+            blue: min(1.0, Double(b) * 1.15)
+        )
+        return LinearGradient(
+            gradient: Gradient(colors: [color, lighterColor]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
     // Get button colors from kioskTheme.colors, fallback to homeScreenConfig.buttonColors for backward compatibility
     var categorySelectedColor: String {
         appState.temple?.kioskTheme?.colors?.categorySelectedColor ?? 
@@ -853,10 +876,17 @@ struct DonationHomeView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(
-                        colorFromHex(
-                            appState.temple?.kioskTheme?.colors?.returnToHomeButtonColor,
-                            defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                        )
+                        appState.temple?.kioskTheme?.colors?.returnToHomeButtonGradient == true
+                            ? gradientFromColor(
+                                colorFromHex(
+                                    appState.temple?.kioskTheme?.colors?.returnToHomeButtonColor,
+                                    defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                                )
+                            )
+                            : colorFromHex(
+                                appState.temple?.kioskTheme?.colors?.returnToHomeButtonColor,
+                                defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                            )
                     )
                     .cornerRadius(12)
                 }
@@ -872,10 +902,17 @@ struct DonationHomeView: View {
                         .padding(.vertical, 14)
                         .background(
                             hasValidAmount
-                                ? colorFromHex(
-                                    appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonColor,
-                                    defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                )
+                                ? (appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonGradient == true
+                                    ? gradientFromColor(
+                                        colorFromHex(
+                                            appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonColor,
+                                            defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                                        )
+                                    )
+                                    : colorFromHex(
+                                        appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonColor,
+                                        defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                                    ))
                                 : Color.gray.opacity(0.4)
                         )
                         .cornerRadius(12)

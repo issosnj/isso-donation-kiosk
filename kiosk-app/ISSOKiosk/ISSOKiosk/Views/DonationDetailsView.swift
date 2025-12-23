@@ -349,12 +349,17 @@ struct ModernDonationDetailsView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(
-                                gradientFromColor(
-                                    colorFromHex(
+                                theme?.colors?.returnToHomeButtonGradient == true
+                                    ? gradientFromColor(
+                                        colorFromHex(
+                                            theme?.colors?.returnToHomeButtonColor,
+                                            defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
+                                        )
+                                    )
+                                    : colorFromHex(
                                         theme?.colors?.returnToHomeButtonColor,
                                         defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
                                     )
-                                )
                             )
                             .cornerRadius(12)
                             .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
@@ -585,13 +590,18 @@ struct ModernDonationDetailsView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(
-                                canProceed 
-                                    ? gradientFromColor(
-                                        colorFromHex(
+                                canProceed
+                                    ? (theme?.colors?.proceedToPaymentButtonGradient == true
+                                        ? gradientFromColor(
+                                            colorFromHex(
+                                                theme?.colors?.proceedToPaymentButtonColor,
+                                                defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                                            )
+                                        )
+                                        : colorFromHex(
                                             theme?.colors?.proceedToPaymentButtonColor,
                                             defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                        )
-                                    )
+                                        ))
                                     : LinearGradient(
                                         gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),
                                         startPoint: .topLeading,
