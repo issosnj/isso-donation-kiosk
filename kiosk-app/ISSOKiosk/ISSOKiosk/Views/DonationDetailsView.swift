@@ -237,18 +237,10 @@ struct ModernDonationDetailsView: View {
         }
     }
     
-    var body: some View {
-        ZStack {
-            // Background: Use same background as donation page
-            GeometryReader { geometry in
-                backgroundView(geometry: geometry)
-            }
-            .ignoresSafeArea(.all, edges: .all)
-            
-            // No dark overlay - clean background
-            
-            GeometryReader { geometry in
-                ScrollView {
+    // Main content view
+    @ViewBuilder
+    private var mainContentView: some View {
+        ScrollView {
                     VStack(spacing: 0) {
                         // Top spacing
                         Spacer()
@@ -695,6 +687,22 @@ struct ModernDonationDetailsView: View {
                         showingYajmanOpportunities = false
                     }
                 )
+            }
+        }
+    }
+    
+    var body: some View {
+        ZStack {
+            // Background: Use same background as donation page
+            GeometryReader { geometry in
+                backgroundView(geometry: geometry)
+            }
+            .ignoresSafeArea(.all, edges: .all)
+            
+            // Main content
+            GeometryReader { geometry in
+                mainContentView
+                    .frame(width: geometry.size.width)
             }
         }
         .onAppear {
