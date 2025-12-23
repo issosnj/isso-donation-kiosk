@@ -1304,36 +1304,31 @@ struct LocalEventCard: View {
 struct ReligiousEventsView: View {
     let religiousEvents: [ReligiousEvent]
     @Environment(\.dismiss) var dismiss
-    @State private var calendarEvents: [String: [GoogleCalendarEvent]] = [:]
-    @State private var isLoadingEvents = false
-    
+
     var body: some View {
         ZStack {
-            // Clear background to show the blurred background behind
-            Color.clear
-                .ignoresSafeArea()
-            
-            // Main glass effect container - matching donation review cards exactly
+            Color.clear.ignoresSafeArea()
+
             VStack(spacing: 0) {
-                // Centered header
-                VStack(spacing: 4) {
+                // HEADER
+                VStack(spacing: 6) {
                     Text("Religious Observances")
-                        .font(.custom("Inter-SemiBold", size: 17))
-                        .multilineTextAlignment(.center)
+                        .font(.custom("Inter-SemiBold", size: 22))
+                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+
                     Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
-                        .font(.custom("Inter-Regular", size: 11))
+                        .font(.custom("Inter-Regular", size: 14))
                         .italic()
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, 24)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 16)
-                .padding(.bottom, 12)
-                
-                // Scrollable content with smooth scrolling configuration
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: 16) {
+                .padding(.top, 20)
+                .padding(.bottom, 16)
+
+                // CONTENT
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
                         if religiousEvents.isEmpty {
                             VStack(spacing: 20) {
                                 Image(systemName: "moon.stars.fill")
@@ -1345,216 +1340,140 @@ struct ReligiousEventsView: View {
                             .padding()
                         } else {
                             ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
-                                ReligiousEventCard(
+                                ReligiousEventRow(
                                     event: event,
-                                    calendarEvents: calendarEvents[event.id] ?? [],
-                                    isFirst: index == 0
+                                    showCountdown: index == 0
                                 )
                             }
                         }
                     }
-                    .padding()
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
                 }
-                .scrollBounceBehavior(.basedOnSize)
-                .frame(maxWidth: .infinity)
-                
-                // Done button at bottom center
-                Button(action: {
+
+                // DONE BUTTON
+                Button {
                     dismiss()
-                }) {
+                } label: {
                     Text("Done")
-                        .font(.custom("Inter-SemiBold", size: 17))
+                        .font(.custom("Inter-Medium", size: 18))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color(red: 0.6, green: 0.4, blue: 0.8))
+                        .padding(.vertical, 16)
+                        .background(
+                            Color(red: 0.6, green: 0.4, blue: 0.8)
+                        )
                         .cornerRadius(12)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-                .padding(.top, 8)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
             }
-            .padding(24) // Internal padding matching donation cards
+            .frame(maxWidth: 820)
+            .padding(24)
             .background(
-                // Glass effect background - EXACT match to donation review cards
-                ZStack {
-                    // Blur effect
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.white.opacity(0.25))
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.ultraThinMaterial)
-                        )
-                }
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.25))
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(.ultraThinMaterial)
+                    )
             )
-            .cornerRadius(16) // Match donation cards corner radius
-            .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10) // Exact match
-            .frame(maxWidth: 900)
+            .cornerRadius(16)
+            .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
             .padding(.horizontal, 40)
         }
-        .task {
-            await loadCalendarEvents()
-        }
-    }
-    
-    private func loadCalendarEvents() async {
-        isLoadingEvents = true
-        
-        // Load events from all Google calendar links
-        for event in religiousEvents {
-            guard let calendarLinks = event.googleCalendarLinks, !calendarLinks.isEmpty else {
-                continue
-            }
-            
-            var allEvents: [GoogleCalendarEvent] = []
-            
-            for calendarUrl in calendarLinks {
-                do {
-                    let events = try await GoogleCalendarService.shared.fetchUpcomingEvents(
-                        from: calendarUrl,
-                        limit: 50
-                    )
-                    allEvents.append(contentsOf: events)
-                } catch {
-                    print("[ReligiousEventsView] Failed to load calendar \(calendarUrl): \(error)")
-                }
-            }
-            
-            // Remove duplicates by ID and sort by date
-            var seenIds: Set<String> = []
-            let uniqueEvents = allEvents
-                .filter { event in
-                    if seenIds.contains(event.id) {
-                        return false
-                    }
-                    seenIds.insert(event.id)
-                    return true
-                }
-                .sorted { event1, event2 in
-                    let date1 = event1.start.displayDate ?? Date.distantFuture
-                    let date2 = event2.start.displayDate ?? Date.distantFuture
-                    return date1 < date2
-                }
-            
-            await MainActor.run {
-                calendarEvents[event.id] = uniqueEvents
-            }
-        }
-        
-        isLoadingEvents = false
     }
 }
 
-struct ReligiousEventCard: View {
+struct ReligiousEventRow: View {
     let event: ReligiousEvent
-    let calendarEvents: [GoogleCalendarEvent]
-    let isFirst: Bool
-    
+    let showCountdown: Bool
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 12) {
-                if let date = parseDate(event.date) {
-                    HStack {
-                        Image(systemName: "moon.stars.fill")
-                            .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
-                        Text(formatDate(date))
-                            .font(.custom("Inter-SemiBold", size: 16))
-                            .foregroundColor(.primary)
-                    }
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 10) {
+                // DATE
+                HStack(spacing: 6) {
+                    Image(systemName: "moon.stars.fill")
+                        .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
+
+                    Text(formattedDate(event.date))
+                        .font(.custom("Inter-Medium", size: 15))
+                        .foregroundColor(.secondary)
                 }
-                
+
+                // NAME + ICON
                 HStack(spacing: 8) {
                     Text(event.name)
                         .font(.custom("Inter-SemiBold", size: 20))
                         .foregroundColor(.primary)
-                    
-                    // Add icon based on event name
-                    if shouldShowFruitBasketIcon(event.name) {
+
+                    if showsBasket(event.name) {
                         Image(systemName: "basket.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(Color(red: 1.0, green: 0.65, blue: 0.0)) // Orange color for fruit basket
-                    } else if shouldShowFullMoonIcon(event.name) {
-                        Image(systemName: "moon.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8)) // Purple color for full moon
+                            .foregroundColor(.orange)
                     }
-                }
-                
-                if let description = event.description, !description.isEmpty {
-                    Text(description)
-                        .font(.custom("Inter-Regular", size: 16))
-                        .foregroundColor(.secondary)
-                        .lineLimit(3)
-                }
-                
-                if let startTime = event.startTime, !startTime.isEmpty {
-                    HStack {
-                        Image(systemName: "clock")
-                            .foregroundColor(.gray)
-                        Text(startTime)
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
+
+                    if showsMoon(event.name) {
+                        Image(systemName: "moon.fill")
+                            .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
                     }
                 }
             }
-            
-            // Days until event indicator (only for first event)
-            if isFirst, let eventDate = parseDate(event.date) {
+
+            // COUNTDOWN (only first event)
+            if showCountdown, let date = parseDate(event.date) {
                 Spacer()
                 VStack(spacing: 2) {
                     Text("Until")
                         .font(.custom("Inter-Regular", size: 12))
                         .foregroundColor(.secondary)
-                    let daysUntil = daysUntilEvent(eventDate)
-                    Text("\(daysUntil)")
+
+                    Text("\(daysUntil(date))")
                         .font(.custom("Inter-Bold", size: 32))
                         .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
-                    Text(daysUntil == 1 ? "day" : "days")
+
+                    Text(daysUntil(date) == 1 ? "day" : "days")
                         .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(.secondary)
                 }
-                .padding(.leading, 8)
             }
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemGray6))
+        .padding(16)
+        .background(Color.white.opacity(0.6))
         .cornerRadius(12)
     }
-    
-    private func parseDate(_ dateString: String) -> Date? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.date(from: dateString)
+
+    // MARK: Helpers
+
+    private func parseDate(_ date: String) -> Date? {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: date)
     }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
+
+    private func formattedDate(_ date: String) -> String {
+        guard let d = parseDate(date) else { return date }
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        return f.string(from: d)
     }
-    
-    private func daysUntilEvent(_ eventDate: Date) -> Int {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let eventDay = calendar.startOfDay(for: eventDate)
-        
-        let components = calendar.dateComponents([.day], from: today, to: eventDay)
-        return max(0, components.day ?? 0)
+
+    private func daysUntil(_ date: Date) -> Int {
+        let day = Calendar.current.dateComponents(
+            [.day],
+            from: Calendar.current.startOfDay(for: Date()),
+            to: Calendar.current.startOfDay(for: date)
+        ).day ?? 0
+        return max(0, day)
     }
-    
-    private func shouldShowFruitBasketIcon(_ eventName: String) -> Bool {
-        // Case-insensitive matching for any event containing "fast" or "shree hari jayanti"
-        // Works for variations like "Ekadashi Fast", "Putrada Ekadashi Fast", "Shree Hari Jayanti", etc.
-        let name = eventName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        return name.contains("fast") || name.contains("shree hari jayanti")
+
+    private func showsBasket(_ name: String) -> Bool {
+        let n = name.lowercased()
+        return n.contains("fast") || n.contains("shree hari jayanti")
     }
-    
-    private func shouldShowFullMoonIcon(_ eventName: String) -> Bool {
-        // Case-insensitive matching for any event containing "poonam"
-        // Works for variations like "Poonam", "Mukutotsav Poonam", "Kartik Poonam", etc.
-        let name = eventName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        return name.contains("poonam")
+
+    private func showsMoon(_ name: String) -> Bool {
+        name.lowercased().contains("poonam")
     }
 }
