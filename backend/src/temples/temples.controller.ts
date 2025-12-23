@@ -66,6 +66,66 @@ export class TemplesController {
     return this.templesService.findOne(user.templeId);
   }
 
+  @Get('proxy-image')
+  @Public()
+  @ApiOperation({ summary: 'Proxy image from external URL (e.g., Google Drive) - Public endpoint for kiosks' })
+  async proxyImage(@Query('url') url: string, @Res() res: Response) {
+    if (!url) {
+      return res.status(400).json({ message: 'URL parameter is required' });
+    }
+
+    try {
+      // Decode the URL if it's encoded
+      const decodedUrl = decodeURIComponent(url);
+      
+      // Validate that it's a Google Drive URL or other allowed domain
+      const allowedDomains = ['drive.google.com', 'googleusercontent.com', 'i.imgur.com'];
+      const urlObj = new URL(decodedUrl);
+      const isAllowed = allowedDomains.some(domain => urlObj.hostname.includes(domain));
+      
+      if (!isAllowed) {
+        console.log(`[Proxy Image] Blocked domain: ${urlObj.hostname}`);
+        return res.status(403).json({ message: 'Domain not allowed' });
+      }
+
+      console.log(`[Proxy Image] Proxying image from: ${decodedUrl}`);
+      
+      // Fetch the image
+      const response = await fetch(decodedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ISSO-Kiosk/1.0)',
+        },
+      });
+
+      if (!response.ok) {
+        console.log(`[Proxy Image] Failed to fetch image: ${response.status} ${response.statusText}`);
+        return res.status(response.status).json({ 
+          message: 'Failed to fetch image',
+          statusCode: response.status 
+        });
+      }
+
+      // Get content type
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      
+      // Set response headers
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+      
+      // Stream the image data
+      const imageData = await response.arrayBuffer();
+      res.send(Buffer.from(imageData));
+      
+      console.log(`[Proxy Image] Successfully proxied image (${imageData.byteLength} bytes)`);
+    } catch (error) {
+      console.error(`[Proxy Image] Error:`, error);
+      return res.status(500).json({ 
+        message: 'Failed to proxy image',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get temple by ID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
