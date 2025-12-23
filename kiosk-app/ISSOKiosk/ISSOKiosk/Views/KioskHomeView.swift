@@ -1458,26 +1458,33 @@ struct ReligiousEventRow: View {
     }
 
     private func sanitizedEventName(_ name: String) -> String {
-        var sanitized = name.lowercased()
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Remove words case-insensitively
-        let wordsToRemove = ["fast", "shree hari jayanti", "poonam"]
-        for word in wordsToRemove {
-            sanitized = sanitized.replacingOccurrences(of: word, with: "", options: .caseInsensitive)
+        // If the name is empty, return "Observance"
+        guard !trimmed.isEmpty else {
+            return "Observance"
         }
         
-        // Trim extra spaces and clean up
-        sanitized = sanitized.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Replace multiple spaces with single space
-        while sanitized.contains("  ") {
-            sanitized = sanitized.replacingOccurrences(of: "  ", with: " ")
+        // Split into words
+        let words = trimmed.components(separatedBy: " ").filter { !$0.isEmpty }
+        
+        // Words to remove (case-insensitive)
+        let wordsToRemove = ["fast", "shree", "hari", "jayanti", "poonam"]
+        
+        // Filter out words that match our removal list
+        let filteredWords = words.filter { word in
+            !wordsToRemove.contains { wordToRemove in
+                word.lowercased() == wordToRemove.lowercased()
+            }
         }
         
-        // Capitalize first letter of each word
-        let words = sanitized.components(separatedBy: " ").filter { !$0.isEmpty }
-        sanitized = words.map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
+        // If after filtering we have no words left, use the original name
+        if filteredWords.isEmpty {
+            // Return original name with proper capitalization
+            return words.map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }.joined(separator: " ")
+        }
         
-        // If empty, return "Observance"
-        return sanitized.isEmpty ? "Observance" : sanitized
+        // Return filtered words with proper capitalization
+        return filteredWords.map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }.joined(separator: " ")
     }
 }
