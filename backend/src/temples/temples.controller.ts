@@ -24,6 +24,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import axios from 'axios';
+import axios from 'axios';
 
 @ApiTags('temples')
 @Controller('temples')
