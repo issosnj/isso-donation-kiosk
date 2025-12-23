@@ -10,6 +10,7 @@ class AppState: ObservableObject {
     @Published var categories: [DonationCategory] = []
     @Published var religiousEvents: [ReligiousEvent] = []
     @Published var backgroundImage: UIImage? = nil // Cached background image
+    @Published var languageManager = LanguageManager.shared
     
     private let keychain = KeychainHelper()
     private var themeRefreshTimer: Timer?

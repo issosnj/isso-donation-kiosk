@@ -6,9 +6,11 @@ struct KioskHomeView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var navigationState: AppNavigationState
     @ObservedObject private var networkMonitor = NetworkMonitor.shared
+    @ObservedObject private var languageManager = LanguageManager.shared
     @State private var showWhatsAppQR = false
     @State private var showEvents = false
     @State private var showReligiousEvents = false
+    @State private var showLanguageSelector = false
     @State private var currentTime = Date()
     @State private var timer: Timer?
     
@@ -160,7 +162,7 @@ struct KioskHomeView: View {
                         
                         // Under Shree NarNarayan Dev Gadi - Italic
                         if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
-                            Text("Under Shree NarNarayan Dev Gadi")
+                            Text("underGadi".localized)
                                 .font(.system(size: 20, weight: .regular, design: .default))
                                 .italic()
                                 .foregroundColor(colorFromHex("423232"))
@@ -193,6 +195,30 @@ struct KioskHomeView: View {
                             .padding(.trailing, 20)
                             .padding(.top, 7)
                     }
+                    
+                    // Language Selector Button (top left)
+                    VStack {
+                        Button(action: {
+                            showLanguageSelector = true
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "globe")
+                                    .font(.system(size: 18))
+                                Text(languageManager.currentLanguage.nativeName)
+                                    .font(.system(size: 16, weight: .medium))
+                            }
+                            .foregroundColor(colorFromHex("423232"))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.white.opacity(0.8))
+                            .cornerRadius(8)
+                            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        Spacer()
+                    }
+                    .padding(.leading, 20)
+                    .padding(.top, 7)
                 }
             
             Spacer()
@@ -232,26 +258,26 @@ struct KioskHomeView: View {
                         let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
                         let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
                         
-                        if hasEvents {
-                            VStack(spacing: 12) {
-                                Text("Quick Actions")
-                                    .font(.custom("Inter-SemiBold", size: 20))
-                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                                
-                                HStack(spacing: 16) {
-                                    // Upcoming Events - only show if configured
-                                    ModernQuickActionButton(
-                                        icon: "calendar",
-                                        title: "Events",
-                                        color: Color(red: 1.0, green: 0.58, blue: 0.0),
-                                        isActive: true
-                                    ) {
-                                        showEvents = true
+                            if hasEvents {
+                                VStack(spacing: 12) {
+                                    Text("quickActions".localized)
+                                        .font(.custom("Inter-SemiBold", size: 20))
+                                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                                    
+                                    HStack(spacing: 16) {
+                                        // Upcoming Events - only show if configured
+                                        ModernQuickActionButton(
+                                            icon: "calendar",
+                                            title: "events".localized,
+                                            color: Color(red: 1.0, green: 0.58, blue: 0.0),
+                                            isActive: true
+                                        ) {
+                                            showEvents = true
+                                        }
                                     }
+                                    .padding(.horizontal, 20)
                                 }
-                                .padding(.horizontal, 20)
                             }
-                        }
                     }
                     .padding(.horizontal, 40)
                     .padding(.top, 20)
@@ -344,7 +370,7 @@ struct KioskHomeView: View {
         if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
             if let x = appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextX,
                let y = appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextY {
-            Text("Under Shree NarNarayan Dev Gadi")
+            Text("underGadi".localized)
                 .font(.system(size: 20, weight: .regular, design: .default))
                 .italic()
                 .foregroundColor(colorFromHex("423232"))
@@ -353,7 +379,7 @@ struct KioskHomeView: View {
                 .position(x: CGFloat(x), y: CGFloat(y))
         } else {
             // Default position if not set
-            Text("Under Shree NarNarayan Dev Gadi")
+            Text("underGadi".localized)
                 .font(.system(size: 20, weight: .regular, design: .default))
                 .italic()
                 .foregroundColor(colorFromHex("423232"))
@@ -450,14 +476,14 @@ struct KioskHomeView: View {
                 if let x = appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsX,
                    let y = appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsY {
                 VStack(spacing: 12) {
-                    Text("Quick Actions")
+                    Text("quickActions".localized)
                         .font(.custom("Inter-SemiBold", size: 20))
                         .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                     
                     HStack(spacing: 16) {
                         ModernQuickActionButton(
                             icon: "calendar",
-                            title: "Events",
+                            title: "events".localized,
                             color: Color(red: 1.0, green: 0.58, blue: 0.0),
                             isActive: true
                         ) {
@@ -470,14 +496,14 @@ struct KioskHomeView: View {
             } else {
                 // Default position
                 VStack(spacing: 12) {
-                    Text("Quick Actions")
+                    Text("quickActions".localized)
                         .font(.custom("Inter-SemiBold", size: 20))
                         .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                     
                     HStack(spacing: 16) {
                         ModernQuickActionButton(
                             icon: "calendar",
-                            title: "Events",
+                            title: "events".localized,
                             color: Color(red: 1.0, green: 0.58, blue: 0.0),
                             isActive: true
                         ) {
@@ -563,7 +589,7 @@ struct KioskHomeView: View {
                                 .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
                         }
                         
-                        Text("WhatsApp Group")
+                        Text("whatsappGroup".localized)
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(colorFromHex("423232")) // Matches header color
                     }
@@ -608,7 +634,7 @@ struct KioskHomeView: View {
                             .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
                     }
                     
-                    Text("Observance")
+                    Text("observance".localized)
                         .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(colorFromHex("423232"))
                 }
@@ -628,7 +654,7 @@ struct KioskHomeView: View {
         }
         .sheet(isPresented: $showWhatsAppQR) {
             if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink {
-                QRCodeDisplayView(url: whatsAppLink, title: "Join WhatsApp", cachedImage: qrCodeCache[whatsAppLink])
+                QRCodeDisplayView(url: whatsAppLink, title: "whatsappGroup".localized, cachedImage: qrCodeCache[whatsAppLink])
             }
         }
         .sheet(isPresented: $showEvents) {
@@ -641,6 +667,9 @@ struct KioskHomeView: View {
         .sheet(isPresented: $showReligiousEvents) {
             ReligiousEventsView(religiousEvents: appState.religiousEvents)
                 .environmentObject(appState)
+        }
+        .sheet(isPresented: $showLanguageSelector) {
+            LanguageSelectorView(languageManager: languageManager)
         }
         .onAppear {
             // Start timer to update time every second - optimized for performance
@@ -953,7 +982,7 @@ struct GoldAccentDonateButton: View {
                     .opacity(isPressed ? 0.9 : 1.0)
                 
                 // Text overlay - centered on the button
-                Text("Tap To Donate")
+                Text("tapToDonate".localized)
                     .font(.custom("Inter-Bold", size: 52))
                     .foregroundColor(.white)
                     .tracking(1.5) // Letter spacing for elegance
@@ -1444,7 +1473,7 @@ struct ReligiousEventsView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // Note text below title
-                Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
+                Text("observanceNote".localized)
                     .font(.custom(appState.temple?.kioskTheme?.fonts?.bodyFamily ?? "Inter-Regular", size: 13))
                     .italic()
                     .foregroundColor(.secondary)
@@ -1461,7 +1490,7 @@ struct ReligiousEventsView: View {
                                 Image(systemName: "moon.stars.fill")
                                     .font(.system(size: 50))
                                     .foregroundColor(.gray)
-                                Text("No upcoming observances")
+                                Text("noUpcomingObservances".localized)
                                     .font(.custom(appState.temple?.kioskTheme?.fonts?.headingFamily ?? "Inter-SemiBold", size: 20))
                             }
                             .padding()
@@ -1492,11 +1521,11 @@ struct ReligiousEventsView: View {
             }
             .padding()
             .background(Color.white)
-            .navigationTitle("Religious Observances")
+            .navigationTitle("religiousObservances".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button("done".localized) {
                         dismiss()
                     }
                     .foregroundColor(colorFromHex(
@@ -1580,9 +1609,9 @@ struct ReligiousEventRow: View {
     private func sanitizedEventName(_ name: String) -> String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // If the name is empty, return "Observance"
+        // If the name is empty, return localized "Observance"
         guard !trimmed.isEmpty else {
-            return "Observance"
+            return "observance".localized
         }
         
         // Split into words
