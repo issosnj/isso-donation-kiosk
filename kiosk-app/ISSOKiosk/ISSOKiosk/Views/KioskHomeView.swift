@@ -304,7 +304,6 @@ struct KioskHomeView: View {
         .sheet(isPresented: $showReligiousEvents) {
             ReligiousEventsView(religiousEvents: appState.religiousEvents)
                 .environmentObject(appState)
-                .presentationBackground(.clear)
         }
         .sheet(item: Binding(
             get: { showSocialMediaQR.map { SocialMediaItem(url: $0) } },
@@ -1380,10 +1379,12 @@ struct ReligiousEventsView: View {
                     .padding(.vertical, 12)
                 }
                 .frame(minHeight: 320, maxHeight: 520)
+                .background(Color.white)
                 
                 Spacer()
             }
             .padding()
+            .background(Color.white)
             .navigationTitle("Religious Observances")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1398,6 +1399,7 @@ struct ReligiousEventsView: View {
                 }
             }
         }
+        .background(Color.white)
     }
 }
 
