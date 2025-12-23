@@ -190,35 +190,48 @@ export class TemplesController {
 
       console.log(`[Proxy Image] Proxying image from: ${decodedUrl}`);
       
-      // Fetch the image
-      const response = await fetch(decodedUrl, {
+      // Fetch the image using axios
+      const response = await axios.get(decodedUrl, {
+        responseType: 'arraybuffer',
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ISSO-Kiosk/1.0)',
         },
+        timeout: 30000, // 30 second timeout
       });
 
-      if (!response.ok) {
-        console.log(`[Proxy Image] Failed to fetch image: ${response.status} ${response.statusText}`);
-        return res.status(response.status).json({ 
-          message: 'Failed to fetch image',
-          statusCode: response.status 
-        });
-      }
-
       // Get content type
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const contentType = response.headers['content-type'] || 'image/jpeg';
       
       // Set response headers
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
       
-      // Stream the image data
-      const imageData = await response.arrayBuffer();
-      res.send(Buffer.from(imageData));
+      // Send the image data
+      res.send(Buffer.from(response.data));
       
-      console.log(`[Proxy Image] Successfully proxied image (${imageData.byteLength} bytes)`);
-    } catch (error) {
+      console.log(`[Proxy Image] Successfully proxied image (${response.data.byteLength} bytes)`);
+    } catch (error: any) {
       console.error(`[Proxy Image] Error:`, error);
+      
+      // Handle axios errors
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.log(`[Proxy Image] Failed to fetch image: ${error.response.status} ${error.response.statusText}`);
+        return res.status(error.response.status).json({ 
+          message: 'Failed to fetch image',
+          statusCode: error.response.status 
+        });
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.log(`[Proxy Image] No response received: ${error.message}`);
+        return res.status(504).json({ 
+          message: 'Image source did not respond',
+          error: error.message
+        });
+      }
+      
+      // Something happened in setting up the request
       return res.status(500).json({ 
         message: 'Failed to proxy image',
         error: error instanceof Error ? error.message : 'Unknown error'
