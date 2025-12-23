@@ -98,10 +98,7 @@ class LanguageManager: ObservableObject {
             "next": "Next",
             "submit": "Submit",
             
-            // Donation Selection Page
-            "selectCategory": "Select Category",
-            "selectAmount": "Select Amount",
-            "customAmount": "Custom Amount",
+            // Donation Selection Page (additional keys)
             "enterAmount": "Enter Amount",
             "quantity": "Quantity",
             "total": "Total",
@@ -161,10 +158,7 @@ class LanguageManager: ObservableObject {
             "next": "આગળ",
             "submit": "સબમિટ કરો",
             
-            // Donation Selection Page
-            "selectCategory": "કેટેગરી પસંદ કરો",
-            "selectAmount": "રકમ પસંદ કરો",
-            "customAmount": "કસ્ટમ રકમ",
+            // Donation Selection Page (additional keys)
             "enterAmount": "રકમ દાખલ કરો",
             "quantity": "પ્રમાણ",
             "total": "કુલ",
@@ -224,10 +218,7 @@ class LanguageManager: ObservableObject {
             "next": "आगे",
             "submit": "सबमिट करें",
             
-            // Donation Selection Page
-            "selectCategory": "श्रेणी चुनें",
-            "selectAmount": "राशि चुनें",
-            "customAmount": "कस्टम राशि",
+            // Donation Selection Page (additional keys)
             "enterAmount": "राशि दर्ज करें",
             "quantity": "मात्रा",
             "total": "कुल",
