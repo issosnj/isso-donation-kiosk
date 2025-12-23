@@ -656,6 +656,22 @@ struct ModernDonationDetailsView: View {
                 Spacer()
             }
         }
+    }
+    
+    var body: some View {
+        ZStack {
+            // Background: Use same background as donation page
+            GeometryReader { geometry in
+                backgroundView(geometry: geometry)
+            }
+            .ignoresSafeArea(.all, edges: .all)
+            
+            // Main content
+            GeometryReader { geometry in
+                mainContentView
+                    .frame(width: geometry.size.width)
+            }
+        }
         .sheet(isPresented: $showingPhoneKeypad) {
             PhoneNumberKeypadView(phoneNumber: $donorPhone) {
                 showingPhoneKeypad = false
@@ -687,22 +703,6 @@ struct ModernDonationDetailsView: View {
                         showingYajmanOpportunities = false
                     }
                 )
-            }
-        }
-    }
-    
-    var body: some View {
-        ZStack {
-            // Background: Use same background as donation page
-            GeometryReader { geometry in
-                backgroundView(geometry: geometry)
-            }
-            .ignoresSafeArea(.all, edges: .all)
-            
-            // Main content
-            GeometryReader { geometry in
-                mainContentView
-                    .frame(width: geometry.size.width)
             }
         }
         .onAppear {
