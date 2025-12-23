@@ -717,6 +717,7 @@ struct ThemeColors: Codable, Equatable {
     let categoryUnselectedColor: String?
     let amountSelectedColor: String?
     let amountUnselectedColor: String?
+    let doneButtonColor: String? // Color for Done button in modals (e.g., Religious Observances)
 }
 
 struct ThemeLayout: Codable, Equatable {

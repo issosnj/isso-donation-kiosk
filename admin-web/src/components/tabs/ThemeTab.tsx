@@ -62,6 +62,7 @@ export default function ThemeTab() {
       categoryUnselectedColor: '#3366CC',
       amountSelectedColor: '#3366CC',
       amountUnselectedColor: '#3366CC',
+      doneButtonColor: '#007AFF', // Default iOS blue for Done button
     },
     layout: {
       categoryBoxMaxWidth: 400,
@@ -141,6 +142,7 @@ export default function ThemeTab() {
           categoryUnselectedColor: temple.kioskTheme.colors?.categoryUnselectedColor || temple.homeScreenConfig?.buttonColors?.categoryUnselected || '#3366CC',
           amountSelectedColor: temple.kioskTheme.colors?.amountSelectedColor || temple.homeScreenConfig?.buttonColors?.amountSelected || '#3366CC',
           amountUnselectedColor: temple.kioskTheme.colors?.amountUnselectedColor || temple.homeScreenConfig?.buttonColors?.amountUnselected || '#3366CC',
+          doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
         },
         layout: {
           categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
@@ -266,6 +268,7 @@ export default function ThemeTab() {
                       categoryUnselectedColor: temple.kioskTheme.colors?.categoryUnselectedColor || temple.homeScreenConfig?.buttonColors?.categoryUnselected || '#3366CC',
                       amountSelectedColor: temple.kioskTheme.colors?.amountSelectedColor || temple.homeScreenConfig?.buttonColors?.amountSelected || '#3366CC',
                       amountUnselectedColor: temple.kioskTheme.colors?.amountUnselectedColor || temple.homeScreenConfig?.buttonColors?.amountUnselected || '#3366CC',
+                      doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
                     },
                     layout: {
                       categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,

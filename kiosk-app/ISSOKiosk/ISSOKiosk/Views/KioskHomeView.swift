@@ -303,6 +303,7 @@ struct KioskHomeView: View {
         }
         .sheet(isPresented: $showReligiousEvents) {
             ReligiousEventsView(religiousEvents: appState.religiousEvents)
+                .environmentObject(appState)
                 .presentationBackground(.clear)
         }
         .sheet(item: Binding(
@@ -1304,27 +1305,47 @@ struct LocalEventCard: View {
 struct ReligiousEventsView: View {
     let religiousEvents: [ReligiousEvent]
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var appState: AppState
+    
+    // Helper to convert hex string to Color
+    private func colorFromHex(_ hex: String?, defaultColor: Color) -> Color {
+        guard let hex = hex, !hex.isEmpty else {
+            return defaultColor
+        }
+        
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        
+        if hexSanitized.count == 3 {
+            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
+        }
+        
+        guard hexSanitized.count == 6,
+              let rgb = UInt32(hexSanitized, radix: 16) else {
+            return defaultColor
+        }
+        
+        let r = Double((rgb >> 16) & 0xFF) / 255.0
+        let g = Double((rgb >> 8) & 0xFF) / 255.0
+        let b = Double(rgb & 0xFF) / 255.0
+        
+        return Color(red: r, green: g, blue: b)
+    }
 
     var body: some View {
-        ZStack {
-            Color.white.ignoresSafeArea()
-
+        NavigationView {
             VStack(spacing: 0) {
-                // HEADER
-                VStack(spacing: 6) {
-                    Text("Religious Observances")
-                        .font(.custom("Inter-SemiBold", size: 22))
-                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-
-                    Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
-                        .font(.custom("Inter-Regular", size: 13))
-                        .italic()
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
-                }
-                .padding(.top, 20)
-                .padding(.bottom, 16)
+                // Note text below title
+                Text("Please note that certain fasting dates are subject to change based on the lunar calendar.")
+                    .font(.custom(appState.temple?.kioskTheme?.fonts?.bodyFamily ?? "Inter-Regular", size: 13))
+                    .italic()
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 20)
+                    .padding(.bottom, 16)
 
                 // LIST CONTENT
                 ScrollView(showsIndicators: false) {
@@ -1335,7 +1356,7 @@ struct ReligiousEventsView: View {
                                     .font(.system(size: 50))
                                     .foregroundColor(.gray)
                                 Text("No upcoming observances")
-                                    .font(.custom("Inter-SemiBold", size: 20))
+                                    .font(.custom(appState.temple?.kioskTheme?.fonts?.headingFamily ?? "Inter-SemiBold", size: 20))
                             }
                             .padding()
                         } else {
@@ -1359,34 +1380,23 @@ struct ReligiousEventsView: View {
                     .padding(.vertical, 12)
                 }
                 .frame(minHeight: 320, maxHeight: 520)
-                .background(Color.white)
-
-                // DONE BUTTON
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Done")
-                        .font(.custom("Inter-SemiBold", size: 18))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            Color(red: 255, green: 150, blue: 31)
-                        )
-                        .cornerRadius(16)
-                }
-                .padding(.horizontal, 40)
-                .padding(.top, 16)
-                .padding(.bottom, 20)
+                
+                Spacer()
             }
-            .frame(maxWidth: 1200)
-            .padding(24)
-            .background(
-                RoundedRectangle(cornerRadius: 28)
-                    .fill(Color.white)
-            )
-            .shadow(color: Color.black.opacity(0.15), radius: 25, x: 0, y: 12)
-            .padding(.horizontal, 40)
+            .padding()
+            .navigationTitle("Religious Observances")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(colorFromHex(
+                        appState.temple?.kioskTheme?.colors?.doneButtonColor,
+                        defaultColor: Color.blue
+                    ))
+                }
+            }
         }
     }
 }
