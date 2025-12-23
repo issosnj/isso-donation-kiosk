@@ -625,8 +625,8 @@ struct ModernDonationDetailsView: View {
                     )
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
-                        }
-                        .padding(.horizontal, detailsPageSidePadding)
+                    }
+                    .padding(.horizontal, detailsPageSidePadding)
                         
                         // Bottom spacing
                         Spacer()
