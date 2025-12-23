@@ -554,6 +554,25 @@ struct KioskHomeView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             }
         }
+        
+        // Language Selector
+        if appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorVisible != false {
+            if let x = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorX,
+               let y = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorY {
+                // Positioned using X/Y coordinates
+                LanguageSelectorView(languageManager: languageManager)
+                    .position(x: CGFloat(x), y: CGFloat(y))
+            } else {
+                // Default position (top left)
+                VStack {
+                    LanguageSelectorView(languageManager: languageManager)
+                    Spacer()
+                }
+                .padding(.leading, 20)
+                .padding(.top, 7)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+        }
     }
     
     // WhatsApp buttons view (reusable)
