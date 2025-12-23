@@ -1321,14 +1321,14 @@ struct ReligiousEventsView: View {
                         .italic()
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 40)
                 }
                 .padding(.top, 20)
                 .padding(.bottom, 16)
 
                 // LIST CONTENT
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 0) {
                         if religiousEvents.isEmpty {
                             VStack(spacing: 20) {
                                 Image(systemName: "moon.stars.fill")
@@ -1340,15 +1340,23 @@ struct ReligiousEventsView: View {
                             .padding()
                         } else {
                             ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
-                                ReligiousEventRow(
-                                    event: event,
-                                    showCountdown: index == 0
-                                )
+                                VStack(spacing: 0) {
+                                    ReligiousEventRow(
+                                        event: event,
+                                        showCountdown: index == 0
+                                    )
+                                    
+                                    // Divider between rows (except last)
+                                    if index < religiousEvents.count - 1 {
+                                        Divider()
+                                            .background(Color.gray.opacity(0.2))
+                                            .padding(.horizontal, 18)
+                                    }
+                                }
                             }
                         }
                     }
                     .padding(.vertical, 12)
-                    .padding(.horizontal, 20)
                 }
                 .frame(minHeight: 320, maxHeight: 520)
 
@@ -1366,18 +1374,18 @@ struct ReligiousEventsView: View {
                         )
                         .cornerRadius(16)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 40)
                 .padding(.top, 16)
                 .padding(.bottom, 20)
             }
-            .frame(maxWidth: 980)
+            .frame(maxWidth: 1200)
             .padding(24)
             .background(
                 RoundedRectangle(cornerRadius: 28)
                     .fill(Color.white)
             )
             .shadow(color: Color.black.opacity(0.15), radius: 25, x: 0, y: 12)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 40)
         }
     }
 }
