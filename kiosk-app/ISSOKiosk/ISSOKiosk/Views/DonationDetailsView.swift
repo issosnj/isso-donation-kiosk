@@ -844,7 +844,6 @@ struct ModernDonationDetailsView: View {
             return "(\(areaCode)) \(firstPart)-\(lastPart)"
         }
     }
-}
 
 // Keep old view for compatibility
 struct DonationDetailsView: View {
