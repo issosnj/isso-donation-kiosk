@@ -84,6 +84,29 @@ struct ModernDonationDetailsView: View {
         return Color(red: r, green: g, blue: b)
     }
     
+    // Helper to create a gradient from a color (lighter variant for gradient effect)
+    private func gradientFromColor(_ color: Color) -> LinearGradient {
+        // Convert Color to UIColor to extract components
+        let uiColor = UIColor(color)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        
+        // Create a lighter variant by increasing brightness
+        let lighterColor = Color(
+            red: min(1.0, Double(r) * 1.15),
+            green: min(1.0, Double(g) * 1.15),
+            blue: min(1.0, Double(b) * 1.15)
+        )
+        return LinearGradient(
+            gradient: Gradient(colors: [color, lighterColor]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
     private var detailsPageHorizontalSpacing: CGFloat {
         CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? 40)
     }
@@ -326,13 +349,11 @@ struct ModernDonationDetailsView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.85, green: 0.75, blue: 0.5),
-                                        Color(red: 0.95, green: 0.85, blue: 0.6)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                gradientFromColor(
+                                    colorFromHex(
+                                        theme?.colors?.returnToHomeButtonColor,
+                                        defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
+                                    )
                                 )
                             )
                             .cornerRadius(12)
@@ -565,13 +586,11 @@ struct ModernDonationDetailsView: View {
                             .padding(.vertical, 18)
                             .background(
                                 canProceed 
-                                    ? LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.85, green: 0.75, blue: 0.5),
-                                            Color(red: 0.95, green: 0.85, blue: 0.6)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
+                                    ? gradientFromColor(
+                                        colorFromHex(
+                                            theme?.colors?.proceedToPaymentButtonColor,
+                                            defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                                        )
                                     )
                                     : LinearGradient(
                                         gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),

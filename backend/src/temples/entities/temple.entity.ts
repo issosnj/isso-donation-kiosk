@@ -117,6 +117,8 @@ export class Temple {
       amountSelectedColor?: string; // Hex color for selected amount buttons
       amountUnselectedColor?: string; // Hex color for unselected amount buttons
       doneButtonColor?: string; // Hex color for Done button in modals (e.g., Religious Observances)
+      returnToHomeButtonColor?: string; // Hex color for Return to Home button
+      proceedToPaymentButtonColor?: string; // Hex color for Proceed to Payment button
     };
     // Layout settings
     layout?: {

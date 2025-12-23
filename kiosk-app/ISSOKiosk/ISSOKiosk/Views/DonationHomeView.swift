@@ -840,7 +840,7 @@ struct DonationHomeView: View {
             
             // Buttons side by side: Home and Continue
             HStack(spacing: 16) {
-                // Home button - same theme as Continue button
+                // Home button - uses returnToHomeButtonColor from theme
                 Button(action: {
                     onDismiss()
                 }) {
@@ -852,11 +852,16 @@ struct DonationHomeView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color(red: 1.0, green: 0.58, blue: 0.0)) // Orange color matching continue button
+                    .background(
+                        colorFromHex(
+                            appState.temple?.kioskTheme?.colors?.returnToHomeButtonColor,
+                            defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                        )
+                    )
                     .cornerRadius(12)
                 }
                 
-                // Continue button
+                // Continue button - uses proceedToPaymentButtonColor from theme
                 Button(action: {
                     showingDetails = true
                 }) {
@@ -867,7 +872,10 @@ struct DonationHomeView: View {
                         .padding(.vertical, 14)
                         .background(
                             hasValidAmount
-                                ? Color(red: 1.0, green: 0.58, blue: 0.0) // Orange color
+                                ? colorFromHex(
+                                    appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonColor,
+                                    defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                                )
                                 : Color.gray.opacity(0.4)
                         )
                         .cornerRadius(12)

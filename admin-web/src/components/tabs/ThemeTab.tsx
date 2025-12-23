@@ -63,6 +63,8 @@ export default function ThemeTab() {
       amountSelectedColor: '#3366CC',
       amountUnselectedColor: '#3366CC',
       doneButtonColor: '#007AFF', // Default iOS blue for Done button
+      returnToHomeButtonColor: '#D9C080', // Default gold color for Return to Home button
+      proceedToPaymentButtonColor: '#FF9500', // Default orange color for Proceed to Payment button
     },
     layout: {
       categoryBoxMaxWidth: 400,
@@ -143,6 +145,8 @@ export default function ThemeTab() {
           amountSelectedColor: temple.kioskTheme.colors?.amountSelectedColor || temple.homeScreenConfig?.buttonColors?.amountSelected || '#3366CC',
           amountUnselectedColor: temple.kioskTheme.colors?.amountUnselectedColor || temple.homeScreenConfig?.buttonColors?.amountUnselected || '#3366CC',
           doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
+          returnToHomeButtonColor: temple.kioskTheme.colors?.returnToHomeButtonColor || '#D9C080',
+          proceedToPaymentButtonColor: temple.kioskTheme.colors?.proceedToPaymentButtonColor || '#FF9500',
         },
         layout: {
           categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
@@ -269,6 +273,8 @@ export default function ThemeTab() {
                       amountSelectedColor: temple.kioskTheme.colors?.amountSelectedColor || temple.homeScreenConfig?.buttonColors?.amountSelected || '#3366CC',
                       amountUnselectedColor: temple.kioskTheme.colors?.amountUnselectedColor || temple.homeScreenConfig?.buttonColors?.amountUnselected || '#3366CC',
                       doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
+                      returnToHomeButtonColor: temple.kioskTheme.colors?.returnToHomeButtonColor || '#D9C080',
+                      proceedToPaymentButtonColor: temple.kioskTheme.colors?.proceedToPaymentButtonColor || '#FF9500',
                     },
                     layout: {
                       categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
