@@ -415,6 +415,16 @@ export default function ThemeTab() {
                       homeScreenCustomMessageY: temple.kioskTheme.layout?.homeScreenCustomMessageY,
                       homeScreenWhatsAppButtonsX: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
                       homeScreenWhatsAppButtonsY: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
+                      // Home Screen Element Visibility
+                      homeScreenWelcomeTextVisible: temple.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
+                      homeScreenHeader1Visible: temple.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
+                      homeScreenUnderGadiTextVisible: temple.kioskTheme.layout?.homeScreenUnderGadiTextVisible ?? true,
+                      homeScreenAddressVisible: temple.kioskTheme.layout?.homeScreenAddressVisible ?? true,
+                      homeScreenTimeStatusVisible: temple.kioskTheme.layout?.homeScreenTimeStatusVisible ?? true,
+                      homeScreenTapToDonateVisible: temple.kioskTheme.layout?.homeScreenTapToDonateVisible ?? true,
+                      homeScreenQuickActionsVisible: temple.kioskTheme.layout?.homeScreenQuickActionsVisible ?? true,
+                      homeScreenCustomMessageVisible: temple.kioskTheme.layout?.homeScreenCustomMessageVisible ?? true,
+                      homeScreenWhatsAppButtonsVisible: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
                       // Donation Details Page Layout
                       detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
                       detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
