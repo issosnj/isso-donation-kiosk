@@ -1307,7 +1307,7 @@ struct ReligiousEventsView: View {
 
     var body: some View {
         ZStack {
-            Color.clear.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // HEADER
@@ -1359,6 +1359,7 @@ struct ReligiousEventsView: View {
                     .padding(.vertical, 12)
                 }
                 .frame(minHeight: 320, maxHeight: 520)
+                .background(Color.white)
 
                 // DONE BUTTON
                 Button {
@@ -1370,7 +1371,7 @@ struct ReligiousEventsView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
-                            Color(red: 0.6, green: 0.4, blue: 0.8)
+                            Color(red: 255, green: 150, blue: 31)
                         )
                         .cornerRadius(16)
                 }
