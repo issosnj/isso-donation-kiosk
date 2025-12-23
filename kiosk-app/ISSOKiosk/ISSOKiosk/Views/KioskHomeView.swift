@@ -1384,11 +1384,7 @@ struct ReligiousEventsView: View {
             .padding(24)
             .background(
                 RoundedRectangle(cornerRadius: 28)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 28)
-                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                    )
+                    .fill(Color.white)
             )
             .shadow(color: Color.black.opacity(0.15), radius: 25, x: 0, y: 12)
             .padding(.horizontal, 24)
