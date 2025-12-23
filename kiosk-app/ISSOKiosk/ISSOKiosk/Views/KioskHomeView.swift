@@ -1329,7 +1329,7 @@ struct ReligiousEventsView: View {
                 // INNER PANEL WITH LIST
                 VStack(spacing: 0) {
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 0) {
+                        VStack(spacing: 16) {
                             if religiousEvents.isEmpty {
                                 VStack(spacing: 20) {
                                     Image(systemName: "moon.stars.fill")
@@ -1345,15 +1345,10 @@ struct ReligiousEventsView: View {
                                         event: event,
                                         showCountdown: index == 0
                                     )
-                                    
-                                    if index < religiousEvents.count - 1 {
-                                        Divider()
-                                            .padding(.leading, 18)
-                                    }
                                 }
                             }
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 12)
                     }
                 }
                 .frame(minHeight: 320, maxHeight: 520)
@@ -1385,35 +1380,18 @@ struct ReligiousEventsView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 20)
             }
-            .frame(maxWidth: 820)
+            .frame(maxWidth: 980)
             .padding(24)
             .background(
-                ZStack {
-                    // Back plate (right)
-                    RoundedRectangle(cornerRadius: 30)
-                        .fill(Color(.systemGray5).opacity(0.55))
-                        .scaleEffect(1.03)
-                        .offset(x: 34, y: 0)
-                        .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 10)
-
-                    // Back plate (left)
-                    RoundedRectangle(cornerRadius: 30)
-                        .fill(Color(.systemGray5).opacity(0.35))
-                        .scaleEffect(1.06)
-                        .offset(x: -34, y: 0)
-                        .shadow(color: Color.black.opacity(0.06), radius: 18, x: 0, y: 8)
-
-                    // Main card
-                    RoundedRectangle(cornerRadius: 28)
-                        .fill(Color.white.opacity(0.92))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 28)
-                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.18), radius: 30, x: 0, y: 16)
-                }
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28)
+                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                    )
             )
-            .padding(.horizontal, 40)
+            .shadow(color: Color.black.opacity(0.15), radius: 25, x: 0, y: 12)
+            .padding(.horizontal, 24)
         }
     }
 }
@@ -1426,35 +1404,15 @@ struct ReligiousEventRow: View {
         HStack(alignment: .top, spacing: 16) {
             // LEFT SIDE: Date and Event Name
             VStack(alignment: .leading, spacing: 10) {
-                // DATE with purple moon icon
-                HStack(spacing: 6) {
-                    Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
+                // DATE (no icon)
+                Text(formattedDate(event.date))
+                    .font(.custom("Inter-Medium", size: 15))
+                    .foregroundColor(.secondary)
 
-                    Text(formattedDate(event.date))
-                        .font(.custom("Inter-Medium", size: 15))
-                        .foregroundColor(.secondary)
-                }
-
-                // NAME + ICON
-                HStack(spacing: 8) {
-                    Text(event.name)
-                        .font(.custom("Inter-SemiBold", size: 20))
-                        .foregroundColor(.primary)
-
-                    if showsBasket(event.name) {
-                        Image(systemName: "basket.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.orange)
-                    }
-
-                    if showsMoon(event.name) {
-                        Image(systemName: "moon.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
-                    }
-                }
+                // NAME (sanitized, no icons)
+                Text(sanitizedEventName(event.name))
+                    .font(.custom("Inter-SemiBold", size: 20))
+                    .foregroundColor(.primary)
             }
 
             // RIGHT SIDE: Countdown (only first event)
@@ -1478,7 +1436,7 @@ struct ReligiousEventRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 18)
-        .padding(.vertical, 12)
+        .padding(.vertical, 20)
     }
 
     // MARK: Helpers
@@ -1505,12 +1463,27 @@ struct ReligiousEventRow: View {
         return max(0, day)
     }
 
-    private func showsBasket(_ name: String) -> Bool {
-        let n = name.lowercased()
-        return n.contains("fast") || n.contains("shree hari jayanti")
-    }
-
-    private func showsMoon(_ name: String) -> Bool {
-        name.lowercased().contains("poonam")
+    private func sanitizedEventName(_ name: String) -> String {
+        var sanitized = name.lowercased()
+        
+        // Remove words case-insensitively
+        let wordsToRemove = ["fast", "shree hari jayanti", "poonam"]
+        for word in wordsToRemove {
+            sanitized = sanitized.replacingOccurrences(of: word, with: "", options: .caseInsensitive)
+        }
+        
+        // Trim extra spaces and clean up
+        sanitized = sanitized.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Replace multiple spaces with single space
+        while sanitized.contains("  ") {
+            sanitized = sanitized.replacingOccurrences(of: "  ", with: " ")
+        }
+        
+        // Capitalize first letter of each word
+        let words = sanitized.components(separatedBy: " ").filter { !$0.isEmpty }
+        sanitized = words.map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
+        
+        // If empty, return "Observance"
+        return sanitized.isEmpty ? "Observance" : sanitized
     }
 }
