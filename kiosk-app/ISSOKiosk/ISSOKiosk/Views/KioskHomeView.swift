@@ -603,7 +603,7 @@ struct KioskHomeView: View {
                         }
                         
                         Text("whatsappGroup".localized)
-                            .font(.custom("Inter-Medium", size: 16))
+                            .font(.custom("Inter-SemiBold", size: 16))
                             .foregroundColor(colorFromHex("423232")) // Matches header color
                     }
                 }
@@ -648,7 +648,7 @@ struct KioskHomeView: View {
                     }
                     
                     Text("observance".localized)
-                        .font(.custom("Inter-Medium", size: 16))
+                        .font(.custom("Inter-SemiBold", size: 16))
                         .foregroundColor(colorFromHex("423232"))
                 }
             }
