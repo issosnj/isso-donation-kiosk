@@ -37,6 +37,7 @@ struct LoadingView: View {
                 .aspectRatio(contentMode: .fill)
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
+                .ignoresSafeArea(.all)
         } else {
             LinearGradient(
                 gradient: Gradient(colors: [
@@ -46,6 +47,7 @@ struct LoadingView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .ignoresSafeArea(.all)
         }
     }
     
@@ -71,22 +73,12 @@ struct LoadingView: View {
                             )
                             .frame(width: 80, height: 80)
                             .rotationEffect(.degrees(rotationAngle))
-                            .animation(
-                                Animation.linear(duration: 1.0)
-                                    .repeatForever(autoreverses: false),
-                                value: rotationAngle
-                            )
                         
                         // Inner pulsing circle
                         Circle()
                             .fill(colorFromHex("423232").opacity(0.3))
                             .frame(width: 60, height: 60)
                             .scaleEffect(pulseScale)
-                            .animation(
-                                Animation.easeInOut(duration: 1.5)
-                                    .repeatForever(autoreverses: true),
-                                value: pulseScale
-                            )
                     }
                     .padding(.bottom, 20)
                     
@@ -109,9 +101,13 @@ struct LoadingView: View {
             }
         }
         .onAppear {
-            // Start animations
-            rotationAngle = 360
-            pulseScale = 1.2
+            // Start animations with proper animation modifiers
+            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
+                rotationAngle = 360
+            }
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                pulseScale = 1.2
+            }
         }
     }
 }
