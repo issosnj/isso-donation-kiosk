@@ -49,35 +49,36 @@ class AppState: ObservableObject {
             startCategoryRefreshTimer()
         }
         
-        // Authorize Square Mobile Payments SDK after activation
-        Task {
-            await authorizeSquareSDK()
-            // Start periodic connection checks
-            startSquareConnectionMonitoring()
+        // Authorize Square Mobile Payments SDK after activation (non-blocking background task)
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self = self else { return }
+            await self.authorizeSquareSDK()
+            await MainActor.run {
+                self.startSquareConnectionMonitoring()
+            }
             
             // After initial authorization, aggressively check for hardware (iPad might be waking up after reboot)
             // This helps when iPad powers on and Square Stand is already connected
-            // Try multiple times with 5-second intervals - hardware can take 10-30 seconds to appear after reboot
-            print("[AppState] 🔍 Starting aggressive hardware detection after startup...")
+            // Run in background - doesn't block UI
+            appLog("🔍 Starting aggressive hardware detection after startup (background)...", category: "AppState")
             for attempt in 1...6 {
-                let totalSeconds = attempt * 5 // Total time elapsed: 5s, 10s, 15s, 20s, 25s, 30s
+                let totalSeconds = attempt * 5
                 if attempt > 1 {
-                    // Wait 5 seconds between each check (not cumulative)
-                    print("[AppState] ⏳ Attempt \(attempt)/6: Waiting 5 seconds, then checking hardware (total: \(totalSeconds)s)...")
+                    appLog("⏳ Attempt \(attempt)/6: Waiting 5 seconds, then checking hardware (total: \(totalSeconds)s)...", category: "AppState")
                     try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
                 } else {
-                    print("[AppState] ⏳ Attempt \(attempt)/6: Checking hardware immediately...")
+                    appLog("⏳ Attempt \(attempt)/6: Checking hardware immediately...", category: "AppState")
                 }
                 let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
                 if hardwareConnected {
-                    print("[AppState] ✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...")
-                    await authorizeSquareSDK()
+                    appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "AppState")
+                    await self.authorizeSquareSDK()
                     return // Success - exit retry loop
                 } else {
-                    print("[AppState] ❌ Hardware still not detected after \(totalSeconds) seconds")
+                    appLog("❌ Hardware still not detected after \(totalSeconds) seconds", category: "AppState")
                 }
             }
-            print("[AppState] ⚠️ Hardware not detected after 30 seconds - will keep checking periodically")
+            appLog("⚠️ Hardware not detected after 30 seconds - will keep checking periodically", category: "AppState")
         }
     }
     
