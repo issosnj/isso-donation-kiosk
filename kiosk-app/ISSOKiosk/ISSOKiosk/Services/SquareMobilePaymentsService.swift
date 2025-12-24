@@ -466,9 +466,9 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         appLog("🔔 Attempting to wake Square Stand hardware before payment...", category: "SquareMobilePayments")
         attemptHardwareWakeUp()
         
-        // Small delay to allow hardware to wake up before starting payment
-        // This gives the Stand time to initialize and light up
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        // Longer delay to allow hardware to fully wake up before starting payment
+        // Opening EASession takes time, and hardware needs time to initialize
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self else { return }
             
             // Double-check authorization state (may have changed during delay)
