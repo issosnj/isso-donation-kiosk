@@ -436,9 +436,14 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             print("[SquareMobilePayments]    4. ViewController not ready")
             print("[SquareMobilePayments]    5. iPad not properly inserted into Square Stand")
             
+            // Try to clear any stale payment state
+            self.currentPaymentHandle = nil
+            
             // Call completion with specific error about payment in progress
+            // The caller should handle this by canceling and retrying
             self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -5, userInfo: [
-                NSLocalizedDescriptionKey: "Payment already in progress. Please wait for the current payment to complete or cancel it first."
+                NSLocalizedDescriptionKey: "Payment already in progress. Please wait for the current payment to complete or cancel it first.",
+                NSLocalizedFailureReasonErrorKey: "payment_already_in_progress"
             ])))
             self.currentPaymentCompletion = nil
         }
@@ -598,15 +603,21 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     
     // Public method to cancel any in-progress payment
     func cancelCurrentPayment() {
-        if currentPaymentHandle != nil || currentPaymentCompletion != nil {
-            print("[SquareMobilePayments] 🚫 Cancelling current payment")
+        if let handle = currentPaymentHandle {
+            print("[SquareMobilePayments] 🚫 Cancelling current payment handle")
+            // Try to cancel the payment handle in the SDK
+            // Note: PaymentHandle doesn't have a direct cancel method, but clearing it should help
+            // The SDK will handle the cancellation when the view is dismissed
+            currentPaymentHandle = nil
+        }
+        
+        if currentPaymentCompletion != nil {
+            print("[SquareMobilePayments] 🚫 Calling completion with cancellation")
             // Call completion with cancellation error
             currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
                 NSLocalizedDescriptionKey: "Payment was cancelled"
             ])))
-            // Clear payment state
             currentPaymentCompletion = nil
-            currentPaymentHandle = nil
         }
     }
 }

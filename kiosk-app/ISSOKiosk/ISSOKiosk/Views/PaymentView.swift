@@ -27,6 +27,7 @@ struct ModernPaymentView: View {
     @State private var cardPulse = false
     @State private var isReady = false
     @State private var donationId: String? = nil
+    @State private var hasStartedPayment = false // Guard against multiple payment attempts
     @SwiftUIEnvironment(\.dismiss) var dismiss: DismissAction
     
     var body: some View {
@@ -117,6 +118,7 @@ struct ModernPaymentView: View {
             // Reset local state
             isReady = false
             isProcessing = false
+            hasStartedPayment = false
             
             // Only cancel donation if payment hasn't completed
             if let donationId = donationId {
@@ -259,8 +261,33 @@ struct ModernPaymentView: View {
                                 case .success(let result):
                                     paymentResult = result
                                 case .failure(let error):
+                                    // Check if this is a payment_already_in_progress error
+                                    let errorDescription = error.localizedDescription
+                                    let isPaymentInProgressError = errorDescription.contains("payment_already_in_progress") || 
+                                                                   (error as NSError).userInfo["NSLocalizedFailureReasonErrorKey"] as? String == "payment_already_in_progress"
+                                    
+                                    if isPaymentInProgressError {
+                                        print("[PaymentView] ⚠️ Payment already in progress error - canceling and retrying...")
+                                        // Cancel any existing payment
+                                        SquareMobilePaymentsService.shared.cancelCurrentPayment()
+                                        // Wait a moment for SDK to clear state
+                                        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                                        // Reset state and retry
+                                        await MainActor.run {
+                                            self.hasStartedPayment = false
+                                            self.isProcessing = false
+                                            self.isReady = false
+                                        }
+                                        // Retry payment
+                                        await MainActor.run {
+                                            self.hasStartedPayment = true
+                                            self.processPayment()
+                                        }
+                                        return
+                                    }
+                                    
                                     // Payment failed - mark donation as FAILED
-                                    print("[PaymentView] ❌ Payment failed: \(error.localizedDescription)")
+                                    print("[PaymentView] ❌ Payment failed: \(errorDescription)")
                                     do {
                                         _ = try await APIService.shared.completeDonation(
                                             donationId: donation.id,
@@ -277,7 +304,8 @@ struct ModernPaymentView: View {
                                     }
                                     await MainActor.run {
                                         self.isProcessing = false
-                                        self.paymentStatus = .failure(error.localizedDescription)
+                                        self.hasStartedPayment = false
+                                        self.paymentStatus = .failure(errorDescription)
                                     }
                                     return
                                 }
