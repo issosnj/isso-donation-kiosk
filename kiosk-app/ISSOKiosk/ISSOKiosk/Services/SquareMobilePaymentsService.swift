@@ -520,10 +520,23 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     
     func paymentManager(_ paymentManager: PaymentManager, didCancel payment: Payment) {
         print("[SquareMobilePayments] 🚫 Payment cancelled by user")
-        let error = NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
-            NSLocalizedDescriptionKey: "Payment was cancelled by user"
-        ])
-        currentPaymentCompletion?(.failure(error))
+        
+        // Check if cancellation was due to hardware not being detected
+        // If hardware wasn't detected before payment, this cancellation is likely due to hardware error
+        let hardwareWasDetected = self.checkHardwareConnection()
+        if !hardwareWasDetected {
+            print("[SquareMobilePayments] ⚠️ Payment cancelled - hardware not detected")
+            print("[SquareMobilePayments] 💡 This cancellation is likely due to hardware connection issue")
+            let error = NSError(domain: "SquareMobilePayments", code: -3, userInfo: [
+                NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Stand is connected and powered on."
+            ])
+            currentPaymentCompletion?(.failure(error))
+        } else {
+            let error = NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
+                NSLocalizedDescriptionKey: "Payment was cancelled by user"
+            ])
+            currentPaymentCompletion?(.failure(error))
+        }
         currentPaymentCompletion = nil
     }
 }
