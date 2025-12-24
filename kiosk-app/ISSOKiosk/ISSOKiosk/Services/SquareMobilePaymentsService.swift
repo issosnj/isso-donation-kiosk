@@ -42,7 +42,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             print("[SquareMobilePayments] 🔄 Force re-authorizing to refresh hardware connection...")
             // Deauthorize first if needed
             if MobilePaymentsSDK.shared.authorizationManager.state == .authorized {
-                MobilePaymentsSDK.shared.authorizationManager.deauthorize { _ in
+                MobilePaymentsSDK.shared.authorizationManager.deauthorize {
                     // Continue with authorization after deauthorization
                     self.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
                 }
