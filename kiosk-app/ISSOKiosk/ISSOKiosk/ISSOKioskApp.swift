@@ -68,7 +68,7 @@ struct ISSOKioskApp: App {
                             }
                             
                             // Try to wake hardware on each attempt
-                            SquareMobilePaymentsService.shared.attemptHardwareWakeUp()
+                            await SquareMobilePaymentsService.shared.attemptHardwareWakeUp()
                             
                             let hardwareStillConnected = await SquareMobilePaymentsService.shared.checkHardwareConnection()
                             if hardwareStillConnected {

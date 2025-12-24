@@ -18,7 +18,8 @@ class APIService {
         method: String = "GET",
         body: [String: Any]? = nil,
         requiresAuth: Bool = true,
-        maxRetries: Int = 3
+        maxRetries: Int = 3,
+        timeout: TimeInterval = 30.0
     ) async throws -> T {
         let fullURL = "\(baseURL)\(endpoint)"
         print("[APIService] 🌐 Request: \(method) \(fullURL)")

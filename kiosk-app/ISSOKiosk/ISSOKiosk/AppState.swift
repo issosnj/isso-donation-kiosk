@@ -66,30 +66,24 @@ class AppState: ObservableObject {
             self.deviceId = extractDeviceId(from: token)
             APIService.shared.setDeviceToken(token)
             
-            // Don't set isActivated yet - wait for temple config to load first
-            // This ensures UI shows loading screen until server connection is ready
-            appLog("📡 Found stored credentials - loading temple config from server...", category: "AppState")
+            // Set activated immediately so UI can show - temple config loads in background
+            // This restores fast startup - UI shows immediately, data loads in background
+            self.isActivated = true
+            appLog("✅ Activated immediately with stored credentials - loading temple config in background", category: "AppState")
             
-            // Load temple config immediately with higher priority - UI waits for this
-            Task(priority: .userInitiated) { [weak self] in
+            // Load temple config in background - don't block UI
+            // UI will update when temple config loads
+            Task.detached(priority: .userInitiated) { [weak self] in
                 guard let self = self else { return }
                 await self.loadTempleConfig()
-                // Only set activated after temple config loads successfully
-                await MainActor.run {
-                    if self.temple != nil {
-                        self.isActivated = true
-                        appLog("✅ Temple config loaded - activating UI", category: "AppState")
-                    } else {
-                        // Even if temple config fails, activate after timeout so UI can show
-                        appLog("⚠️ Temple config failed but activating UI anyway", category: "AppState")
-                        self.isActivated = true
-                    }
-                }
             }
             
-            // Start Square SDK authorization in parallel (non-blocking, lower priority)
+            // Start Square SDK authorization in background (non-blocking, lower priority)
+            // Delay it slightly to let temple config start first
             Task.detached(priority: .utility) { [weak self] in
                 guard let self = self else { return }
+                // Small delay to let temple config request start first
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
                 await self.authorizeSquareSDK()
                 await MainActor.run {
                     self.startSquareConnectionMonitoring()
@@ -443,66 +437,51 @@ class AppState: ObservableObject {
         }
         
         // Step 4: Authorize SDK with credentials from backend
+        // Get Square credentials from backend
+        // This may timeout if network is slow - catch and log but don't block app
+        let credentials: SquareCredentials
         do {
-            // Get Square credentials from backend
-            // This may timeout if network is slow - catch and log but don't block app
-            let credentials: SquareCredentials
-            do {
-                credentials = try await APIService.shared.getSquareCredentials()
-            } catch {
-                // Log the error but don't fail completely - Square authorization can happen later
-                appLog("⚠️ Failed to get Square credentials: \(error.localizedDescription)", category: "AppState")
-                if let urlError = error as? URLError {
-                    appLog("⚠️ URL Error code: \(urlError.code.rawValue)", category: "AppState")
-                    if urlError.code == .timedOut {
-                        appLog("⚠️ Request timed out - network may be slow or backend unreachable", category: "AppState")
-                    }
-                }
-                appLog("💡 Square SDK authorization will be retried later", category: "AppState")
-                return // Exit early - don't try to authorize without credentials
-            }
-            
-            // Check if we need to force re-authorize (for periodic refresh)
-            let shouldForceReauthorize: Bool
-            if let lastAuth = lastSquareAuthorizationTime {
-                shouldForceReauthorize = Date().timeIntervalSince(lastAuth) >= 15 * 60 // 15 minutes
-            } else {
-                shouldForceReauthorize = false
-            }
-            
-            // Authorize Mobile Payments SDK (uses completion handler, not async/await)
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                SquareMobilePaymentsService.shared.authorize(
-                    accessToken: credentials.accessToken,
-                    locationId: credentials.locationId,
-                    forceReauthorize: shouldForceReauthorize
-                ) { error in
-                    if let error = error {
-                        print("[AppState] ❌ Failed to authorize Square SDK: \(error.localizedDescription)")
-                    } else {
-                        print("[AppState] ✅ Square Mobile Payments SDK authorized successfully")
-                        // Update last authorization time
-                        Task { @MainActor in
-                            self.lastSquareAuthorizationTime = Date()
-                        }
-                        // Reader detection is automatically checked after authorization
-                    }
-                    continuation.resume()
-                }
-            }
+            credentials = try await APIService.shared.getSquareCredentials()
         } catch {
-            let errorMessage: String
-            if let apiError = error as? APIError {
-                errorMessage = apiError.localizedDescription
-            } else {
-                errorMessage = error.localizedDescription
+            // Log the error but don't fail completely - Square authorization can happen later
+            appLog("⚠️ Failed to get Square credentials: \(error.localizedDescription)", category: "AppState")
+            if let urlError = error as? URLError {
+                appLog("⚠️ URL Error code: \(urlError.code.rawValue)", category: "AppState")
+                if urlError.code == .timedOut {
+                    appLog("⚠️ Request timed out - network may be slow or backend unreachable", category: "AppState")
+                }
             }
-            print("[AppState] ❌ Failed to get Square credentials: \(errorMessage)")
-            print("[AppState] This usually means:")
-            print("[AppState]   1. The temple hasn't connected Square in the admin portal, OR")
-            print("[AppState]   2. The device token is invalid/expired, OR")
-            print("[AppState]   3. The backend API is unavailable")
-            // Don't block app - Square SDK authorization can happen later
+            appLog("💡 Square SDK authorization will be retried later", category: "AppState")
+            return // Exit early - don't try to authorize without credentials
+        }
+        
+        // Check if we need to force re-authorize (for periodic refresh)
+        let shouldForceReauthorize: Bool
+        if let lastAuth = lastSquareAuthorizationTime {
+            shouldForceReauthorize = Date().timeIntervalSince(lastAuth) >= 15 * 60 // 15 minutes
+        } else {
+            shouldForceReauthorize = false
+        }
+        
+        // Authorize Mobile Payments SDK (uses completion handler, not async/await)
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            SquareMobilePaymentsService.shared.authorize(
+                accessToken: credentials.accessToken,
+                locationId: credentials.locationId,
+                forceReauthorize: shouldForceReauthorize
+            ) { error in
+                if let error = error {
+                    print("[AppState] ❌ Failed to authorize Square SDK: \(error.localizedDescription)")
+                } else {
+                    print("[AppState] ✅ Square Mobile Payments SDK authorized successfully")
+                    // Update last authorization time
+                    Task { @MainActor in
+                        self.lastSquareAuthorizationTime = Date()
+                    }
+                    // Reader detection is automatically checked after authorization
+                }
+                continuation.resume()
+            }
         }
     }
     
