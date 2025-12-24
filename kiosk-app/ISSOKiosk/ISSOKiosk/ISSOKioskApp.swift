@@ -36,15 +36,19 @@ struct ISSOKioskApp: App {
         .onChange(of: scenePhase) { newPhase in
             // Refresh theme, religious events, and reconnect Square SDK when app becomes active
             // All operations run in background - don't block UI
-            if newPhase == .active && appState.isActivated {
+            // Skip if temple config is still loading (during startup)
+            if newPhase == .active && appState.isActivated && appState.temple != nil {
                 print("[App] 🔄 App became active - refreshing in background (non-blocking)")
                 Task.detached(priority: .utility) { [weak appState] in
                     guard let appState = appState else { return }
-                    await appState.refreshTempleConfig()
-                    // Refresh religious events when app comes to foreground (new events may have been synced)
-                    await appState.refreshReligiousEvents()
-                    // Check and reconnect Square SDK when app becomes active
-                    await appState.checkAndReconnectSquareSDK()
+                    // Only refresh if temple config is already loaded (skip during startup)
+                    if await appState.temple != nil {
+                        await appState.refreshTempleConfig()
+                        // Refresh religious events when app comes to foreground (new events may have been synced)
+                        await appState.refreshReligiousEvents()
+                        // Check and reconnect Square SDK when app becomes active
+                        await appState.checkAndReconnectSquareSDK()
+                    }
                     
                     // After reboot, hardware might take time to appear - check in background
                     // This is critical - hardware may not be detected immediately after iPad reboot

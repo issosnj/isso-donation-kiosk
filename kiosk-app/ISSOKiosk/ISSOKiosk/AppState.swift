@@ -66,29 +66,34 @@ class AppState: ObservableObject {
             self.deviceId = extractDeviceId(from: token)
             APIService.shared.setDeviceToken(token)
             
-            // Set activated immediately so UI can show - temple config loads in background
-            // This restores fast startup - UI shows immediately, data loads in background
-            self.isActivated = true
-            appLog("✅ Activated immediately with stored credentials - loading temple config in background", category: "AppState")
+            // Don't set isActivated yet - wait for temple config to load first
+            // This ensures loading screen shows until server connection is ready
+            appLog("📡 Found stored credentials - loading temple config from server...", category: "AppState")
             
-            // Load temple config in background - don't block UI
-            // UI will update when temple config loads
-            Task.detached(priority: .userInitiated) { [weak self] in
+            // Load temple config FIRST with highest priority - UI waits for this
+            Task(priority: .userInitiated) { [weak self] in
                 guard let self = self else { return }
                 await self.loadTempleConfig()
-            }
-            
-            // Start Square SDK authorization in background (non-blocking, lower priority)
-            // Delay it significantly to let temple config complete first
-            // This prevents network competition and timeouts
-            Task.detached(priority: .utility) { [weak self] in
-                guard let self = self else { return }
-                // Wait 5 seconds to let temple config request complete first
-                // This prevents network competition that causes timeouts
-                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 second delay
-                await self.authorizeSquareSDK()
+                // Only activate after temple config loads successfully
                 await MainActor.run {
-                    self.startSquareConnectionMonitoring()
+                    if self.temple != nil {
+                        self.isActivated = true
+                        appLog("✅ Temple config loaded - activating UI", category: "AppState")
+                    } else {
+                        // Even if temple config fails, activate after timeout so UI can show
+                        appLog("⚠️ Temple config failed but activating UI anyway", category: "AppState")
+                        self.isActivated = true
+                    }
+                }
+                
+                // Start Square SDK authorization AFTER temple config loads (non-blocking)
+                // This prevents network competition and ensures temple config loads first
+                Task.detached(priority: .utility) { [weak self] in
+                    guard let self = self else { return }
+                    await self.authorizeSquareSDK()
+                    await MainActor.run {
+                        self.startSquareConnectionMonitoring()
+                    }
                 }
             }
         }
@@ -289,53 +294,11 @@ class AppState: ObservableObject {
                 }
                 
                 // Load categories and religious events in background - don't block UI
+                // These are non-critical and can load after temple config
                 Task.detached(priority: .utility) { [weak self] in
                     guard let self = self else { return }
                     await self.refreshCategories()
                     await self.refreshReligiousEvents()
-                }
-                
-                // Authorize Square Mobile Payments SDK if device token exists (non-blocking background task)
-                Task.detached(priority: .utility) { [weak self] in
-                    guard let self = self else { return }
-                    await self.authorizeSquareSDK()
-                    await MainActor.run {
-                        self.startSquareConnectionMonitoring()
-                    }
-                    
-                    // After initial authorization, check for hardware in background (non-blocking)
-                    // This helps when iPad powers on and Square Stand is already connected
-                    await MainActor.run {
-                        appLog("🔍 Starting hardware detection after startup (background)...", category: "AppState")
-                    }
-                    for attempt in 1...6 {
-                        let totalSeconds = attempt * 5
-                        if attempt > 1 {
-                            await MainActor.run {
-                                appLog("⏳ Attempt \(attempt)/6: Waiting 5 seconds, then checking hardware (total: \(totalSeconds)s)...", category: "AppState")
-                            }
-                            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
-                        } else {
-                            await MainActor.run {
-                                appLog("⏳ Attempt \(attempt)/6: Checking hardware immediately...", category: "AppState")
-                            }
-                        }
-                        let hardwareConnected = await SquareMobilePaymentsService.shared.checkHardwareConnection()
-                        if hardwareConnected {
-                            await MainActor.run {
-                                appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "AppState")
-                            }
-                            await self.authorizeSquareSDK()
-                            return // Success - exit retry loop
-                        } else {
-                            await MainActor.run {
-                                appLog("❌ Hardware still not detected after \(totalSeconds) seconds", category: "AppState")
-                            }
-                        }
-                    }
-                    await MainActor.run {
-                        appLog("⚠️ Hardware not detected after 30 seconds - will keep checking periodically", category: "AppState")
-                    }
                 }
                 
                 // Success! Exit retry loop
@@ -659,11 +622,8 @@ class AppState: ObservableObject {
         
         print("[AppState] 🔄 Starting automatic category refresh timer (every 30 seconds)")
         
-        // Refresh immediately on first start (non-blocking background task)
-        Task.detached(priority: .utility) { [weak self] in
-            guard let self = self else { return }
-            await refreshCategories()
-        }
+        // Don't refresh immediately - categories are loaded in loadTempleConfig()
+        // Timer will handle periodic refreshes
         
         // Then refresh every 30 seconds (all in background)
         categoryRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
@@ -697,11 +657,8 @@ class AppState: ObservableObject {
         
         print("[AppState] 🔄 Starting automatic religious events refresh timer (every 5 minutes)")
         
-        // Refresh immediately on first start (non-blocking background task)
-        Task.detached(priority: .utility) { [weak self] in
-            guard let self = self else { return }
-            await refreshReligiousEvents()
-        }
+        // Don't refresh immediately - events are loaded in loadTempleConfig()
+        // Timer will handle periodic refreshes
         
         // Then refresh every 5 minutes (300 seconds) - all in background
         religiousEventsRefreshTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
