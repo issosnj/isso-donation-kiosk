@@ -282,12 +282,12 @@ class AppState: ObservableObject {
                     }
                 }
                 
-                
-                // Load categories after temple config is loaded
-                await refreshCategories()
-                
-                // Load religious events
-                await refreshReligiousEvents()
+                // Load categories and religious events in background - don't block UI
+                Task.detached(priority: .utility) { [weak self] in
+                    guard let self = self else { return }
+                    await self.refreshCategories()
+                    await self.refreshReligiousEvents()
+                }
                 
                 // Authorize Square Mobile Payments SDK if device token exists (non-blocking background task)
                 Task.detached(priority: .utility) { [weak self] in
@@ -297,11 +297,10 @@ class AppState: ObservableObject {
                         self.startSquareConnectionMonitoring()
                     }
                     
-                    // After initial authorization, aggressively check for hardware (iPad might be waking up after reboot)
+                    // After initial authorization, check for hardware in background (non-blocking)
                     // This helps when iPad powers on and Square Stand is already connected
-                    // Run in background - doesn't block UI
                     await MainActor.run {
-                        appLog("🔍 Starting aggressive hardware detection after startup (background)...", category: "AppState")
+                        appLog("🔍 Starting hardware detection after startup (background)...", category: "AppState")
                     }
                     for attempt in 1...6 {
                         let totalSeconds = attempt * 5
@@ -619,17 +618,19 @@ class AppState: ObservableObject {
         
         print("[AppState] 🔄 Starting automatic theme refresh timer (every 30 seconds)")
         
-        // Refresh immediately on first start
-        Task {
+        // Refresh immediately on first start (non-blocking background task)
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self = self else { return }
             await refreshTempleConfig()
         }
         
-        // Then refresh every 30 seconds
+        // Then refresh every 30 seconds (all in background)
         themeRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
             guard let self = self, self.isActivated else {
                 return
             }
-            Task {
+            Task.detached(priority: .utility) { [weak self] in
+                guard let self = self else { return }
                 await self.refreshTempleConfig()
             }
         }

@@ -35,46 +35,61 @@ struct ISSOKioskApp: App {
         }
         .onChange(of: scenePhase) { newPhase in
             // Refresh theme, religious events, and reconnect Square SDK when app becomes active
+            // All operations run in background - don't block UI
             if newPhase == .active && appState.isActivated {
-                print("[App] 🔄 App became active - refreshing theme settings, religious events, and checking Square connection")
-                Task {
+                print("[App] 🔄 App became active - refreshing in background (non-blocking)")
+                Task.detached(priority: .utility) { [weak appState] in
+                    guard let appState = appState else { return }
                     await appState.refreshTempleConfig()
                     // Refresh religious events when app comes to foreground (new events may have been synced)
                     await appState.refreshReligiousEvents()
                     // Check and reconnect Square SDK when app becomes active
                     await appState.checkAndReconnectSquareSDK()
                     
-                    // After reboot, hardware might take time to appear - check aggressively
+                    // After reboot, hardware might take time to appear - check in background
                     // This is critical - hardware may not be detected immediately after iPad reboot
-                    let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+                    let hardwareConnected = await SquareMobilePaymentsService.shared.checkHardwareConnection()
                     if !hardwareConnected {
-                        appLog("⚠️ Hardware not detected when app became active - starting aggressive detection...", category: "App")
-                        // Try to detect hardware with retries (up to 30 seconds)
-                        // After reboot, Square Stand may need time to initialize
+                        await MainActor.run {
+                            appLog("⚠️ Hardware not detected when app became active - checking in background...", category: "App")
+                        }
+                        // Try to detect hardware with retries (up to 30 seconds) - all in background
                         for attempt in 1...10 {
                             let totalSeconds = attempt * 3
                             if attempt > 1 {
-                                appLog("⏳ Attempt \(attempt)/10: Waiting 3 seconds, then checking hardware (total: \(totalSeconds)s)...", category: "App")
+                                await MainActor.run {
+                                    appLog("⏳ Attempt \(attempt)/10: Waiting 3 seconds, then checking hardware (total: \(totalSeconds)s)...", category: "App")
+                                }
                                 try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds between checks
                             } else {
-                                appLog("⏳ Attempt \(attempt)/10: Checking hardware immediately...", category: "App")
+                                await MainActor.run {
+                                    appLog("⏳ Attempt \(attempt)/10: Checking hardware immediately...", category: "App")
+                                }
                             }
                             
                             // Try to wake hardware on each attempt
                             SquareMobilePaymentsService.shared.attemptHardwareWakeUp()
                             
-                            let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+                            let hardwareStillConnected = await SquareMobilePaymentsService.shared.checkHardwareConnection()
                             if hardwareStillConnected {
-                                appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "App")
+                                await MainActor.run {
+                                    appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "App")
+                                }
                                 await appState.checkAndReconnectSquareSDK()
                                 break
                             } else {
-                                appLog("❌ Hardware still not detected after \(totalSeconds) seconds", category: "App")
+                                await MainActor.run {
+                                    appLog("❌ Hardware still not detected after \(totalSeconds) seconds", category: "App")
+                                }
                             }
                         }
-                        appLog("⚠️ Hardware detection complete (may still not be visible, but will be checked before payment)", category: "App")
+                        await MainActor.run {
+                            appLog("⚠️ Hardware detection complete (may still not be visible, but will be checked before payment)", category: "App")
+                        }
                     } else {
-                        appLog("✅ Hardware detected immediately when app became active", category: "App")
+                        await MainActor.run {
+                            appLog("✅ Hardware detected immediately when app became active", category: "App")
+                        }
                     }
                 }
             }
