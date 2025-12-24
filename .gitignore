@@ -36,6 +36,12 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 
+# CocoaPods
+Pods/
+*.xcworkspace
+!default.xcworkspace
+Podfile.lock
+
 # Backend
 backend/dist/
 backend/.env
