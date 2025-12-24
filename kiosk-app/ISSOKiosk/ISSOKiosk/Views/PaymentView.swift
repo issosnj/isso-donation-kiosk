@@ -1,4 +1,5 @@
 import SwiftUI
+import SquareMobilePaymentsSDK
 
 // Payment status enum shared across payment views
 enum PaymentStatus: Equatable {
@@ -123,9 +124,9 @@ struct ModernPaymentView: View {
                     Task {
                         do {
                             _ = try await APIService.shared.cancelDonation(donationId: donationId)
-                            log("✅ Donation canceled successfully", category: "PaymentView")
+                            appLog("✅ Donation canceled successfully", category: "PaymentView")
                         } catch {
-                            log("❌ Failed to cancel donation: \(error.localizedDescription)", category: "PaymentView")
+                            appLog("❌ Failed to cancel donation: \(error.localizedDescription)", category: "PaymentView")
                             // If cancel fails (e.g., already completed), try to mark as failed
                             do {
                                 _ = try await APIService.shared.completeDonation(
@@ -137,18 +138,18 @@ struct ModernPaymentView: View {
                                     donorEmail: donorEmail,
                                     donorAddress: donorAddress
                                 )
-                                log("✅ Donation marked as CANCELED via completeDonation", category: "PaymentView")
+                                appLog("✅ Donation marked as CANCELED via completeDonation", category: "PaymentView")
                             } catch {
-                                log("❌ Failed to update donation status: \(error.localizedDescription)", category: "PaymentView")
+                                appLog("❌ Failed to update donation status: \(error.localizedDescription)", category: "PaymentView")
                             }
                         }
                     }
                 } else if isProcessing && paymentStatus == nil {
                     // Payment is processing - Square SDK UI is showing, don't cancel
-                    log("💡 View disappeared but payment is processing (Square SDK UI showing) - not canceling", category: "PaymentView")
+                    appLog("💡 View disappeared but payment is processing (Square SDK UI showing) - not canceling", category: "PaymentView")
                 } else if case .failure = paymentStatus {
                     // Payment failed - ensure donation is marked as FAILED (should already be done, but double-check)
-                    log("⚠️ View dismissed after payment failure, ensuring donation is marked as FAILED: \(donationId)", category: "PaymentView")
+                    appLog("⚠️ View dismissed after payment failure, ensuring donation is marked as FAILED: \(donationId)", category: "PaymentView")
                     Task {
                         do {
                             _ = try await APIService.shared.completeDonation(
@@ -160,9 +161,9 @@ struct ModernPaymentView: View {
                                 donorEmail: donorEmail,
                                 donorAddress: donorAddress
                             )
-                            log("✅ Donation confirmed as FAILED", category: "PaymentView")
+                            appLog("✅ Donation confirmed as FAILED", category: "PaymentView")
                         } catch {
-                            log("⚠️ Donation may already be updated: \(error.localizedDescription)", category: "PaymentView")
+                            appLog("⚠️ Donation may already be updated: \(error.localizedDescription)", category: "PaymentView")
                         }
                     }
                 }
@@ -175,27 +176,27 @@ struct ModernPaymentView: View {
     }
     
     private func processPayment() {
-        log("💳 processPayment() called", category: "PaymentView")
-        log("📋 Checking prerequisites...", category: "PaymentView")
+        appLog("💳 processPayment() called", category: "PaymentView")
+        appLog("📋 Checking prerequisites...", category: "PaymentView")
         
         guard let templeId = appState.temple?.id else {
-            log("❌ Missing temple ID", category: "PaymentView")
+            appLog("❌ Missing temple ID", category: "PaymentView")
             paymentStatus = .failure("Device not properly activated - missing temple")
             return
         }
         
         guard let deviceId = appState.deviceId else {
-            log("❌ Missing device ID", category: "PaymentView")
+            appLog("❌ Missing device ID", category: "PaymentView")
             paymentStatus = .failure("Device not properly activated - missing device")
             return
         }
         
-        log("✅ Prerequisites OK - templeId: \(templeId), deviceId: \(deviceId)", category: "PaymentView")
-        log("💰 Amount: $\(amount)", category: "PaymentView")
-        log("📦 Category: \(category?.name ?? "none")", category: "PaymentView")
+        appLog("✅ Prerequisites OK - templeId: \(templeId), deviceId: \(deviceId)", category: "PaymentView")
+        appLog("💰 Amount: $\(amount)", category: "PaymentView")
+        appLog("📦 Category: \(category?.name ?? "none")", category: "PaymentView")
         
         isProcessing = true
-        log("🔄 Starting payment flow...", category: "PaymentView")
+        appLog("🔄 Starting payment flow...", category: "PaymentView")
         
         Task {
             var currentDonationId: String? = nil
@@ -208,7 +209,7 @@ struct ModernPaymentView: View {
                     amount: amount,
                     categoryId: category?.id
                 )
-                log("✅ Donation initiated: \(donation.id)", category: "PaymentView")
+                appLog("✅ Donation initiated: \(donation.id)", category: "PaymentView")
                 
                 // Store donation ID for potential cancellation
                 currentDonationId = donation.id
@@ -230,7 +231,7 @@ struct ModernPaymentView: View {
                         return
                     }
                     
-                    log("✅ Got viewController: \(type(of: viewController))", category: "PaymentView")
+                    appLog("✅ Got viewController: \(type(of: viewController))", category: "PaymentView")
                     print("[PaymentView] 📱 ViewController isViewLoaded: \(viewController.isViewLoaded)")
                     print("[PaymentView] 📱 ViewController viewIfLoaded: \(viewController.viewIfLoaded != nil ? "loaded" : "not loaded")")
                     
