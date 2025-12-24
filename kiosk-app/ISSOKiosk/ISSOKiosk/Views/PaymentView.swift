@@ -1,6 +1,9 @@
 import SwiftUI
 import SquareMobilePaymentsSDK
 
+// Typealias to avoid conflict with Square SDK's Environment enum
+typealias SwiftUIEnvironment = SwiftUI.Environment
+
 // Payment status enum shared across payment views
 enum PaymentStatus: Equatable {
     case success
@@ -24,7 +27,7 @@ struct ModernPaymentView: View {
     @State private var cardPulse = false
     @State private var isReady = false
     @State private var donationId: String? = nil
-    @Environment(\.dismiss) var dismiss: DismissAction
+    @SwiftUIEnvironment(\.dismiss) var dismiss: DismissAction
     
     var body: some View {
         ZStack {
@@ -423,7 +426,7 @@ struct ModernPaymentReadyView: View {
     let amount: Double
     @State private var appearAnimation = false
     @State private var pulseAnimation = false
-    @Environment(\.dismiss) var dismiss: DismissAction
+    @SwiftUIEnvironment(\.dismiss) var dismiss: DismissAction
     
     var body: some View {
         ZStack {
