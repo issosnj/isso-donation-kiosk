@@ -226,7 +226,8 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         // Re-authorize to force fresh hardware connection (helps wake up Square Stand after idle)
         print("[SquareMobilePayments] 🔄 Re-authorizing to ensure hardware connection is active...")
         if let accessToken = self.accessToken, let locationId = self.locationId {
-            self.authorize(accessToken: accessToken, locationId: locationId) { error in
+            // Force re-authorization to refresh hardware connection
+            self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
                 if let error = error {
                     print("[SquareMobilePayments] ⚠️ Re-authorization warning: \(error.localizedDescription)")
                     // Continue anyway - authorization might still be valid
@@ -241,7 +242,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                     
                     // Give hardware time to wake up after re-authorization (Square Stand may be in low-power mode)
                     print("[SquareMobilePayments] ⏳ Waiting for hardware to wake up...")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                         self.startPaymentFlow(
                             paymentParameters: paymentParameters,
                             promptParameters: promptParameters,
