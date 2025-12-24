@@ -175,27 +175,27 @@ struct ModernPaymentView: View {
     }
     
     private func processPayment() {
-        print("[PaymentView] 💳 processPayment() called")
-        print("[PaymentView] 📋 Checking prerequisites...")
+        log("💳 processPayment() called", category: "PaymentView")
+        log("📋 Checking prerequisites...", category: "PaymentView")
         
         guard let templeId = appState.temple?.id else {
-            print("[PaymentView] ❌ Missing temple ID")
+            log("❌ Missing temple ID", category: "PaymentView")
             paymentStatus = .failure("Device not properly activated - missing temple")
             return
         }
         
         guard let deviceId = appState.deviceId else {
-            print("[PaymentView] ❌ Missing device ID")
+            log("❌ Missing device ID", category: "PaymentView")
             paymentStatus = .failure("Device not properly activated - missing device")
             return
         }
         
-        print("[PaymentView] ✅ Prerequisites OK - templeId: \(templeId), deviceId: \(deviceId)")
-        print("[PaymentView] 💰 Amount: $\(amount)")
-        print("[PaymentView] 📦 Category: \(category?.name ?? "none")")
+        log("✅ Prerequisites OK - templeId: \(templeId), deviceId: \(deviceId)", category: "PaymentView")
+        log("💰 Amount: $\(amount)", category: "PaymentView")
+        log("📦 Category: \(category?.name ?? "none")", category: "PaymentView")
         
         isProcessing = true
-        print("[PaymentView] 🔄 Starting payment flow...")
+        log("🔄 Starting payment flow...", category: "PaymentView")
         
         Task {
             var currentDonationId: String? = nil
@@ -208,7 +208,7 @@ struct ModernPaymentView: View {
                     amount: amount,
                     categoryId: category?.id
                 )
-                print("[PaymentView] ✅ Donation initiated: \(donation.id)")
+                log("✅ Donation initiated: \(donation.id)", category: "PaymentView")
                 
                 // Store donation ID for potential cancellation
                 currentDonationId = donation.id
@@ -230,7 +230,7 @@ struct ModernPaymentView: View {
                         return
                     }
                     
-                    print("[PaymentView] ✅ Got viewController: \(type(of: viewController))")
+                    log("✅ Got viewController: \(type(of: viewController))", category: "PaymentView")
                     print("[PaymentView] 📱 ViewController isViewLoaded: \(viewController.isViewLoaded)")
                     print("[PaymentView] 📱 ViewController viewIfLoaded: \(viewController.viewIfLoaded != nil ? "loaded" : "not loaded")")
                     
