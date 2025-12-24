@@ -53,6 +53,22 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             }
             if hasSquareProtocol {
                 print("[SquareMobilePayments] 🔌 Square Stand connected: \(accessory.name)")
+                print("[SquareMobilePayments] 🔄 Hardware detected - re-authorizing to establish connection...")
+                
+                // Automatically re-authorize when hardware connects to establish the connection
+                // This helps when iPad powers on and hardware is already connected
+                if let accessToken = self.accessToken, let locationId = self.locationId {
+                    // Wait a moment for hardware to fully initialize
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
+                            if let error = error {
+                                print("[SquareMobilePayments] ⚠️ Auto-reauthorization after hardware connect failed: \(error.localizedDescription)")
+                            } else {
+                                print("[SquareMobilePayments] ✅ Auto-reauthorized successfully after hardware connection")
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -563,10 +563,40 @@ class AppState: ObservableObject {
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
         print("[AppState] 🔍 Checking Square SDK connection state: \(authState)")
         
+        // Check if hardware is actually connected
+        let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+        print("[AppState] 🔌 Hardware connection check: \(hardwareConnected ? "✅ Connected" : "❌ Not detected")")
+        
         // If not authorized, try to reconnect immediately
         if authState != .authorized {
             print("[AppState] ⚠️ Square SDK connection lost (state: \(authState)) - attempting reconnection...")
             await authorizeSquareSDK()
+            
+            // After re-authorization, wait and check hardware again (hardware might wake up)
+            if !hardwareConnected {
+                print("[AppState] ⏳ Waiting for hardware to wake up after re-authorization...")
+                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+                if hardwareStillConnected {
+                    print("[AppState] ✅ Hardware detected after wait - connection established")
+                } else {
+                    print("[AppState] ⚠️ Hardware still not detected - may need physical reconnection")
+                }
+            }
+            return
+        }
+        
+        // If authorized but hardware not connected, try to reconnect
+        if !hardwareConnected {
+            print("[AppState] ⚠️ SDK authorized but hardware not detected - attempting reconnection...")
+            await authorizeSquareSDK()
+            
+            // Wait for hardware to potentially wake up
+            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+            let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+            if hardwareStillConnected {
+                print("[AppState] ✅ Hardware detected after reconnection attempt")
+            }
             return
         }
         
