@@ -114,7 +114,15 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {devices?.map((device: any) => (
-                  <tr key={device.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
+                  <tr 
+                    key={device.id} 
+                    className="hover:bg-purple-50/30 transition-colors border-b border-gray-100 cursor-pointer"
+                    onClick={(e) => {
+                      // Navigate to device details
+                      e.stopPropagation()
+                      window.location.href = `/dashboard?tab=devices&deviceId=${device.id}`
+                    }}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">{device.label}</div>
                     </td>

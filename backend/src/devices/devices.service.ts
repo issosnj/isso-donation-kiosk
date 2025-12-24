@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException, UnauthorizedException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Device, DeviceStatus } from './entities/device.entity';
+import { DeviceTelemetry } from './entities/device-telemetry.entity';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { ActivateDeviceDto } from './dto/activate-device.dto';
+import { CreateDeviceTelemetryDto } from './dto/create-device-telemetry.dto';
 import { TemplesService } from '../temples/temples.service';
 import { DonationCategoriesService } from '../donations/donation-categories.service';
 
@@ -13,6 +15,8 @@ export class DevicesService {
   constructor(
     @InjectRepository(Device)
     private devicesRepository: Repository<Device>,
+    @InjectRepository(DeviceTelemetry)
+    private telemetryRepository: Repository<DeviceTelemetry>,
     private jwtService: JwtService,
     private templesService: TemplesService,
     @Inject(forwardRef(() => DonationCategoriesService))
@@ -174,6 +178,72 @@ export class DevicesService {
       console.error('[Devices Service] Error stack:', error.stack);
       throw error;
     }
+  }
+
+  async createTelemetry(deviceId: string, telemetryDto: CreateDeviceTelemetryDto): Promise<DeviceTelemetry> {
+    const device = await this.findOne(deviceId);
+    
+    const telemetry = this.telemetryRepository.create({
+      deviceId: device.id,
+      ...telemetryDto,
+    });
+
+    return this.telemetryRepository.save(telemetry);
+  }
+
+  async getTelemetry(deviceId: string, limit: number = 100): Promise<DeviceTelemetry[]> {
+    return this.telemetryRepository.find({
+      where: { deviceId },
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  async getLatestTelemetry(deviceId: string): Promise<DeviceTelemetry | null> {
+    return this.telemetryRepository.findOne({
+      where: { deviceId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getDeviceLogs(deviceId: string, limit: number = 1000): Promise<Array<{
+    timestamp: string;
+    category: string;
+    message: string;
+    level?: 'info' | 'warning' | 'error';
+  }>> {
+    const telemetryRecords = await this.telemetryRepository.find({
+      where: { deviceId },
+      order: { createdAt: 'DESC' },
+      take: limit,
+      select: ['logs', 'createdAt'],
+    });
+
+    // Flatten all logs from all telemetry records
+    const allLogs: Array<{
+      timestamp: string;
+      category: string;
+      message: string;
+      level?: 'info' | 'warning' | 'error';
+    }> = [];
+
+    for (const record of telemetryRecords) {
+      if (record.logs && Array.isArray(record.logs)) {
+        allLogs.push(...record.logs);
+      }
+    }
+
+    // Sort by timestamp descending
+    return allLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, limit);
+  }
+
+  async cleanupOldTelemetry(daysToKeep: number = 30): Promise<void> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+    await this.telemetryRepository.delete({
+      createdAt: LessThan(cutoffDate),
+    });
   }
 
   private generateDeviceCode(): string {

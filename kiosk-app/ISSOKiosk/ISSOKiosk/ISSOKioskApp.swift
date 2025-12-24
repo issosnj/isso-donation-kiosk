@@ -80,6 +80,19 @@ struct ISSOKioskApp: App {
                 }
             }
         }
+        
+        // Send telemetry every 5 minutes when device is activated
+        Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { _ in
+            Task { @MainActor in
+                if appState.isActivated, let deviceId = appState.deviceId {
+                    do {
+                        try await DeviceTelemetryService.shared.sendTelemetry(deviceId: deviceId)
+                    } catch {
+                        appLog("⚠️ Failed to send telemetry: \(error.localizedDescription)", category: "DeviceTelemetry")
+                    }
+                }
+            }
+        }
     }
 }
 

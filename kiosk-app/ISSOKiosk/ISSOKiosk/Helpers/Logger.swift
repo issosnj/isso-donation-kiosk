@@ -22,5 +22,7 @@ extension String {
 // Using appLog to avoid conflict with Swift's built-in log() function for numeric types
 func appLog(_ message: String, category: String = "App") {
     Logger.log(message, category: category)
+    // Also buffer log for telemetry (lazy initialization ensures service exists)
+    DeviceTelemetryService.shared.addLog(category: category, message: message, level: "info")
 }
 

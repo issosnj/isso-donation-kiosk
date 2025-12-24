@@ -7,6 +7,8 @@ import {
   UseGuards,
   Patch,
   Delete,
+  Query,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DevicesService } from './devices.service';
@@ -114,6 +116,46 @@ export class DevicesController {
   @ApiOperation({ summary: 'Delete device' })
   remove(@Param('id') id: string) {
     return this.devicesService.remove(id);
+  }
+
+  @Post(':id/telemetry')
+  @UseGuards(DeviceAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Submit device telemetry data (device endpoint)' })
+  async createTelemetry(
+    @Param('id') id: string,
+    @Body() telemetryDto: any,
+    @CurrentDevice() device: any,
+  ) {
+    // Verify device ID matches
+    if (device.deviceId !== id) {
+      throw new UnauthorizedException('Device ID mismatch');
+    }
+    return this.devicesService.createTelemetry(id, telemetryDto);
+  }
+
+  @Get(':id/telemetry')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get device telemetry data' })
+  getTelemetry(@Param('id') id: string, @Query('limit') limit?: string) {
+    return this.devicesService.getTelemetry(id, limit ? parseInt(limit, 10) : 100);
+  }
+
+  @Get(':id/telemetry/latest')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get latest device telemetry' })
+  getLatestTelemetry(@Param('id') id: string) {
+    return this.devicesService.getLatestTelemetry(id);
+  }
+
+  @Get(':id/logs')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get device logs' })
+  getDeviceLogs(@Param('id') id: string, @Query('limit') limit?: string) {
+    return this.devicesService.getDeviceLogs(id, limit ? parseInt(limit, 10) : 1000);
   }
 }
 

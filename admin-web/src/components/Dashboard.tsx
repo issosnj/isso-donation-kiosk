@@ -22,8 +22,20 @@ export default function Dashboard({ user }: DashboardProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { logout } = useAuthStore()
-  const [activeTab, setActiveTab] = useState('overview')
+  
+  // Get tab and deviceId from URL params
+  const tabFromUrl = searchParams.get('tab') || 'overview'
+  const deviceIdFromUrl = searchParams.get('deviceId')
+  
+  const [activeTab, setActiveTab] = useState(tabFromUrl)
   const [squareMessage, setSquareMessage] = useState<{ type: 'success' | 'error'; message: string; templeId?: string } | null>(null)
+  
+  // Update activeTab when URL changes
+  useEffect(() => {
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl)
+    }
+  }, [tabFromUrl])
 
   // Handle Square connection callback
   useEffect(() => {
@@ -112,7 +124,11 @@ export default function Dashboard({ user }: DashboardProps) {
           {isMasterAdmin ? (
             <MasterDashboard activeTab={activeTab} />
           ) : (
-            <TempleDashboard activeTab={activeTab} templeId={user.templeId!} />
+            <TempleDashboard 
+              activeTab={activeTab} 
+              templeId={user.templeId!} 
+              deviceId={deviceIdFromUrl || undefined}
+            />
           )}
         </div>
       </div>

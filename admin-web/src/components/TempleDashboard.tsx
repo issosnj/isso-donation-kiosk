@@ -6,6 +6,7 @@ import OverviewTab from './tabs/OverviewTab'
 import DonationsTab from './tabs/DonationsTab'
 import DonorsTab from './tabs/DonorsTab'
 import DevicesTab from './tabs/DevicesTab'
+import DeviceDetailsTab from './tabs/DeviceDetailsTab'
 import CategoriesTab from './tabs/CategoriesTab'
 import SquareTab from './tabs/SquareTab'
 import ReceiptTab from './tabs/ReceiptTab'
@@ -13,9 +14,10 @@ import ReceiptTab from './tabs/ReceiptTab'
 interface TempleDashboardProps {
   activeTab: string
   templeId: string
+  deviceId?: string
 }
 
-export default function TempleDashboard({ activeTab, templeId }: TempleDashboardProps) {
+export default function TempleDashboard({ activeTab, templeId, deviceId }: TempleDashboardProps) {
   const { data: temple } = useQuery({
     queryKey: ['temple', templeId],
     queryFn: async () => {
@@ -25,6 +27,20 @@ export default function TempleDashboard({ activeTab, templeId }: TempleDashboard
   })
 
   const renderTab = () => {
+    // If deviceId is provided, show device details
+    if (deviceId && activeTab === 'devices') {
+      return (
+        <DeviceDetailsTab 
+          deviceId={deviceId} 
+          onBack={() => {
+            // Remove deviceId from URL
+            window.history.pushState({}, '', window.location.pathname + '?tab=devices')
+            window.location.reload()
+          }} 
+        />
+      )
+    }
+
     switch (activeTab) {
       case 'overview':
         return <OverviewTab templeId={templeId} />
