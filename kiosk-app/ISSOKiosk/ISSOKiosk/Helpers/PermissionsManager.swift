@@ -19,7 +19,7 @@ class PermissionsManager: NSObject {
     
     // Request location permission (required for Square payments)
     func requestLocationPermission(completion: @escaping (Bool) -> Void) {
-        switch CLLocationManager.authorizationStatus() {
+        switch locationManager.authorizationStatus {
         case .notDetermined:
             print("[PermissionsManager] Requesting location permission...")
             locationPermissionCompletion = completion
@@ -66,8 +66,9 @@ class PermissionsManager: NSObject {
     
     // Check if all required permissions are granted
     func hasAllRequiredPermissions() -> Bool {
-        let locationGranted = CLLocationManager.authorizationStatus() == .authorizedWhenInUse ||
-                             CLLocationManager.authorizationStatus() == .authorizedAlways
+        let locationStatus = locationManager.authorizationStatus
+        let locationGranted = locationStatus == .authorizedWhenInUse ||
+                             locationStatus == .authorizedAlways
         let bluetoothGranted = CBManager.authorization == .allowedAlways
         
         return locationGranted && bluetoothGranted
