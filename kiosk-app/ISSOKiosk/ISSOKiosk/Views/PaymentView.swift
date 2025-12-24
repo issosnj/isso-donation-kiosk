@@ -90,12 +90,14 @@ struct ModernPaymentView: View {
             }
         }
         .onDisappear {
-            // If user dismisses without completing payment, cancel the donation
-            // Only cancel if payment hasn't been completed (no status set) or if it failed
+            // Only cancel if payment is NOT currently processing
+            // When Square SDK shows its payment UI, the view disappears but payment is still in progress
+            // We should only cancel if the user actually dismissed the view while NOT processing
             if let donationId = donationId {
-                if paymentStatus == nil {
-                    // No payment status means user backed out before payment completed
-                    print("[PaymentView] ⚠️ View dismissed without completing payment, canceling donation: \(donationId)")
+                // Don't cancel if payment is currently processing (Square SDK UI is showing)
+                if !isProcessing && paymentStatus == nil {
+                    // Payment not processing and no status means user backed out before payment started
+                    print("[PaymentView] ⚠️ View dismissed before payment started, canceling donation: \(donationId)")
                     Task {
                         do {
                             _ = try await APIService.shared.cancelDonation(donationId: donationId)
@@ -119,6 +121,9 @@ struct ModernPaymentView: View {
                             }
                         }
                     }
+                } else if isProcessing && paymentStatus == nil {
+                    // Payment is processing - Square SDK UI is showing, don't cancel
+                    print("[PaymentView] 💡 View disappeared but payment is processing (Square SDK UI showing) - not canceling")
                 } else if case .failure = paymentStatus {
                     // Payment failed - ensure donation is marked as FAILED (should already be done, but double-check)
                     print("[PaymentView] ⚠️ View dismissed after payment failure, ensuring donation is marked as FAILED: \(donationId)")
