@@ -4,7 +4,6 @@ import SquareMobilePaymentsSDK
 import CoreLocation
 import CoreBluetooth
 import ExternalAccessory
-import Logger
 
 // Square Mobile Payments SDK Service
 // This service handles in-person payments with Square Stand using Mobile Payments SDK
