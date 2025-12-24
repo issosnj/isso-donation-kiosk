@@ -399,49 +399,6 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                 )
             }
         }
-        
-        // Old code removed - always force re-authorize now
-        /*
-        // Check authorization state - only authorize if needed (like DonationApp approach)
-        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        if authState != .authorized {
-            appLog("⚠️ SDK not authorized - authorizing now...", category: "SquareMobilePayments")
-            self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: false) { error in
-                if let error = error {
-                    appLog("❌ Authorization failed: \(error.localizedDescription)", category: "SquareMobilePayments")
-                    self.isStarting = false
-                    self.currentPaymentCompletion?(.failure(error))
-                    return
-                }
-                // Start payment after authorization
-                self.startPaymentFlow(
-                    paymentParameters: paymentParameters,
-                    promptParameters: promptParameters,
-                    viewController: viewController
-                )
-            }
-        } else {
-            // Already authorized - but force re-authorize to wake hardware
-            // This ensures the Stand lights up when payment starts
-            appLog("🔄 Force re-authorizing to wake hardware before payment...", category: "SquareMobilePayments")
-            self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
-                if let error = error {
-                    appLog("⚠️ Re-authorization warning (may still work): \(error.localizedDescription)", category: "SquareMobilePayments")
-                } else {
-                    appLog("✅ Re-authorization completed - hardware should be ready", category: "SquareMobilePayments")
-                }
-                
-                // Small delay after re-authorization to let hardware wake up
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                    guard let self = self else { return }
-                    self.startPaymentFlow(
-                        paymentParameters: paymentParameters,
-                        promptParameters: promptParameters,
-                        viewController: viewController
-                    )
-                }
-            }
-        }
     }
     
     // Start payment flow - SDK will detect hardware automatically
