@@ -43,6 +43,25 @@ struct ISSOKioskApp: App {
                     await appState.refreshReligiousEvents()
                     // Check and reconnect Square SDK when app becomes active
                     await appState.checkAndReconnectSquareSDK()
+                    
+                    // After reboot, hardware might take time to appear - check aggressively
+                    let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+                    if !hardwareConnected {
+                        print("[App] ⚠️ Hardware not detected when app became active - starting aggressive detection...")
+                        // Try to detect hardware with retries
+                        for attempt in 1...6 {
+                            let totalSeconds = attempt * 5
+                            if attempt > 1 {
+                                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds between checks
+                            }
+                            let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+                            if hardwareStillConnected {
+                                print("[App] ✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...")
+                                await appState.authorizeSquareSDK()
+                                break
+                            }
+                        }
+                    }
                 }
             }
         }
