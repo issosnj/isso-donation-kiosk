@@ -253,26 +253,8 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         from viewController: UIViewController,
         completion: @escaping (Result<PaymentResult, Error>) -> Void
     ) {
-        guard isAuthorized else {
-            appLog("❌ SDK not authorized", category: "SquareMobilePayments")
-            completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "SDK not authorized. Call authorize() first."
-            ])))
-            return
-        }
-        
-        guard let _ = self.accessToken, let locationId = self.locationId else {
-            appLog("❌ Missing credentials", category: "SquareMobilePayments")
-            completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Square credentials not available"
-            ])))
-            return
-        }
-        
         // 1) App truth: Prevent SwiftUI double-trigger with isStarting gate
         // This is the primary gate to prevent multiple simultaneous payment attempts
-        // Note: SDK's currentPaymentHandle may be available in newer versions, but we rely
-        // on app-level gate + SDK's startPayment returning nil if payment already in progress
         guard !isStarting else {
             appLog("⚠️ Payment start already in progress (app gate) - ignoring duplicate call", category: "SquareMobilePayments")
             return
@@ -282,39 +264,46 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         self.currentPaymentCompletion = completion
         
         appLog("💳 Starting payment: $\(amount) for donation \(donationId)", category: "SquareMobilePayments")
+        
+        // Check SDK's actual authorization state (source of truth, not local flag)
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        appLog("🔐 SDK Authorization state: \(authState)", category: "SquareMobilePayments")
+        
+        // Check if we have credentials
+        guard let accessToken = self.accessToken, let locationId = self.locationId else {
+            appLog("❌ Missing credentials", category: "SquareMobilePayments")
+            isStarting = false
+            completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Square credentials not available"
+            ])))
+            return
+        }
+        
         appLog("📍 Location ID: \(locationId)", category: "SquareMobilePayments")
         
-        // Check authorization state
-        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        appLog("🔐 Authorization state: \(authState)", category: "SquareMobilePayments")
-        
-        guard authState == .authorized else {
-            appLog("❌ SDK not authorized! State: \(authState) - attempting to reconnect...", category: "SquareMobilePayments")
-            isStarting = false
-            
-            // Try to reconnect if we have credentials
-            if let accessToken = self.accessToken, let locationId = self.locationId {
-                self.authorize(accessToken: accessToken, locationId: locationId) { error in
-                    if let error = error {
-                        appLog("❌ Reconnection failed: \(error.localizedDescription)", category: "SquareMobilePayments")
-                        completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                            NSLocalizedDescriptionKey: "Square SDK connection lost. Please restart the app."
-                        ])))
-                    } else {
-                        appLog("✅ Reconnected successfully - retrying payment", category: "SquareMobilePayments")
-                        // Retry payment after reconnection
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            self.takePayment(amount: amount, donationId: donationId, from: viewController, completion: completion)
-                        }
+        // If SDK is not authorized, authorize it first (this can happen if authorization is still in progress)
+        if authState != .authorized {
+            appLog("⚠️ SDK not authorized (state: \(authState)) - authorizing now...", category: "SquareMobilePayments")
+            self.authorize(accessToken: accessToken, locationId: locationId) { error in
+                if let error = error {
+                    appLog("❌ Authorization failed: \(error.localizedDescription)", category: "SquareMobilePayments")
+                    self.isStarting = false
+                    completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
+                        NSLocalizedDescriptionKey: "Square SDK authorization failed. Please check Square connection."
+                    ])))
+                } else {
+                    appLog("✅ Authorization successful - proceeding with payment", category: "SquareMobilePayments")
+                    // Retry payment after authorization (with a small delay for hardware to wake up)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.takePayment(amount: amount, donationId: donationId, from: viewController, completion: completion)
                     }
                 }
-            } else {
-                completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "Square SDK not authorized. Please check Square connection in settings."
-                ])))
             }
             return
         }
+        
+        // Update local flag to match SDK state
+        self.isAuthorized = true
         
         // Create payment parameters
         let amountMoney = Money(amount: UInt(amount * 100), currency: .USD)
