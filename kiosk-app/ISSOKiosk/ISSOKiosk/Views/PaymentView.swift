@@ -199,6 +199,14 @@ struct ModernPaymentView: View {
     
     private func processPayment() {
         appLog("💳 processPayment() called", category: "PaymentView")
+        
+        // Additional guard inside processPayment to prevent duplicate calls
+        // This protects against race conditions from rapid onAppear calls
+        guard !isProcessing || donationId == nil else {
+            appLog("⚠️ Payment already processing with donation ID: \(donationId ?? "unknown") - ignoring duplicate call", category: "PaymentView")
+            return
+        }
+        
         appLog("📋 Checking prerequisites...", category: "PaymentView")
         
         guard let templeId = appState.temple?.id else {
