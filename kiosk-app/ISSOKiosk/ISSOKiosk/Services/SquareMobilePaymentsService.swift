@@ -437,70 +437,56 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         appLog("🔄 Force re-authorizing SDK to wake up Square Stand...", category: "SquareMobilePayments")
         
         self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
-                if let error = error {
-                    appLog("⚠️ Re-authorization warning (may still work): \(error.localizedDescription)", category: "SquareMobilePayments")
-                } else {
-                    appLog("✅ Re-authorization completed - hardware should be awake", category: "SquareMobilePayments")
-                }
-                
-                // Wait longer for hardware to fully wake up after long idle periods
-                // Square Stand needs time to power on, establish connection, and be ready
-                // After hours of idle time, hardware may need 7-10 seconds to fully wake up
-                // We'll do a progressive wake-up: actively wake hardware and check multiple times
-                appLog("⏳ Progressive hardware wake-up sequence starting...", category: "SquareMobilePayments")
-                
-                // Immediately attempt to wake hardware by accessing it
+            if let error = error {
+                appLog("⚠️ Re-authorization warning (may still work): \(error.localizedDescription)", category: "SquareMobilePayments")
+            } else {
+                appLog("✅ Re-authorization completed - hardware should be awake", category: "SquareMobilePayments")
+            }
+            
+            // Wait longer for hardware to fully wake up after long idle periods
+            // Square Stand needs time to power on, establish connection, and be ready
+            // After hours of idle time, hardware may need 7-10 seconds to fully wake up
+            // We'll do a progressive wake-up: actively wake hardware and check multiple times
+            appLog("⏳ Progressive hardware wake-up sequence starting...", category: "SquareMobilePayments")
+            
+            // Immediately attempt to wake hardware by accessing it
+            self.attemptHardwareWakeUp()
+            
+            // First check after 3 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                // Try to wake hardware again
                 self.attemptHardwareWakeUp()
+                let hardwareDetected1 = self.checkHardwareConnection()
+                appLog("🔍 Hardware check 1 (3s): \(hardwareDetected1 ? "✅ Detected" : "⚠️ Not visible")", category: "SquareMobilePayments")
                 
-                // First check after 3 seconds
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                // Second check after 5 seconds total
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     // Try to wake hardware again
                     self.attemptHardwareWakeUp()
-                    let hardwareDetected1 = self.checkHardwareConnection()
-                    appLog("🔍 Hardware check 1 (3s): \(hardwareDetected1 ? "✅ Detected" : "⚠️ Not visible")", category: "SquareMobilePayments")
+                    let hardwareDetected2 = self.checkHardwareConnection()
+                    appLog("🔍 Hardware check 2 (5s): \(hardwareDetected2 ? "✅ Detected" : "⚠️ Not visible")", category: "SquareMobilePayments")
                     
-                    // Second check after 5 seconds total
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        // Try to wake hardware again
+                    // Final check after 8 seconds total - give hardware maximum time to wake up
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        // Final wake attempt
                         self.attemptHardwareWakeUp()
-                        let hardwareDetected2 = self.checkHardwareConnection()
-                        appLog("🔍 Hardware check 2 (5s): \(hardwareDetected2 ? "✅ Detected" : "⚠️ Not visible")", category: "SquareMobilePayments")
+                        let hardwareDetected3 = self.checkHardwareConnection()
+                        appLog("🔍 Hardware check 3 (8s): \(hardwareDetected3 ? "✅ Detected" : "⚠️ Not visible")", category: "SquareMobilePayments")
                         
-                        // Final check after 8 seconds total - give hardware maximum time to wake up
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                            // Final wake attempt
-                            self.attemptHardwareWakeUp()
-                            let hardwareDetected3 = self.checkHardwareConnection()
-                            appLog("🔍 Hardware check 3 (8s): \(hardwareDetected3 ? "✅ Detected" : "⚠️ Not visible")", category: "SquareMobilePayments")
-                            
-                            if hardwareDetected3 {
-                                appLog("✅ Hardware confirmed awake after progressive wake-up", category: "SquareMobilePayments")
-                            } else {
-                                appLog("⚠️ Hardware still not visible after 8s, but proceeding (SDK may still work)", category: "SquareMobilePayments")
-                                appLog("💡 Square Stand may wake up when SDK attempts to use it", category: "SquareMobilePayments")
-                            }
-                            
-                            // Now start payment - hardware should be awake
-                            self.startPaymentFlowWithWakeup(
-                                paymentParameters: paymentParameters,
-                                promptParameters: promptParameters,
-                                viewController: viewController
-                            )
+                        if hardwareDetected3 {
+                            appLog("✅ Hardware confirmed awake after progressive wake-up", category: "SquareMobilePayments")
+                        } else {
+                            appLog("⚠️ Hardware still not visible after 8s, but proceeding (SDK may still work)", category: "SquareMobilePayments")
+                            appLog("💡 Square Stand may wake up when SDK attempts to use it", category: "SquareMobilePayments")
                         }
+                        
+                        // Now start payment - hardware should be awake
+                        self.startPaymentFlowWithWakeup(
+                            paymentParameters: paymentParameters,
+                            promptParameters: promptParameters,
+                            viewController: viewController
+                        )
                     }
-                }
-            }
-        } else {
-            appLog("❌ No credentials available - cannot re-authorize", category: "SquareMobilePayments")
-            // No credentials - proceed anyway, SDK will handle it
-            DispatchQueue.main.async {
-                _ = viewController.view
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    self.startPaymentFlowWithWakeup(
-                        paymentParameters: paymentParameters,
-                        promptParameters: promptParameters,
-                        viewController: viewController
-                    )
                 }
             }
         }
