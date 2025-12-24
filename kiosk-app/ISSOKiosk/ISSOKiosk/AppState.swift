@@ -656,17 +656,19 @@ class AppState: ObservableObject {
         
         print("[AppState] 🔄 Starting automatic category refresh timer (every 30 seconds)")
         
-        // Refresh immediately on first start
-        Task {
+        // Refresh immediately on first start (non-blocking background task)
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self = self else { return }
             await refreshCategories()
         }
         
-        // Then refresh every 30 seconds
+        // Then refresh every 30 seconds (all in background)
         categoryRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
             guard let self = self, self.isActivated else {
                 return
             }
-            Task {
+            Task.detached(priority: .utility) { [weak self] in
+                guard let self = self else { return }
                 await self.refreshCategories()
             }
         }
@@ -692,17 +694,19 @@ class AppState: ObservableObject {
         
         print("[AppState] 🔄 Starting automatic religious events refresh timer (every 5 minutes)")
         
-        // Refresh immediately on first start
-        Task {
+        // Refresh immediately on first start (non-blocking background task)
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self = self else { return }
             await refreshReligiousEvents()
         }
         
-        // Then refresh every 5 minutes (300 seconds) - more frequent than categories since events change more often
+        // Then refresh every 5 minutes (300 seconds) - all in background
         religiousEventsRefreshTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
             guard let self = self, self.isActivated else {
                 return
             }
-            Task {
+            Task.detached(priority: .utility) { [weak self] in
+                guard let self = self else { return }
                 await self.refreshReligiousEvents()
             }
         }
