@@ -119,6 +119,18 @@ export class TemplesController {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         console.log(`[Proxy Image] Failed to fetch image: ${error.response.status} ${error.response.statusText}`);
+        console.log(`[Proxy Image] Response headers:`, error.response.headers);
+        console.log(`[Proxy Image] Response data (first 500 chars):`, 
+          error.response.data?.toString?.()?.substring(0, 500) || error.response.data);
+        
+        // For Google Drive, 400 often means the file isn't publicly accessible
+        // or the URL format is incorrect
+        if (decodedUrl.includes('drive.google.com')) {
+          console.log(`[Proxy Image] 💡 Google Drive URL issue detected`);
+          console.log(`[Proxy Image] 💡 Make sure the file is set to "Anyone with the link can view"`);
+          console.log(`[Proxy Image] 💡 Try using: https://drive.google.com/uc?export=download&id=FILE_ID`);
+        }
+        
         return res.status(error.response.status).json({ 
           message: 'Failed to fetch image',
           statusCode: error.response.status 
