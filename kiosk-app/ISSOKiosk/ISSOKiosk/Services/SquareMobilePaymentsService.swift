@@ -24,6 +24,49 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     
     private override init() {
         super.init()
+        // Register for accessory notifications to detect when Square Stand connects/disconnects
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(accessoryConnected),
+            name: .EAAccessoryDidConnect,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(accessoryDisconnected),
+            name: .EAAccessoryDidDisconnect,
+            object: nil
+        )
+        // Register with EAAccessoryManager to receive notifications
+        EAAccessoryManager.shared().registerForLocalNotifications()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func accessoryConnected(_ notification: Notification) {
+        if let accessory = notification.userInfo?[EAAccessoryKey] as? EAAccessory {
+            let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
+            let hasSquareProtocol = accessory.protocolStrings.contains { protocolString in
+                squareProtocols.contains { $0 == protocolString }
+            }
+            if hasSquareProtocol {
+                print("[SquareMobilePayments] 🔌 Square Stand connected: \(accessory.name)")
+            }
+        }
+    }
+    
+    @objc private func accessoryDisconnected(_ notification: Notification) {
+        if let accessory = notification.userInfo?[EAAccessoryKey] as? EAAccessory {
+            let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
+            let hasSquareProtocol = accessory.protocolStrings.contains { protocolString in
+                squareProtocols.contains { $0 == protocolString }
+            }
+            if hasSquareProtocol {
+                print("[SquareMobilePayments] ⚠️ Square Stand disconnected: \(accessory.name)")
+            }
+        }
     }
     
     struct PaymentResult {
@@ -155,12 +198,19 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             
             if hasSquareProtocol {
                 print("[SquareMobilePayments] ✅ Found Square hardware: \(accessory.name) (Model: \(accessory.modelNumber ?? "unknown"))")
+                print("[SquareMobilePayments] 📋 Accessory protocols: \(accessoryProtocols)")
                 return true
             }
         }
         
         print("[SquareMobilePayments] ⚠️ No Square hardware detected in connected accessories")
-        print("[SquareMobilePayments] 📋 Connected accessories: \(connectedAccessories.map { $0.name })")
+        print("[SquareMobilePayments] 📋 Connected accessories: \(connectedAccessories.map { "\($0.name) (protocols: \($0.protocolStrings))" })")
+        
+        // Note: Square Stand might not appear in connectedAccessories until SDK tries to use it
+        // This is a limitation - we can't reliably detect it before payment starts
+        print("[SquareMobilePayments] 💡 Note: Square Stand may not appear in connectedAccessories until SDK actively uses it")
+        print("[SquareMobilePayments] 💡 The SDK will detect hardware when starting payment")
+        
         return false
     }
     
