@@ -116,77 +116,67 @@ struct ModernPaymentView: View {
             }
         }
         .onDisappear {
-            // Always clear payment state when view disappears to prevent payment_already_in_progress errors
-            // This ensures clean state when user navigates back and tries again
-            print("[PaymentView] 👋 View disappeared - clearing payment state")
+            // Check if payment has actually started in SDK (we got a handle)
+            // If payment handle was received, the SDK UI is showing and we should NOT cancel
+            let hasActiveHandle = SquareMobilePaymentsService.shared.hasActivePaymentHandle()
             
-            // Cancel any in-progress payment in Square SDK
-            if SquareMobilePaymentsService.shared.isPaymentInProgress() {
-                print("[PaymentView] 🚫 Cancelling in-progress payment in Square SDK")
-                SquareMobilePaymentsService.shared.cancelCurrentPayment()
-            }
+            appLog("👋 View disappeared - hasActiveHandle: \(hasActiveHandle), isProcessing: \(isProcessing), paymentStatus: \(paymentStatus != nil ? "set" : "nil")", category: "PaymentView")
             
-            // Reset local state
-            isReady = false
-            isProcessing = false
-            hasStartedPayment = false
-            
-            // Only cancel donation if payment hasn't completed
-            if let donationId = donationId {
-                // Don't cancel if payment is currently processing (Square SDK UI is showing)
-                if !isProcessing && paymentStatus == nil {
-                    // Payment not processing and no status means user backed out before payment started
-                    print("[PaymentView] ⚠️ View dismissed before payment started, canceling donation: \(donationId)")
+            // Only cancel if payment hasn't actually started (no handle received)
+            // If handle was received, the SDK UI is showing and onDisappear is just from the overlay
+            if !hasActiveHandle {
+                appLog("💡 Payment handle not received - view disappeared before payment started", category: "PaymentView")
+                
+                // Cancel any in-progress payment attempt in Square SDK
+                if SquareMobilePaymentsService.shared.isPaymentInProgress() {
+                    appLog("🚫 Cancelling in-progress payment attempt in Square SDK", category: "PaymentView")
+                    SquareMobilePaymentsService.shared.cancelCurrentPayment()
+                }
+                
+                // Reset local state
+                isReady = false
+                isProcessing = false
+                hasStartedPayment = false
+                
+                // Cancel donation if payment hasn't started
+                if let donationId = donationId {
+                    appLog("⚠️ View dismissed before payment started, canceling donation: \(donationId)", category: "PaymentView")
                     Task {
                         do {
                             _ = try await APIService.shared.cancelDonation(donationId: donationId)
                             appLog("✅ Donation canceled successfully", category: "PaymentView")
                         } catch {
                             appLog("❌ Failed to cancel donation: \(error.localizedDescription)", category: "PaymentView")
-                            // If cancel fails (e.g., already completed), try to mark as failed
-                            do {
-                                _ = try await APIService.shared.completeDonation(
-                                    donationId: donationId,
-                                    squarePaymentId: "",
-                                    status: "CANCELED",
-                                    donorName: donorName,
-                                    donorPhone: donorPhone,
-                                    donorEmail: donorEmail,
-                                    donorAddress: donorAddress
-                                )
-                                appLog("✅ Donation marked as CANCELED via completeDonation", category: "PaymentView")
-                            } catch {
-                                appLog("❌ Failed to update donation status: \(error.localizedDescription)", category: "PaymentView")
-                            }
-                        }
-                    }
-                } else if isProcessing && paymentStatus == nil {
-                    // Payment is processing - Square SDK UI is showing, don't cancel
-                    appLog("💡 View disappeared but payment is processing (Square SDK UI showing) - not canceling", category: "PaymentView")
-                } else if case .failure = paymentStatus {
-                    // Payment failed - ensure donation is marked as FAILED (should already be done, but double-check)
-                    appLog("⚠️ View dismissed after payment failure, ensuring donation is marked as FAILED: \(donationId)", category: "PaymentView")
-                    Task {
-                        do {
-                            _ = try await APIService.shared.completeDonation(
-                                donationId: donationId,
-                                squarePaymentId: "",
-                                status: "FAILED",
-                                donorName: donorName,
-                                donorPhone: donorPhone,
-                                donorEmail: donorEmail,
-                                donorAddress: donorAddress
-                            )
-                            appLog("✅ Donation confirmed as FAILED", category: "PaymentView")
-                        } catch {
-                            appLog("⚠️ Donation may already be updated: \(error.localizedDescription)", category: "PaymentView")
                         }
                     }
                 }
+            } else {
+                // Payment handle was received - SDK UI is showing, don't cancel
+                appLog("💡 View disappeared but payment has started (SDK UI showing) - not canceling", category: "PaymentView")
+                // Don't reset state - let the payment complete or fail naturally
             }
             
-            // Clear payment status
-            paymentStatus = nil
+            // Handle payment status cleanup (only if payment failed)
+            if case .failure = paymentStatus, let donationId = donationId {
+                // Payment failed - ensure donation is marked as FAILED (should already be done, but double-check)
+                appLog("⚠️ View dismissed after payment failure, ensuring donation is marked as FAILED: \(donationId)", category: "PaymentView")
+                Task {
+                    do {
+                        _ = try await APIService.shared.completeDonation(
+                            donationId: donationId,
+                            squarePaymentId: "",
+                            status: "FAILED",
+                            donorName: donorName,
+                            donorPhone: donorPhone,
+                            donorEmail: donorEmail,
+                            donorAddress: donorAddress
+                        )
+                        appLog("✅ Donation confirmed as FAILED", category: "PaymentView")
+                    } catch {
+                        appLog("⚠️ Donation may already be updated: \(error.localizedDescription)", category: "PaymentView")
+                    }
+                }
+            }
         }
         .detectTouches() // Detect all user interactions to reset idle timer
     }

@@ -22,6 +22,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     private var locationId: String?
     private var currentPaymentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private var isStarting = false // Gate to prevent multiple simultaneous payment attempts
+    private var hasPaymentHandle = false // Track if we actually got a payment handle from SDK
     
     private override init() {
         super.init()
@@ -361,6 +362,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         )
         
         if let handle = paymentHandle {
+            hasPaymentHandle = true // Mark that payment has actually started
             appLog("✅ Payment started successfully! Handle: \(handle)", category: "SquareMobilePayments")
             appLog("💡 Square SDK should now show card entry UI", category: "SquareMobilePayments")
             appLog("💡 User can tap or insert card on Square Stand", category: "SquareMobilePayments")
@@ -467,6 +469,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // Reset gate in ALL delegate exits
         isStarting = false
+        hasPaymentHandle = false // Reset handle flag
         currentPaymentCompletion?(.success(result))
         currentPaymentCompletion = nil
     }
@@ -495,6 +498,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // Reset gate in ALL delegate exits
         isStarting = false
+        hasPaymentHandle = false // Reset handle flag
         currentPaymentCompletion = nil
     }
     
@@ -507,8 +511,14 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // Reset gate in ALL delegate exits
         isStarting = false
+        hasPaymentHandle = false // Reset handle flag
         currentPaymentCompletion?(.failure(error))
         currentPaymentCompletion = nil
+    }
+    
+    // Public method to check if payment handle was received (payment actually started in SDK)
+    func hasActivePaymentHandle() -> Bool {
+        return hasPaymentHandle
     }
     
     // Public method to check if payment is in progress
@@ -524,6 +534,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // Reset app-level gate
         isStarting = false
+        hasPaymentHandle = false // Reset handle flag
         
         // Call completion with cancellation error if we have one
         // Note: SDK will handle its own payment cancellation when view is dismissed
