@@ -3,6 +3,7 @@ import UIKit
 import SquareMobilePaymentsSDK
 import CoreLocation
 import CoreBluetooth
+import ExternalAccessory
 
 // Square Mobile Payments SDK Service
 // This service handles in-person payments with Square Stand using Mobile Payments SDK
@@ -135,6 +136,32 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         print("[SquareMobilePayments] 💡 Note: Square Stand will be detected automatically when you start a payment")
         print("[SquareMobilePayments] 💡 The SDK will show an error if no hardware is found during payment")
         print("[SquareMobilePayments] ============================================\n")
+    }
+    
+    // Check if Square Stand hardware is actually connected at iOS level
+    private func checkHardwareConnection() -> Bool {
+        // Check ExternalAccessory framework for connected Square devices
+        let manager = EAAccessoryManager.shared()
+        let connectedAccessories = manager.connectedAccessories
+        
+        // Look for Square Stand (it will have Square protocols)
+        let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
+        
+        for accessory in connectedAccessories {
+            let accessoryProtocols = accessory.protocolStrings
+            let hasSquareProtocol = accessoryProtocols.contains { protocolString in
+                squareProtocols.contains { $0 == protocolString }
+            }
+            
+            if hasSquareProtocol {
+                print("[SquareMobilePayments] ✅ Found Square hardware: \(accessory.name) (Model: \(accessory.modelNumber ?? "unknown"))")
+                return true
+            }
+        }
+        
+        print("[SquareMobilePayments] ⚠️ No Square hardware detected in connected accessories")
+        print("[SquareMobilePayments] 📋 Connected accessories: \(connectedAccessories.map { $0.name })")
+        return false
     }
     
     // Take payment using Mobile Payments SDK PaymentManager
