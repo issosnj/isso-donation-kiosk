@@ -674,15 +674,15 @@ extension APIService {
     }
     
     func getSquareCredentials() async throws -> SquareCredentials {
-        // Square credentials request with longer timeout and more retries
-        // This is critical for payment functionality but shouldn't block app startup
+        // Square credentials request - use default timeout (30s) and fewer retries
+        // This prevents aggressive retries that can cause network issues
         return try await request(
             endpoint: "/devices/square-credentials",
             method: "GET",
             body: nil,
             requiresAuth: true,
-            maxRetries: 2, // Reduced retries for faster failure (3 total attempts)
-            timeout: 15.0 // Shorter timeout: 15s instead of 30s for faster failure detection
+            maxRetries: 1, // Only 1 retry (2 total attempts) - prevents network congestion
+            timeout: 30.0 // Use default 30s timeout (was 15s, too aggressive)
         )
     }
     

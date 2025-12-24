@@ -79,11 +79,13 @@ class AppState: ObservableObject {
             }
             
             // Start Square SDK authorization in background (non-blocking, lower priority)
-            // Delay it slightly to let temple config start first
+            // Delay it significantly to let temple config complete first
+            // This prevents network competition and timeouts
             Task.detached(priority: .utility) { [weak self] in
                 guard let self = self else { return }
-                // Small delay to let temple config request start first
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
+                // Wait 5 seconds to let temple config request complete first
+                // This prevents network competition that causes timeouts
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 second delay
                 await self.authorizeSquareSDK()
                 await MainActor.run {
                     self.startSquareConnectionMonitoring()
