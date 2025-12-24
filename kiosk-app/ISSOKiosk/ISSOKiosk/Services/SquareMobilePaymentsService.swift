@@ -211,6 +211,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     
     // Check if Square Stand hardware is actually connected at iOS level
     // Made public so AppState can check hardware connection
+    // Note: This checks iOS-level connection, but SDK may have its own internal state
     func checkHardwareConnection() -> Bool {
         // Check ExternalAccessory framework for connected Square devices
         let manager = EAAccessoryManager.shared()
@@ -227,19 +228,21 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             
             if hasSquareProtocol {
                 let modelNumber = accessory.modelNumber.isEmpty ? "unknown" : accessory.modelNumber
-                print("[SquareMobilePayments] ✅ Found Square hardware: \(accessory.name) (Model: \(modelNumber))")
-                print("[SquareMobilePayments] 📋 Accessory protocols: \(accessoryProtocols)")
+                appLog("✅ Found Square hardware: \(accessory.name) (Model: \(modelNumber))", category: "SquareMobilePayments")
+                appLog("📋 Accessory protocols: \(accessoryProtocols)", category: "SquareMobilePayments")
+                appLog("💡 Hardware detected at iOS level - SDK should be able to use it", category: "SquareMobilePayments")
                 return true
             }
         }
         
-        print("[SquareMobilePayments] ⚠️ No Square hardware detected in connected accessories")
-        print("[SquareMobilePayments] 📋 Connected accessories: \(connectedAccessories.map { "\($0.name) (protocols: \($0.protocolStrings))" })")
+        appLog("⚠️ No Square hardware detected in connected accessories", category: "SquareMobilePayments")
+        appLog("📋 Connected accessories: \(connectedAccessories.map { "\($0.name) (protocols: \($0.protocolStrings))" })", category: "SquareMobilePayments")
         
         // Note: Square Stand might not appear in connectedAccessories until SDK tries to use it
         // This is a limitation - we can't reliably detect it before payment starts
-        print("[SquareMobilePayments] 💡 Note: Square Stand may not appear in connectedAccessories until SDK actively uses it")
-        print("[SquareMobilePayments] 💡 The SDK will detect hardware when starting payment")
+        // However, the SDK will detect hardware when starting payment, so this is not a fatal error
+        appLog("💡 Note: Square Stand may not appear in connectedAccessories until SDK actively uses it", category: "SquareMobilePayments")
+        appLog("💡 The SDK will detect hardware when starting payment - this check is informational only", category: "SquareMobilePayments")
         
         return false
     }
