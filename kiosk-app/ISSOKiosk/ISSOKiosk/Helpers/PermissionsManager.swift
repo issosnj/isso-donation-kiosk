@@ -140,6 +140,9 @@ extension PermissionsManager: CBCentralManagerDelegate {
                 bluetoothPermissionCompletion = nil
                 print("[PermissionsManager] ⚠️ Bluetooth not supported on this device")
                 completion(false)
+            case .unknown:
+                // Unknown state - keep waiting
+                break
             @unknown default:
                 bluetoothPermissionCompletion = nil
                 completion(false)

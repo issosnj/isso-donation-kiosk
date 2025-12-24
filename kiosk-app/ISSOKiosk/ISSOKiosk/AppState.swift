@@ -240,7 +240,6 @@ class AppState: ObservableObject {
         
         // Retry logic for initial load - keep trying until successful
         let maxRetries = 5
-        var lastError: Error?
         
         for attempt in 0..<maxRetries {
             if attempt > 0 {

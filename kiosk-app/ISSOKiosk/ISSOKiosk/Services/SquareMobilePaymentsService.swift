@@ -225,7 +225,8 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             }
             
             if hasSquareProtocol {
-                print("[SquareMobilePayments] ✅ Found Square hardware: \(accessory.name) (Model: \(accessory.modelNumber ?? "unknown"))")
+                let modelNumber = accessory.modelNumber.isEmpty ? "unknown" : accessory.modelNumber
+                print("[SquareMobilePayments] ✅ Found Square hardware: \(accessory.name) (Model: \(modelNumber))")
                 print("[SquareMobilePayments] 📋 Accessory protocols: \(accessoryProtocols)")
                 return true
             }
@@ -258,7 +259,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
-        guard let accessToken = self.accessToken, let locationId = self.locationId else {
+        guard let _ = self.accessToken, let locationId = self.locationId else {
             print("[SquareMobilePayments] ❌ Missing credentials")
             completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "Square credentials not available"
