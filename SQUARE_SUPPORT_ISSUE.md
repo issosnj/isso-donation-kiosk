@@ -223,15 +223,6 @@ paymentManager.startPayment(
 
 8. **Hardware Detection**: Why doesn't `EAAccessoryManager.connectedAccessories` reliably show Square Stand even when it's physically connected? Is this expected behavior?
 
-## Additional Context
-
-- **Use Case**: Unattended payment kiosk - needs to be reliable for 24/7 operation
-- **Frequency**: Issues occur most commonly after:
-  - 2+ hours of inactivity
-  - iPad restart
-  - App backgrounding/foregrounding
-- **Workaround**: Physical unplug/replug of Square Stand resolves the issue temporarily
-- **Impact**: High - affects user experience and donation collection
 
 ## Request
 

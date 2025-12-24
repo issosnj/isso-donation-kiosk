@@ -236,17 +236,17 @@ class AppState: ObservableObject {
         appLog("📡 Fetching temple config for templeId: \(templeId)", category: "AppState")
         appLog("📡 API Base URL: \(Config.apiBaseURL)", category: "AppState")
         
-        // Reduced retries for faster startup - only 2 retries (3 total attempts)
-        let maxRetries = 2
+        // Reduced retries for faster startup - only 1 retry (2 total attempts)
+        // If it fails, UI will still show with default/fallback theme
+        let maxRetries = 1
         
         for attempt in 0..<maxRetries {
             if attempt > 0 {
-                // Shorter backoff for faster startup: 1s, 2s
-                let delay = Double(attempt)
+                // Shorter backoff: 2s
                 await MainActor.run {
-                    appLog("🔄 Retry attempt \(attempt + 1)/\(maxRetries) after \(delay)s delay...", category: "AppState")
+                    appLog("🔄 Retry attempt \(attempt + 1)/\(maxRetries) after 2s delay...", category: "AppState")
                 }
-                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
             }
             
             do {
@@ -254,7 +254,7 @@ class AppState: ObservableObject {
                 await MainActor.run {
                     appLog("📡 Starting temple fetch request (attempt \(attempt + 1))...", category: "AppState")
                 }
-                let temple = try await APIService.shared.getTemple(templeId: templeId, timeout: 10.0) // 10 second timeout for startup
+                let temple = try await APIService.shared.getTemple(templeId: templeId, timeout: 8.0) // 8 second timeout for faster failure
                 
                 await MainActor.run {
                     self.temple = temple
