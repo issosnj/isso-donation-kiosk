@@ -246,8 +246,8 @@ class AppState: ObservableObject {
         appLog("📡 Fetching temple config for templeId: \(templeId)", category: "AppState")
         appLog("📡 API Base URL: \(Config.apiBaseURL)", category: "AppState")
         
-        // Optimized for faster startup - 2 retries (3 total attempts) with progressive timeouts
-        let maxRetries = 2
+        // Optimized for faster startup - only 1 retry (2 total attempts) with shorter timeout
+        let maxRetries = 1
         
         for attempt in 0..<maxRetries {
             if attempt > 0 {
@@ -259,8 +259,8 @@ class AppState: ObservableObject {
             }
             
             do {
-                // Progressive timeout: 5s first attempt, 8s for retries (faster failure detection)
-                let timeout = attempt == 0 ? 5.0 : 8.0
+                // Use 8s timeout for all attempts (faster than 30s default, but not too aggressive)
+                let timeout = 8.0
                 await MainActor.run {
                     appLog("📡 Starting temple fetch request (attempt \(attempt + 1), timeout: \(timeout)s)...", category: "AppState")
                 }
