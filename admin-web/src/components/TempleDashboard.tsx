@@ -33,8 +33,11 @@ export default function TempleDashboard({ activeTab, templeId, deviceId }: Templ
         <DeviceDetailsTab 
           deviceId={deviceId} 
           onBack={() => {
-            // Remove deviceId from URL
-            window.history.pushState({}, '', window.location.pathname + '?tab=devices')
+            // Remove deviceId from URL and ensure tab is set to devices
+            const url = new URL(window.location.href)
+            url.searchParams.delete('deviceId')
+            url.searchParams.set('tab', 'devices')
+            window.history.pushState({}, '', url.toString())
             window.location.reload()
           }} 
         />

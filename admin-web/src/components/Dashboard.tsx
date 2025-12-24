@@ -36,6 +36,20 @@ export default function Dashboard({ user }: DashboardProps) {
       setActiveTab(tabFromUrl)
     }
   }, [tabFromUrl])
+  
+  // Handle tab changes while preserving deviceId if present
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    // Update URL while preserving deviceId if we're staying on devices tab
+    const urlParams = new URLSearchParams(window.location.search)
+    urlParams.set('tab', tab)
+    // Only preserve deviceId if we're staying on devices tab
+    if (tab !== 'devices') {
+      urlParams.delete('deviceId')
+    }
+    const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '')
+    router.push(newUrl)
+  }
 
   // Handle Square connection callback
   useEffect(() => {
@@ -80,7 +94,7 @@ export default function Dashboard({ user }: DashboardProps) {
       <Sidebar
         user={user}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         onLogout={logout}
       />
       <div className="ml-64 min-h-screen">

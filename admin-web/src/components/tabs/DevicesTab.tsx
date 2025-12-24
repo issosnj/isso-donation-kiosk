@@ -120,7 +120,10 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
                     onClick={(e) => {
                       // Navigate to device details
                       e.stopPropagation()
-                      window.location.href = `/dashboard?tab=devices&deviceId=${device.id}`
+                      // Use router to navigate without full page reload
+                      const url = `/dashboard?tab=devices&deviceId=${device.id}`
+                      window.history.pushState({}, '', url)
+                      window.location.reload() // Reload to trigger state update
                     }}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">

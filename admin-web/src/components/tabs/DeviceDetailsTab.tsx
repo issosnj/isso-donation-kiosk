@@ -69,9 +69,10 @@ export default function DeviceDetailsTab({ deviceId, onBack }: DeviceDetailsTabP
         <div>
           <button
             onClick={() => {
-              // Remove deviceId from URL and reload
+              // Remove deviceId from URL and navigate back
               const url = new URL(window.location.href)
               url.searchParams.delete('deviceId')
+              url.searchParams.set('tab', 'devices')
               window.history.pushState({}, '', url.toString())
               window.location.reload()
             }}
