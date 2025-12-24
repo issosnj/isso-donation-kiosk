@@ -228,8 +228,9 @@ struct KioskHomeView: View {
                         GoldAccentDonateButton(
                             buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                             action: {
-                            // Preload background image before navigating
+                            // Re-authorize Square SDK and preload background image before navigating
                             Task {
+                                await appState.checkAndReconnectSquareSDK()
                                 await appState.preloadBackgroundImage()
                                 await MainActor.run {
                                     navigationState.showDonationFlow = true
@@ -432,6 +433,7 @@ struct KioskHomeView: View {
                 buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                 action: {
                 Task {
+                    await appState.checkAndReconnectSquareSDK()
                     await appState.preloadBackgroundImage()
                     await MainActor.run {
                         navigationState.showDonationFlow = true
@@ -447,6 +449,7 @@ struct KioskHomeView: View {
                 buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                 action: {
                 Task {
+                    await appState.checkAndReconnectSquareSDK()
                     await appState.preloadBackgroundImage()
                     await MainActor.run {
                         navigationState.showDonationFlow = true
@@ -603,7 +606,7 @@ struct KioskHomeView: View {
                         }
                         
                         Text("whatsappGroup".localized)
-                            .font(.custom("Inter-SemiBold", size: 16))
+                            .font(.system(size: 18, weight: .bold, design: .serif))
                             .foregroundColor(colorFromHex("423232")) // Matches header color
                     }
                 }
@@ -648,7 +651,7 @@ struct KioskHomeView: View {
                     }
                     
                     Text("observance".localized)
-                        .font(.custom("Inter-SemiBold", size: 16))
+                        .font(.system(size: 18, weight: .bold, design: .serif))
                         .foregroundColor(colorFromHex("423232"))
                 }
             }
