@@ -33,9 +33,24 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     
     // Step 4: Authorize Mobile Payments SDK with OAuth access token and location ID
     // According to Square docs: authorizationManager.authorize() uses a completion handler
-    func authorize(accessToken: String, locationId: String, completion: @escaping (Error?) -> Void) {
+    func authorize(accessToken: String, locationId: String, forceReauthorize: Bool = false, completion: @escaping (Error?) -> Void) {
         self.accessToken = accessToken
         self.locationId = locationId
+        
+        // If forceReauthorize is true, always re-authorize (useful for refreshing stale connections)
+        if forceReauthorize {
+            print("[SquareMobilePayments] 🔄 Force re-authorizing to refresh hardware connection...")
+            // Deauthorize first if needed
+            if MobilePaymentsSDK.shared.authorizationManager.state == .authorized {
+                MobilePaymentsSDK.shared.authorizationManager.deauthorize { _ in
+                    // Continue with authorization after deauthorization
+                    self.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
+                }
+            } else {
+                self.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
+            }
+            return
+        }
         
         // Check if already authorized
         guard MobilePaymentsSDK.shared.authorizationManager.state == .notAuthorized else {
@@ -47,6 +62,11 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
+        performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
+    }
+    
+    // Helper method to perform actual authorization
+    private func performAuthorization(accessToken: String, locationId: String, completion: @escaping (Error?) -> Void) {
         // Authorize with OAuth access token
         MobilePaymentsSDK.shared.authorizationManager.authorize(
             withAccessToken: accessToken,

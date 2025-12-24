@@ -511,16 +511,28 @@ class AppState: ObservableObject {
             // Get Square credentials from backend
             let credentials = try await APIService.shared.getSquareCredentials()
             
+            // Check if we need to force re-authorize (for periodic refresh)
+            let shouldForceReauthorize = if let lastAuth = lastSquareAuthorizationTime {
+                Date().timeIntervalSince(lastAuth) >= 15 * 60 // 15 minutes
+            } else {
+                false
+            }
+            
             // Authorize Mobile Payments SDK (uses completion handler, not async/await)
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 SquareMobilePaymentsService.shared.authorize(
                     accessToken: credentials.accessToken,
-                    locationId: credentials.locationId
+                    locationId: credentials.locationId,
+                    forceReauthorize: shouldForceReauthorize
                 ) { error in
                     if let error = error {
                         print("[AppState] ❌ Failed to authorize Square SDK: \(error.localizedDescription)")
                     } else {
                         print("[AppState] ✅ Square Mobile Payments SDK authorized successfully")
+                        // Update last authorization time
+                        Task { @MainActor in
+                            self.lastSquareAuthorizationTime = Date()
+                        }
                         // Reader detection is automatically checked after authorization
                     }
                     continuation.resume()
@@ -542,17 +554,40 @@ class AppState: ObservableObject {
         }
     }
     
+    // Track last authorization time for periodic refresh
+    private var lastSquareAuthorizationTime: Date?
+    
     // Check Square SDK connection and reconnect if needed
     func checkAndReconnectSquareSDK() async {
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
         print("[AppState] 🔍 Checking Square SDK connection state: \(authState)")
         
-        // If not authorized, try to reconnect
+        // If not authorized, try to reconnect immediately
         if authState != .authorized {
             print("[AppState] ⚠️ Square SDK connection lost (state: \(authState)) - attempting reconnection...")
             await authorizeSquareSDK()
+            return
+        }
+        
+        // If authorized, check if we need to refresh the connection (every 15 minutes)
+        // This prevents stale hardware connections after long idle periods
+        let now = Date()
+        if let lastAuth = lastSquareAuthorizationTime {
+            let timeSinceLastAuth = now.timeIntervalSince(lastAuth)
+            let refreshInterval: TimeInterval = 15 * 60 // 15 minutes
+            
+            if timeSinceLastAuth >= refreshInterval {
+                print("[AppState] 🔄 Refreshing Square SDK authorization (last auth: \(Int(timeSinceLastAuth/60)) minutes ago)")
+                print("[AppState] 💡 This ensures hardware connection stays active after idle periods")
+                await authorizeSquareSDK()
+            } else {
+                let minutesRemaining = Int((refreshInterval - timeSinceLastAuth) / 60)
+                print("[AppState] ✅ Square SDK connection is active (refresh in \(minutesRemaining) minutes)")
+            }
         } else {
+            // First check - just log that it's active
             print("[AppState] ✅ Square SDK connection is active")
+            lastSquareAuthorizationTime = now
         }
     }
     
@@ -568,7 +603,7 @@ class AppState: ObservableObject {
                 await self.checkAndReconnectSquareSDK()
             }
         }
-        print("[AppState] 🔄 Started Square SDK connection monitoring (every 30 seconds)")
+        print("[AppState] 🔄 Started Square SDK connection monitoring (every 30 seconds, refresh every 15 minutes)")
     }
     
     // Extract device ID from JWT token payload
