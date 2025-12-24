@@ -106,10 +106,6 @@ class AppState: ObservableObject {
                 print("[AppState] ✅ Temple config refreshed (including theme)")
             }
             
-            // Always reload background image when refreshing config (in case image was updated)
-            // Don't block - load in background
-            Task.detached(priority: .background) { [weak self] in
-            }
             
             // Also refresh categories when temple config is refreshed (categories might have changed)
             await refreshCategories()
@@ -246,10 +242,6 @@ class AppState: ObservableObject {
                     }
                 }
                 
-                // Preload background image if available (don't block - load in background)
-                Task.detached(priority: .background) { [weak self] in
-                    await self?.preloadBackgroundImage()
-                }
                 
                 // Load categories after temple config is loaded
                 await refreshCategories()
@@ -309,10 +301,10 @@ class AppState: ObservableObject {
                     // Continue trying to refresh in background
                     Task.detached(priority: .background) { [weak self] in
                         // Keep trying to refresh every 10 seconds until successful
-                        while self?.temple == nil {
+                        while await self?.temple == nil {
                             try? await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds
                             await self?.refreshTempleConfig()
-                            if self?.temple != nil {
+                            if await self?.temple != nil {
                                 print("[AppState] ✅ Successfully loaded temple config in background retry")
                                 break
                             }
