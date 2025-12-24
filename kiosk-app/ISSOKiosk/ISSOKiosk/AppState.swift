@@ -239,15 +239,19 @@ class AppState: ObservableObject {
         // Fetch temple config from backend using templeId from JWT token
         guard let token = deviceToken,
               let templeId = extractTempleId(from: token) else {
-            print("[AppState] ⚠️ Cannot load temple config - missing token or templeId")
-            await MainActor.run {
-                self.isActivated = true
+            appLog("⚠️ Cannot load temple config - missing token or templeId", category: "AppState")
+            // Don't set isActivated here - it should already be set if we have credentials
+            // Only set it if this is called from activate() (first-time activation)
+            if !isActivated {
+                await MainActor.run {
+                    self.isActivated = true
+                }
             }
             return
         }
         
-        print("[AppState] 📡 Fetching temple config for templeId: \(templeId)")
-        print("[AppState] 📡 API Base URL: \(Config.apiBaseURL)")
+        appLog("📡 Fetching temple config for templeId: \(templeId)", category: "AppState")
+        appLog("📡 API Base URL: \(Config.apiBaseURL)", category: "AppState")
         
         // Retry logic for initial load - keep trying until successful
         let maxRetries = 5
