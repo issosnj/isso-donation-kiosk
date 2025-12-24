@@ -82,20 +82,31 @@ struct ModernPaymentView: View {
             print("[PaymentView] 👁️ View appeared")
             print("[PaymentView] 📊 State - isReady: \(isReady), isProcessing: \(isProcessing)")
             
-            // Check if there's already a payment in progress
+            appLog("👁️ View appeared", category: "PaymentView")
+            appLog("📊 State - isReady: \(isReady), isProcessing: \(isProcessing), hasStartedPayment: \(hasStartedPayment)", category: "PaymentView")
+            
+            // Guard against multiple payment attempts from rapid onAppear/onDisappear cycles
+            guard !hasStartedPayment else {
+                appLog("⚠️ Payment already started - ignoring duplicate onAppear", category: "PaymentView")
+                return
+            }
+            
+            // Check if there's already a payment in progress in Square SDK
             if SquareMobilePaymentsService.shared.isPaymentInProgress() {
-                print("[PaymentView] ⚠️ Payment already in progress - cancelling previous payment")
+                appLog("⚠️ Payment already in progress in SDK - canceling existing payment", category: "PaymentView")
                 SquareMobilePaymentsService.shared.cancelCurrentPayment()
                 // Reset state
                 isReady = false
                 isProcessing = false
                 paymentStatus = nil
+                hasStartedPayment = false
             }
             
             // Start payment immediately - Square SDK will show its own UI
             // No need for intermediate "Ready" screen
             if !isReady && !isProcessing {
-                print("[PaymentView] ✅ Starting payment immediately...")
+                appLog("✅ Starting payment immediately...", category: "PaymentView")
+                hasStartedPayment = true
                 isReady = true
                 isProcessing = true // Set processing immediately so SDK UI shows
                 // Start payment immediately - Square SDK will present its own UI
