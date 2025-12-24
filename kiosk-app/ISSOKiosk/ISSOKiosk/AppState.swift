@@ -470,12 +470,16 @@ class AppState: ObservableObject {
     
     // Check Square SDK connection and reconnect if needed
     func checkAndReconnectSquareSDK() async {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd HH:mm:ss.SSS"
+        let timestamp = formatter.string(from: Date())
+        
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        print("[AppState] 🔍 Checking Square SDK connection state: \(authState)")
+        print("[\(timestamp)] [AppState] 🔍 Checking Square SDK connection state: \(authState)")
         
         // Check if hardware is actually connected
         let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
-        print("[AppState] 🔌 Hardware connection check: \(hardwareConnected ? "✅ Connected" : "❌ Not detected")")
+        print("[\(timestamp)] [AppState] 🔌 Hardware connection check: \(hardwareConnected ? "✅ Connected" : "❌ Not detected")")
         
         // If not authorized, try to reconnect immediately
         if authState != .authorized {

@@ -100,9 +100,21 @@ struct ModernPaymentView: View {
             }
         }
         .onDisappear {
-            // Only cancel if payment is NOT currently processing
-            // When Square SDK shows its payment UI, the view disappears but payment is still in progress
-            // We should only cancel if the user actually dismissed the view while NOT processing
+            // Always clear payment state when view disappears to prevent payment_already_in_progress errors
+            // This ensures clean state when user navigates back and tries again
+            print("[PaymentView] 👋 View disappeared - clearing payment state")
+            
+            // Cancel any in-progress payment in Square SDK
+            if SquareMobilePaymentsService.shared.isPaymentInProgress() {
+                print("[PaymentView] 🚫 Cancelling in-progress payment in Square SDK")
+                SquareMobilePaymentsService.shared.cancelCurrentPayment()
+            }
+            
+            // Reset local state
+            isReady = false
+            isProcessing = false
+            
+            // Only cancel donation if payment hasn't completed
             if let donationId = donationId {
                 // Don't cancel if payment is currently processing (Square SDK UI is showing)
                 if !isProcessing && paymentStatus == nil {
@@ -111,9 +123,9 @@ struct ModernPaymentView: View {
                     Task {
                         do {
                             _ = try await APIService.shared.cancelDonation(donationId: donationId)
-                            print("[PaymentView] ✅ Donation canceled successfully")
+                            log("✅ Donation canceled successfully", category: "PaymentView")
                         } catch {
-                            print("[PaymentView] ❌ Failed to cancel donation: \(error.localizedDescription)")
+                            log("❌ Failed to cancel donation: \(error.localizedDescription)", category: "PaymentView")
                             // If cancel fails (e.g., already completed), try to mark as failed
                             do {
                                 _ = try await APIService.shared.completeDonation(
@@ -125,18 +137,18 @@ struct ModernPaymentView: View {
                                     donorEmail: donorEmail,
                                     donorAddress: donorAddress
                                 )
-                                print("[PaymentView] ✅ Donation marked as CANCELED via completeDonation")
+                                log("✅ Donation marked as CANCELED via completeDonation", category: "PaymentView")
                             } catch {
-                                print("[PaymentView] ❌ Failed to update donation status: \(error.localizedDescription)")
+                                log("❌ Failed to update donation status: \(error.localizedDescription)", category: "PaymentView")
                             }
                         }
                     }
                 } else if isProcessing && paymentStatus == nil {
                     // Payment is processing - Square SDK UI is showing, don't cancel
-                    print("[PaymentView] 💡 View disappeared but payment is processing (Square SDK UI showing) - not canceling")
+                    log("💡 View disappeared but payment is processing (Square SDK UI showing) - not canceling", category: "PaymentView")
                 } else if case .failure = paymentStatus {
                     // Payment failed - ensure donation is marked as FAILED (should already be done, but double-check)
-                    print("[PaymentView] ⚠️ View dismissed after payment failure, ensuring donation is marked as FAILED: \(donationId)")
+                    log("⚠️ View dismissed after payment failure, ensuring donation is marked as FAILED: \(donationId)", category: "PaymentView")
                     Task {
                         do {
                             _ = try await APIService.shared.completeDonation(
@@ -148,13 +160,16 @@ struct ModernPaymentView: View {
                                 donorEmail: donorEmail,
                                 donorAddress: donorAddress
                             )
-                            print("[PaymentView] ✅ Donation confirmed as FAILED")
+                            log("✅ Donation confirmed as FAILED", category: "PaymentView")
                         } catch {
-                            print("[PaymentView] ⚠️ Donation may already be updated: \(error.localizedDescription)")
+                            log("⚠️ Donation may already be updated: \(error.localizedDescription)", category: "PaymentView")
                         }
                     }
                 }
             }
+            
+            // Clear payment status
+            paymentStatus = nil
         }
         .detectTouches() // Detect all user interactions to reset idle timer
     }

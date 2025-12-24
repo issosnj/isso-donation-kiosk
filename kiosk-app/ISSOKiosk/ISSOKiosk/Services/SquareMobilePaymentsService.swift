@@ -268,7 +268,10 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // Check if there's already a payment in progress
         if currentPaymentHandle != nil || currentPaymentCompletion != nil {
-            print("[SquareMobilePayments] ⚠️ Payment already in progress - clearing previous payment state")
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MM/dd HH:mm:ss.SSS"
+            let timestamp = formatter.string(from: Date())
+            print("[\(timestamp)] [SquareMobilePayments] ⚠️ Payment already in progress - clearing previous payment state")
             // Clear previous payment state
             currentPaymentHandle = nil
             // Call previous completion with cancellation error
