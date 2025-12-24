@@ -124,7 +124,8 @@ class DeviceTelemetryService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         // Add device token for authentication
-        if let deviceToken = KeychainHelper.shared.load(forKey: "deviceToken") {
+        let keychain = KeychainHelper()
+        if let deviceToken = keychain.load(forKey: "deviceToken") {
             request.setValue("Bearer \(deviceToken)", forHTTPHeaderField: "Authorization")
         }
         
