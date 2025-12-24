@@ -42,7 +42,7 @@ class APIService {
             var request = URLRequest(url: url)
             request.httpMethod = method
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.timeoutInterval = 30.0 // 30 second timeout
+            request.timeoutInterval = timeout // Configurable timeout (default 30s)
             
             if requiresAuth, let token = deviceToken {
                 request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -673,11 +673,15 @@ extension APIService {
     }
     
     func getSquareCredentials() async throws -> SquareCredentials {
+        // Square credentials request with longer timeout and more retries
+        // This is critical for payment functionality but shouldn't block app startup
         return try await request(
             endpoint: "/devices/square-credentials",
             method: "GET",
             body: nil,
-            requiresAuth: true
+            requiresAuth: true,
+            maxRetries: 2, // Reduced retries for faster failure (3 total attempts)
+            timeout: 15.0 // Shorter timeout: 15s instead of 30s for faster failure detection
         )
     }
     

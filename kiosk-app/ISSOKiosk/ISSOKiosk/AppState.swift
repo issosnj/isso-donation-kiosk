@@ -445,7 +445,22 @@ class AppState: ObservableObject {
         // Step 4: Authorize SDK with credentials from backend
         do {
             // Get Square credentials from backend
-            let credentials = try await APIService.shared.getSquareCredentials()
+            // This may timeout if network is slow - catch and log but don't block app
+            let credentials: SquareCredentials
+            do {
+                credentials = try await APIService.shared.getSquareCredentials()
+            } catch {
+                // Log the error but don't fail completely - Square authorization can happen later
+                appLog("⚠️ Failed to get Square credentials: \(error.localizedDescription)", category: "AppState")
+                if let urlError = error as? URLError {
+                    appLog("⚠️ URL Error code: \(urlError.code.rawValue)", category: "AppState")
+                    if urlError.code == .timedOut {
+                        appLog("⚠️ Request timed out - network may be slow or backend unreachable", category: "AppState")
+                    }
+                }
+                appLog("💡 Square SDK authorization will be retried later", category: "AppState")
+                return // Exit early - don't try to authorize without credentials
+            }
             
             // Check if we need to force re-authorize (for periodic refresh)
             let shouldForceReauthorize: Bool
