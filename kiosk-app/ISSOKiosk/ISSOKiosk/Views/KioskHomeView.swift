@@ -735,6 +735,7 @@ struct KioskHomeView: View {
 // Reusable Time and Network Status View Component
 struct TimeAndNetworkStatusView: View {
     @ObservedObject private var networkMonitor = NetworkMonitor.shared
+    @ObservedObject private var hardwareMonitor = HardwareMonitor.shared
     @State private var currentTime = Date()
     @State private var timer: Timer?
     
@@ -753,6 +754,12 @@ struct TimeAndNetworkStatusView: View {
             HStack {
                 Spacer()
                 HStack(spacing: 12) {
+                    // Hardware status indicator (Square Stand)
+                    Circle()
+                        .fill(hardwareMonitor.isHardwareConnected ? Color.green : Color.red)
+                        .frame(width: 12, height: 12)
+                        .shadow(color: hardwareMonitor.isHardwareConnected ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 4)
+                    
                     // Network status indicator
                     Circle()
                         .fill(networkMonitor.isConnected ? Color.green : Color.red)
