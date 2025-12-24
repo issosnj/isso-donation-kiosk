@@ -1,5 +1,6 @@
 import SwiftUI
-import SquareMobilePaymentsSDK
+// TRIAL: Commented out Mobile Payments SDK import - using POS SDK instead
+// import SquareMobilePaymentsSDK
 
 // Typealias to avoid conflict with Square SDK's Environment enum
 typealias SwiftUIEnvironment = SwiftUI.Environment
@@ -91,11 +92,11 @@ struct ModernPaymentView: View {
                 return
             }
             
-            // Check if there's already a payment in progress in Square SDK
-            if SquareMobilePaymentsService.shared.isPaymentInProgress() {
-                appLog("⚠️ Payment already in progress in SDK - canceling existing payment and clearing SDK state", category: "PaymentView")
-                // Force re-authorize to clear any stuck payment state in SDK
-                SquareMobilePaymentsService.shared.cancelCurrentPayment(forceReauthorize: true)
+            // Check if there's already a payment in progress
+            if SquarePaymentService.shared.isPaymentInProgress() {
+                appLog("⚠️ Payment already in progress - canceling existing payment", category: "PaymentView")
+                // Cancel existing payment
+                SquarePaymentService.shared.cancelCurrentPayment()
                 // Reset state
                 isReady = false
                 isProcessing = false
@@ -132,21 +133,21 @@ struct ModernPaymentView: View {
             }
         }
         .onDisappear {
-            // Check if payment has actually started in SDK (we got a handle)
-            // If payment handle was received, the SDK UI is showing and we should NOT cancel
-            let hasActiveHandle = SquareMobilePaymentsService.shared.hasActivePaymentHandle()
+            // For POS SDK, check if payment is in progress
+            // If payment is processing, Square POS app is handling it
+            let isPaymentActive = SquarePaymentService.shared.isPaymentInProgress()
             
-            appLog("👋 View disappeared - hasActiveHandle: \(hasActiveHandle), isProcessing: \(isProcessing), paymentStatus: \(paymentStatus != nil ? "set" : "nil")", category: "PaymentView")
+            appLog("👋 View disappeared - isPaymentActive: \(isPaymentActive), isProcessing: \(isProcessing), paymentStatus: \(paymentStatus != nil ? "set" : "nil")", category: "PaymentView")
             
-            // Only cancel if payment hasn't actually started (no handle received)
-            // If handle was received, the SDK UI is showing and onDisappear is just from the overlay
-            if !hasActiveHandle {
-                appLog("💡 Payment handle not received - view disappeared before payment started", category: "PaymentView")
+            // Only cancel if payment hasn't actually started
+            // If payment is active, Square POS app is handling it
+            if !isPaymentActive {
+                appLog("💡 Payment not active - view disappeared before payment started", category: "PaymentView")
                 
-                // Cancel any in-progress payment attempt in Square SDK
-                if SquareMobilePaymentsService.shared.isPaymentInProgress() {
-                    appLog("🚫 Cancelling in-progress payment attempt in Square SDK", category: "PaymentView")
-                    SquareMobilePaymentsService.shared.cancelCurrentPayment()
+                // Cancel any in-progress payment attempt
+                if SquarePaymentService.shared.isPaymentInProgress() {
+                    appLog("🚫 Cancelling in-progress payment attempt", category: "PaymentView")
+                    SquarePaymentService.shared.cancelCurrentPayment()
                 }
                 
                 // Reset local state
@@ -167,8 +168,8 @@ struct ModernPaymentView: View {
                     }
                 }
             } else {
-                // Payment handle was received - SDK UI is showing, don't cancel
-                appLog("💡 View disappeared but payment has started (SDK UI showing) - not canceling", category: "PaymentView")
+                // Payment is active - Square POS app is handling it, don't cancel
+                appLog("💡 View disappeared but payment is active (Square POS app open) - not canceling", category: "PaymentView")
                 // Don't reset state - let the payment complete or fail naturally
             }
             
@@ -293,11 +294,10 @@ struct ModernPaymentView: View {
                                     
                                     if isPaymentInProgressError {
                                         print("[PaymentView] ⚠️ Payment already in progress error - canceling and retrying...")
-                                        // Cancel any existing payment and force re-authorize SDK to clear stuck state
-                                        SquareMobilePaymentsService.shared.cancelCurrentPayment(forceReauthorize: true)
-                                        // Wait longer for SDK to fully clear state (3 seconds)
-                                        // The SDK needs time to clear its internal payment handle
-                                        try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                                        // Cancel any existing payment
+                                        SquarePaymentService.shared.cancelCurrentPayment()
+                                        // Wait for payment to clear (1 second should be enough for POS SDK)
+                                        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                                         // Reset state and retry
                                         await MainActor.run {
                                             self.hasStartedPayment = false
