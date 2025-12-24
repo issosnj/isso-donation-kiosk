@@ -89,6 +89,33 @@ class AppState: ObservableObject {
             // Load temple config asynchronously
             Task {
                 await loadTempleConfig()
+                
+                // After loading temple config, start Square SDK authorization and hardware detection
+                // This helps reconnect after reboot when hardware is already connected
+                await authorizeSquareSDK()
+                startSquareConnectionMonitoring()
+                
+                // Aggressively check for hardware after reboot
+                print("[AppState] 🔍 Starting aggressive hardware detection after loading stored credentials...")
+                for attempt in 1...6 {
+                    let totalSeconds = attempt * 5 // Total time elapsed: 5s, 10s, 15s, 20s, 25s, 30s
+                    if attempt > 1 {
+                        // Wait 5 seconds between each check (not cumulative)
+                        print("[AppState] ⏳ Attempt \(attempt)/6: Waiting 5 seconds, then checking hardware (total: \(totalSeconds)s)...")
+                        try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                    } else {
+                        print("[AppState] ⏳ Attempt \(attempt)/6: Checking hardware immediately...")
+                    }
+                    let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+                    if hardwareConnected {
+                        print("[AppState] ✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...")
+                        await authorizeSquareSDK()
+                        return // Success - exit retry loop
+                    } else {
+                        print("[AppState] ❌ Hardware still not detected after \(totalSeconds) seconds")
+                    }
+                }
+                print("[AppState] ⚠️ Hardware not detected after 30 seconds - will keep checking periodically")
             }
         }
     }

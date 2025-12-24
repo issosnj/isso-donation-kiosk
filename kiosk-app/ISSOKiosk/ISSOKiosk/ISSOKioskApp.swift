@@ -57,7 +57,7 @@ struct ISSOKioskApp: App {
                             let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
                             if hardwareStillConnected {
                                 print("[App] ✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...")
-                                await appState.authorizeSquareSDK()
+                                await appState.checkAndReconnectSquareSDK()
                                 break
                             }
                         }
