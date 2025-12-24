@@ -81,5 +81,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>square-commerce-v1</string>
+	</array>
 </dict>
 </plist>

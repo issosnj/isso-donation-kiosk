@@ -1,5 +1,6 @@
 import UIKit
 import SwiftUI
+import SquarePointOfSaleSDK
 
 // AppDelegate to handle URL callbacks from Square POS SDK
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -14,14 +15,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
         appLog("📱 App received URL callback: \(url)", category: "AppDelegate")
         
-        // Check if this is a Square POS callback
-        if url.scheme == "issokiosk" && url.host == "payment-callback" {
-            appLog("✅ Square POS payment callback received", category: "AppDelegate")
-            SquarePOSPaymentService.shared.handle(url: url)
-            return true
+        // Check if this is a Square POS response using SDK's built-in method
+        guard SCCAPIResponse.isSquareResponse(url) else {
+            appLog("⚠️ URL is not a Square POS response", category: "AppDelegate")
+            return false
         }
         
-        return false
+        appLog("✅ Square POS payment callback received", category: "AppDelegate")
+        SquarePOSPaymentService.shared.handle(url: url)
+        return true
     }
 }
 

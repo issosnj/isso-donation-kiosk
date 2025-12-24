@@ -1,5 +1,7 @@
 # CocoaPods Setup for SquarePointOfSaleSDK
 
+**Note:** Swift Package Manager (SPM) is preferred. See `SPM_SETUP.md` first. Use CocoaPods only if SPM doesn't work for you.
+
 ## Step 1: Install CocoaPods
 
 Run this command in Terminal:
