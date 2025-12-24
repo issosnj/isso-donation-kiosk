@@ -16,9 +16,10 @@ struct ContentView: View {
             Color.white
                 .ignoresSafeArea(.all)
             
-            // Show loading state while checking activation
-            if !appState.isActivated && appState.deviceToken != nil {
-                // Loading state - checking stored credentials
+            // Show loading state while checking activation or loading temple config
+            if (!appState.isActivated && appState.deviceToken != nil) || 
+               (appState.isActivated && appState.temple == nil && appState.deviceToken != nil) {
+                // Loading state - checking stored credentials or loading temple config
                 LoadingView()
                     .environmentObject(appState)
             } else if appState.isActivated {
