@@ -93,13 +93,29 @@ struct ModernPaymentView: View {
             
             // Check if there's already a payment in progress in Square SDK
             if SquareMobilePaymentsService.shared.isPaymentInProgress() {
-                appLog("⚠️ Payment already in progress in SDK - canceling existing payment", category: "PaymentView")
-                SquareMobilePaymentsService.shared.cancelCurrentPayment()
+                appLog("⚠️ Payment already in progress in SDK - canceling existing payment and clearing SDK state", category: "PaymentView")
+                // Force re-authorize to clear any stuck payment state in SDK
+                SquareMobilePaymentsService.shared.cancelCurrentPayment(forceReauthorize: true)
                 // Reset state
                 isReady = false
                 isProcessing = false
                 paymentStatus = nil
                 hasStartedPayment = false
+                // Wait a moment for SDK to clear before proceeding
+                Task {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                    await MainActor.run {
+                        // Now proceed with new payment
+                        if !hasStartedPayment {
+                            appLog("✅ SDK state cleared - proceeding with new payment", category: "PaymentView")
+                            hasStartedPayment = true
+                            isReady = true
+                            isProcessing = true
+                            processPayment()
+                        }
+                    }
+                }
+                return
             }
             
             // Start payment immediately - Square SDK will show its own UI
@@ -269,10 +285,11 @@ struct ModernPaymentView: View {
                                     
                                     if isPaymentInProgressError {
                                         print("[PaymentView] ⚠️ Payment already in progress error - canceling and retrying...")
-                                        // Cancel any existing payment
-                                        SquareMobilePaymentsService.shared.cancelCurrentPayment()
-                                        // Wait a moment for SDK to clear state
-                                        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                                        // Cancel any existing payment and force re-authorize SDK to clear stuck state
+                                        SquareMobilePaymentsService.shared.cancelCurrentPayment(forceReauthorize: true)
+                                        // Wait longer for SDK to fully clear state (3 seconds)
+                                        // The SDK needs time to clear its internal payment handle
+                                        try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
                                         // Reset state and retry
                                         await MainActor.run {
                                             self.hasStartedPayment = false

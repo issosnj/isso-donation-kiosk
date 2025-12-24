@@ -586,8 +586,9 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     }
     
     // Public method to cancel any in-progress payment
-    func cancelCurrentPayment() {
-        appLog("🚫 Cancelling current payment", category: "SquareMobilePayments")
+    // This resets app-level state and optionally force re-authorizes SDK to clear stuck payment state
+    func cancelCurrentPayment(forceReauthorize: Bool = false) {
+        appLog("🚫 Cancelling current payment (forceReauthorize: \(forceReauthorize))", category: "SquareMobilePayments")
         
         // Reset app-level gate
         isStarting = false
@@ -600,6 +601,19 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                 NSLocalizedDescriptionKey: "Payment was cancelled"
             ])))
             currentPaymentCompletion = nil
+        }
+        
+        // If force re-authorize is requested, re-authorize SDK to clear any stuck payment state
+        // This is needed when SDK reports payment_already_in_progress even after cancellation
+        if forceReauthorize, let accessToken = self.accessToken, let locationId = self.locationId {
+            appLog("🔄 Force re-authorizing SDK to clear stuck payment state...", category: "SquareMobilePayments")
+            self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
+                if let error = error {
+                    appLog("⚠️ Force re-authorization warning: \(error.localizedDescription)", category: "SquareMobilePayments")
+                } else {
+                    appLog("✅ Force re-authorization completed - SDK state should be cleared", category: "SquareMobilePayments")
+                }
+            }
         }
     }
 }
