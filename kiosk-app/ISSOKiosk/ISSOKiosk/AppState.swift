@@ -90,6 +90,12 @@ class AppState: ObservableObject {
     }
     
     func refreshTempleConfig() async {
+        // Prevent refresh if initial load is still in progress
+        if isLoadingTempleConfig {
+            print("[AppState] ⚠️ Temple config load in progress - skipping refresh")
+            return
+        }
+        
         // Refresh temple config to get latest theme settings
         guard let token = deviceToken,
               let templeId = extractTempleId(from: token) else {
@@ -193,7 +199,17 @@ class AppState: ObservableObject {
         }
     }
     
+    private var isLoadingTempleConfig = false // Guard to prevent multiple simultaneous loads
+    
     private func loadTempleConfig() async {
+        // Prevent multiple simultaneous temple config loads
+        if isLoadingTempleConfig {
+            await MainActor.run {
+                appLog("⚠️ Temple config load already in progress - skipping duplicate call", category: "AppState")
+            }
+            return
+        }
+        
         // Fetch temple config from backend using templeId from JWT token
         guard let token = deviceToken,
               let templeId = extractTempleId(from: token) else {
@@ -208,24 +224,37 @@ class AppState: ObservableObject {
             return
         }
         
+        await MainActor.run {
+            isLoadingTempleConfig = true
+        }
+        defer {
+            Task { @MainActor in
+                isLoadingTempleConfig = false
+            }
+        }
+        
         appLog("📡 Fetching temple config for templeId: \(templeId)", category: "AppState")
         appLog("📡 API Base URL: \(Config.apiBaseURL)", category: "AppState")
         
-        // Retry logic for initial load - keep trying until successful
-        let maxRetries = 5
+        // Reduced retries for faster startup - only 2 retries (3 total attempts)
+        let maxRetries = 2
         
         for attempt in 0..<maxRetries {
             if attempt > 0 {
-                // Exponential backoff: 2s, 4s, 8s, 16s
-                let delay = pow(2.0, Double(attempt))
-                appLog("🔄 Retry attempt \(attempt + 1)/\(maxRetries) after \(delay)s delay...", category: "AppState")
+                // Shorter backoff for faster startup: 1s, 2s
+                let delay = Double(attempt)
+                await MainActor.run {
+                    appLog("🔄 Retry attempt \(attempt + 1)/\(maxRetries) after \(delay)s delay...", category: "AppState")
+                }
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
             
             do {
-                // Fetch temple data from backend
-                appLog("📡 Starting temple fetch request (attempt \(attempt + 1))...", category: "AppState")
-                let temple = try await APIService.shared.getTemple(templeId: templeId)
+                // Fetch temple data from backend with shorter timeout for initial load
+                await MainActor.run {
+                    appLog("📡 Starting temple fetch request (attempt \(attempt + 1))...", category: "AppState")
+                }
+                let temple = try await APIService.shared.getTemple(templeId: templeId, timeout: 10.0) // 10 second timeout for startup
                 
                 await MainActor.run {
                     self.temple = temple
@@ -271,25 +300,37 @@ class AppState: ObservableObject {
                     // After initial authorization, aggressively check for hardware (iPad might be waking up after reboot)
                     // This helps when iPad powers on and Square Stand is already connected
                     // Run in background - doesn't block UI
-                    appLog("🔍 Starting aggressive hardware detection after startup (background)...", category: "AppState")
+                    await MainActor.run {
+                        appLog("🔍 Starting aggressive hardware detection after startup (background)...", category: "AppState")
+                    }
                     for attempt in 1...6 {
                         let totalSeconds = attempt * 5
                         if attempt > 1 {
-                            appLog("⏳ Attempt \(attempt)/6: Waiting 5 seconds, then checking hardware (total: \(totalSeconds)s)...", category: "AppState")
+                            await MainActor.run {
+                                appLog("⏳ Attempt \(attempt)/6: Waiting 5 seconds, then checking hardware (total: \(totalSeconds)s)...", category: "AppState")
+                            }
                             try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
                         } else {
-                            appLog("⏳ Attempt \(attempt)/6: Checking hardware immediately...", category: "AppState")
+                            await MainActor.run {
+                                appLog("⏳ Attempt \(attempt)/6: Checking hardware immediately...", category: "AppState")
+                            }
                         }
-                        let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+                        let hardwareConnected = await SquareMobilePaymentsService.shared.checkHardwareConnection()
                         if hardwareConnected {
-                            appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "AppState")
+                            await MainActor.run {
+                                appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "AppState")
+                            }
                             await self.authorizeSquareSDK()
                             return // Success - exit retry loop
                         } else {
-                            appLog("❌ Hardware still not detected after \(totalSeconds) seconds", category: "AppState")
+                            await MainActor.run {
+                                appLog("❌ Hardware still not detected after \(totalSeconds) seconds", category: "AppState")
+                            }
                         }
                     }
-                    appLog("⚠️ Hardware not detected after 30 seconds - will keep checking periodically", category: "AppState")
+                    await MainActor.run {
+                        appLog("⚠️ Hardware not detected after 30 seconds - will keep checking periodically", category: "AppState")
+                    }
                 }
                 
                 // Success! Exit retry loop

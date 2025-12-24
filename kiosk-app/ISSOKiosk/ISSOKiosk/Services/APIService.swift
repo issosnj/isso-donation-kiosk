@@ -383,7 +383,7 @@ class APIService {
         )
     }
     
-    func getTemple(templeId: String) async throws -> Temple {
+    func getTemple(templeId: String, timeout: TimeInterval = 10.0) async throws -> Temple {
         print("[APIService] 📡 Fetching temple: \(templeId)")
         print("[APIService] 📡 Endpoint: /temples/\(templeId)")
         print("[APIService] 📡 Base URL: \(baseURL)")
@@ -396,7 +396,7 @@ class APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 30.0 // Increased timeout to 30 seconds for temple fetch
+        request.timeoutInterval = timeout // Configurable timeout (default 10s for faster startup)
         
         // Try with auth first (device token), fallback to no auth if needed
         if let token = deviceToken {
@@ -417,7 +417,7 @@ class APIService {
                     var noAuthRequest = URLRequest(url: url)
                     noAuthRequest.httpMethod = "GET"
                     noAuthRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    noAuthRequest.timeoutInterval = 30.0
+                    noAuthRequest.timeoutInterval = timeout
                     
                     let (noAuthData, noAuthResponse) = try await URLSession.shared.data(for: noAuthRequest)
                     
