@@ -21,6 +21,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     private var accessToken: String?
     private var locationId: String?
     private var currentPaymentCompletion: ((Result<PaymentResult, Error>) -> Void)?
+    private var currentPaymentHandle: Any? // Store payment handle to track if payment is in progress
     
     private override init() {
         super.init()
@@ -255,6 +256,18 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
+        // Check if there's already a payment in progress
+        if currentPaymentHandle != nil || currentPaymentCompletion != nil {
+            print("[SquareMobilePayments] ⚠️ Payment already in progress - clearing previous payment state")
+            // Clear previous payment state
+            currentPaymentHandle = nil
+            // Call previous completion with cancellation error
+            currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -4, userInfo: [
+                NSLocalizedDescriptionKey: "Previous payment was cancelled to start a new one"
+            ])))
+            currentPaymentCompletion = nil
+        }
+        
         self.currentPaymentCompletion = completion
         
         print("[SquareMobilePayments] 💳 Starting payment: $\(amount) for donation \(donationId)")
@@ -393,22 +406,25 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         if let handle = paymentHandle {
             print("[SquareMobilePayments] ✅ Payment started successfully!")
             print("[SquareMobilePayments] ✅ Payment handle: \(handle)")
+            // Store payment handle to track that payment is in progress
+            self.currentPaymentHandle = handle
             print("[SquareMobilePayments] 💡 Square SDK should now show card entry UI")
             print("[SquareMobilePayments] 💡 User can tap or insert card on Square Stand")
             print("[SquareMobilePayments] 💡 Cash App Pay will be available if enabled in Square Dashboard")
             print("[SquareMobilePayments] 💡 SDK will automatically detect card interactions")
         } else {
             print("[SquareMobilePayments] ❌ Payment handle is nil!")
-            print("[SquareMobilePayments] ❌ SDK may not have started payment")
+            print("[SquareMobilePayments] ❌ This usually means a payment is already in progress")
             print("[SquareMobilePayments] ⚠️ Possible issues:")
-            print("[SquareMobilePayments]    1. Square Stand not connected")
-            print("[SquareMobilePayments]    2. SDK not properly authorized")
-            print("[SquareMobilePayments]    3. ViewController not ready")
-            print("[SquareMobilePayments]    4. iPad not properly inserted into Square Stand")
+            print("[SquareMobilePayments]    1. Payment already in progress (most common)")
+            print("[SquareMobilePayments]    2. Square Stand not connected")
+            print("[SquareMobilePayments]    3. SDK not properly authorized")
+            print("[SquareMobilePayments]    4. ViewController not ready")
+            print("[SquareMobilePayments]    5. iPad not properly inserted into Square Stand")
             
-            // Call completion with error
-            self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Failed to start payment. Please ensure:\n1. iPad is securely inserted into Square Stand\n2. Stand is powered on\n3. Square connection is active in settings"
+            // Call completion with specific error about payment in progress
+            self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -5, userInfo: [
+                NSLocalizedDescriptionKey: "Payment already in progress. Please wait for the current payment to complete or cancel it first."
             ])))
             self.currentPaymentCompletion = nil
         }
@@ -532,7 +548,9 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         } else {
             currentPaymentCompletion?(.failure(error))
         }
+        // Clear payment state
         currentPaymentCompletion = nil
+        currentPaymentHandle = nil
     }
     
     func paymentManager(_ paymentManager: PaymentManager, didCancel payment: Payment) {
@@ -554,7 +572,28 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             ])
             currentPaymentCompletion?(.failure(error))
         }
+        // Clear payment state
         currentPaymentCompletion = nil
+        currentPaymentHandle = nil
+    }
+    
+    // Public method to check if payment is in progress
+    func isPaymentInProgress() -> Bool {
+        return currentPaymentHandle != nil || currentPaymentCompletion != nil
+    }
+    
+    // Public method to cancel any in-progress payment
+    func cancelCurrentPayment() {
+        if currentPaymentHandle != nil || currentPaymentCompletion != nil {
+            print("[SquareMobilePayments] 🚫 Cancelling current payment")
+            // Call completion with cancellation error
+            currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
+                NSLocalizedDescriptionKey: "Payment was cancelled"
+            ])))
+            // Clear payment state
+            currentPaymentCompletion = nil
+            currentPaymentHandle = nil
+        }
     }
 }
 
