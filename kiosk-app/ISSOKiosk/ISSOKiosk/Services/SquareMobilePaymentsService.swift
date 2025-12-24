@@ -269,22 +269,10 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
-        // 1) SDK truth: Check if there's already a payment using SDK's currentPaymentHandle
-        // Note: This API may not be available in all SDK versions - use optional chaining
-        let paymentManager = MobilePaymentsSDK.shared.paymentManager
-        
-        // Try to access currentPaymentHandle (may not exist in older SDK versions)
-        // Using reflection/optional to handle gracefully
-        if let existingHandle = (paymentManager as AnyObject).value(forKey: "currentPaymentHandle") as? Any, !(existingHandle is NSNull) {
-            appLog("⚠️ Payment already in progress (SDK state) - existing handle found", category: "SquareMobilePayments")
-            completion(.failure(NSError(domain: "SquareMobilePayments", code: -5, userInfo: [
-                NSLocalizedDescriptionKey: "Payment already in progress. Please wait for the current payment to complete or cancel it first.",
-                NSLocalizedFailureReasonErrorKey: "payment_already_in_progress"
-            ])))
-            return
-        }
-        
-        // 2) App truth: Prevent SwiftUI double-trigger with isStarting gate
+        // 1) App truth: Prevent SwiftUI double-trigger with isStarting gate
+        // This is the primary gate to prevent multiple simultaneous payment attempts
+        // Note: SDK's currentPaymentHandle may be available in newer versions, but we rely
+        // on app-level gate + SDK's startPayment returning nil if payment already in progress
         guard !isStarting else {
             appLog("⚠️ Payment start already in progress (app gate) - ignoring duplicate call", category: "SquareMobilePayments")
             return
@@ -525,14 +513,9 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     }
     
     // Public method to check if payment is in progress
-    // Uses SDK's currentPaymentHandle as source of truth (if available)
+    // Uses app-level gate (isStarting) as primary indicator
+    // SDK's startPayment will return nil if payment already in progress
     func isPaymentInProgress() -> Bool {
-        // Check SDK's currentPaymentHandle first (if available in SDK version)
-        let paymentManager = MobilePaymentsSDK.shared.paymentManager
-        if let existingHandle = (paymentManager as AnyObject).value(forKey: "currentPaymentHandle") as? Any, !(existingHandle is NSNull) {
-            return true
-        }
-        // Fallback to app-level gate
         return isStarting || currentPaymentCompletion != nil
     }
     
@@ -540,19 +523,11 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     func cancelCurrentPayment() {
         appLog("🚫 Cancelling current payment", category: "SquareMobilePayments")
         
-        // Try to cancel using SDK's currentPaymentHandle (if available in SDK version)
-        let paymentManager = MobilePaymentsSDK.shared.paymentManager
-        if let handle = (paymentManager as AnyObject).value(forKey: "currentPaymentHandle") as? Any, !(handle is NSNull) {
-            // Try to cancel if the handle supports cancellation
-            // Note: cancelPayment() method availability depends on SDK version
-            // For now, we'll reset our state and let the SDK handle it
-            appLog("⚠️ Payment handle exists in SDK - SDK will handle cancellation", category: "SquareMobilePayments")
-        }
-        
         // Reset app-level gate
         isStarting = false
         
         // Call completion with cancellation error if we have one
+        // Note: SDK will handle its own payment cancellation when view is dismissed
         if currentPaymentCompletion != nil {
             currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
                 NSLocalizedDescriptionKey: "Payment was cancelled"
