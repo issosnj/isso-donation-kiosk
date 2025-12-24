@@ -247,6 +247,9 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         return false
     }
     
+    // Store active session to keep hardware awake
+    private var wakeUpSession: EASession?
+    
     // Attempt to wake up Square Stand hardware by opening a connection
     // This can help wake sleeping hardware after long idle periods
     // Made public so it can be called from AppState during aggressive detection
@@ -262,23 +265,53 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             }
             
             if hasSquareProtocol {
-                appLog("🔔 Attempting to wake up Square Stand by accessing hardware...", category: "SquareMobilePayments")
+                appLog("🔔 Attempting to wake up Square Stand by opening EASession...", category: "SquareMobilePayments")
+                
                 // Try to access the accessory to wake it up
-                // Accessing properties can help wake sleeping hardware
                 _ = accessory.name
                 _ = accessory.modelNumber
                 _ = accessory.serialNumber
                 _ = accessory.protocolStrings
                 
-                // Try to open a session with the accessory to wake it up
-                // This is more aggressive and may help wake sleeping hardware
+                // Open an EASession to wake the hardware
+                // This is more aggressive and should wake sleeping hardware
                 if let protocolString = accessoryProtocols.first(where: { squareProtocols.contains($0) }) {
-                    appLog("🔌 Attempting to open session with protocol: \(protocolString)", category: "SquareMobilePayments")
-                    // Note: We can't directly open EASession here, but accessing the protocol
-                    // and properties should help signal iOS to wake the hardware
+                    appLog("🔌 Opening EASession with protocol: \(protocolString)", category: "SquareMobilePayments")
+                    
+                    // Close any existing session first
+                    if let existingSession = wakeUpSession {
+                        appLog("🔌 Closing existing wake-up session", category: "SquareMobilePayments")
+                        existingSession.inputStream?.close()
+                        existingSession.outputStream?.close()
+                        wakeUpSession = nil
+                    }
+                    
+                    // Open a new session to wake the hardware
+                    if let session = EASession(accessory: accessory, forProtocol: protocolString) {
+                        wakeUpSession = session
+                        
+                        // Open input/output streams to establish connection
+                        session.inputStream?.open()
+                        session.outputStream?.open()
+                        
+                        appLog("✅ EASession opened - hardware should wake up", category: "SquareMobilePayments")
+                        
+                        // Keep session open briefly to wake hardware, then close it
+                        // The SDK will open its own session when payment starts
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                            guard let self = self else { return }
+                            if let session = self.wakeUpSession {
+                                appLog("🔌 Closing wake-up session (SDK will open its own)", category: "SquareMobilePayments")
+                                session.inputStream?.close()
+                                session.outputStream?.close()
+                                self.wakeUpSession = nil
+                            }
+                        }
+                    } else {
+                        appLog("⚠️ Failed to create EASession", category: "SquareMobilePayments")
+                    }
                 }
                 
-                appLog("✅ Hardware accessed - this may help wake it up", category: "SquareMobilePayments")
                 break
             }
         }
