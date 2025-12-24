@@ -199,9 +199,16 @@ class AppState: ObservableObject {
                 
                 // Check if we got an error response (HTML error page)
                 if httpResponse.statusCode != 200 {
-                    print("[AppState] ❌ HTTP Error: \(httpResponse.statusCode)")
-                    if let errorString = String(data: data, encoding: .utf8) {
-                        print("[AppState] ❌ Error response: \(errorString.prefix(200))")
+                    // Don't spam logs for background image failures - it's not critical
+                    // The app will fall back to default gradient background
+                    if httpResponse.statusCode == 400 {
+                        print("[AppState] ⚠️ Background image failed to load (400) - using default gradient")
+                        print("[AppState] 💡 This is not critical - app will continue with default background")
+                    } else {
+                        print("[AppState] ❌ HTTP Error: \(httpResponse.statusCode)")
+                        if let errorString = String(data: data, encoding: .utf8) {
+                            print("[AppState] ❌ Error response: \(errorString.prefix(200))")
+                        }
                     }
                     await MainActor.run {
                         self.backgroundImage = nil
