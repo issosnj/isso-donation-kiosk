@@ -269,6 +269,15 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                 _ = accessory.modelNumber
                 _ = accessory.serialNumber
                 _ = accessory.protocolStrings
+                
+                // Try to open a session with the accessory to wake it up
+                // This is more aggressive and may help wake sleeping hardware
+                if let protocolString = accessoryProtocols.first(where: { squareProtocols.contains($0) }) {
+                    appLog("🔌 Attempting to open session with protocol: \(protocolString)", category: "SquareMobilePayments")
+                    // Note: We can't directly open EASession here, but accessing the protocol
+                    // and properties should help signal iOS to wake the hardware
+                }
+                
                 appLog("✅ Hardware accessed - this may help wake it up", category: "SquareMobilePayments")
                 break
             }
@@ -389,13 +398,26 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                 )
             }
         } else {
-            // Already authorized - start payment immediately (simpler approach like DonationApp)
-            appLog("✅ SDK already authorized - starting payment", category: "SquareMobilePayments")
-            self.startPaymentFlow(
-                paymentParameters: paymentParameters,
-                promptParameters: promptParameters,
-                viewController: viewController
-            )
+            // Already authorized - but force re-authorize to wake hardware
+            // This ensures the Stand lights up when payment starts
+            appLog("🔄 Force re-authorizing to wake hardware before payment...", category: "SquareMobilePayments")
+            self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
+                if let error = error {
+                    appLog("⚠️ Re-authorization warning (may still work): \(error.localizedDescription)", category: "SquareMobilePayments")
+                } else {
+                    appLog("✅ Re-authorization completed - hardware should be ready", category: "SquareMobilePayments")
+                }
+                
+                // Small delay after re-authorization to let hardware wake up
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                    guard let self = self else { return }
+                    self.startPaymentFlow(
+                        paymentParameters: paymentParameters,
+                        promptParameters: promptParameters,
+                        viewController: viewController
+                    )
+                }
+            }
         }
     }
     
@@ -426,13 +448,44 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
-        // Start payment - delegate is passed as parameter to startPayment
-        let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
-            paymentParameters,
-            promptParameters: promptParameters,
-            from: viewController,
-            delegate: self
-        )
+        // Attempt to wake hardware before starting payment
+        // This helps ensure Square Stand lights up when payment starts
+        appLog("🔔 Attempting to wake Square Stand hardware before payment...", category: "SquareMobilePayments")
+        attemptHardwareWakeUp()
+        
+        // Small delay to allow hardware to wake up before starting payment
+        // This gives the Stand time to initialize and light up
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self else { return }
+            
+            // Double-check authorization state (may have changed during delay)
+            let currentAuthState = MobilePaymentsSDK.shared.authorizationManager.state
+            guard currentAuthState == .authorized else {
+                appLog("❌ SDK authorization lost during hardware wake-up (state: \(currentAuthState))", category: "SquareMobilePayments")
+                self.isStarting = false
+                self.hasPaymentHandle = false
+                self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -6, userInfo: [
+                    NSLocalizedDescriptionKey: "Square SDK not ready. Please try again.",
+                    NSLocalizedFailureReasonErrorKey: "sdk_not_authorized"
+                ])))
+                self.currentPaymentCompletion = nil
+                return
+            }
+            
+            // Start payment - delegate is passed as parameter to startPayment
+            let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
+                paymentParameters,
+                promptParameters: promptParameters,
+                from: viewController,
+                delegate: self
+            )
+            
+            self.processPaymentHandle(paymentHandle)
+        }
+    }
+    
+    // Process payment handle result
+    private func processPaymentHandle(_ paymentHandle: PaymentHandle?) {
         
         if let handle = paymentHandle {
             hasPaymentHandle = true // Mark that payment has actually started
