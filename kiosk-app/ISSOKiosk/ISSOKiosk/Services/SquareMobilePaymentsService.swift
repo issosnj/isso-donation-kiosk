@@ -331,27 +331,74 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             additionalMethods: .all
         )
         
-        // Skip hardware pre-check - let SDK handle detection
-        // Ensure view is loaded and start payment
-        DispatchQueue.main.async {
-            _ = viewController.view
-            // Small delay to ensure view is ready
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self.startPaymentFlow(
-                    paymentParameters: paymentParameters,
-                    promptParameters: promptParameters,
-                    viewController: viewController
-                )
+        // Wake up hardware before starting payment
+        // Square Stand can fall asleep after inactivity and needs to be woken up
+        // Force re-authorization helps wake up the hardware connection
+        appLog("🔔 Attempting to wake up Square Stand hardware...", category: "SquareMobilePayments")
+        
+        // Check if hardware is currently detected
+        let hardwareDetected = checkHardwareConnection()
+        
+        if !hardwareDetected {
+            appLog("⚠️ Hardware not detected - force re-authorizing to wake it up...", category: "SquareMobilePayments")
+            // Force re-authorize to wake up hardware
+            if let accessToken = self.accessToken, let locationId = self.locationId {
+                self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
+                    if let error = error {
+                        appLog("⚠️ Re-authorization warning (may still work): \(error.localizedDescription)", category: "SquareMobilePayments")
+                    } else {
+                        appLog("✅ Re-authorization completed - hardware should be awake", category: "SquareMobilePayments")
+                    }
+                    
+                    // Wait a bit longer for hardware to fully wake up (3 seconds)
+                    // This gives the Square Stand time to power on and establish connection
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        self.startPaymentFlowWithWakeup(
+                            paymentParameters: paymentParameters,
+                            promptParameters: promptParameters,
+                            viewController: viewController
+                        )
+                    }
+                }
+            } else {
+                // No credentials - proceed anyway, SDK will handle it
+                DispatchQueue.main.async {
+                    _ = viewController.view
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self.startPaymentFlowWithWakeup(
+                            paymentParameters: paymentParameters,
+                            promptParameters: promptParameters,
+                            viewController: viewController
+                        )
+                    }
+                }
+            }
+        } else {
+            appLog("✅ Hardware detected - proceeding with payment", category: "SquareMobilePayments")
+            // Hardware is detected, but still add a small delay to ensure it's fully ready
+            DispatchQueue.main.async {
+                _ = viewController.view
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.startPaymentFlowWithWakeup(
+                        paymentParameters: paymentParameters,
+                        promptParameters: promptParameters,
+                        viewController: viewController
+                    )
+                }
             }
         }
     }
     
-    private func startPaymentFlow(
+    // Start payment flow with hardware wake-up delay
+    private func startPaymentFlowWithWakeup(
         paymentParameters: PaymentParameters,
         promptParameters: PromptParameters,
         viewController: UIViewController
     ) {
-        appLog("🚀 Starting Square SDK payment flow...", category: "SquareMobilePayments")
+        appLog("🚀 Starting Square SDK payment flow (after hardware wake-up)...", category: "SquareMobilePayments")
+        
+        // Ensure view is still loaded
+        _ = viewController.view
         
         // Start payment - delegate is passed as parameter to startPayment
         let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
@@ -367,6 +414,14 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             appLog("💡 Square SDK should now show card entry UI", category: "SquareMobilePayments")
             appLog("💡 User can tap or insert card on Square Stand", category: "SquareMobilePayments")
             appLog("💡 SDK will automatically detect Square Stand hardware", category: "SquareMobilePayments")
+            
+            // Log hardware status after starting payment
+            let hardwareStillDetected = checkHardwareConnection()
+            if hardwareStillDetected {
+                appLog("✅ Hardware confirmed active after payment start", category: "SquareMobilePayments")
+            } else {
+                appLog("⚠️ Hardware not visible in connectedAccessories (may still work via SDK)", category: "SquareMobilePayments")
+            }
         } else {
             appLog("❌ Payment handle is nil - payment already in progress", category: "SquareMobilePayments")
             // Reset gate so user can try again
@@ -379,6 +434,19 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             ])))
             self.currentPaymentCompletion = nil
         }
+    }
+    
+    // Legacy method name for compatibility
+    private func startPaymentFlow(
+        paymentParameters: PaymentParameters,
+        promptParameters: PromptParameters,
+        viewController: UIViewController
+    ) {
+        startPaymentFlowWithWakeup(
+            paymentParameters: paymentParameters,
+            promptParameters: promptParameters,
+            viewController: viewController
+        )
     }
     
     // Temporary: Process payment through backend until SDK is fixed
