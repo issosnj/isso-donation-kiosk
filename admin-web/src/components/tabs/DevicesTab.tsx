@@ -9,6 +9,7 @@ interface DevicesTabProps {
 }
 
 export default function DevicesTab({ templeId }: DevicesTabProps) {
+  const router = useRouter()
   const [newDeviceLabel, setNewDeviceLabel] = useState('')
   const queryClient = useQueryClient()
 
@@ -120,10 +121,8 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
                     onClick={(e) => {
                       // Navigate to device details
                       e.stopPropagation()
-                      // Use router to navigate without full page reload
-                      const url = `/dashboard?tab=devices&deviceId=${device.id}`
-                      window.history.pushState({}, '', url)
-                      window.location.reload() // Reload to trigger state update
+                      // Use router to navigate - this will update the URL and trigger re-render
+                      router.push(`/dashboard?tab=devices&deviceId=${device.id}`)
                     }}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
