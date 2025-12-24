@@ -24,7 +24,7 @@ struct ModernPaymentView: View {
     @State private var cardPulse = false
     @State private var isReady = false
     @State private var donationId: String? = nil
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) var dismiss: DismissAction
     
     var body: some View {
         ZStack {
@@ -423,7 +423,7 @@ struct ModernPaymentReadyView: View {
     let amount: Double
     @State private var appearAnimation = false
     @State private var pulseAnimation = false
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) var dismiss: DismissAction
     
     var body: some View {
         ZStack {

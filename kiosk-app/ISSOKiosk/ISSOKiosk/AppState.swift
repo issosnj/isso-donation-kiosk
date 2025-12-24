@@ -318,7 +318,7 @@ class AppState: ObservableObject {
                 return
                 
             } catch {
-                lastError = error
+                // Error logged, continue retrying
                 print("[AppState] ❌ Failed to load temple config (attempt \(attempt + 1)/\(maxRetries))")
                 print("[AppState] ❌ Error type: \(type(of: error))")
                 print("[AppState] ❌ Error description: \(error.localizedDescription)")
