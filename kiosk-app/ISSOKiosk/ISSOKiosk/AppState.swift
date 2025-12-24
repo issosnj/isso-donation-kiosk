@@ -260,13 +260,13 @@ class AppState: ObservableObject {
             if attempt > 0 {
                 // Exponential backoff: 2s, 4s, 8s, 16s
                 let delay = pow(2.0, Double(attempt))
-                print("[AppState] 🔄 Retry attempt \(attempt + 1)/\(maxRetries) after \(delay)s delay...")
+                appLog("🔄 Retry attempt \(attempt + 1)/\(maxRetries) after \(delay)s delay...", category: "AppState")
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
             
             do {
                 // Fetch temple data from backend
-                print("[AppState] 📡 Starting temple fetch request (attempt \(attempt + 1))...")
+                appLog("📡 Starting temple fetch request (attempt \(attempt + 1))...", category: "AppState")
                 let temple = try await APIService.shared.getTemple(templeId: templeId)
                 
                 await MainActor.run {
