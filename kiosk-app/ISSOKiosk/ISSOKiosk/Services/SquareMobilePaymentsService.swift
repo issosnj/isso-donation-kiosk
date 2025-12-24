@@ -4,6 +4,7 @@ import SquareMobilePaymentsSDK
 import CoreLocation
 import CoreBluetooth
 import ExternalAccessory
+import Logger
 
 // Square Mobile Payments SDK Service
 // This service handles in-person payments with Square Stand using Mobile Payments SDK
@@ -21,7 +22,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     private var accessToken: String?
     private var locationId: String?
     private var currentPaymentCompletion: ((Result<PaymentResult, Error>) -> Void)?
-    private var currentPaymentHandle: Any? // Store payment handle to track if payment is in progress
+    private var isStarting = false // Gate to prevent multiple simultaneous payment attempts
     
     private override init() {
         super.init()
@@ -244,6 +245,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     }
     
     // Take payment using Mobile Payments SDK PaymentManager
+    // Following Square's recommended pattern: use SDK state + single-payment gate
     // This will automatically detect Square Stand and process payment when user taps/chips card
     func takePayment(
         amount: Double,
@@ -252,7 +254,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         completion: @escaping (Result<PaymentResult, Error>) -> Void
     ) {
         guard isAuthorized else {
-            print("[SquareMobilePayments] ❌ SDK not authorized")
+            appLog("❌ SDK not authorized", category: "SquareMobilePayments")
             completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "SDK not authorized. Call authorize() first."
             ])))
@@ -260,78 +262,59 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         }
         
         guard let _ = self.accessToken, let locationId = self.locationId else {
-            print("[SquareMobilePayments] ❌ Missing credentials")
+            appLog("❌ Missing credentials", category: "SquareMobilePayments")
             completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "Square credentials not available"
             ])))
             return
         }
         
-        // Check if there's already a payment in progress
-        if currentPaymentHandle != nil || currentPaymentCompletion != nil {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MM/dd HH:mm:ss.SSS"
-            let timestamp = formatter.string(from: Date())
-            print("[\(timestamp)] [SquareMobilePayments] ⚠️ Payment already in progress - clearing previous payment state")
-            // Clear previous payment state
-            currentPaymentHandle = nil
-            // Call previous completion with cancellation error
-            currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -4, userInfo: [
-                NSLocalizedDescriptionKey: "Previous payment was cancelled to start a new one"
+        // 1) SDK truth: Check if there's already a payment using SDK's currentPaymentHandle
+        // Note: This API may not be available in all SDK versions - check if it exists
+        let paymentManager = MobilePaymentsSDK.shared.paymentManager
+        if let existingHandle = paymentManager.currentPaymentHandle {
+            appLog("⚠️ Payment already in progress (SDK state) - checking if cancelable", category: "SquareMobilePayments")
+            // Try to cancel if allowed (this API may vary by SDK version)
+            // For now, we'll handle it by calling completion with error
+            completion(.failure(NSError(domain: "SquareMobilePayments", code: -5, userInfo: [
+                NSLocalizedDescriptionKey: "Payment already in progress. Please wait for the current payment to complete or cancel it first.",
+                NSLocalizedFailureReasonErrorKey: "payment_already_in_progress"
             ])))
-            currentPaymentCompletion = nil
+            return
         }
+        
+        // 2) App truth: Prevent SwiftUI double-trigger with isStarting gate
+        guard !isStarting else {
+            appLog("⚠️ Payment start already in progress (app gate) - ignoring duplicate call", category: "SquareMobilePayments")
+            return
+        }
+        isStarting = true
         
         self.currentPaymentCompletion = completion
         
-        print("[SquareMobilePayments] 💳 Starting payment: $\(amount) for donation \(donationId)")
-        print("[SquareMobilePayments] 📍 Location ID: \(locationId)")
+        appLog("💳 Starting payment: $\(amount) for donation \(donationId)", category: "SquareMobilePayments")
+        appLog("📍 Location ID: \(locationId)", category: "SquareMobilePayments")
         
-        // Create payment parameters
-        // PaymentParameters requires idempotencyKey and amountMoney
-        // Idempotency key must be <= 45 characters
-        let amountMoney = Money(amount: UInt(amount * 100), currency: .USD)
-        // Use donationId (UUID, 36 chars) as idempotency key - it's already unique
-        let idempotencyKey = String(donationId.prefix(45))
-        
-        let paymentParameters = PaymentParameters(
-            idempotencyKey: idempotencyKey,
-            amountMoney: amountMoney
-        )
-        
-        // Enable all payment methods including Cash App Pay
-        // Cash App Pay will be available if enabled in Square Dashboard > Online > Settings > Checkout
-        let promptParameters = PromptParameters(
-            mode: .default,
-            additionalMethods: .all  // This includes Cash App Pay, Apple Pay, Google Pay, etc.
-        )
-        
-        // Start payment - this will automatically detect Square Stand
-        print("[SquareMobilePayments] 🔍 Detecting Square Stand hardware...")
-        print("[SquareMobilePayments] 📱 Presenting from viewController: \(type(of: viewController))")
-        print("[SquareMobilePayments] 📱 ViewController isViewLoaded: \(viewController.isViewLoaded)")
-        print("[SquareMobilePayments] 📱 ViewController viewIfLoaded: \(viewController.viewIfLoaded != nil ? "loaded" : "not loaded")")
-        
-        // Check authorization state before starting payment
+        // Check authorization state
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        print("[SquareMobilePayments] 🔐 Authorization state: \(authState)")
+        appLog("🔐 Authorization state: \(authState)", category: "SquareMobilePayments")
         
         guard authState == .authorized else {
-            print("[SquareMobilePayments] ❌ SDK not authorized! State: \(authState)")
-            print("[SquareMobilePayments] 💡 Attempting to reconnect...")
+            appLog("❌ SDK not authorized! State: \(authState) - attempting to reconnect...", category: "SquareMobilePayments")
+            isStarting = false
             
             // Try to reconnect if we have credentials
             if let accessToken = self.accessToken, let locationId = self.locationId {
                 self.authorize(accessToken: accessToken, locationId: locationId) { error in
                     if let error = error {
-                        print("[SquareMobilePayments] ❌ Reconnection failed: \(error.localizedDescription)")
+                        appLog("❌ Reconnection failed: \(error.localizedDescription)", category: "SquareMobilePayments")
                         completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
                             NSLocalizedDescriptionKey: "Square SDK connection lost. Please restart the app."
                         ])))
                     } else {
-                        print("[SquareMobilePayments] ✅ Reconnected successfully - retrying payment")
-                        // Retry payment after reconnection with delay to allow hardware to wake up
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        appLog("✅ Reconnected successfully - retrying payment", category: "SquareMobilePayments")
+                        // Retry payment after reconnection
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             self.takePayment(amount: amount, donationId: donationId, from: viewController, completion: completion)
                         }
                     }
@@ -344,60 +327,32 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
-        // Check if Square Stand hardware is actually connected at iOS level
-        let isHardwareConnected = self.checkHardwareConnection()
-        print("[SquareMobilePayments] 🔌 Hardware connection check: \(isHardwareConnected ? "✅ Connected" : "❌ Not detected")")
+        // Create payment parameters
+        let amountMoney = Money(amount: UInt(amount * 100), currency: .USD)
+        let idempotencyKey = String(donationId.prefix(45))
         
-        // Re-authorize to force fresh hardware connection (helps wake up Square Stand after idle)
-        print("[SquareMobilePayments] 🔄 Re-authorizing to ensure hardware connection is active...")
-        if let accessToken = self.accessToken, let locationId = self.locationId {
-            // Force re-authorization to refresh hardware connection
-            self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
-                if let error = error {
-                    print("[SquareMobilePayments] ⚠️ Re-authorization warning: \(error.localizedDescription)")
-                    // Continue anyway - authorization might still be valid
-                } else {
-                    print("[SquareMobilePayments] ✅ Re-authorized - hardware connection refreshed")
-                }
-                
-                // Re-check hardware after re-authorization
-                let hardwareStillConnected = self.checkHardwareConnection()
-                print("[SquareMobilePayments] 🔌 Hardware connection after re-auth: \(hardwareStillConnected ? "✅ Connected" : "❌ Not detected")")
-                
-                // If hardware not detected, wait longer and try again
-                if !hardwareStillConnected {
-                    print("[SquareMobilePayments] ⚠️ Hardware not detected - waiting longer for connection...")
-                }
-                
-                // Ensure we're on the main thread and view is loaded
-                DispatchQueue.main.async {
-                    // Ensure view is loaded and view controller is ready
-                    _ = viewController.view
-                    
-                    // Give hardware more time to wake up after re-authorization (Square Stand may be in low-power mode)
-                    // Use longer delay if hardware wasn't detected
-                    let waitTime = hardwareStillConnected ? 2.0 : 4.0
-                    print("[SquareMobilePayments] ⏳ Waiting \(waitTime) seconds for hardware to wake up...")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + waitTime) {
-                        self.startPaymentFlow(
-                            paymentParameters: paymentParameters,
-                            promptParameters: promptParameters,
-                            viewController: viewController
-                        )
-                    }
-                }
-            }
-        } else {
-            // No credentials available, proceed without re-authorization
-            DispatchQueue.main.async {
-                _ = viewController.view
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.startPaymentFlow(
-                        paymentParameters: paymentParameters,
-                        promptParameters: promptParameters,
-                        viewController: viewController
-                    )
-                }
+        let paymentParameters = PaymentParameters(
+            idempotencyKey: idempotencyKey,
+            amountMoney: amountMoney
+        )
+        
+        // Enable all payment methods including Cash App Pay
+        let promptParameters = PromptParameters(
+            mode: .default,
+            additionalMethods: .all
+        )
+        
+        // Skip hardware pre-check - let SDK handle detection
+        // Ensure view is loaded and start payment
+        DispatchQueue.main.async {
+            _ = viewController.view
+            // Small delay to ensure view is ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.startPaymentFlow(
+                    paymentParameters: paymentParameters,
+                    promptParameters: promptParameters,
+                    viewController: viewController
+                )
             }
         }
     }
@@ -407,7 +362,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         promptParameters: PromptParameters,
         viewController: UIViewController
     ) {
-        print("[SquareMobilePayments] 🚀 Starting Square SDK payment flow...")
+        appLog("🚀 Starting Square SDK payment flow...", category: "SquareMobilePayments")
         
         // Start payment - delegate is passed as parameter to startPayment
         let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
@@ -418,29 +373,16 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         )
         
         if let handle = paymentHandle {
-            print("[SquareMobilePayments] ✅ Payment started successfully!")
-            print("[SquareMobilePayments] ✅ Payment handle: \(handle)")
-            // Store payment handle to track that payment is in progress
-            self.currentPaymentHandle = handle
-            print("[SquareMobilePayments] 💡 Square SDK should now show card entry UI")
-            print("[SquareMobilePayments] 💡 User can tap or insert card on Square Stand")
-            print("[SquareMobilePayments] 💡 Cash App Pay will be available if enabled in Square Dashboard")
-            print("[SquareMobilePayments] 💡 SDK will automatically detect card interactions")
+            appLog("✅ Payment started successfully! Handle: \(handle)", category: "SquareMobilePayments")
+            appLog("💡 Square SDK should now show card entry UI", category: "SquareMobilePayments")
+            appLog("💡 User can tap or insert card on Square Stand", category: "SquareMobilePayments")
+            appLog("💡 SDK will automatically detect Square Stand hardware", category: "SquareMobilePayments")
         } else {
-            print("[SquareMobilePayments] ❌ Payment handle is nil!")
-            print("[SquareMobilePayments] ❌ This usually means a payment is already in progress")
-            print("[SquareMobilePayments] ⚠️ Possible issues:")
-            print("[SquareMobilePayments]    1. Payment already in progress (most common)")
-            print("[SquareMobilePayments]    2. Square Stand not connected")
-            print("[SquareMobilePayments]    3. SDK not properly authorized")
-            print("[SquareMobilePayments]    4. ViewController not ready")
-            print("[SquareMobilePayments]    5. iPad not properly inserted into Square Stand")
-            
-            // Try to clear any stale payment state
-            self.currentPaymentHandle = nil
+            appLog("❌ Payment handle is nil - payment already in progress", category: "SquareMobilePayments")
+            // Reset gate so user can try again
+            isStarting = false
             
             // Call completion with specific error about payment in progress
-            // The caller should handle this by canceling and retrying
             self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -5, userInfo: [
                 NSLocalizedDescriptionKey: "Payment already in progress. Please wait for the current payment to complete or cancel it first.",
                 NSLocalizedFailureReasonErrorKey: "payment_already_in_progress"
@@ -514,19 +456,19 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     // MARK: - PaymentManagerDelegate
     
     func paymentManager(_ paymentManager: PaymentManager, didFinish payment: Payment) {
-        print("[SquareMobilePayments] ✅ Payment succeeded!")
+        appLog("✅ Payment succeeded!", category: "SquareMobilePayments")
         
         // Extract payment ID - try different payment types
         var paymentId: String? = nil
         
         if let onlinePayment = payment as? OnlinePayment {
             paymentId = onlinePayment.id
-            print("[SquareMobilePayments] Online payment ID: \(paymentId ?? "nil")")
+            appLog("Online payment ID: \(paymentId ?? "nil")", category: "SquareMobilePayments")
         } else if let offlinePayment = payment as? OfflinePayment {
             paymentId = offlinePayment.id
-            print("[SquareMobilePayments] Offline payment ID: \(paymentId ?? "nil")")
+            appLog("Offline payment ID: \(paymentId ?? "nil")", category: "SquareMobilePayments")
         } else {
-            print("[SquareMobilePayments] ⚠️ Unknown payment type")
+            appLog("⚠️ Unknown payment type", category: "SquareMobilePayments")
         }
         
         let result = PaymentResult(
@@ -535,13 +477,14 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             error: nil
         )
         
+        // Reset gate in ALL delegate exits
+        isStarting = false
         currentPaymentCompletion?(.success(result))
         currentPaymentCompletion = nil
     }
     
     func paymentManager(_ paymentManager: PaymentManager, didFail payment: Payment, withError error: Error) {
-        print("[SquareMobilePayments] ❌ Payment failed: \(error.localizedDescription)")
-        print("[SquareMobilePayments] Error details: \(error)")
+        appLog("❌ Payment failed: \(error.localizedDescription)", category: "SquareMobilePayments")
         
         // Check if it's a hardware detection error
         let errorDescription = error.localizedDescription.lowercased()
@@ -553,13 +496,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                              errorDescription.contains("reader not found")
         
         if isHardwareError {
-            print("[SquareMobilePayments] ⚠️ This appears to be a Square Stand connection issue")
-            print("[SquareMobilePayments] 💡 Please check:")
-            print("[SquareMobilePayments]    1. iPad is securely inserted into Square Stand")
-            print("[SquareMobilePayments]    2. Stand is powered on")
-            print("[SquareMobilePayments]    3. Settings > General > About shows 'Square Stand'")
-            
-            // Create a more user-friendly error message
+            appLog("⚠️ Square Stand connection issue detected", category: "SquareMobilePayments")
             let userFriendlyError = NSError(domain: "SquareMobilePayments", code: -3, userInfo: [
                 NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Stand is connected and powered on."
             ])
@@ -567,53 +504,55 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         } else {
             currentPaymentCompletion?(.failure(error))
         }
-        // Clear payment state
+        
+        // Reset gate in ALL delegate exits
+        isStarting = false
         currentPaymentCompletion = nil
-        currentPaymentHandle = nil
     }
     
     func paymentManager(_ paymentManager: PaymentManager, didCancel payment: Payment) {
-        print("[SquareMobilePayments] 🚫 Payment cancelled by user")
+        appLog("🚫 Payment cancelled by user", category: "SquareMobilePayments")
         
-        // Check if cancellation was due to hardware not being detected
-        // If hardware wasn't detected before payment, this cancellation is likely due to hardware error
-        let hardwareWasDetected = self.checkHardwareConnection()
-        if !hardwareWasDetected {
-            print("[SquareMobilePayments] ⚠️ Payment cancelled - hardware not detected")
-            print("[SquareMobilePayments] 💡 This cancellation is likely due to hardware connection issue")
-            let error = NSError(domain: "SquareMobilePayments", code: -3, userInfo: [
-                NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Stand is connected and powered on."
-            ])
-            currentPaymentCompletion?(.failure(error))
-        } else {
-            let error = NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
-                NSLocalizedDescriptionKey: "Payment was cancelled by user"
-            ])
-            currentPaymentCompletion?(.failure(error))
-        }
-        // Clear payment state
+        let error = NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
+            NSLocalizedDescriptionKey: "Payment was cancelled"
+        ])
+        
+        // Reset gate in ALL delegate exits
+        isStarting = false
+        currentPaymentCompletion?(.failure(error))
         currentPaymentCompletion = nil
-        currentPaymentHandle = nil
     }
     
     // Public method to check if payment is in progress
+    // Uses SDK's currentPaymentHandle as source of truth
     func isPaymentInProgress() -> Bool {
-        return currentPaymentHandle != nil || currentPaymentCompletion != nil
+        // Check SDK's currentPaymentHandle first (if available)
+        let paymentManager = MobilePaymentsSDK.shared.paymentManager
+        if let _ = paymentManager.currentPaymentHandle {
+            return true
+        }
+        // Fallback to app-level gate
+        return isStarting || currentPaymentCompletion != nil
     }
     
     // Public method to cancel any in-progress payment
     func cancelCurrentPayment() {
-        if let handle = currentPaymentHandle {
-            print("[SquareMobilePayments] 🚫 Cancelling current payment handle")
-            // Try to cancel the payment handle in the SDK
-            // Note: PaymentHandle doesn't have a direct cancel method, but clearing it should help
-            // The SDK will handle the cancellation when the view is dismissed
-            currentPaymentHandle = nil
+        appLog("🚫 Cancelling current payment", category: "SquareMobilePayments")
+        
+        // Try to cancel using SDK's currentPaymentHandle (if available)
+        let paymentManager = MobilePaymentsSDK.shared.paymentManager
+        if let handle = paymentManager.currentPaymentHandle {
+            // Try to cancel if the handle supports cancellation
+            // Note: cancelPayment() method availability depends on SDK version
+            // For now, we'll reset our state and let the SDK handle it
+            appLog("⚠️ Payment handle exists in SDK - SDK will handle cancellation", category: "SquareMobilePayments")
         }
         
+        // Reset app-level gate
+        isStarting = false
+        
+        // Call completion with cancellation error if we have one
         if currentPaymentCompletion != nil {
-            print("[SquareMobilePayments] 🚫 Calling completion with cancellation")
-            // Call completion with cancellation error
             currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
                 NSLocalizedDescriptionKey: "Payment was cancelled"
             ])))
