@@ -512,10 +512,11 @@ class AppState: ObservableObject {
             let credentials = try await APIService.shared.getSquareCredentials()
             
             // Check if we need to force re-authorize (for periodic refresh)
-            let shouldForceReauthorize = if let lastAuth = lastSquareAuthorizationTime {
-                Date().timeIntervalSince(lastAuth) >= 15 * 60 // 15 minutes
+            let shouldForceReauthorize: Bool
+            if let lastAuth = lastSquareAuthorizationTime {
+                shouldForceReauthorize = Date().timeIntervalSince(lastAuth) >= 15 * 60 // 15 minutes
             } else {
-                false
+                shouldForceReauthorize = false
             }
             
             // Authorize Mobile Payments SDK (uses completion handler, not async/await)
