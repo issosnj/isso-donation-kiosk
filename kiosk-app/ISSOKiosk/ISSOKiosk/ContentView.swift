@@ -19,8 +19,8 @@ struct ContentView: View {
             // Show loading state while checking activation
             if !appState.isActivated && appState.deviceToken != nil {
                 // Loading state - checking stored credentials
-                ProgressView()
-                    .scaleEffect(1.5)
+                LoadingView()
+                    .environmentObject(appState)
             } else if appState.isActivated {
                 // Activated state
                 ZStack {
