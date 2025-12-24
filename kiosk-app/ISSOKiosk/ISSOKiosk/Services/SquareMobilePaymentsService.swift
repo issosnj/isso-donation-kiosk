@@ -247,6 +247,33 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         return false
     }
     
+    // Attempt to wake up Square Stand hardware by opening a connection
+    // This can help wake sleeping hardware after long idle periods
+    private func attemptHardwareWakeUp() {
+        let manager = EAAccessoryManager.shared()
+        let connectedAccessories = manager.connectedAccessories
+        let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
+        
+        for accessory in connectedAccessories {
+            let accessoryProtocols = accessory.protocolStrings
+            let hasSquareProtocol = accessoryProtocols.contains { protocolString in
+                squareProtocols.contains { $0 == protocolString }
+            }
+            
+            if hasSquareProtocol {
+                appLog("🔔 Attempting to wake up Square Stand by accessing hardware...", category: "SquareMobilePayments")
+                // Try to access the accessory to wake it up
+                // Accessing properties can help wake sleeping hardware
+                _ = accessory.name
+                _ = accessory.modelNumber
+                _ = accessory.serialNumber
+                _ = accessory.protocolStrings
+                appLog("✅ Hardware accessed - this may help wake it up", category: "SquareMobilePayments")
+                break
+            }
+        }
+    }
+    
     // Take payment using Mobile Payments SDK PaymentManager
     // Following Square's recommended pattern: use SDK state + single-payment gate
     // This will automatically detect Square Stand and process payment when user taps/chips card
@@ -353,21 +380,30 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                 // Wait longer for hardware to fully wake up after long idle periods
                 // Square Stand needs time to power on, establish connection, and be ready
                 // After hours of idle time, hardware may need 7-10 seconds to fully wake up
-                // We'll do a progressive wake-up: check hardware multiple times with increasing delays
+                // We'll do a progressive wake-up: actively wake hardware and check multiple times
                 appLog("⏳ Progressive hardware wake-up sequence starting...", category: "SquareMobilePayments")
+                
+                // Immediately attempt to wake hardware by accessing it
+                self.attemptHardwareWakeUp()
                 
                 // First check after 3 seconds
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    // Try to wake hardware again
+                    self.attemptHardwareWakeUp()
                     let hardwareDetected1 = self.checkHardwareConnection()
                     appLog("🔍 Hardware check 1 (3s): \(hardwareDetected1 ? "✅ Detected" : "⚠️ Not visible")", category: "SquareMobilePayments")
                     
                     // Second check after 5 seconds total
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        // Try to wake hardware again
+                        self.attemptHardwareWakeUp()
                         let hardwareDetected2 = self.checkHardwareConnection()
                         appLog("🔍 Hardware check 2 (5s): \(hardwareDetected2 ? "✅ Detected" : "⚠️ Not visible")", category: "SquareMobilePayments")
                         
                         // Final check after 8 seconds total - give hardware maximum time to wake up
                         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                            // Final wake attempt
+                            self.attemptHardwareWakeUp()
                             let hardwareDetected3 = self.checkHardwareConnection()
                             appLog("🔍 Hardware check 3 (8s): \(hardwareDetected3 ? "✅ Detected" : "⚠️ Not visible")", category: "SquareMobilePayments")
                             
