@@ -57,28 +57,6 @@ class AppState: ObservableObject {
                 self.startSquareConnectionMonitoring()
             }
             
-            // After initial authorization, aggressively check for hardware (iPad might be waking up after reboot)
-            // This helps when iPad powers on and Square Stand is already connected
-            // Run in background - doesn't block UI
-            appLog("🔍 Starting aggressive hardware detection after startup (background)...", category: "AppState")
-            for attempt in 1...6 {
-                let totalSeconds = attempt * 5
-                if attempt > 1 {
-                    appLog("⏳ Attempt \(attempt)/6: Waiting 5 seconds, then checking hardware (total: \(totalSeconds)s)...", category: "AppState")
-                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
-                } else {
-                    appLog("⏳ Attempt \(attempt)/6: Checking hardware immediately...", category: "AppState")
-                }
-                let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
-                if hardwareConnected {
-                    appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "AppState")
-                    await self.authorizeSquareSDK()
-                    return // Success - exit retry loop
-                } else {
-                    appLog("❌ Hardware still not detected after \(totalSeconds) seconds", category: "AppState")
-                }
-            }
-            appLog("⚠️ Hardware not detected after 30 seconds - will keep checking periodically", category: "AppState")
         }
     }
     
