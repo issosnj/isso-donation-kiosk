@@ -191,14 +191,7 @@ struct ModernDonationDetailsView: View {
                 .aspectRatio(contentMode: .fill)
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
-        } else if let backgroundImage = appState.backgroundImage {
-            Image(uiImage: backgroundImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
-        } else if let backgroundUrl = appState.temple?.homeScreenConfig?.backgroundImageUrl,
-           let url = URL(string: backgroundUrl) {
+        } else {
             ZStack {
                 LinearGradient(
                     gradient: Gradient(colors: [

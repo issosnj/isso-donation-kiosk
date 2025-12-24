@@ -764,13 +764,6 @@ struct ModernPaymentResultView: View {
                 .aspectRatio(contentMode: .fill)
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
-        } else if let backgroundImage = appState.backgroundImage {
-            // Fallback to preloaded URL image
-            Image(uiImage: backgroundImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
         } else {
             // Final fallback to default gradient
             LinearGradient(

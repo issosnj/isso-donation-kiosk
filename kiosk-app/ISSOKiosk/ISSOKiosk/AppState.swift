@@ -9,7 +9,6 @@ class AppState: ObservableObject {
     @Published var temple: Temple?
     @Published var categories: [DonationCategory] = []
     @Published var religiousEvents: [ReligiousEvent] = []
-    @Published var backgroundImage: UIImage? = nil // Cached background image
     @Published var languageManager = LanguageManager.shared
     
     private let keychain = KeychainHelper()
@@ -48,11 +47,6 @@ class AppState: ObservableObject {
             
             // Start automatic category refresh timer
             startCategoryRefreshTimer()
-        }
-        
-        // Preload background image if available (don't block - load in background)
-        Task.detached(priority: .background) { [weak self] in
-            await self?.preloadBackgroundImage()
         }
         
         // Authorize Square Mobile Payments SDK after activation
@@ -115,170 +109,12 @@ class AppState: ObservableObject {
             // Always reload background image when refreshing config (in case image was updated)
             // Don't block - load in background
             Task.detached(priority: .background) { [weak self] in
-                await self?.preloadBackgroundImage(forceReload: true)
             }
             
             // Also refresh categories when temple config is refreshed (categories might have changed)
             await refreshCategories()
         } catch {
             print("[AppState] ❌ Failed to refresh temple config: \(error.localizedDescription)")
-        }
-    }
-    
-    func preloadBackgroundImage(forceReload: Bool = false) async {
-        // Check kioskTheme.layout first, then fallback to homeScreenConfig for backward compatibility
-        let backgroundUrl = temple?.kioskTheme?.layout?.backgroundImageUrl ?? temple?.homeScreenConfig?.backgroundImageUrl
-        guard let urlString = backgroundUrl else {
-            await MainActor.run {
-                self.backgroundImage = nil
-            }
-            return
-        }
-        
-        print("[AppState] 🖼️ Preloading background image: \(urlString) (forceReload: \(forceReload))")
-        
-        // Use proxy endpoint for Google Drive URLs to avoid CORS issues
-        let finalUrlString: String
-        if urlString.contains("drive.google.com") {
-            // Use backend proxy for Google Drive URLs
-            let encodedUrl = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? urlString
-            finalUrlString = "\(Config.apiBaseURL)/temples/proxy-image?url=\(encodedUrl)"
-            print("[AppState] 🔄 Using proxy endpoint for Google Drive URL")
-        } else {
-            finalUrlString = urlString
-        }
-        
-        guard let url = URL(string: finalUrlString) else {
-            print("[AppState] ❌ Invalid URL: \(finalUrlString)")
-            await MainActor.run {
-                self.backgroundImage = nil
-            }
-            return
-        }
-        
-        // If force reload, clear cache first
-        if forceReload {
-            URLCache.shared.removeCachedResponse(for: URLRequest(url: url))
-            print("[AppState] 🗑️ Cleared cached background image")
-        }
-        
-        // Check cache first (unless forcing reload)
-        if !forceReload, let cachedResponse = URLCache.shared.cachedResponse(for: URLRequest(url: url)),
-           let image = UIImage(data: cachedResponse.data) {
-            await MainActor.run {
-                self.backgroundImage = image
-            }
-            print("[AppState] ✅ Background image loaded from cache")
-            return
-        }
-        
-        // Load from network
-        do {
-            // Create request with cache policy to bypass cache if force reload
-            var request = URLRequest(url: url)
-            request.timeoutInterval = 10.0 // 10 second timeout to prevent hanging
-            if forceReload {
-                request.cachePolicy = .reloadIgnoringLocalCacheData
-            }
-            
-            // Don't send auth token for proxy-image endpoint (it's public)
-            // The proxy endpoint is public and doesn't require authentication
-            if !finalUrlString.contains("/temples/proxy-image") {
-                // For non-proxy endpoints, we could add auth if needed in the future
-                // But currently background images are loaded without auth
-            }
-            
-            // Use URLSession with timeout to prevent hanging on slow/failed requests
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            // Log response details for debugging
-            if let httpResponse = response as? HTTPURLResponse {
-                print("[AppState] 📊 HTTP Status: \(httpResponse.statusCode)")
-                print("[AppState] 📊 Content-Type: \(httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "unknown")")
-                print("[AppState] 📊 Data size: \(data.count) bytes")
-                
-                // Check if we got an error response (HTML error page)
-                if httpResponse.statusCode != 200 {
-                    // Don't spam logs for background image failures - it's not critical
-                    // The app will fall back to default gradient background
-                    if httpResponse.statusCode == 400 {
-                        print("[AppState] ⚠️ Background image failed to load (400) - using default gradient")
-                        print("[AppState] 💡 This is not critical - app will continue with default background")
-                    } else {
-                        print("[AppState] ❌ HTTP Error: \(httpResponse.statusCode)")
-                        if let errorString = String(data: data, encoding: .utf8) {
-                            print("[AppState] ❌ Error response: \(errorString.prefix(200))")
-                        }
-                    }
-                    await MainActor.run {
-                        self.backgroundImage = nil
-                    }
-                    return
-                }
-            }
-            
-            // Check if data is empty
-            guard !data.isEmpty else {
-                print("[AppState] ⚠️ Empty image data received")
-                await MainActor.run {
-                    self.backgroundImage = nil
-                }
-                return
-            }
-            
-            // Check if it's actually an image by looking at the first few bytes
-            let imageSignatures: [Data] = [
-                Data([0xFF, 0xD8, 0xFF]), // JPEG
-                Data([0x89, 0x50, 0x4E, 0x47]), // PNG
-                Data([0x47, 0x49, 0x46]), // GIF
-            ]
-            
-            let isImage = imageSignatures.contains { signature in
-                data.prefix(signature.count) == signature
-            }
-            
-            if !isImage {
-                print("[AppState] ⚠️ Data doesn't appear to be an image")
-                if let dataString = String(data: data.prefix(200), encoding: .utf8) {
-                    print("[AppState] ⚠️ First 200 bytes: \(dataString)")
-                }
-                await MainActor.run {
-                    self.backgroundImage = nil
-                }
-                return
-            }
-            
-            // Verify it's an image
-            guard let image = UIImage(data: data) else {
-                print("[AppState] ⚠️ UIImage failed to create from data")
-                print("[AppState] ⚠️ Data size: \(data.count) bytes")
-                // Try to see what the data looks like
-                if let dataString = String(data: data.prefix(100), encoding: .utf8) {
-                    print("[AppState] ⚠️ First 100 bytes as string: \(dataString)")
-                }
-                await MainActor.run {
-                    self.backgroundImage = nil
-                }
-                return
-            }
-            
-            // Cache the response
-            if let httpResponse = response as? HTTPURLResponse {
-                let cachedResponse = CachedURLResponse(response: httpResponse, data: data)
-                URLCache.shared.storeCachedResponse(cachedResponse, for: URLRequest(url: url))
-            }
-            
-            await MainActor.run {
-                self.backgroundImage = image
-            }
-            print("[AppState] ✅ Background image loaded and cached (size: \(image.size))")
-        } catch {
-            print("[AppState] ❌ Failed to preload background image: \(error.localizedDescription)")
-            print("[AppState] ❌ Error type: \(type(of: error))")
-            // Set to nil on error so it falls back to gradient
-            await MainActor.run {
-                self.backgroundImage = nil
-            }
         }
     }
     

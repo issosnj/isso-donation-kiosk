@@ -444,19 +444,9 @@ struct DonationHomeView: View {
                 .aspectRatio(contentMode: .fill)
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
-        } else if let backgroundImage = appState.backgroundImage {
-            // Fallback to preloaded URL image
-            Image(uiImage: backgroundImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
-        } else if let backgroundUrl = backgroundImageUrl, let url = URL(string: backgroundUrl) {
-            // Fallback to async URL loading
-            ZStack {
-                defaultGradientBackground
-                
-                AsyncImage(url: url) { phase in
+        } else {
+            defaultGradientBackground
+        }
                     switch phase {
                     case .empty:
                         Color.clear

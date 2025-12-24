@@ -58,34 +58,7 @@ struct KioskHomeView: View {
                 .aspectRatio(contentMode: .fill)
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
-        } else if let backgroundImage = appState.backgroundImage {
-            // Fallback to preloaded URL image
-            Image(uiImage: backgroundImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
-        } else if let backgroundUrl = appState.temple?.kioskTheme?.layout?.backgroundImageUrl ?? appState.temple?.homeScreenConfig?.backgroundImageUrl,
-           let url = URL(string: backgroundUrl) {
-            // Fallback to async URL loading
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .empty:
-                    defaultGradient
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                case .failure:
-                    defaultGradient
-                @unknown default:
-                    defaultGradient
-                }
-            }
         } else {
-            // Final fallback to default gradient
             defaultGradient
         }
     }
@@ -231,7 +204,6 @@ struct KioskHomeView: View {
                             // Re-authorize Square SDK and preload background image before navigating
                             Task {
                                 await appState.checkAndReconnectSquareSDK()
-                                await appState.preloadBackgroundImage()
                                 await MainActor.run {
                                     navigationState.showDonationFlow = true
                                 }
@@ -434,7 +406,6 @@ struct KioskHomeView: View {
                 action: {
                 Task {
                     await appState.checkAndReconnectSquareSDK()
-                    await appState.preloadBackgroundImage()
                     await MainActor.run {
                         navigationState.showDonationFlow = true
                     }
@@ -450,7 +421,6 @@ struct KioskHomeView: View {
                 action: {
                 Task {
                     await appState.checkAndReconnectSquareSDK()
-                    await appState.preloadBackgroundImage()
                     await MainActor.run {
                         navigationState.showDonationFlow = true
                     }
