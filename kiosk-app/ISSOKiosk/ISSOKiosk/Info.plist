@@ -70,20 +70,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.isso.donationkiosk</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>issokiosk</string>
-			</array>
-		</dict>
-	</array>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>square-commerce-v1</string>
-	</array>
 </dict>
 </plist>

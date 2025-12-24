@@ -1,6 +1,5 @@
 import SwiftUI
-// TRIAL: Commented out Mobile Payments SDK import - using POS SDK instead
-// import SquareMobilePaymentsSDK
+import SquareMobilePaymentsSDK
 
 // Typealias to avoid conflict with Square SDK's Environment enum
 typealias SwiftUIEnvironment = SwiftUI.Environment

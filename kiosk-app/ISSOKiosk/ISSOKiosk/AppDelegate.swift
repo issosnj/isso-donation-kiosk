@@ -1,9 +1,8 @@
 import UIKit
 import SwiftUI
-import SquarePointOfSaleSDK
 import SquareMobilePaymentsSDK
 
-// AppDelegate to handle orientation locking, Square SDK initialization, and URL callbacks
+// AppDelegate to handle orientation locking and Square SDK initialization
 class AppDelegate: NSObject, UIApplicationDelegate {
     var orientationLock = UIInterfaceOrientationMask.landscape
     
@@ -45,21 +44,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         // Re-lock orientation when app becomes active (e.g., returning from background)
         OrientationLock.lockOrientation(.landscape, andRotateTo: .landscapeLeft)
-    }
-    
-    // Handle URL callbacks from Square POS app
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-        appLog("📱 App received URL callback: \(url)", category: "AppDelegate")
-        
-        // Check if this is a Square POS response using SDK's built-in method
-        guard SCCAPIResponse.isSquareResponse(url) else {
-            appLog("⚠️ URL is not a Square POS response", category: "AppDelegate")
-            return false
-        }
-        
-        appLog("✅ Square POS payment callback received", category: "AppDelegate")
-        SquarePOSPaymentService.shared.handle(url: url)
-        return true
     }
 }
 
