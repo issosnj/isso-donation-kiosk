@@ -66,25 +66,34 @@ class AppState: ObservableObject {
             self.deviceId = extractDeviceId(from: token)
             APIService.shared.setDeviceToken(token)
             
-            // Set activated immediately so UI can show - don't wait for temple config
-            // Temple config will load in background and update UI when ready
-            self.isActivated = true
-            appLog("✅ Activated immediately with stored credentials - loading temple config in background", category: "AppState")
+            // Don't set isActivated yet - wait for temple config to load first
+            // This ensures UI shows loading screen until server connection is ready
+            appLog("📡 Found stored credentials - loading temple config from server...", category: "AppState")
             
-            // Load temple config asynchronously in background - don't block UI
-            Task.detached(priority: .utility) { [weak self] in
+            // Load temple config immediately with higher priority - UI waits for this
+            Task(priority: .userInitiated) { [weak self] in
                 guard let self = self else { return }
                 await self.loadTempleConfig()
+                // Only set activated after temple config loads successfully
+                await MainActor.run {
+                    if self.temple != nil {
+                        self.isActivated = true
+                        appLog("✅ Temple config loaded - activating UI", category: "AppState")
+                    } else {
+                        // Even if temple config fails, activate after timeout so UI can show
+                        appLog("⚠️ Temple config failed but activating UI anyway", category: "AppState")
+                        self.isActivated = true
+                    }
+                }
             }
             
-            // Start Square SDK authorization in background (non-blocking)
+            // Start Square SDK authorization in parallel (non-blocking, lower priority)
             Task.detached(priority: .utility) { [weak self] in
                 guard let self = self else { return }
                 await self.authorizeSquareSDK()
                 await MainActor.run {
                     self.startSquareConnectionMonitoring()
                 }
-                
             }
         }
     }
@@ -236,32 +245,33 @@ class AppState: ObservableObject {
         appLog("📡 Fetching temple config for templeId: \(templeId)", category: "AppState")
         appLog("📡 API Base URL: \(Config.apiBaseURL)", category: "AppState")
         
-        // Reduced retries for faster startup - only 1 retry (2 total attempts)
-        // If it fails, UI will still show with default/fallback theme
-        let maxRetries = 1
+        // Optimized for faster startup - 2 retries (3 total attempts) with progressive timeouts
+        let maxRetries = 2
         
         for attempt in 0..<maxRetries {
             if attempt > 0 {
-                // Shorter backoff: 2s
+                // Short backoff: 1s between retries
                 await MainActor.run {
-                    appLog("🔄 Retry attempt \(attempt + 1)/\(maxRetries) after 2s delay...", category: "AppState")
+                    appLog("🔄 Retry attempt \(attempt + 1)/\(maxRetries) after 1s delay...", category: "AppState")
                 }
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
             }
             
             do {
-                // Fetch temple data from backend with shorter timeout for initial load
+                // Progressive timeout: 5s first attempt, 8s for retries (faster failure detection)
+                let timeout = attempt == 0 ? 5.0 : 8.0
                 await MainActor.run {
-                    appLog("📡 Starting temple fetch request (attempt \(attempt + 1))...", category: "AppState")
+                    appLog("📡 Starting temple fetch request (attempt \(attempt + 1), timeout: \(timeout)s)...", category: "AppState")
                 }
-                let temple = try await APIService.shared.getTemple(templeId: templeId, timeout: 8.0) // 8 second timeout for faster failure
+                let temple = try await APIService.shared.getTemple(templeId: templeId, timeout: timeout)
                 
                 await MainActor.run {
                     self.temple = temple
-                    // isActivated should already be true from loadStoredCredentials()
-                    // but set it here too in case this is called from activate()
+                    // Set activated when temple config loads successfully
+                    // This ensures UI only shows when server connection is ready
                     if !self.isActivated {
                         self.isActivated = true
+                        appLog("✅ Temple config loaded - activating UI", category: "AppState")
                     }
                     appLog("✅ Temple config loaded: \(temple.name)", category: "AppState")
                     appLog("✅ Temple ID: \(temple.id)", category: "AppState")
