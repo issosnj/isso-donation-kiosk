@@ -430,10 +430,6 @@ struct DonationHomeView: View {
         }
     }
     
-    private var backgroundImageUrl: String? {
-        appState.temple?.kioskTheme?.layout?.backgroundImageUrl ?? appState.temple?.homeScreenConfig?.backgroundImageUrl
-    }
-    
     // Background view using GeometryReader for consistent sizing
     @ViewBuilder
     private func backgroundView(geometry: GeometryProxy) -> some View {
@@ -445,26 +441,6 @@ struct DonationHomeView: View {
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
         } else {
-            defaultGradientBackground
-        }
-                    switch phase {
-                    case .empty:
-                        Color.clear
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .clipped()
-                    case .failure:
-                        Color.clear
-                    @unknown default:
-                        Color.clear
-                    }
-                }
-            }
-        } else {
-            // Final fallback to default gradient
             defaultGradientBackground
         }
     }
