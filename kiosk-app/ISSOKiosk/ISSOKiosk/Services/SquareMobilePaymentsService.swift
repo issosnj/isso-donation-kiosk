@@ -370,18 +370,27 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             additionalMethods: .all
         )
         
-        // Force re-authorize before payment to wake up hardware (if sleeping)
-        // Then start payment immediately - SDK will detect hardware when needed
-        appLog("🔄 Re-authorizing SDK before payment...", category: "SquareMobilePayments")
-        
-        self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
-            if let error = error {
-                appLog("⚠️ Re-authorization warning (may still work): \(error.localizedDescription)", category: "SquareMobilePayments")
-            } else {
-                appLog("✅ Re-authorization completed", category: "SquareMobilePayments")
+        // Check authorization state - only authorize if needed (like DonationApp approach)
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        if authState != .authorized {
+            appLog("⚠️ SDK not authorized - authorizing now...", category: "SquareMobilePayments")
+            self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: false) { error in
+                if let error = error {
+                    appLog("❌ Authorization failed: \(error.localizedDescription)", category: "SquareMobilePayments")
+                    self.isStarting = false
+                    self.currentPaymentCompletion?(.failure(error))
+                    return
+                }
+                // Start payment after authorization
+                self.startPaymentFlow(
+                    paymentParameters: paymentParameters,
+                    promptParameters: promptParameters,
+                    viewController: viewController
+                )
             }
-            
-            // Start payment immediately - SDK will detect hardware when starting payment
+        } else {
+            // Already authorized - start payment immediately (simpler approach like DonationApp)
+            appLog("✅ SDK already authorized - starting payment", category: "SquareMobilePayments")
             self.startPaymentFlow(
                 paymentParameters: paymentParameters,
                 promptParameters: promptParameters,
