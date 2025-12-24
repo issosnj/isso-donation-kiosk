@@ -192,34 +192,6 @@ struct ModernDonationDetailsView: View {
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
         } else {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.white,
-                        Color(red: 0.95, green: 0.97, blue: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        Color.clear
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .clipped()
-                    case .failure:
-                        Color.clear
-                    @unknown default:
-                        Color.clear
-                    }
-                }
-            }
-        } else {
             LinearGradient(
                 gradient: Gradient(colors: [
                     Color.white,
