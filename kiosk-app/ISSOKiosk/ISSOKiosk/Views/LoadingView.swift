@@ -4,6 +4,7 @@ struct LoadingView: View {
     @EnvironmentObject var appState: AppState
     @State private var rotationAngle: Double = 0
     @State private var pulseScale: CGFloat = 1.0
+    @State private var animationTimer: Timer?
     
     // Helper function to convert hex string to Color (same as KioskHomeView)
     private func colorFromHex(_ hex: String) -> Color {
@@ -73,12 +74,14 @@ struct LoadingView: View {
                             )
                             .frame(width: 80, height: 80)
                             .rotationEffect(.degrees(rotationAngle))
+                            .animation(.linear(duration: 1.0).repeatForever(autoreverses: false), value: rotationAngle)
                         
                         // Inner pulsing circle
                         Circle()
                             .fill(colorFromHex("423232").opacity(0.3))
                             .frame(width: 60, height: 60)
                             .scaleEffect(pulseScale)
+                            .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: pulseScale)
                     }
                     .padding(.bottom, 20)
                     
@@ -101,13 +104,24 @@ struct LoadingView: View {
             }
         }
         .onAppear {
-            // Start animations with proper animation modifiers
-            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
-                rotationAngle = 360
+            // Start rotation animation - continuously rotate
+            rotationAngle = 360
+            pulseScale = 1.2
+            
+            // Use timer to continuously update rotation for smooth animation
+            animationTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { _ in
+                withAnimation(.linear(duration: 0.016)) {
+                    rotationAngle += 6 // 6 degrees per frame (360/60fps)
+                    if rotationAngle >= 360 {
+                        rotationAngle = 0
+                    }
+                }
             }
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                pulseScale = 1.2
-            }
+        }
+        .onDisappear {
+            // Clean up timer
+            animationTimer?.invalidate()
+            animationTimer = nil
         }
     }
 }
