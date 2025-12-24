@@ -45,22 +45,36 @@ struct ISSOKioskApp: App {
                     await appState.checkAndReconnectSquareSDK()
                     
                     // After reboot, hardware might take time to appear - check aggressively
+                    // This is critical - hardware may not be detected immediately after iPad reboot
                     let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
                     if !hardwareConnected {
-                        print("[App] ⚠️ Hardware not detected when app became active - starting aggressive detection...")
-                        // Try to detect hardware with retries
-                        for attempt in 1...6 {
-                            let totalSeconds = attempt * 5
+                        appLog("⚠️ Hardware not detected when app became active - starting aggressive detection...", category: "App")
+                        // Try to detect hardware with retries (up to 30 seconds)
+                        // After reboot, Square Stand may need time to initialize
+                        for attempt in 1...10 {
+                            let totalSeconds = attempt * 3
                             if attempt > 1 {
-                                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds between checks
+                                appLog("⏳ Attempt \(attempt)/10: Waiting 3 seconds, then checking hardware (total: \(totalSeconds)s)...", category: "App")
+                                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds between checks
+                            } else {
+                                appLog("⏳ Attempt \(attempt)/10: Checking hardware immediately...", category: "App")
                             }
+                            
+                            // Try to wake hardware on each attempt
+                            SquareMobilePaymentsService.shared.attemptHardwareWakeUp()
+                            
                             let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
                             if hardwareStillConnected {
-                                print("[App] ✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...")
+                                appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "App")
                                 await appState.checkAndReconnectSquareSDK()
                                 break
+                            } else {
+                                appLog("❌ Hardware still not detected after \(totalSeconds) seconds", category: "App")
                             }
                         }
+                        appLog("⚠️ Hardware detection complete (may still not be visible, but will be checked before payment)", category: "App")
+                    } else {
+                        appLog("✅ Hardware detected immediately when app became active", category: "App")
                     }
                 }
             }
