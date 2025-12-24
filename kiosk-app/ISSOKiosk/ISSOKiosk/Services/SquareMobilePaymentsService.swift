@@ -250,6 +250,10 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
+        // Check if Square Stand hardware is actually connected at iOS level
+        let isHardwareConnected = self.checkHardwareConnection()
+        print("[SquareMobilePayments] 🔌 Hardware connection check: \(isHardwareConnected ? "✅ Connected" : "❌ Not detected")")
+        
         // Re-authorize to force fresh hardware connection (helps wake up Square Stand after idle)
         print("[SquareMobilePayments] 🔄 Re-authorizing to ensure hardware connection is active...")
         if let accessToken = self.accessToken, let locationId = self.locationId {
@@ -262,14 +266,25 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                     print("[SquareMobilePayments] ✅ Re-authorized - hardware connection refreshed")
                 }
                 
+                // Re-check hardware after re-authorization
+                let hardwareStillConnected = self.checkHardwareConnection()
+                print("[SquareMobilePayments] 🔌 Hardware connection after re-auth: \(hardwareStillConnected ? "✅ Connected" : "❌ Not detected")")
+                
+                // If hardware not detected, wait longer and try again
+                if !hardwareStillConnected {
+                    print("[SquareMobilePayments] ⚠️ Hardware not detected - waiting longer for connection...")
+                }
+                
                 // Ensure we're on the main thread and view is loaded
                 DispatchQueue.main.async {
                     // Ensure view is loaded and view controller is ready
                     _ = viewController.view
                     
-                    // Give hardware time to wake up after re-authorization (Square Stand may be in low-power mode)
-                    print("[SquareMobilePayments] ⏳ Waiting for hardware to wake up...")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    // Give hardware more time to wake up after re-authorization (Square Stand may be in low-power mode)
+                    // Use longer delay if hardware wasn't detected
+                    let waitTime = hardwareStillConnected ? 2.0 : 4.0
+                    print("[SquareMobilePayments] ⏳ Waiting \(waitTime) seconds for hardware to wake up...")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + waitTime) {
                         self.startPaymentFlow(
                             paymentParameters: paymentParameters,
                             promptParameters: promptParameters,
