@@ -493,15 +493,28 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // Check if it's a hardware detection error
         let errorDescription = error.localizedDescription.lowercased()
-        if errorDescription.contains("reader") || errorDescription.contains("hardware") || errorDescription.contains("stand") {
+        let isHardwareError = errorDescription.contains("reader") || 
+                             errorDescription.contains("hardware") || 
+                             errorDescription.contains("stand") ||
+                             errorDescription.contains("connect hardware") ||
+                             errorDescription.contains("no reader") ||
+                             errorDescription.contains("reader not found")
+        
+        if isHardwareError {
             print("[SquareMobilePayments] ⚠️ This appears to be a Square Stand connection issue")
             print("[SquareMobilePayments] 💡 Please check:")
             print("[SquareMobilePayments]    1. iPad is securely inserted into Square Stand")
             print("[SquareMobilePayments]    2. Stand is powered on")
             print("[SquareMobilePayments]    3. Settings > General > About shows 'Square Stand'")
+            
+            // Create a more user-friendly error message
+            let userFriendlyError = NSError(domain: "SquareMobilePayments", code: -3, userInfo: [
+                NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Stand is connected and powered on."
+            ])
+            currentPaymentCompletion?(.failure(userFriendlyError))
+        } else {
+            currentPaymentCompletion?(.failure(error))
         }
-        
-        currentPaymentCompletion?(.failure(error))
         currentPaymentCompletion = nil
     }
     
