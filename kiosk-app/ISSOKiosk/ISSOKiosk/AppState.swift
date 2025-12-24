@@ -354,10 +354,12 @@ class AppState: ObservableObject {
                     print("[AppState] ❌ API Error details: \(apiError)")
                 }
                 
-                // If this was the last attempt, give up and set activated anyway
+                // If this was the last attempt, activate UI anyway (with nil temple)
+                // This prevents infinite loading screen if server is unreachable
                 if attempt == maxRetries - 1 {
-                    print("[AppState] ⚠️ Max retries reached. Setting activated with nil temple.")
                     await MainActor.run {
+                        appLog("⚠️ Max retries reached - activating UI without temple config", category: "AppState")
+                        appLog("💡 Will retry in background - UI may show loading state", category: "AppState")
                         self.isActivated = true
                     }
                     
@@ -370,17 +372,12 @@ class AppState: ObservableObject {
                         }
                     }
                     
-                    // Continue trying to refresh in background
-                    Task.detached(priority: .background) { [weak self] in
-                        // Keep trying to refresh every 10 seconds until successful
-                        while await self?.temple == nil {
-                            try? await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds
-                            await self?.refreshTempleConfig()
-                            if await self?.temple != nil {
-                                print("[AppState] ✅ Successfully loaded temple config in background retry")
-                                break
-                            }
-                        }
+                    // Start a background retry task after short delay
+                    Task.detached(priority: .utility) { [weak self] in
+                        guard let self = self else { return }
+                        // Wait 10 seconds then retry once more in background
+                        try? await Task.sleep(nanoseconds: 10_000_000_000)
+                        await self.loadTempleConfig()
                     }
                 }
             }
