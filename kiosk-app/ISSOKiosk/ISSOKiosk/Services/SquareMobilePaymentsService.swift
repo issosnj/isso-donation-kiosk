@@ -448,8 +448,28 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     ) {
         appLog("🚀 Starting Square SDK payment flow (after hardware wake-up)...", category: "SquareMobilePayments")
         
+        // Final hardware wake-up attempt right before starting payment
+        // This ensures hardware is as awake as possible
+        attemptHardwareWakeUp()
+        
         // Ensure view is still loaded
         _ = viewController.view
+        
+        // Verify SDK authorization state one more time before starting
+        let finalAuthState = MobilePaymentsSDK.shared.authorizationManager.state
+        appLog("🔐 Final authorization check before payment: \(finalAuthState)", category: "SquareMobilePayments")
+        
+        guard finalAuthState == .authorized else {
+            appLog("❌ SDK not authorized at payment start (state: \(finalAuthState))", category: "SquareMobilePayments")
+            isStarting = false
+            hasPaymentHandle = false
+            self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -6, userInfo: [
+                NSLocalizedDescriptionKey: "Square SDK not ready. Please try again.",
+                NSLocalizedFailureReasonErrorKey: "sdk_not_authorized"
+            ])))
+            self.currentPaymentCompletion = nil
+            return
+        }
         
         // Start payment - delegate is passed as parameter to startPayment
         let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
@@ -477,6 +497,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             appLog("❌ Payment handle is nil - payment already in progress", category: "SquareMobilePayments")
             // Reset gate so user can try again
             isStarting = false
+            hasPaymentHandle = false
             
             // Call completion with specific error about payment in progress
             self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -5, userInfo: [
