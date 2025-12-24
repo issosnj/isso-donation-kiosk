@@ -198,7 +198,8 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     }
     
     // Check if Square Stand hardware is actually connected at iOS level
-    private func checkHardwareConnection() -> Bool {
+    // Made public so AppState can check hardware connection
+    func checkHardwareConnection() -> Bool {
         // Check ExternalAccessory framework for connected Square devices
         let manager = EAAccessoryManager.shared()
         let connectedAccessories = manager.connectedAccessories
