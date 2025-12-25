@@ -28,7 +28,6 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     private var paymentHandle: PaymentHandle?
     private var isStartingPayment = false
-    private var isWakeUpPayment = false // Track if current payment is a wake-up payment
     
     private var currentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private weak var currentPaymentViewController: UIViewController?
@@ -38,9 +37,9 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     private var pendingPaymentStart: (() -> Void)?
     private var pairingStartTime: Date?
     
-    // Wake-up timer to keep reader awake
-    private var wakeUpTimer: Timer?
-    private let wakeUpInterval: TimeInterval = 5 * 60 // 5 minutes
+    // Health check timer to monitor connection and recover if needed
+    private var healthTimer: Timer?
+    private let healthCheckInterval: TimeInterval = 10 // 10 seconds
     
     struct PaymentResult {
         let success: Bool
@@ -80,7 +79,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     deinit {
         NotificationCenter.default.removeObserver(self)
-        wakeUpTimer?.invalidate()
+        healthTimer?.invalidate()
     }
     
     // MARK: - Logging helper
@@ -133,7 +132,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         // If already authorized and not forcing reauthorize, nothing to do
         if state == .authorized && !forceReauthorize {
             log("✅ Already authorized")
-            startWakeUpTimer()
+            startHealthMonitor()
             completion(nil)
             return
         }
@@ -160,7 +159,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
                 completion(error)
             } else {
                 self?.log("✅ Authorized")
-                self?.startWakeUpTimer()
+                self?.startHealthMonitor()
                 completion(nil)
             }
         }
@@ -340,9 +339,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             additionalMethods: .all
         )
         
-        if !isWakeUpPayment {
-            log("💳 Starting payment: $\(String(format: "%.2f", amount))")
-        }
+        log("💳 Starting payment: $\(String(format: "%.2f", amount))")
         
         paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
             paymentParams,
@@ -361,23 +358,12 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
                     self?.finishWithError(message: "Payment could not start. If a payment is already in progress, wait/cancel and try again.", code: -103)
                 }
             }
-        } else if isWakeUpPayment {
-            // For wake-up payments, cancel immediately after starting
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.cancelCurrentPayment()
-            }
         }
     }
     
     // MARK: - PaymentManagerDelegate
     
     func paymentManager(_ paymentManager: PaymentManager, didFinish payment: Payment) {
-        if isWakeUpPayment {
-            // Wake-up payment completed - just reset, don't call completion
-            resetState()
-            return
-        }
-        
         log("✅ Payment completed")
         
         var paymentId: String? = nil
@@ -396,23 +382,11 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     }
     
     func paymentManager(_ paymentManager: PaymentManager, didFail payment: Payment, withError error: Error) {
-        if isWakeUpPayment {
-            // Wake-up payment failed - just reset, don't log error
-            resetState()
-            return
-        }
-        
         log("❌ Payment failed: \(error.localizedDescription)")
         finishFailure(error)
     }
     
     func paymentManager(_ paymentManager: PaymentManager, didCancel payment: Payment) {
-        if isWakeUpPayment {
-            // Wake-up payment canceled - this is expected, just reset
-            resetState()
-            return
-        }
-        
         log("🚫 Payment canceled")
         let err = NSError(domain: "SquareMPSDK", code: -104, userInfo: [
             NSLocalizedDescriptionKey: "Payment was canceled."
@@ -512,7 +486,6 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     private func resetState() {
         isStartingPayment = false
-        isWakeUpPayment = false
         currentCompletion = nil
         currentPaymentViewController = nil
         paymentHandle = nil
@@ -550,9 +523,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     /// Cancel current payment
     func cancelCurrentPayment() {
-        if !isWakeUpPayment {
-            log("🚫 Canceling payment")
-        }
+        log("🚫 Canceling payment")
         if let handle = paymentHandle {
             // Note: SDK may not have explicit cancel method, but we can reset state
             paymentHandle = nil
@@ -560,85 +531,64 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         resetState()
     }
     
-    // MARK: - Wake-Up Mechanism
+    // MARK: - Health Monitor
     
-    /// Start periodic wake-up timer to keep reader awake
-    private func startWakeUpTimer() {
+    /// Start health check timer to monitor connection and recover if needed
+    private func startHealthMonitor() {
         // Stop existing timer if any
-        wakeUpTimer?.invalidate()
+        healthTimer?.invalidate()
         
         // Only start timer if authorized
         guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
             return
         }
         
-        log("⏰ Starting reader wake-up timer (every \(Int(wakeUpInterval/60)) minutes)")
+        log("⏰ Starting health monitor (every \(Int(healthCheckInterval)) seconds)")
         
-        wakeUpTimer = Timer.scheduledTimer(withTimeInterval: wakeUpInterval, repeats: true) { [weak self] _ in
-            self?.performWakeUp()
+        healthTimer = Timer.scheduledTimer(withTimeInterval: healthCheckInterval, repeats: true) { [weak self] _ in
+            self?.performHealthCheck()
         }
     }
     
-    /// Stop wake-up timer
-    func stopWakeUpTimer() {
-        wakeUpTimer?.invalidate()
-        wakeUpTimer = nil
+    /// Stop health monitor
+    func stopHealthMonitor() {
+        healthTimer?.invalidate()
+        healthTimer = nil
     }
     
-    /// Perform wake-up: start a minimal payment and cancel immediately
-    private func performWakeUp() {
-        // Don't wake up if a real payment is in progress
+    /// Perform health check: monitor connection status and recover if needed
+    private func performHealthCheck() {
+        // Don't check if a payment is in progress
         guard !isStartingPayment else {
             return
         }
         
-        // Check if authorized and reader is available
-        guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        let readerCount = MobilePaymentsSDK.shared.readerManager.readers.count
+        
+        // If not authorized, try to reauthorize (this might wake up the reader)
+        if authState != .authorized {
+            log("⚠️ Health check: SDK not authorized - attempting reauthorization")
+            // Reauthorize if we have credentials
+            if let accessToken = accessToken, let locationId = locationId {
+                performAuthorization(accessToken: accessToken, locationId: locationId) { [weak self] error in
+                    if let error = error {
+                        self?.log("❌ Health check reauthorization failed: \(error.localizedDescription)")
+                    } else {
+                        self?.log("✅ Health check: Reauthorized successfully")
+                    }
+                }
+            }
             return
         }
         
-        let readers = MobilePaymentsSDK.shared.readerManager.readers
-        guard !readers.isEmpty else {
-            return
-        }
-        
-        // Get the root view controller
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootVC = windowScene.windows.first?.rootViewController else {
-            return
-        }
-        
-        // Mark as wake-up payment BEFORE setting isStartingPayment
-        isWakeUpPayment = true
-        isStartingPayment = true
-        
-        // Start a minimal payment ($0.01) - this will wake up the reader
-        // We'll bypass normal permission checks for wake-up payments
-        let cents: UInt = 1 // $0.01
-        let money = Money(amount: cents, currency: .USD)
-        let idempotencyKey = UUID().uuidString
-        
-        let paymentParams = PaymentParameters(
-            idempotencyKey: idempotencyKey,
-            amountMoney: money
-        )
-        paymentParams.referenceID = "wake-up-\(idempotencyKey)"
-        
-        let promptParams = PromptParameters(
-            mode: .default,
-            additionalMethods: .all
-        )
-        
-        paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
-            paymentParams,
-            promptParameters: promptParams,
-            from: rootVC,
-            delegate: self
-        )
-        
-        // Cancel immediately after starting (0.5 seconds)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.cancelCurrentPayment()
+        // If authorized but no readers, log for monitoring (but don't take action)
+        // The SDK will automatically reconnect when a payment is attempted
+        if readerCount == 0 {
+            // Only log occasionally to avoid spam (every 10th check = ~100 seconds)
+            if Int.random(in: 0..<10) == 0 {
+                log("⚠️ Health check: No readers detected (SDK will reconnect on next payment)")
+            }
         }
     }
 }
