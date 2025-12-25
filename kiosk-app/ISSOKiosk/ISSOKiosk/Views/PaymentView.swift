@@ -287,10 +287,53 @@ struct ModernPaymentView: View {
                                 case .success(let result):
                                     paymentResult = result
                                 case .failure(let error):
-                                    // Check if this is a payment_already_in_progress error
+                                    // Check if this is a reader_not_connected error
+                                    let nsError = error as NSError
                                     let errorDescription = error.localizedDescription
+                                    let isReaderNotConnected = nsError.userInfo["NSLocalizedFailureReasonErrorKey"] as? String == "reader_not_connected" ||
+                                                               errorDescription.lowercased().contains("no reader") ||
+                                                               errorDescription.lowercased().contains("reader not connected")
+                                    
+                                    if isReaderNotConnected {
+                                        print("[PaymentView] ⚠️ Reader not connected - offering to open Reader Settings...")
+                                        // Show alert offering to open Reader Settings
+                                        await MainActor.run {
+                                            self.isProcessing = false
+                                            self.hasStartedPayment = false
+                                            
+                                            // Get the current view controller to present alert
+                                            guard let alertVC = UIViewController.topViewController() else {
+                                                self.paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
+                                                return
+                                            }
+                                            
+                                            // Create alert to open Reader Settings
+                                            let alert = UIAlertController(
+                                                title: "Reader Not Connected",
+                                                message: "No Square Reader is connected. Would you like to open Reader Settings to pair a reader?",
+                                                preferredStyle: .alert
+                                            )
+                                            
+                                            alert.addAction(UIAlertAction(title: "Open Settings", style: .default) { _ in
+                                                // Present Reader Settings screen
+                                                SquareMobilePaymentsService.shared.presentReaderSettings(from: alertVC) {
+                                                    // After settings dismissed, user can try payment again
+                                                    print("[PaymentView] Reader Settings dismissed - user can try payment again")
+                                                }
+                                            })
+                                            
+                                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+                                                self.paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
+                                            })
+                                            
+                                            alertVC.present(alert, animated: true)
+                                        }
+                                        return
+                                    }
+                                    
+                                    // Check if this is a payment_already_in_progress error
                                     let isPaymentInProgressError = errorDescription.contains("payment_already_in_progress") || 
-                                                                   (error as NSError).userInfo["NSLocalizedFailureReasonErrorKey"] as? String == "payment_already_in_progress"
+                                                                   nsError.userInfo["NSLocalizedFailureReasonErrorKey"] as? String == "payment_already_in_progress"
                                     
                                     if isPaymentInProgressError {
                                         print("[PaymentView] ⚠️ Payment already in progress error - canceling and retrying...")
