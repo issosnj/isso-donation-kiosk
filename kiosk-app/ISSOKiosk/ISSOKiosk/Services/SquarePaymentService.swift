@@ -2,7 +2,7 @@ import Foundation
 import UIKit
 
 // Square Payment Service - Uses Square Mobile Payments SDK
-// This service uses PaymentManager to take payment directly with Square Stand
+// This service uses PaymentManager to take payment directly with Square Reader 2nd Gen (Bluetooth)
 class SquarePaymentService {
     static let shared = SquarePaymentService()
     
@@ -12,7 +12,7 @@ class SquarePaymentService {
     typealias PaymentResult = SquareMobilePaymentsService.PaymentResult
     
     // Start payment flow using Square Mobile Payments SDK
-    // This will use PaymentManager to take payment directly with Square Stand
+    // This will use PaymentManager to take payment directly with Square Reader 2nd Gen (Bluetooth)
     // Note: UIViewController is required by Mobile Payments SDK
     func startPayment(
         donationId: String,

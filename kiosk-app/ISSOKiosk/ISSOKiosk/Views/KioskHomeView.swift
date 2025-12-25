@@ -754,7 +754,7 @@ struct TimeAndNetworkStatusView: View {
             HStack {
                 Spacer()
                 HStack(spacing: 12) {
-                    // Hardware status indicator (Square Stand)
+                    // Hardware status indicator (Square Reader 2nd Gen)
                     Circle()
                         .fill(hardwareMonitor.isHardwareConnected ? Color.green : Color.red)
                         .frame(width: 12, height: 12)

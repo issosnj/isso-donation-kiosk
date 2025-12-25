@@ -6,14 +6,14 @@ import CoreBluetooth
 import ExternalAccessory
 
 // Square Mobile Payments SDK Service
-// This service handles in-person payments with Square Stand using Mobile Payments SDK
+// This service handles in-person payments with Square Reader 2nd Gen (Bluetooth) using Mobile Payments SDK
 //
 // Reference: https://developer.squareup.com/docs/mobile-payments-sdk/ios
 //
 // ⚠️ REQUIREMENT: Kiosk must be ATTENDED (in line of sight, during business hours, with trained staff)
 // See: https://developer.squareup.com/docs/mobile-payments-sdk#requirements-and-limitations
 
-// SquareMobilePaymentsService handles in-person payments with Square Stand
+// SquareMobilePaymentsService handles in-person payments with Square Reader 2nd Gen (Bluetooth)
 class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     static let shared = SquareMobilePaymentsService()
     
@@ -48,13 +48,16 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     }
     
     @objc private func accessoryConnected(_ notification: Notification) {
+        // Note: Square Reader 2nd Gen uses Bluetooth, not External Accessory framework
+        // This notification handler is for Square Stand only (wired connection)
+        // Bluetooth readers are detected automatically by the SDK
         if let accessory = notification.userInfo?[EAAccessoryKey] as? EAAccessory {
             let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
             let hasSquareProtocol = accessory.protocolStrings.contains { protocolString in
                 squareProtocols.contains { $0 == protocolString }
             }
             if hasSquareProtocol {
-                print("[SquareMobilePayments] 🔌 Square Stand connected: \(accessory.name)")
+                print("[SquareMobilePayments] 🔌 Square Stand connected (wired): \(accessory.name)")
                 print("[SquareMobilePayments] 🔄 Hardware detected - re-authorizing to establish connection...")
                 
                 // Automatically re-authorize when hardware connects to establish the connection
@@ -86,13 +89,15 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     }
     
     @objc private func accessoryDisconnected(_ notification: Notification) {
+        // Note: Square Reader 2nd Gen uses Bluetooth, not External Accessory framework
+        // This notification handler is for Square Stand only (wired connection)
         if let accessory = notification.userInfo?[EAAccessoryKey] as? EAAccessory {
             let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
             let hasSquareProtocol = accessory.protocolStrings.contains { protocolString in
                 squareProtocols.contains { $0 == protocolString }
             }
             if hasSquareProtocol {
-                print("[SquareMobilePayments] ⚠️ Square Stand disconnected: \(accessory.name)")
+                print("[SquareMobilePayments] ⚠️ Square Stand disconnected (wired): \(accessory.name)")
             }
         }
     }
@@ -158,12 +163,12 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         }
     }
     
-    // Step 5: Test Square Stand Detection
-    // The SDK automatically detects Square Stand hardware when authorized
+    // Step 5: Test Square Reader Detection
+    // The SDK automatically detects Square Reader 2nd Gen (Bluetooth) hardware when authorized
     // This method checks various indicators to verify hardware detection
     // Can be called manually or automatically after authorization
     func checkReaderDetection() {
-        print("\n[SquareMobilePayments] ===== Testing Square Stand Detection =====")
+        print("\n[SquareMobilePayments] ===== Testing Square Reader Detection (Bluetooth) =====")
         
         // 1. Check authorization state
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
@@ -177,12 +182,11 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
-        // 2. Check iOS system for Square Stand recognition
-        // Square Stand should appear in Settings > General > About if connected
-        print("[SquareMobilePayments] 📱 To verify Square Stand connection:")
-        print("[SquareMobilePayments]    1. Go to iPad Settings > General > About")
-        print("[SquareMobilePayments]    2. Look for 'Square Stand' in the device list")
-        print("[SquareMobilePayments]    3. If it appears, the Stand is recognized by iOS")
+        // 2. Note: Square Reader 2nd Gen connects via Bluetooth
+        // The SDK automatically discovers and connects to Bluetooth readers
+        print("[SquareMobilePayments] 📱 Square Reader 2nd Gen connects via Bluetooth")
+        print("[SquareMobilePayments]    The SDK automatically discovers and connects to readers")
+        print("[SquareMobilePayments]    Make sure Bluetooth is enabled on the iPad")
         
         // 3. Check Info.plist configuration
         print("[SquareMobilePayments] 📋 Checking Info.plist configuration...")
@@ -204,122 +208,47 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         print("[SquareMobilePayments] 📡 Bluetooth permission: \(bluetoothStatus == .allowedAlways ? "✅ Granted" : "⚠️ Not granted")")
         
         // 5. Note: Actual hardware detection happens when starting a payment
-        print("[SquareMobilePayments] 💡 Note: Square Stand will be detected automatically when you start a payment")
-        print("[SquareMobilePayments] 💡 The SDK will show an error if no hardware is found during payment")
+        print("[SquareMobilePayments] 💡 Note: Square Reader will be detected automatically when you start a payment")
+        print("[SquareMobilePayments] 💡 The SDK will show an error if no reader is found during payment")
         print("[SquareMobilePayments] ============================================\n")
     }
     
-    // Check if Square Stand hardware is actually connected at iOS level
+    // Check if Square Reader is available
     // Made public so AppState can check hardware connection
-    // Note: This checks iOS-level connection, but SDK may have its own internal state
+    // Note: Square Reader 2nd Gen uses Bluetooth, so we can't detect it via ExternalAccessory framework
+    // The SDK automatically manages Bluetooth reader connections
     func checkHardwareConnection() -> Bool {
-        // Check ExternalAccessory framework for connected Square devices
-        let manager = EAAccessoryManager.shared()
-        let connectedAccessories = manager.connectedAccessories
+        // Square Reader 2nd Gen connects via Bluetooth, not External Accessory framework
+        // We can't detect Bluetooth readers via EAAccessoryManager
+        // The SDK handles Bluetooth discovery and connection automatically
+        // This method returns true if SDK is authorized (reader will be detected when payment starts)
         
-        // Look for Square Stand (it will have Square protocols)
-        let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
-        
-        for accessory in connectedAccessories {
-            let accessoryProtocols = accessory.protocolStrings
-            let hasSquareProtocol = accessoryProtocols.contains { protocolString in
-                squareProtocols.contains { $0 == protocolString }
-            }
-            
-            if hasSquareProtocol {
-                let modelNumber = accessory.modelNumber.isEmpty ? "unknown" : accessory.modelNumber
-                appLog("✅ Found Square hardware: \(accessory.name) (Model: \(modelNumber))", category: "SquareMobilePayments")
-                appLog("📋 Accessory protocols: \(accessoryProtocols)", category: "SquareMobilePayments")
-                appLog("💡 Hardware detected at iOS level - SDK should be able to use it", category: "SquareMobilePayments")
-                return true
-            }
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        if authState == .authorized {
+            appLog("✅ SDK authorized - Square Reader will be detected automatically via Bluetooth when payment starts", category: "SquareMobilePayments")
+            appLog("💡 Note: Square Reader 2nd Gen uses Bluetooth - SDK manages connection automatically", category: "SquareMobilePayments")
+            return true
+        } else {
+            appLog("⚠️ SDK not authorized - cannot check reader connection", category: "SquareMobilePayments")
+            appLog("💡 Authorize SDK first - Square Reader will be detected via Bluetooth", category: "SquareMobilePayments")
+            return false
         }
-        
-        appLog("⚠️ No Square hardware detected in connected accessories", category: "SquareMobilePayments")
-        appLog("📋 Connected accessories: \(connectedAccessories.map { "\($0.name) (protocols: \($0.protocolStrings))" })", category: "SquareMobilePayments")
-        
-        // Note: Square Stand might not appear in connectedAccessories until SDK tries to use it
-        // This is a limitation - we can't reliably detect it before payment starts
-        // However, the SDK will detect hardware when starting payment, so this is not a fatal error
-        appLog("💡 Note: Square Stand may not appear in connectedAccessories until SDK actively uses it", category: "SquareMobilePayments")
-        appLog("💡 The SDK will detect hardware when starting payment - this check is informational only", category: "SquareMobilePayments")
-        
-        return false
     }
     
-    // Store active session to keep hardware awake
-    private var wakeUpSession: EASession?
-    
-    // Attempt to wake up Square Stand hardware by opening a connection
-    // This can help wake sleeping hardware after long idle periods
-    // Made public so it can be called from AppState during aggressive detection
+    // Attempt to wake up Square Reader (Bluetooth)
+    // Note: Square Reader 2nd Gen uses Bluetooth, so we can't use EASession
+    // The SDK automatically manages Bluetooth connections - no manual wake-up needed
+    // This method is kept for API compatibility but does nothing for Bluetooth readers
     func attemptHardwareWakeUp() {
-        let manager = EAAccessoryManager.shared()
-        let connectedAccessories = manager.connectedAccessories
-        let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
-        
-        for accessory in connectedAccessories {
-            let accessoryProtocols = accessory.protocolStrings
-            let hasSquareProtocol = accessoryProtocols.contains { protocolString in
-                squareProtocols.contains { $0 == protocolString }
-            }
-            
-            if hasSquareProtocol {
-                appLog("🔔 Attempting to wake up Square Stand by opening EASession...", category: "SquareMobilePayments")
-                
-                // Try to access the accessory to wake it up
-                _ = accessory.name
-                _ = accessory.modelNumber
-                _ = accessory.serialNumber
-                _ = accessory.protocolStrings
-                
-                // Open an EASession to wake the hardware
-                // This is more aggressive and should wake sleeping hardware
-                if let protocolString = accessoryProtocols.first(where: { squareProtocols.contains($0) }) {
-                    appLog("🔌 Opening EASession with protocol: \(protocolString)", category: "SquareMobilePayments")
-                    
-                    // Close any existing session first
-                    if let existingSession = wakeUpSession {
-                        appLog("🔌 Closing existing wake-up session", category: "SquareMobilePayments")
-                        existingSession.inputStream?.close()
-                        existingSession.outputStream?.close()
-                        wakeUpSession = nil
-                    }
-                    
-                    // Open a new session to wake the hardware
-                    if let session = EASession(accessory: accessory, forProtocol: protocolString) {
-                        wakeUpSession = session
-                        
-                        // Open input/output streams to establish connection
-                        session.inputStream?.open()
-                        session.outputStream?.open()
-                        
-                        appLog("✅ EASession opened - hardware should wake up", category: "SquareMobilePayments")
-                        
-                        // Keep session open briefly to wake hardware, then close it
-                        // The SDK will open its own session when payment starts
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                            guard let self = self else { return }
-                            if let session = self.wakeUpSession {
-                                appLog("🔌 Closing wake-up session (SDK will open its own)", category: "SquareMobilePayments")
-                                session.inputStream?.close()
-                                session.outputStream?.close()
-                                self.wakeUpSession = nil
-                            }
-                        }
-                    } else {
-                        appLog("⚠️ Failed to create EASession", category: "SquareMobilePayments")
-                    }
-                }
-                
-                break
-            }
-        }
+        // Square Reader 2nd Gen connects via Bluetooth
+        // The SDK automatically discovers and connects to Bluetooth readers when payment starts
+        // No manual wake-up needed - SDK handles Bluetooth connection management
+        appLog("💡 Square Reader 2nd Gen uses Bluetooth - SDK will connect automatically when payment starts", category: "SquareMobilePayments")
     }
     
     // Take payment using Mobile Payments SDK PaymentManager
     // Following Square's recommended pattern: use SDK state + single-payment gate
-    // This will automatically detect Square Stand and process payment when user taps/chips card
+    // This will automatically detect Square Reader 2nd Gen (Bluetooth) and process payment when user taps/chips card
     func takePayment(
         amount: Double,
         donationId: String,
@@ -461,14 +390,12 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
-        // Attempt to wake hardware before starting payment
-        // This helps ensure Square Stand lights up when payment starts
-        appLog("🔔 Attempting to wake Square Stand hardware before payment...", category: "SquareMobilePayments")
-        attemptHardwareWakeUp()
+        // Square Reader 2nd Gen uses Bluetooth - SDK automatically discovers and connects
+        // No manual wake-up needed - SDK handles Bluetooth connection management
+        appLog("💡 Square Reader 2nd Gen - SDK will discover and connect via Bluetooth", category: "SquareMobilePayments")
         
-        // Longer delay to allow hardware to fully wake up before starting payment
-        // Opening EASession takes time, and hardware needs time to initialize
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+        // Start payment immediately - SDK handles Bluetooth reader connection automatically
+        DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
             // Double-check authorization state (may have changed during delay)
@@ -504,16 +431,8 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             hasPaymentHandle = true // Mark that payment has actually started
             appLog("✅ Payment started successfully! Handle: \(handle)", category: "SquareMobilePayments")
             appLog("💡 Square SDK should now show card entry UI", category: "SquareMobilePayments")
-            appLog("💡 User can tap or insert card on Square Stand", category: "SquareMobilePayments")
-            appLog("💡 SDK will automatically detect Square Stand hardware", category: "SquareMobilePayments")
-            
-            // Log hardware status after starting payment
-            let hardwareStillDetected = checkHardwareConnection()
-            if hardwareStillDetected {
-                appLog("✅ Hardware confirmed active after payment start", category: "SquareMobilePayments")
-            } else {
-                appLog("⚠️ Hardware not visible in connectedAccessories (may still work via SDK)", category: "SquareMobilePayments")
-            }
+            appLog("💡 User can tap or insert card on Square Reader 2nd Gen", category: "SquareMobilePayments")
+            appLog("💡 SDK will automatically discover and connect to Bluetooth reader", category: "SquareMobilePayments")
         } else {
             appLog("❌ Payment handle is nil - payment already in progress", category: "SquareMobilePayments")
             // Reset gate so user can try again
@@ -629,13 +548,13 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         let errorDescription = error.localizedDescription.lowercased()
         let isHardwareError = errorDescription.contains("reader") || 
                              errorDescription.contains("hardware") || 
-                             errorDescription.contains("stand") ||
                              errorDescription.contains("connect hardware") ||
                              errorDescription.contains("no reader") ||
-                             errorDescription.contains("reader not found")
+                             errorDescription.contains("reader not found") ||
+                             errorDescription.contains("bluetooth")
         
         if isHardwareError {
-            appLog("⚠️ Square Stand connection issue detected", category: "SquareMobilePayments")
+            appLog("⚠️ Square Reader connection issue detected", category: "SquareMobilePayments")
             let userFriendlyError = NSError(domain: "SquareMobilePayments", code: -3, userInfo: [
                 NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Stand is connected and powered on."
             ])
