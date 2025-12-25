@@ -610,6 +610,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         // Check if it's a hardware detection error
         let errorDescription = error.localizedDescription.lowercased()
         let errorDomain = (error as NSError).domain.lowercased()
+        let errorCode = (error as NSError).code
         let isHardwareError = errorDescription.contains("reader") || 
                              errorDescription.contains("hardware") || 
                              errorDescription.contains("connect hardware") ||
@@ -618,18 +619,23 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                              errorDescription.contains("bluetooth") ||
                              errorDescription.contains("device") ||
                              errorDescription.contains("peripheral") ||
-                             errorDomain.contains("bluetooth")
+                             errorDescription.contains("manual card entry") ||
+                             errorDomain.contains("bluetooth") ||
+                             errorCode == 1001 || // Common Bluetooth/connection error codes
+                             errorCode == 1009
         
         if isHardwareError {
             appLog("⚠️ Square Reader connection issue detected", category: "SquareMobilePayments")
             appLog("💡 Full error: \(error)", category: "SquareMobilePayments")
             appLog("💡 Error description: \(error.localizedDescription)", category: "SquareMobilePayments")
+            appLog("💡 Error code: \(errorCode)", category: "SquareMobilePayments")
             appLog("💡 Make sure Square Reader 2nd Gen is powered on and Bluetooth is enabled on iPad", category: "SquareMobilePayments")
             appLog("💡 The reader MUST be paired in iOS Settings > Bluetooth before starting payment", category: "SquareMobilePayments")
             appLog("💡 Go to iPad Settings > Bluetooth and verify 'Square Reader' shows as 'Connected'", category: "SquareMobilePayments")
             appLog("💡 If reader is not listed, pair it first, then try payment again", category: "SquareMobilePayments")
             let userFriendlyError = NSError(domain: "SquareMobilePayments", code: -3, userInfo: [
-                NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Reader 2nd Gen is powered on, Bluetooth is enabled on the iPad, and the reader is paired in iOS Settings > Bluetooth."
+                NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Reader 2nd Gen is powered on, Bluetooth is enabled on the iPad, and the reader is paired in iOS Settings > Bluetooth.",
+                NSLocalizedFailureReasonErrorKey: "reader_not_connected"
             ])
             currentPaymentCompletion?(.failure(userFriendlyError))
         } else {

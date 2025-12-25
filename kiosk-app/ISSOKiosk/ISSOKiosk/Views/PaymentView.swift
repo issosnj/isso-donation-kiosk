@@ -289,11 +289,30 @@ struct ModernPaymentView: View {
                     print("[PaymentView] 🚀 Step 3: Starting Square SDK payment...")
                     print("[PaymentView] 💡 Cash App Pay will be available if enabled in Square Dashboard")
                     
+                    // Add a timeout to detect if SDK shows "Connect hardware" screen
+                    // If payment doesn't complete within 10 seconds, assume no reader was found
+                    let paymentStartTime = Date()
+                    var timeoutTask: Task<Void, Never>?
+                    
+                    timeoutTask = Task {
+                        try? await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds
+                        if !Task.isCancelled {
+                            // Check if payment is still in progress (SDK might be showing "Connect hardware" screen)
+                            if SquarePaymentService.shared.isPaymentInProgress() {
+                                print("[PaymentView] ⏱️ Payment timeout - SDK may be showing 'Connect hardware' screen")
+                                print("[PaymentView] 💡 This usually means Square Reader 2nd Gen is not paired in iOS Settings > Bluetooth")
+                                // Don't cancel here - let the SDK handle it, but log for debugging
+                            }
+                        }
+                    }
+                    
                     SquarePaymentService.shared.startPayment(
                         donationId: donation.id,
                         amount: amount,
                         from: viewController
                     ) { result in
+                        // Cancel timeout task when payment completes
+                        timeoutTask?.cancel()
                         print("[PaymentView] 📬 Payment result received")
                         Task {
                             // Declare paymentResult outside do-catch so it's accessible in catch block
