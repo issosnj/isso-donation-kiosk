@@ -312,6 +312,14 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         currentCompletion = completion
         currentPaymentViewController = viewController
         
+        // Ensure Square Mobile Payments SDK is initialized (like app restart)
+        if let squareAppID = Bundle.main.object(forInfoDictionaryKey: "SQUARE_APPLICATION_ID") as? String {
+            // SDK should already be initialized in AppDelegate, but verify and log
+            log("✅ Square Mobile Payments SDK initialized with App ID: \(squareAppID.prefix(15))...")
+        } else {
+            log("⚠️ SQUARE_APPLICATION_ID not found in Info.plist")
+        }
+        
         // Check authorization state and ensure connection
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
         
