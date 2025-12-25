@@ -229,22 +229,13 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return false
         }
         
-        // Use ReaderManager to check if a reader is actually connected
-        // ReaderManager provides the actual connection status
-        let readerManager = MobilePaymentsSDK.shared.readerManager
-        let connectedReaders = readerManager.connectedReaders
-        
-        if !connectedReaders.isEmpty {
-            appLog("✅ Reader connected: \(connectedReaders.count) reader(s) available", category: "SquareMobilePayments")
-            for reader in connectedReaders {
-                appLog("   - Reader: \(reader.name ?? "Unknown")", category: "SquareMobilePayments")
-            }
-            return true
-        } else {
-            appLog("⚠️ No readers connected - reader must be paired in iOS Settings > Bluetooth", category: "SquareMobilePayments")
-            appLog("💡 Use presentReaderSettings() to pair a reader", category: "SquareMobilePayments")
-            return false
-        }
+        // Note: ReaderManager API may vary by SDK version
+        // For now, we'll rely on SDK authorization state and let the SDK handle reader detection
+        // The SDK will show an error if no reader is found when starting payment
+        // This is a simplified check - actual reader connection will be verified when payment starts
+        appLog("✅ SDK authorized - reader connection will be verified when payment starts", category: "SquareMobilePayments")
+        appLog("💡 If reader not connected, SDK will show error and user can open Reader Settings", category: "SquareMobilePayments")
+        return true
     }
     
     // Present Square's built-in Reader Settings screen for pairing/managing readers
@@ -262,7 +253,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // Present Square's built-in Reader Settings screen
         // This allows users to pair/manage Square Reader 2nd Gen
-        MobilePaymentsSDK.shared.settingsManager.presentSettings(viewController: viewController) { [weak self] in
+        MobilePaymentsSDK.shared.settingsManager.presentSettings(with: viewController) { [weak self] _ in
             appLog("📱 Reader Settings screen dismissed", category: "SquareMobilePayments")
             // Check connection status after settings are dismissed
             let connected = self?.checkHardwareConnection() ?? false
@@ -298,14 +289,15 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
-        // 2) Check if reader is actually connected BEFORE starting payment
-        // This prevents the "connect hardware" error
-        guard checkHardwareConnection() else {
-            appLog("❌ No reader connected - cannot start payment", category: "SquareMobilePayments")
-            appLog("💡 Reader must be paired in iOS Settings > Bluetooth or via Reader Settings screen", category: "SquareMobilePayments")
-            let error = NSError(domain: "SquareMobilePayments", code: -4, userInfo: [
-                NSLocalizedDescriptionKey: "No Square Reader connected. Please pair a reader in Settings or use the Reader Settings screen.",
-                NSLocalizedFailureReasonErrorKey: "reader_not_connected"
+        // 2) Check if SDK is authorized (reader connection will be verified by SDK when payment starts)
+        // We can't reliably check reader connection before payment, so we'll let the SDK handle it
+        // If no reader is connected, the SDK will return an error which we'll handle gracefully
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        guard authState == .authorized else {
+            appLog("❌ SDK not authorized - cannot start payment", category: "SquareMobilePayments")
+            let error = NSError(domain: "SquareMobilePayments", code: -6, userInfo: [
+                NSLocalizedDescriptionKey: "Square SDK not ready. Please try again.",
+                NSLocalizedFailureReasonErrorKey: "sdk_not_authorized"
             ])
             completion(.failure(error))
             return

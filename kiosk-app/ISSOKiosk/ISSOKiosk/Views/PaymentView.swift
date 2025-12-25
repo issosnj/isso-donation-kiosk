@@ -298,6 +298,7 @@ struct ModernPaymentView: View {
                                         print("[PaymentView] ⚠️ Reader not connected - offering to open Reader Settings...")
                                         // Show alert offering to open Reader Settings
                                         await MainActor.run {
+                                            guard let self = self else { return }
                                             self.isProcessing = false
                                             self.hasStartedPayment = false
                                             
@@ -322,8 +323,8 @@ struct ModernPaymentView: View {
                                                 }
                                             })
                                             
-                                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
-                                                self.paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
+                                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+                                                self?.paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
                                             })
                                             
                                             alertVC.present(alert, animated: true)
