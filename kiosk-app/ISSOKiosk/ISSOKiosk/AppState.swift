@@ -455,31 +455,22 @@ class AppState: ObservableObject {
     
     // Check Square SDK connection and reconnect if needed
     func checkAndReconnectSquareSDK() async {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd HH:mm:ss.SSS"
-        let timestamp = formatter.string(from: Date())
-        
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        print("[\(timestamp)] [AppState] 🔍 Checking Square SDK connection state: \(authState)")
         
         // Check if hardware is actually connected
         let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
-        print("[\(timestamp)] [AppState] 🔌 Hardware connection check: \(hardwareConnected ? "✅ Connected" : "❌ Not detected")")
         
         // If not authorized, try to reconnect immediately
         if authState != .authorized {
-            print("[AppState] ⚠️ Square SDK connection lost (state: \(authState)) - attempting reconnection...")
+            appLog("⚠️ Square SDK not authorized - reconnecting", category: "AppState")
             await authorizeSquareSDK()
             
-            // After re-authorization, wait and check hardware again (hardware might wake up)
+            // After re-authorization, wait and check hardware again
             if !hardwareConnected {
-                print("[AppState] ⏳ Waiting for hardware to wake up after re-authorization...")
                 try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
                 let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
-                if hardwareStillConnected {
-                    print("[AppState] ✅ Hardware detected after wait - connection established")
-                } else {
-                    print("[AppState] ⚠️ Hardware still not detected - may need physical reconnection")
+                if !hardwareStillConnected {
+                    appLog("⚠️ Hardware not detected after reconnection", category: "AppState")
                 }
             }
             return
@@ -487,36 +478,29 @@ class AppState: ObservableObject {
         
         // If authorized but hardware not connected, try to reconnect
         if !hardwareConnected {
-            print("[AppState] ⚠️ SDK authorized but hardware not detected - attempting reconnection...")
+            appLog("⚠️ Hardware not detected - reconnecting", category: "AppState")
             await authorizeSquareSDK()
             
             // Wait for hardware to potentially wake up
             try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
             let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
-            if hardwareStillConnected {
-                print("[AppState] ✅ Hardware detected after reconnection attempt")
+            if !hardwareStillConnected {
+                appLog("⚠️ Hardware still not detected", category: "AppState")
             }
             return
         }
         
         // If authorized, check if we need to refresh the connection (every 15 minutes)
-        // This prevents stale hardware connections after long idle periods
         let now = Date()
         if let lastAuth = lastSquareAuthorizationTime {
             let timeSinceLastAuth = now.timeIntervalSince(lastAuth)
             let refreshInterval: TimeInterval = 15 * 60 // 15 minutes
             
             if timeSinceLastAuth >= refreshInterval {
-                print("[AppState] 🔄 Refreshing Square SDK authorization (last auth: \(Int(timeSinceLastAuth/60)) minutes ago)")
-                print("[AppState] 💡 This ensures hardware connection stays active after idle periods")
+                appLog("🔄 Refreshing Square SDK authorization", category: "AppState")
                 await authorizeSquareSDK()
-            } else {
-                let minutesRemaining = Int((refreshInterval - timeSinceLastAuth) / 60)
-                print("[AppState] ✅ Square SDK connection is active (refresh in \(minutesRemaining) minutes)")
             }
         } else {
-            // First check - just log that it's active
-            print("[AppState] ✅ Square SDK connection is active")
             lastSquareAuthorizationTime = now
         }
     }
@@ -533,7 +517,6 @@ class AppState: ObservableObject {
                 await self.checkAndReconnectSquareSDK()
             }
         }
-        print("[AppState] 🔄 Started Square SDK connection monitoring (every 30 seconds, refresh every 15 minutes)")
     }
     
     // Extract device ID from JWT token payload

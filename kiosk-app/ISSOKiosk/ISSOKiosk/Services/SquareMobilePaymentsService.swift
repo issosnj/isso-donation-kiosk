@@ -28,6 +28,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     private var paymentHandle: PaymentHandle?
     private var isStartingPayment = false
+    private var isWakeUpPayment = false // Track if current payment is a wake-up payment
     
     private var currentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private weak var currentPaymentViewController: UIViewController?
@@ -36,6 +37,10 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     private var pairingHandle: PairingHandle?
     private var pendingPaymentStart: (() -> Void)?
     private var pairingStartTime: Date?
+    
+    // Wake-up timer to keep reader awake
+    private var wakeUpTimer: Timer?
+    private let wakeUpInterval: TimeInterval = 5 * 60 // 5 minutes
     
     struct PaymentResult {
         let success: Bool
@@ -75,12 +80,16 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     deinit {
         NotificationCenter.default.removeObserver(self)
+        wakeUpTimer?.invalidate()
     }
     
     // MARK: - Logging helper
     
-    private func log(_ message: String) {
-        print("[SquareMPSDK] \(message)")
+    private func log(_ message: String, verbose: Bool = false) {
+        // Only log important messages, skip verbose debug logs
+        if !verbose {
+            print("[SquareMPSDK] \(message)")
+        }
     }
     
     // MARK: - External Accessory (Square Stand compatibility)
@@ -120,18 +129,18 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         
         let auth = MobilePaymentsSDK.shared.authorizationManager
         let state = auth.state
-        log("Authorization state: \(state)")
         
         // If already authorized and not forcing reauthorize, nothing to do
         if state == .authorized && !forceReauthorize {
             log("✅ Already authorized")
+            startWakeUpTimer()
             completion(nil)
             return
         }
         
         // If forcing reauthorize, deauthorize first
         if forceReauthorize && state == .authorized {
-            log("🔄 Force reauthorizing - deauthorizing first...")
+            log("🔄 Force reauthorizing")
             auth.deauthorize { [weak self] in
                 self?.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
             }
@@ -147,10 +156,11 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             locationID: locationId
         ) { [weak self] error in
             if let error = error {
-                self?.log("❌ authorize failed: \(error.localizedDescription)")
+                self?.log("❌ Authorization failed: \(error.localizedDescription)")
                 completion(error)
             } else {
-                self?.log("✅ authorized")
+                self?.log("✅ Authorized")
+                self?.startWakeUpTimer()
                 completion(nil)
             }
         }
@@ -217,19 +227,11 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     private func ensureReaderDiscovered(from viewController: UIViewController, completion: @escaping (Bool) -> Void) {
         let readers = MobilePaymentsSDK.shared.readerManager.readers
         if !readers.isEmpty {
-            log("✅ Reader(s) available: \(readers.count)")
-            for reader in readers {
-                if let batteryLevel = reader.batteryStatus?.level {
-                    log("   - Reader: \(reader.model), Battery: \(batteryLevel)")
-                } else {
-                    log("   - Reader: \(reader.model)")
-                }
-            }
             completion(true)
             return
         }
         
-        log("⚠️ No reader discovered by SDK. Opening Reader Settings for pairing/connection.")
+        log("⚠️ No reader discovered - opening Reader Settings")
         presentReaderSettings(from: viewController) {
             let after = MobilePaymentsSDK.shared.readerManager.readers
             completion(!after.isEmpty)
@@ -338,7 +340,9 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             additionalMethods: .all
         )
         
-        log("💳 Starting payment. amount=\(cents)¢ referenceID=\(referenceID) idempotencyKey=\(idempotencyKey)")
+        if !isWakeUpPayment {
+            log("💳 Starting payment: $\(String(format: "%.2f", amount))")
+        }
         
         paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
             paymentParams,
@@ -350,12 +354,17 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         // If a payment is already in progress, Square will fail immediately (see delegate error),
         // but some versions can return nil handle as well.
         if paymentHandle == nil {
-            log("⚠️ startPayment returned nil handle (possible paymentAlreadyInProgress).")
+            log("⚠️ Payment could not start (already in progress?)")
             // Let delegate handle, but also release the gate to allow retry if nothing comes back.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
                 if self?.currentCompletion != nil {
                     self?.finishWithError(message: "Payment could not start. If a payment is already in progress, wait/cancel and try again.", code: -103)
                 }
+            }
+        } else if isWakeUpPayment {
+            // For wake-up payments, cancel immediately after starting
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.cancelCurrentPayment()
             }
         }
     }
@@ -363,7 +372,13 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     // MARK: - PaymentManagerDelegate
     
     func paymentManager(_ paymentManager: PaymentManager, didFinish payment: Payment) {
-        log("✅ Payment finished")
+        if isWakeUpPayment {
+            // Wake-up payment completed - just reset, don't call completion
+            resetState()
+            return
+        }
+        
+        log("✅ Payment completed")
         
         var paymentId: String? = nil
         var isOffline = false
@@ -371,12 +386,9 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         if let online = payment as? OnlinePayment {
             paymentId = online.id
             isOffline = false
-            log("OnlinePayment id=\(paymentId ?? "nil") status=\(online.status.description)")
         } else if let offline = payment as? OfflinePayment {
-            // Offline payment object has a local identifier
             paymentId = offline.localID
             isOffline = true
-            log("OfflinePayment localID=\(paymentId ?? "nil") status=\(offline.status.description)")
         }
         
         let result = PaymentResult(success: true, paymentId: paymentId, isOffline: isOffline, error: nil)
@@ -384,11 +396,23 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     }
     
     func paymentManager(_ paymentManager: PaymentManager, didFail payment: Payment, withError error: Error) {
+        if isWakeUpPayment {
+            // Wake-up payment failed - just reset, don't log error
+            resetState()
+            return
+        }
+        
         log("❌ Payment failed: \(error.localizedDescription)")
         finishFailure(error)
     }
     
     func paymentManager(_ paymentManager: PaymentManager, didCancel payment: Payment) {
+        if isWakeUpPayment {
+            // Wake-up payment canceled - this is expected, just reset
+            resetState()
+            return
+        }
+        
         log("🚫 Payment canceled")
         let err = NSError(domain: "SquareMPSDK", code: -104, userInfo: [
             NSLocalizedDescriptionKey: "Payment was canceled."
@@ -399,14 +423,10 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     // MARK: - ReaderObserver
     
     func readerWasAdded(_ readerInfo: ReaderInfo) {
-        log("✅ Reader added: \(readerInfo.model)")
-        if let batteryLevel = readerInfo.batteryStatus?.level {
-            log("   Battery: \(batteryLevel)")
-        }
+        log("✅ Reader connected: \(readerInfo.model)")
         
         // If we have a pending payment, start it now that reader is available
         if let startPayment = pendingPaymentStart {
-            log("✅ Reader discovered - starting pending payment")
             pendingPaymentStart = nil
             pairingHandle?.stop()
             pairingHandle = nil
@@ -417,83 +437,51 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     }
     
     func readerWasRemoved(_ readerInfo: ReaderInfo) {
-        log("⚠️ Reader removed: \(readerInfo.model)")
+        log("⚠️ Reader disconnected: \(readerInfo.model)")
     }
     
     func readerDidChange(_ readerInfo: ReaderInfo, change: ReaderChange) {
-        // Log state changes
+        // Only log important changes
         switch change {
-        case .connectionStateDidChange:
-            log("🔌 Reader connection state changed: \(readerInfo.model)")
         case .connectionDidFail:
-            log("❌ Reader connection failed: \(readerInfo.model)")
-        case .batteryLevelDidChange:
-            if let level = readerInfo.batteryStatus?.level {
-                log("🔋 Battery: \(readerInfo.model) level=\(level)")
-            }
-        case .batteryDidBeginCharging:
-            log("🔌 Reader started charging: \(readerInfo.model)")
-        case .batteryDidEndCharging:
-            log("🔌 Reader stopped charging: \(readerInfo.model)")
-        case .stateDidChange:
-            log("📊 Reader state changed: \(readerInfo.model)")
-        case .firmwareUpdatePercentDidChange:
-            log("📥 Reader firmware update progress: \(readerInfo.model)")
-        case .firmwareUpdateDidFail:
-            log("❌ Reader firmware update failed: \(readerInfo.model)")
+            log("❌ Reader connection failed")
         case .cardInserted:
-            log("💳 Card inserted: \(readerInfo.model)")
+            log("💳 Card inserted")
         case .cardRemoved:
-            log("💳 Card removed: \(readerInfo.model)")
-        @unknown default:
-            log("📊 Reader change (unknown): \(readerInfo.model) -> \(change)")
-            
-            // If we have a pending payment, start it when any change occurs (reader might be ready now)
-            if let startPayment = pendingPaymentStart {
-                log("✅ Reader changed - starting pending payment")
-                pendingPaymentStart = nil
-                pairingHandle?.stop()
-                pairingHandle = nil
-                startPayment()
-            }
+            log("💳 Card removed")
+        default:
+            // Skip verbose state change logs
+            break
+        }
+        
+        // If we have a pending payment, start it when any change occurs (reader might be ready now)
+        if let startPayment = pendingPaymentStart {
+            pendingPaymentStart = nil
+            pairingHandle?.stop()
+            pairingHandle = nil
+            startPayment()
         }
     }
     
     // MARK: - ReaderPairingDelegate (for automatic discovery)
     
     func readerPairingDidBegin() {
-        log("🔍 Reader pairing began - scanning for readers...")
         pairingStartTime = Date()
     }
     
     func readerPairingDidSucceed() {
-        log("✅ Reader pairing succeeded!")
-        if let startTime = pairingStartTime {
-            let elapsed = Date().timeIntervalSince(startTime)
-            log("⏱️ Pairing completed in \(String(format: "%.1f", elapsed))s")
-        }
+        log("✅ Reader paired")
         pairingHandle = nil
         pairingStartTime = nil
-        
-        // Check if readers are now available
-        let readerManager = MobilePaymentsSDK.shared.readerManager
-        let readers = readerManager.readers
-        log("📊 Readers after pairing: \(readers.count)")
     }
     
     func readerPairingDidFail(with error: Error) {
-        log("❌ Reader pairing failed: \(error.localizedDescription)")
-        if let startTime = pairingStartTime {
-            let elapsed = Date().timeIntervalSince(startTime)
-            log("⏱️ Pairing failed after \(String(format: "%.1f", elapsed))s")
-        }
+        log("❌ Reader pairing failed")
         pairingHandle = nil
         pairingStartTime = nil
         
         // If pairing failed but we have a pending payment, try starting it anyway
-        // The SDK might still discover the reader when payment starts
         if let startPayment = pendingPaymentStart {
-            log("💡 Pairing failed but trying payment anyway - SDK may discover reader")
             pendingPaymentStart = nil
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 startPayment()
@@ -524,6 +512,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     private func resetState() {
         isStartingPayment = false
+        isWakeUpPayment = false
         currentCompletion = nil
         currentPaymentViewController = nil
         paymentHandle = nil
@@ -537,7 +526,6 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         // First check if SDK is authorized
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
         guard authState == .authorized else {
-            log("⚠️ SDK not authorized - cannot check reader connection")
             return false
         }
         
@@ -545,23 +533,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         let readerManager = MobilePaymentsSDK.shared.readerManager
         let readers = readerManager.readers
         
-        log("🔍 Checking for available readers...")
-        log("📊 Found \(readers.count) reader(s)")
-        
-        if !readers.isEmpty {
-            log("✅ Found \(readers.count) reader(s)")
-            for reader in readers {
-                if let batteryLevel = reader.batteryStatus?.level {
-                    log("   - Reader: \(reader.model), Battery: \(batteryLevel)")
-                } else {
-                    log("   - Reader: \(reader.model)")
-                }
-            }
-            return true
-        } else {
-            log("❌ No readers found")
-            return false
-        }
+        return !readers.isEmpty
     }
     
     /// Attempt to wake up Square Reader (Bluetooth)
@@ -578,11 +550,95 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     /// Cancel current payment
     func cancelCurrentPayment() {
-        log("🚫 Canceling current payment")
+        if !isWakeUpPayment {
+            log("🚫 Canceling payment")
+        }
         if let handle = paymentHandle {
             // Note: SDK may not have explicit cancel method, but we can reset state
             paymentHandle = nil
         }
         resetState()
+    }
+    
+    // MARK: - Wake-Up Mechanism
+    
+    /// Start periodic wake-up timer to keep reader awake
+    private func startWakeUpTimer() {
+        // Stop existing timer if any
+        wakeUpTimer?.invalidate()
+        
+        // Only start timer if authorized
+        guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
+            return
+        }
+        
+        log("⏰ Starting reader wake-up timer (every \(Int(wakeUpInterval/60)) minutes)")
+        
+        wakeUpTimer = Timer.scheduledTimer(withTimeInterval: wakeUpInterval, repeats: true) { [weak self] _ in
+            self?.performWakeUp()
+        }
+    }
+    
+    /// Stop wake-up timer
+    func stopWakeUpTimer() {
+        wakeUpTimer?.invalidate()
+        wakeUpTimer = nil
+    }
+    
+    /// Perform wake-up: start a minimal payment and cancel immediately
+    private func performWakeUp() {
+        // Don't wake up if a real payment is in progress
+        guard !isStartingPayment else {
+            return
+        }
+        
+        // Check if authorized and reader is available
+        guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
+            return
+        }
+        
+        let readers = MobilePaymentsSDK.shared.readerManager.readers
+        guard !readers.isEmpty else {
+            return
+        }
+        
+        // Get the root view controller
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else {
+            return
+        }
+        
+        // Mark as wake-up payment BEFORE setting isStartingPayment
+        isWakeUpPayment = true
+        isStartingPayment = true
+        
+        // Start a minimal payment ($0.01) - this will wake up the reader
+        // We'll bypass normal permission checks for wake-up payments
+        let cents: UInt = 1 // $0.01
+        let money = Money(amount: cents, currency: .USD)
+        let idempotencyKey = UUID().uuidString
+        
+        let paymentParams = PaymentParameters(
+            idempotencyKey: idempotencyKey,
+            amountMoney: money
+        )
+        paymentParams.referenceID = "wake-up-\(idempotencyKey)"
+        
+        let promptParams = PromptParameters(
+            mode: .default,
+            additionalMethods: .all
+        )
+        
+        paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
+            paymentParams,
+            promptParameters: promptParams,
+            from: rootVC,
+            delegate: self
+        )
+        
+        // Cancel immediately after starting (0.5 seconds)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.cancelCurrentPayment()
+        }
     }
 }
