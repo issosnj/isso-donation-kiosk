@@ -264,10 +264,6 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
             return true
         } else {
             // No readers found
-            appLog("❌ No readers found", category: "SquareMobilePayments")
-            return false
-        } else {
-            // No readers found
             appLog("❌ No readers found - reader may need to be paired", category: "SquareMobilePayments")
             return false
         }
