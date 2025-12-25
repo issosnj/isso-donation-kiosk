@@ -187,9 +187,12 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         // 2. Note: Square Reader 2nd Gen connects via Bluetooth
         // The SDK automatically discovers and connects to Bluetooth readers
+        // IMPORTANT: Reader must be paired via iOS Settings > Bluetooth first!
         print("[SquareMobilePayments] 📱 Square Reader 2nd Gen connects via Bluetooth")
         print("[SquareMobilePayments]    The SDK automatically discovers and connects to readers")
+        print("[SquareMobilePayments]    ⚠️ IMPORTANT: Reader must be paired in iOS Settings > Bluetooth first!")
         print("[SquareMobilePayments]    Make sure Bluetooth is enabled on the iPad")
+        print("[SquareMobilePayments]    Go to iPad Settings > Bluetooth and pair the Square Reader")
         
         // 3. Check Info.plist configuration
         print("[SquareMobilePayments] 📋 Checking Info.plist configuration...")
@@ -230,6 +233,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         if authState == .authorized {
             appLog("✅ SDK authorized - Square Reader will be detected automatically via Bluetooth when payment starts", category: "SquareMobilePayments")
             appLog("💡 Note: Square Reader 2nd Gen uses Bluetooth - SDK manages connection automatically", category: "SquareMobilePayments")
+            appLog("⚠️ IMPORTANT: Reader must be paired in iOS Settings > Bluetooth before payment", category: "SquareMobilePayments")
             return true
         } else {
             appLog("⚠️ SDK not authorized - cannot check reader connection", category: "SquareMobilePayments")
