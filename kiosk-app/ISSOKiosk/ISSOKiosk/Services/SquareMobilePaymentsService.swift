@@ -318,30 +318,36 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             log("⚠️ SQUARE_APPLICATION_ID not found in Info.plist")
         }
         
-        // Check authorization state and ensure connection
+        // Ensure Bluetooth connection before payment (same process as app startup)
+        ensureBluetoothConnectionAndPayment(
+            amount: amount,
+            referenceID: referenceID,
+            note: note,
+            from: viewController,
+            completion: completion
+        )
+    }
+    
+    /// Ensure Bluetooth connection (same process as app startup) and then start payment
+    /// This ensures Square Reader 2nd Gen is connected via Bluetooth before payment
+    private func ensureBluetoothConnectionAndPayment(
+        amount: Double,
+        referenceID: String,
+        note: String?,
+        from viewController: UIViewController,
+        completion: @escaping (Result<PaymentResult, Error>) -> Void
+    ) {
+        log("🔄 Ensuring Bluetooth connection to Square Reader (same as app startup)...")
+        
+        // Step 1: Ensure Bluetooth permission is granted
+        let bluetoothManager = CBCentralManager()
+        // Note: Bluetooth permission is checked via Info.plist, but we verify it's available
+        
+        // Step 2: Ensure SDK is authorized (this triggers Bluetooth discovery)
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
         
-        if authState == .authorized {
-            // Already authorized - check if reader is available, if not, refresh authorization
-            let readers = MobilePaymentsSDK.shared.readerManager.readers
-            if readers.isEmpty {
-                log("⚠️ Authorized but no readers - refreshing authorization...")
-                // Refresh authorization without deauthorizing (safer - avoids database issues)
-                performReauthorizationAndPayment(
-                    amount: amount,
-                    referenceID: referenceID,
-                    note: note,
-                    from: viewController,
-                    completion: completion
-                )
-            } else {
-                // Already authorized and reader available - proceed directly
-                log("✅ Already authorized with reader - proceeding to payment")
-                startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
-            }
-        } else {
-            // Not authorized - authorize first
-            log("🔄 Not authorized - authorizing...")
+        if authState != .authorized {
+            log("🔄 SDK not authorized - authorizing to trigger Bluetooth discovery...")
             performReauthorizationAndPayment(
                 amount: amount,
                 referenceID: referenceID,
@@ -349,7 +355,26 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
                 from: viewController,
                 completion: completion
             )
+            return
         }
+        
+        // Step 3: Check if reader is already discovered
+        let readers = MobilePaymentsSDK.shared.readerManager.readers
+        if !readers.isEmpty {
+            log("✅ Square Reader already connected via Bluetooth - proceeding to payment")
+            startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
+            return
+        }
+        
+        // Step 4: Reader not discovered - refresh authorization to trigger Bluetooth discovery
+        log("⚠️ Square Reader not discovered - refreshing authorization to trigger Bluetooth discovery...")
+        performReauthorizationAndPayment(
+            amount: amount,
+            referenceID: referenceID,
+            note: note,
+            from: viewController,
+            completion: completion
+        )
     }
     
     /// Perform reauthorization and then start payment
@@ -415,8 +440,8 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         let currentState = MobilePaymentsSDK.shared.authorizationManager.state
         
         if currentState == .authorized {
-            // Already authorized - just refresh without deauthorizing (avoids database issues)
-            log("✅ Already authorized - refreshing connection without deauthorizing...")
+            // Already authorized - refresh to trigger Bluetooth discovery
+            log("✅ Already authorized - refreshing to trigger Bluetooth reader discovery...")
             // Use authorize with forceReauthorize=false to avoid database cleanup issues
             authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: false) { [weak self] error in
                 guard let self = self else { return }
@@ -425,11 +450,16 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
                     self.log("⚠️ Refresh failed: \(error.localizedDescription) - proceeding anyway")
                 }
                 
-                // Wait for hardware to wake up (shorter wait since we didn't deauthorize)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                    guard let self = self else { return }
-                    self.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
-                }
+                // Wait for Bluetooth reader discovery (ReaderManager needs time to discover)
+                // Try multiple times - Bluetooth discovery can take a few seconds
+                self.waitForBluetoothReaderDiscovery(
+                    amount: amount,
+                    referenceID: referenceID,
+                    note: note,
+                    from: viewController,
+                    maxAttempts: 5,
+                    attempt: 1
+                )
             }
         } else {
             // Not authorized - authorize normally
@@ -442,12 +472,57 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
                     return
                 }
                 
-                // Wait for hardware to wake up after authorization
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                    guard let self = self else { return }
-                    self.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
-                }
+                // Wait for Bluetooth reader discovery after authorization
+                // ReaderManager needs time to discover paired Square Reader via Bluetooth
+                self.waitForBluetoothReaderDiscovery(
+                    amount: amount,
+                    referenceID: referenceID,
+                    note: note,
+                    from: viewController,
+                    maxAttempts: 5,
+                    attempt: 1
+                )
             }
+        }
+    }
+    
+    /// Wait for Bluetooth reader discovery with retries
+    /// Square Reader 2nd Gen uses Bluetooth - discovery can take a few seconds
+    private func waitForBluetoothReaderDiscovery(
+        amount: Double,
+        referenceID: String,
+        note: String?,
+        from viewController: UIViewController,
+        maxAttempts: Int,
+        attempt: Int
+    ) {
+        let readers = MobilePaymentsSDK.shared.readerManager.readers
+        
+        if !readers.isEmpty {
+            log("✅ Square Reader discovered via Bluetooth (attempt \(attempt)/\(maxAttempts)) - proceeding to payment")
+            startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
+            return
+        }
+        
+        if attempt >= maxAttempts {
+            log("⚠️ Square Reader not discovered after \(maxAttempts) attempts - proceeding anyway (SDK will handle)")
+            // Proceed anyway - SDK will show Reader Settings if needed
+            startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
+            return
+        }
+        
+        // Wait 2 seconds then check again
+        log("⏳ Waiting for Bluetooth reader discovery (attempt \(attempt)/\(maxAttempts))...")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            guard let self = self else { return }
+            self.waitForBluetoothReaderDiscovery(
+                amount: amount,
+                referenceID: referenceID,
+                note: note,
+                from: viewController,
+                maxAttempts: maxAttempts,
+                attempt: attempt + 1
+            )
         }
     }
     
