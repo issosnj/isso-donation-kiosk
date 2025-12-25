@@ -448,11 +448,22 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         appLog("⚠️ IMPORTANT: Reader must be paired in iOS Settings > Bluetooth before payment", category: "SquareMobilePayments")
         appLog("💡 Check iPad Settings > Bluetooth to ensure reader is paired", category: "SquareMobilePayments")
         
-        // Add a delay to allow Bluetooth discovery to complete
-        // Bluetooth discovery can take 1-2 seconds, especially if reader was just powered on
-        // This gives the SDK time to discover the paired reader
-        appLog("⏳ Waiting 1.5 seconds for Bluetooth discovery before starting payment...", category: "SquareMobilePayments")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+        // Note: Even if reader is paired in iOS Settings > Bluetooth, the SDK needs to discover it
+        // The SDK manages its own reader connections and will automatically discover paired readers
+        // However, we need to give it time to scan and connect
+        
+        // Access the reader manager to trigger SDK's internal reader discovery
+        // The SDK will automatically scan for paired Bluetooth readers when we access the manager
+        let readerManager = MobilePaymentsSDK.shared.readerManager
+        appLog("🔍 Accessing ReaderManager to trigger SDK reader discovery...", category: "SquareMobilePayments")
+        appLog("💡 SDK will scan for paired Square Reader 2nd Gen via Bluetooth", category: "SquareMobilePayments")
+        appLog("💡 Reader must be paired in iOS Settings > Bluetooth (which it is, since Square POS works)", category: "SquareMobilePayments")
+        
+        // According to Square docs, the SDK automatically discovers readers when payment starts
+        // But we give it extra time to ensure Bluetooth discovery completes
+        // Bluetooth discovery can take 2-5 seconds, especially if reader was just powered on
+        appLog("⏳ Waiting 3 seconds for Bluetooth discovery and reader connection...", category: "SquareMobilePayments")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
             guard let self = self else { return }
             
             // Double-check authorization state (may have changed during delay)
@@ -469,7 +480,10 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
                 return
             }
             
+            appLog("🚀 Starting payment - SDK should now detect paired reader...", category: "SquareMobilePayments")
+            
             // Start payment - delegate is passed as parameter to startPayment
+            // The SDK will automatically discover and connect to paired readers when payment starts
             let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
                 paymentParameters,
                 promptParameters: promptParameters,
