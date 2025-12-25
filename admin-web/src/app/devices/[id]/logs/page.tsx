@@ -68,8 +68,8 @@ export default function DeviceLogsPage() {
       <div className="ml-64 min-h-screen">
         <div className="p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <button
@@ -101,10 +101,10 @@ export default function DeviceLogsPage() {
               </span>
             </div>
           </div>
-        </div>
+            </div>
 
-        {/* Logs Section */}
-        <div className="bg-white rounded-lg shadow p-6">
+            {/* Logs Section */}
+            <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Device Logs</h2>
             <div className="flex items-center space-x-2">
@@ -151,6 +151,7 @@ export default function DeviceLogsPage() {
           ) : (
             <p className="text-gray-500 text-sm">No logs available</p>
           )}
+            </div>
           </div>
         </div>
       </div>

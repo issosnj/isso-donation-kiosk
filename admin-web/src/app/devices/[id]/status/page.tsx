@@ -93,8 +93,8 @@ export default function DeviceStatusPage() {
       <div className="ml-64 min-h-screen">
         <div className="p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <button
@@ -126,10 +126,10 @@ export default function DeviceStatusPage() {
               </span>
             </div>
           </div>
-        </div>
+            </div>
 
-        {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Status Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Battery Status */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Battery</h3>

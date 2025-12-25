@@ -72,8 +72,8 @@ export default function DevicePage() {
       <div className="ml-64 min-h-screen">
         <div className="p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <button
@@ -99,10 +99,10 @@ export default function DevicePage() {
               </span>
             </div>
           </div>
-        </div>
+            </div>
 
-        {/* Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Navigation Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Device Status Card */}
           <div 
             onClick={() => router.push(`/devices/${deviceId}/status`)}
@@ -134,10 +134,10 @@ export default function DevicePage() {
               </svg>
             </div>
           </div>
-        </div>
+            </div>
 
-        {/* Quick Info */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+            {/* Quick Info */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h3 className="text-sm font-semibold text-gray-600 uppercase mb-4">Device Information</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -165,7 +165,7 @@ export default function DevicePage() {
               </div>
             </div>
           </div>
-        </div>
+            </div>
           </div>
         </div>
       </div>
