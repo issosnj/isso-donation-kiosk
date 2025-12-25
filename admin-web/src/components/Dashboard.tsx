@@ -33,8 +33,8 @@ export default function Dashboard({ user }: DashboardProps) {
   // Redirect old deviceId query param to new page structure
   useEffect(() => {
     if (deviceIdFromUrl && tabFromUrl === 'devices') {
-      // Redirect to new device status page
-      router.replace(`/devices/${deviceIdFromUrl}/status`)
+      // Redirect to new device status page (using query params for static export)
+      router.replace(`/devices/status?id=${deviceIdFromUrl}`)
       return
     }
   }, [deviceIdFromUrl, tabFromUrl, router])

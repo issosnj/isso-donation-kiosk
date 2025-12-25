@@ -122,7 +122,7 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
                     onClick={(e) => {
                       // Navigate to device status page (separate URL)
                       e.stopPropagation()
-                      router.push(`/devices/${device.id}/status`)
+                      router.push(`/devices/status?id=${device.id}`)
                     }}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
