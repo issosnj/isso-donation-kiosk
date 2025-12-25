@@ -20,7 +20,8 @@ class PermissionsManager: NSObject {
     // Request location permission (required for Square payments)
     // Following Square's recommended pattern from Mobile Payments SDK documentation
     func requestLocationPermission(completion: @escaping (Bool) -> Void) {
-        switch CLLocationManager.authorizationStatus() {
+        // Use instance method instead of deprecated static method
+        switch locationManager.authorizationStatus {
         case .notDetermined:
             print("[PermissionsManager] Requesting location permission...")
             locationPermissionCompletion = completion
@@ -47,6 +48,10 @@ class PermissionsManager: NSObject {
             // Already determined - check if granted
             let authStatus = CBManager.authorization
             switch authStatus {
+            case .notDetermined:
+                // Shouldn't reach here due to guard, but handle for completeness
+                print("[PermissionsManager] ⚠️ Bluetooth permission still not determined")
+                completion(false)
             case .allowedAlways:
                 print("[PermissionsManager] ✅ Bluetooth permission already granted")
                 completion(true)

@@ -325,7 +325,9 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         
         // 2) Check permissions first (required by Square SDK before payment)
         // According to Square docs: "you should only start a payment if you've determined that location access has been granted"
-        let locationStatus = CLLocationManager.authorizationStatus()
+        // Use instance method instead of deprecated static method
+        let locationManager = CLLocationManager()
+        let locationStatus = locationManager.authorizationStatus
         guard locationStatus == .authorizedWhenInUse || locationStatus == .authorizedAlways else {
             appLog("❌ Location permission not granted - cannot start payment", category: "SquareMobilePayments")
             appLog("💡 Location permission is required for Square payments", category: "SquareMobilePayments")
@@ -339,7 +341,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         
         // Check Bluetooth permission (required for contactless readers)
         let bluetoothStatus = CBManager.authorization
-        guard bluetoothStatus == .allowedAlways else {
+        if bluetoothStatus != .allowedAlways {
             appLog("⚠️ Bluetooth permission not granted - contactless payments may fail", category: "SquareMobilePayments")
             // Don't block payment, but warn - SDK will handle the error if reader can't connect
         }
@@ -847,8 +849,22 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
             appLog("🔌 Reader started charging: \(readerInfo.model)", category: "SquareMobilePayments")
         case .batteryDidEndCharging:
             appLog("🔌 Reader stopped charging: \(readerInfo.model)", category: "SquareMobilePayments")
+        case .stateDidChange:
+            appLog("📊 Reader state changed: \(readerInfo.model)", category: "SquareMobilePayments")
+        case .firmwareUpdatePercentDidChange:
+            appLog("📥 Reader firmware update progress: \(readerInfo.model)", category: "SquareMobilePayments")
+        case .connectionStateDidChange:
+            appLog("🔌 Reader connection state changed: \(readerInfo.model)", category: "SquareMobilePayments")
+        case .connectionDidFail:
+            appLog("❌ Reader connection failed: \(readerInfo.model)", category: "SquareMobilePayments")
+        case .firmwareUpdateDidFail:
+            appLog("❌ Reader firmware update failed: \(readerInfo.model)", category: "SquareMobilePayments")
+        case .cardInserted:
+            appLog("💳 Card inserted: \(readerInfo.model)", category: "SquareMobilePayments")
+        case .cardRemoved:
+            appLog("💳 Card removed: \(readerInfo.model)", category: "SquareMobilePayments")
         @unknown default:
-            appLog("📊 Reader change: \(readerInfo.model) -> \(change)", category: "SquareMobilePayments")
+            appLog("📊 Reader change (unknown): \(readerInfo.model) -> \(change)", category: "SquareMobilePayments")
             
             // If we have a pending payment, start it when any change occurs (reader might be ready now)
             if let startPayment = pendingPaymentStart {
