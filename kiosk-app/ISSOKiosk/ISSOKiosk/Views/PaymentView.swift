@@ -375,6 +375,7 @@ struct ModernPaymentView: View {
                                         print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
                                     }
                                     await MainActor.run {
+                                        guard let self = self else { return }
                                         self.isProcessing = false
                                         self.hasStartedPayment = false
                                         self.paymentStatus = .failure(errorDescription)
@@ -385,6 +386,7 @@ struct ModernPaymentView: View {
                                 guard let result = paymentResult else {
                                     print("[PaymentView] ❌ Payment result is nil")
                                     await MainActor.run {
+                                        guard let self = self else { return }
                                         self.isProcessing = false
                                         self.paymentStatus = .failure("Payment result is missing")
                                     }
@@ -405,6 +407,7 @@ struct ModernPaymentView: View {
                                 )
                                 
                                 await MainActor.run {
+                                    guard let self = self else { return }
                                     self.isProcessing = false
                                     if result.success {
                                         // Payment succeeded - set success status (will auto-dismiss)
