@@ -5,51 +5,71 @@ import CoreLocation
 import CoreBluetooth
 import ExternalAccessory
 
-// Square Mobile Payments SDK Service
-// This service handles in-person payments with Square Reader 2nd Gen (Bluetooth) using Mobile Payments SDK
+// MARK: - Square Mobile Payments SDK Service (Bluetooth Square Reader 2nd Gen)
 //
-// Reference: https://developer.squareup.com/docs/mobile-payments-sdk/ios
+// ✅ Works WITHOUT the Square POS app installed.
+// ✅ Uses Square Mobile Payments SDK (embedded payment flow).
+// ✅ Supports Square Reader (contactless + chip) over Bluetooth.
 //
-// ⚠️ REQUIREMENT: Kiosk must be ATTENDED (in line of sight, during business hours, with trained staff)
-// See: https://developer.squareup.com/docs/mobile-payments-sdk#requirements-and-limitations
+// Key design choices (kiosk-friendly):
+// - Authorize ONCE (do NOT deauthorize/reauthorize before every payment)
+// - Before taking a payment, ensure Location permission is granted
+// - If no reader is discovered, present Square's in-app Reader Settings screen
+// - Use paymentAttemptID (idempotencyKey is deprecated in SDK 2.3.0+) per Square docs
+//   https://developer.squareup.com/docs/mobile-payments-sdk/ios/take-payments
 
-// SquareMobilePaymentsService handles in-person payments with Square Reader 2nd Gen (Bluetooth)
-class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObserver, ReaderPairingDelegate {
+final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObserver, ReaderPairingDelegate {
     static let shared = SquareMobilePaymentsService()
     
-    private var isAuthorized = false
+    // MARK: - State
+    
     private var accessToken: String?
     private var locationId: String?
-    private var currentPaymentCompletion: ((Result<PaymentResult, Error>) -> Void)?
-    private var isStarting = false // Gate to prevent multiple simultaneous payment attempts
-    private var hasPaymentHandle = false // Track if we actually got a payment handle from SDK
-    private var pairingHandle: PairingHandle? // Handle for reader pairing
-    private var pendingPaymentStart: (() -> Void)? // Store payment start closure if waiting for reader
-    private var pairingStartTime: Date? // Track when pairing started to detect stuck pairing
+    
+    private var paymentHandle: PaymentHandle?
+    private var isStartingPayment = false
+    
+    private var currentCompletion: ((Result<PaymentResult, Error>) -> Void)?
+    private weak var currentPaymentViewController: UIViewController?
+    
+    // Legacy pairing support (for automatic discovery)
+    private var pairingHandle: PairingHandle?
+    private var pendingPaymentStart: (() -> Void)?
+    private var pairingStartTime: Date?
+    
+    struct PaymentResult {
+        let success: Bool
+        let paymentId: String?
+        let isOffline: Bool
+        let error: String?
+        
+        // Legacy compatibility
+        init(success: Bool, paymentId: String?, isOffline: Bool = false, error: String? = nil) {
+            self.success = success
+            self.paymentId = paymentId
+            self.isOffline = isOffline
+            self.error = error
+        }
+    }
     
     private override init() {
         super.init()
-        // Note: Square Reader 2nd Gen connects via Bluetooth, not External Accessory framework
-        // The SDK automatically detects and manages Bluetooth reader connections
-        // We keep these notifications for backward compatibility (Square Stand uses External Accessory)
-        // But they won't detect Bluetooth readers - SDK handles those automatically
+        // Observe reader changes (added/removed/state changes)
+        MobilePaymentsSDK.shared.readerManager.add(self)
+        
+        // Keep External Accessory notifications for Square Stand compatibility
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(accessoryConnected),
             name: .EAAccessoryDidConnect,
             object: nil
         )
-        
-        // Add self as ReaderObserver to monitor reader status changes
-        MobilePaymentsSDK.shared.readerManager.add(self)
-        
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(accessoryDisconnected),
             name: .EAAccessoryDidDisconnect,
             object: nil
         )
-        // Register with EAAccessoryManager (for Square Stand compatibility, not needed for Bluetooth readers)
         EAAccessoryManager.shared().registerForLocalNotifications()
     }
     
@@ -57,709 +77,287 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         NotificationCenter.default.removeObserver(self)
     }
     
+    // MARK: - Logging helper
+    
+    private func log(_ message: String) {
+        print("[SquareMPSDK] \(message)")
+    }
+    
+    // MARK: - External Accessory (Square Stand compatibility)
+    
     @objc private func accessoryConnected(_ notification: Notification) {
-        // Note: Square Reader 2nd Gen uses Bluetooth, not External Accessory framework
-        // This notification handler is for Square Stand only (wired connection)
-        // Bluetooth readers are detected automatically by the SDK
+        // Square Stand uses External Accessory framework (wired connection)
         if let accessory = notification.userInfo?[EAAccessoryKey] as? EAAccessory {
             let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
             let hasSquareProtocol = accessory.protocolStrings.contains { protocolString in
                 squareProtocols.contains { $0 == protocolString }
             }
             if hasSquareProtocol {
-                print("[SquareMobilePayments] 🔌 Square Stand connected (wired): \(accessory.name)")
-                print("[SquareMobilePayments] 🔄 Hardware detected - re-authorizing to establish connection...")
-                
-                // Automatically re-authorize when hardware connects to establish the connection
-                // This helps when iPad powers on and hardware is already connected
-                if let accessToken = self.accessToken, let locationId = self.locationId {
-                    // Wait a moment for hardware to fully initialize (longer wait after reboot)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
-                            if let error = error {
-                                print("[SquareMobilePayments] ⚠️ Auto-reauthorization after hardware connect failed: \(error.localizedDescription)")
-                                // Retry once more after a delay
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                                    self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { retryError in
-                                        if let retryError = retryError {
-                                            print("[SquareMobilePayments] ⚠️ Retry reauthorization also failed: \(retryError.localizedDescription)")
-                                        } else {
-                                            print("[SquareMobilePayments] ✅ Auto-reauthorized successfully after retry")
-                                        }
-                                    }
-                                }
-                            } else {
-                                print("[SquareMobilePayments] ✅ Auto-reauthorized successfully after hardware connection")
-                            }
-                        }
-                    }
-                }
+                log("🔌 Square Stand connected (wired): \(accessory.name)")
             }
         }
     }
     
     @objc private func accessoryDisconnected(_ notification: Notification) {
-        // Note: Square Reader 2nd Gen uses Bluetooth, not External Accessory framework
-        // This notification handler is for Square Stand only (wired connection)
         if let accessory = notification.userInfo?[EAAccessoryKey] as? EAAccessory {
             let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
             let hasSquareProtocol = accessory.protocolStrings.contains { protocolString in
                 squareProtocols.contains { $0 == protocolString }
             }
             if hasSquareProtocol {
-                print("[SquareMobilePayments] ⚠️ Square Stand disconnected (wired): \(accessory.name)")
+                log("⚠️ Square Stand disconnected (wired): \(accessory.name)")
             }
         }
     }
     
-    struct PaymentResult {
-        let success: Bool
-        let paymentId: String?
-        let error: String?
-    }
+    // MARK: - Authorization
     
-    // Step 4: Authorize Mobile Payments SDK with OAuth access token and location ID
-    // According to Square docs: authorizationManager.authorize() uses a completion handler
+    /// Call this once after you fetch an OAuth access token + location ID (from your backend).
+    /// Do NOT reauthorize before every payment - authorize once and keep it authorized.
     func authorize(accessToken: String, locationId: String, forceReauthorize: Bool = false, completion: @escaping (Error?) -> Void) {
         self.accessToken = accessToken
         self.locationId = locationId
         
-        // If forceReauthorize is true, always re-authorize (useful for refreshing stale connections)
-        if forceReauthorize {
-            print("[SquareMobilePayments] 🔄 Force re-authorizing to refresh hardware connection...")
-            // Deauthorize first if needed
-            if MobilePaymentsSDK.shared.authorizationManager.state == .authorized {
-                MobilePaymentsSDK.shared.authorizationManager.deauthorize {
-                    // Continue with authorization after deauthorization
-                    self.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
-                }
-            } else {
-                self.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
-            }
+        let auth = MobilePaymentsSDK.shared.authorizationManager
+        let state = auth.state
+        log("Authorization state: \(state)")
+        
+        // If already authorized and not forcing reauthorize, nothing to do
+        if state == .authorized && !forceReauthorize {
+            log("✅ Already authorized")
+            completion(nil)
             return
         }
         
-        // Check if already authorized
-        guard MobilePaymentsSDK.shared.authorizationManager.state == .notAuthorized else {
-            print("[SquareMobilePayments] Already authorized (state: \(MobilePaymentsSDK.shared.authorizationManager.state))")
-            self.isAuthorized = true
-            // Check reader detection after authorization
-            checkReaderDetection()
-            completion(nil)
+        // If forcing reauthorize, deauthorize first
+        if forceReauthorize && state == .authorized {
+            log("🔄 Force reauthorizing - deauthorizing first...")
+            auth.deauthorize { [weak self] in
+                self?.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
+            }
             return
         }
         
         performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
     }
     
-    // Helper method to perform actual authorization
     private func performAuthorization(accessToken: String, locationId: String, completion: @escaping (Error?) -> Void) {
-        // Authorize with OAuth access token
         MobilePaymentsSDK.shared.authorizationManager.authorize(
             withAccessToken: accessToken,
             locationID: locationId
-        ) { error in
-            if let authError = error {
-                print("[SquareMobilePayments] Authorization failed: \(authError.localizedDescription)")
-                self.isAuthorized = false
-                completion(authError)
+        ) { [weak self] error in
+            if let error = error {
+                self?.log("❌ authorize failed: \(error.localizedDescription)")
+                completion(error)
             } else {
-                print("[SquareMobilePayments] ✅ Successfully authorized with location: \(locationId)")
-                self.isAuthorized = true
-                // Check reader detection after successful authorization
-                self.checkReaderDetection()
+                self?.log("✅ authorized")
                 completion(nil)
             }
         }
     }
     
-    // Step 5: Test Square Reader Detection
-    // The SDK automatically detects Square Reader 2nd Gen (Bluetooth) hardware when authorized
-    // This method checks various indicators to verify hardware detection
-    // Can be called manually or automatically after authorization
-    func checkReaderDetection() {
-        print("\n[SquareMobilePayments] ===== Testing Square Reader Detection (Bluetooth) =====")
+    /// Call on logout or long inactivity.
+    func deauthorize(completion: (() -> Void)? = nil) {
+        MobilePaymentsSDK.shared.authorizationManager.deauthorize { [weak self] in
+            self?.log("🔓 deauthorized")
+            completion?()
+        }
+    }
+    
+    // MARK: - Permissions
+    
+    /// Kiosk flow should request location permission before starting payments.
+    /// Square recommends ensuring permissions are granted before calling startPayment.
+    func ensureLocationPermission(from viewController: UIViewController, completion: @escaping (Bool) -> Void) {
+        let manager = CLLocationManager()
+        let status = manager.authorizationStatus
         
-        // 1. Check authorization state
+        switch status {
+        case .authorizedAlways, .authorizedWhenInUse:
+            completion(true)
+            
+        case .notDetermined:
+            // Trigger prompt
+            manager.requestWhenInUseAuthorization()
+            
+            // Re-check shortly (simple approach)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                let newStatus = manager.authorizationStatus
+                completion(newStatus == .authorizedAlways || newStatus == .authorizedWhenInUse)
+            }
+            
+        default:
+            // denied/restricted
+            completion(false)
+        }
+    }
+    
+    // MARK: - Reader Management
+    
+    /// Presents Square's built-in Reader Settings UI (recommended)
+    /// so staff can pair/connect the Bluetooth reader.
+    func presentReaderSettings(from viewController: UIViewController, completion: (() -> Void)? = nil) {
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        print("[SquareMobilePayments] Authorization State: \(authState)")
-        
-        if authState == .authorized {
-            print("[SquareMobilePayments] ✅ SDK is authorized")
-        } else {
-            print("[SquareMobilePayments] ⚠️ SDK is not authorized (state: \(authState))")
-            print("[SquareMobilePayments] Reader detection requires authorization first")
+        guard authState == .authorized else {
+            log("⚠️ Cannot open reader settings: SDK not authorized")
+            completion?()
             return
         }
         
-        // 2. Note: Square Reader 2nd Gen connects via Bluetooth
-        // The SDK automatically discovers and connects to Bluetooth readers
-        // IMPORTANT: Reader must be paired via iOS Settings > Bluetooth first!
-        print("[SquareMobilePayments] 📱 Square Reader 2nd Gen connects via Bluetooth")
-        print("[SquareMobilePayments]    The SDK automatically discovers and connects to readers")
-        print("[SquareMobilePayments]    ⚠️ IMPORTANT: Reader must be paired in iOS Settings > Bluetooth first!")
-        print("[SquareMobilePayments]    Make sure Bluetooth is enabled on the iPad")
-        print("[SquareMobilePayments]    Go to iPad Settings > Bluetooth and pair the Square Reader")
-        
-        // 3. Check Info.plist configuration
-        print("[SquareMobilePayments] 📋 Checking Info.plist configuration...")
-        if let protocols = Bundle.main.object(forInfoDictionaryKey: "UISupportedExternalAccessoryProtocols") as? [String] {
-            let squareProtocols = protocols.filter { $0.contains("squareup") }
-            if !squareProtocols.isEmpty {
-                print("[SquareMobilePayments] ✅ Square protocols configured: \(squareProtocols)")
-            } else {
-                print("[SquareMobilePayments] ⚠️ No Square protocols found in Info.plist")
-            }
-        } else {
-            print("[SquareMobilePayments] ⚠️ UISupportedExternalAccessoryProtocols not found in Info.plist")
+        log("📱 Presenting Reader Settings")
+        MobilePaymentsSDK.shared.settingsManager.presentSettings(with: viewController) { [weak self] _ in
+            let readers = MobilePaymentsSDK.shared.readerManager.readers
+            self?.log("📱 Reader Settings dismissed. Readers discovered: \(readers.count)")
+            completion?()
         }
-        
-        // 4. Check permissions
-        let locationStatus = CLLocationManager().authorizationStatus
-        let bluetoothStatus = CBManager.authorization
-        print("[SquareMobilePayments] 📍 Location permission: \(locationStatus == .authorizedWhenInUse || locationStatus == .authorizedAlways ? "✅ Granted" : "⚠️ Not granted")")
-        print("[SquareMobilePayments] 📡 Bluetooth permission: \(bluetoothStatus == .allowedAlways ? "✅ Granted" : "⚠️ Not granted")")
-        
-        // 5. Note: ReaderManager API doesn't expose connected readers directly
-        // The SDK manages reader connections internally and will discover readers when payment starts
-        // For Bluetooth readers, they must be paired in iOS Settings > Bluetooth first
-        print("[SquareMobilePayments] 🔍 Reader connection status:")
-        print("[SquareMobilePayments]    The SDK manages reader connections internally")
-        print("[SquareMobilePayments]    Readers will be discovered automatically when payment starts")
-        print("[SquareMobilePayments]    ⚠️ IMPORTANT: Reader must be paired in iOS Settings > Bluetooth first")
-        print("[SquareMobilePayments]    💡 If no reader is found, the SDK will show an error during payment")
-        
-        // 6. Note: Actual hardware detection happens when starting a payment
-        print("[SquareMobilePayments] 💡 Note: Square Reader will be detected automatically when you start a payment")
-        print("[SquareMobilePayments] 💡 The SDK will show an error if no reader is found during payment")
-        print("[SquareMobilePayments] ============================================\n")
     }
     
-    // Check if Square Reader is actually connected using ReaderManager
-    // Made public so AppState can check hardware connection
-    // If no readers are found and SDK is authorized, automatically start discovery
-    func checkHardwareConnection() -> Bool {
-        // First check if SDK is authorized
-        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        guard authState == .authorized else {
-            appLog("⚠️ SDK not authorized - cannot check reader connection", category: "SquareMobilePayments")
-            return false
-        }
-        
-        // Use ReaderManager to check for available readers
-        let readerManager = MobilePaymentsSDK.shared.readerManager
-        let readers = readerManager.readers
-        
-        appLog("🔍 Checking for available readers...", category: "SquareMobilePayments")
-        appLog("📊 Found \(readers.count) reader(s)", category: "SquareMobilePayments")
-        
-        // Check if any reader is ready
-        // Note: ReaderInfo protocol may not expose statusInfo directly
-        // We'll check if readers exist - SDK will verify readiness when payment starts
+    /// Ensures at least one reader is discovered by the SDK.
+    /// If none are discovered, it opens the Settings UI for staff to connect.
+    private func ensureReaderDiscovered(from viewController: UIViewController, completion: @escaping (Bool) -> Void) {
+        let readers = MobilePaymentsSDK.shared.readerManager.readers
         if !readers.isEmpty {
-            appLog("✅ Found \(readers.count) reader(s)", category: "SquareMobilePayments")
+            log("✅ Reader(s) available: \(readers.count)")
             for reader in readers {
                 if let batteryLevel = reader.batteryStatus?.level {
-                    appLog("   - Reader: \(reader.model), Battery: \(batteryLevel)", category: "SquareMobilePayments")
+                    log("   - Reader: \(reader.model), Battery: \(batteryLevel)")
                 } else {
-                    appLog("   - Reader: \(reader.model)", category: "SquareMobilePayments")
+                    log("   - Reader: \(reader.model)")
                 }
             }
-            // If readers exist, assume they might be ready (SDK will verify when payment starts)
-            return true
-        } else {
-            // No readers found - automatically start discovery/pairing
-            appLog("❌ No readers found - starting automatic reader discovery...", category: "SquareMobilePayments")
-            appLog("💡 Reader may need to be paired in iOS Settings > Bluetooth first", category: "SquareMobilePayments")
-            
-            // Check if pairing is stuck (in progress for more than 30 seconds)
-            if readerManager.isPairingInProgress {
-                if let startTime = pairingStartTime {
-                    let elapsed = Date().timeIntervalSince(startTime)
-                    if elapsed > 30.0 {
-                        appLog("⚠️ Pairing has been in progress for \(Int(elapsed))s - stopping and restarting...", category: "SquareMobilePayments")
-                        pairingHandle?.stop()
-                        pairingHandle = nil
-                        pairingStartTime = nil
-                        // Wait a moment then restart
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                            self?.startReaderDiscovery()
-                        }
-                    } else {
-                        appLog("⏳ Reader pairing already in progress (\(Int(elapsed))s)...", category: "SquareMobilePayments")
-                    }
-                } else {
-                    appLog("⏳ Reader pairing already in progress (start time unknown)...", category: "SquareMobilePayments")
-                    // Set start time if we don't have it
-                    pairingStartTime = Date()
-                }
-            } else {
-                // Start new pairing
-                startReaderDiscovery()
-            }
-            
-            return false
-        }
-    }
-    
-    // Start reader discovery/pairing
-    private func startReaderDiscovery() {
-        let readerManager = MobilePaymentsSDK.shared.readerManager
-        guard !readerManager.isPairingInProgress else {
-            appLog("⚠️ Cannot start discovery - pairing already in progress", category: "SquareMobilePayments")
+            completion(true)
             return
         }
         
-        appLog("🔍 Starting automatic reader discovery/pairing...", category: "SquareMobilePayments")
-        pairingStartTime = Date()
-        self.pairingHandle = readerManager.startPairing(with: self)
+        log("⚠️ No reader discovered by SDK. Opening Reader Settings for pairing/connection.")
+        presentReaderSettings(from: viewController) {
+            let after = MobilePaymentsSDK.shared.readerManager.readers
+            completion(!after.isEmpty)
+        }
+    }
+    
+    // MARK: - Take Payment (New API with referenceID)
+    
+    /// Main call you use from your donation UI.
+    ///
+    /// - amount: donation amount in dollars
+    /// - referenceID: stable ID in YOUR system (e.g., donationId). This persists with the Square payment.
+    /// - note: optional note on the payment
+    func takePayment(
+        amount: Double,
+        referenceID: String,
+        note: String? = nil,
+        from viewController: UIViewController,
+        completion: @escaping (Result<PaymentResult, Error>) -> Void
+    ) {
+        // App-level gate against double taps / SwiftUI double trigger
+        guard !isStartingPayment else {
+            log("⚠️ Payment already starting/in progress (app gate). Ignoring.")
+            return
+        }
         
-        // Set a timeout to check if pairing completes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) { [weak self] in
+        // Must be authorized
+        guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
+            completion(.failure(NSError(domain: "SquareMPSDK", code: -100, userInfo: [
+                NSLocalizedDescriptionKey: "Square SDK is not authorized. Call authorize() first."
+            ])))
+            return
+        }
+        
+        isStartingPayment = true
+        currentCompletion = completion
+        currentPaymentViewController = viewController
+        
+        // 1) Ensure permissions
+        ensureLocationPermission(from: viewController) { [weak self] granted in
             guard let self = self else { return }
-            let readerManager = MobilePaymentsSDK.shared.readerManager
-            if readerManager.isPairingInProgress {
-                let readers = readerManager.readers
-                if readers.isEmpty {
-                    appLog("⏱️ Pairing timeout (30s) - checking if reader was discovered anyway...", category: "SquareMobilePayments")
-                    // Check one more time - sometimes reader is discovered but pairing callback hasn't fired
-                    if !readers.isEmpty {
-                        appLog("✅ Reader found after timeout check!", category: "SquareMobilePayments")
-                    } else {
-                        appLog("⚠️ Pairing timeout - reader still not found. Reader may need to be re-paired.", category: "SquareMobilePayments")
-                    }
+            guard granted else {
+                self.finishWithError(message: "Location permission is required for card payments. Enable it in Settings.", code: -101)
+                return
+            }
+            
+            // 2) Ensure reader is discovered/connected by SDK (otherwise open Reader Settings)
+            self.ensureReaderDiscovered(from: viewController) { [weak self] hasReader in
+                guard let self = self else { return }
+                
+                guard hasReader else {
+                    self.finishWithError(message: "No Square Reader connected. Please connect the reader in Reader Settings.", code: -102)
+                    return
                 }
+                
+                // 3) Start payment
+                self.startPayment(amount: amount, referenceID: referenceID, note: note, from: viewController)
             }
         }
     }
     
-    // Present Square's built-in Reader Settings screen for pairing/managing readers
-    // This is the recommended way to pair Square Reader 2nd Gen
-    func presentReaderSettings(from viewController: UIViewController, completion: (() -> Void)? = nil) {
-        appLog("📱 Presenting Square Reader Settings screen...", category: "SquareMobilePayments")
-        
-        // Check if SDK is authorized first
-        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        guard authState == .authorized else {
-            appLog("⚠️ SDK not authorized - cannot show settings", category: "SquareMobilePayments")
-            completion?()
-            return
-        }
-        
-        // Present Square's built-in Reader Settings screen
-        // This allows users to pair/manage Square Reader 2nd Gen
-        MobilePaymentsSDK.shared.settingsManager.presentSettings(with: viewController) { [weak self] _ in
-            appLog("📱 Reader Settings screen dismissed", category: "SquareMobilePayments")
-            // Check connection status after settings are dismissed
-            let connected = self?.checkHardwareConnection() ?? false
-            appLog("📱 Reader connection status after settings: \(connected ? "✅ Connected" : "❌ Not connected")", category: "SquareMobilePayments")
-            completion?()
-        }
-    }
+    // MARK: - Take Payment (Legacy API - backward compatibility)
     
-    // Attempt to wake up Square Reader (Bluetooth)
-    // Note: Square Reader 2nd Gen uses Bluetooth, so we can't use EASession
-    // The SDK automatically manages Bluetooth connections - no manual wake-up needed
-    // This method is kept for API compatibility but does nothing for Bluetooth readers
-    func attemptHardwareWakeUp() {
-        // Square Reader 2nd Gen connects via Bluetooth
-        // The SDK automatically discovers and connects to Bluetooth readers when payment starts
-        // No manual wake-up needed - SDK handles Bluetooth connection management
-        appLog("💡 Square Reader 2nd Gen uses Bluetooth - SDK will connect automatically when payment starts", category: "SquareMobilePayments")
-    }
-    
-    // Take payment using Mobile Payments SDK PaymentManager
-    // Following Square's recommended pattern: use SDK state + single-payment gate
-    // This will automatically detect Square Reader 2nd Gen (Bluetooth) and process payment when user taps/chips card
+    /// Legacy method for backward compatibility - maps donationId to referenceID
     func takePayment(
         amount: Double,
         donationId: String,
         from viewController: UIViewController,
         completion: @escaping (Result<PaymentResult, Error>) -> Void
     ) {
-        // 1) App truth: Prevent SwiftUI double-trigger with isStarting gate
-        // This is the primary gate to prevent multiple simultaneous payment attempts
-        guard !isStarting else {
-            appLog("⚠️ Payment start already in progress (app gate) - ignoring duplicate call", category: "SquareMobilePayments")
-            return
-        }
-        
-        // 2) Check permissions first (required by Square SDK before payment)
-        // According to Square docs: "you should only start a payment if you've determined that location access has been granted"
-        // Use instance method instead of deprecated static method
-        let locationManager = CLLocationManager()
-        let locationStatus = locationManager.authorizationStatus
-        guard locationStatus == .authorizedWhenInUse || locationStatus == .authorizedAlways else {
-            appLog("❌ Location permission not granted - cannot start payment", category: "SquareMobilePayments")
-            appLog("💡 Location permission is required for Square payments", category: "SquareMobilePayments")
-            let error = NSError(domain: "SquareMobilePayments", code: -7, userInfo: [
-                NSLocalizedDescriptionKey: "Location permission is required for payments. Please enable location access in Settings.",
-                NSLocalizedFailureReasonErrorKey: "location_permission_denied"
-            ])
-            completion(.failure(error))
-            return
-        }
-        
-        // Check Bluetooth permission (required for contactless readers)
-        let bluetoothStatus = CBManager.authorization
-        if bluetoothStatus != .allowedAlways {
-            appLog("⚠️ Bluetooth permission not granted - contactless payments may fail", category: "SquareMobilePayments")
-            // Don't block payment, but warn - SDK will handle the error if reader can't connect
-        }
-        
-        // 3) Check if SDK is authorized (reader connection will be verified by SDK when payment starts)
-        // We can't reliably check reader connection before payment, so we'll let the SDK handle it
-        // If no reader is connected, the SDK will return an error which we'll handle gracefully
-        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        guard authState == .authorized else {
-            appLog("❌ SDK not authorized - cannot start payment", category: "SquareMobilePayments")
-            let error = NSError(domain: "SquareMobilePayments", code: -6, userInfo: [
-                NSLocalizedDescriptionKey: "Square SDK not ready. Please try again.",
-                NSLocalizedFailureReasonErrorKey: "sdk_not_authorized"
-            ])
-            completion(.failure(error))
-            return
-        }
-        
-        isStarting = true
-        self.currentPaymentCompletion = completion
-        
-        appLog("💳 Starting payment: $\(amount) for donation \(donationId)", category: "SquareMobilePayments")
-        
-        // Check SDK's actual authorization state (source of truth, not local flag)
-        let currentAuthState = MobilePaymentsSDK.shared.authorizationManager.state
-        appLog("🔐 SDK Authorization state: \(currentAuthState)", category: "SquareMobilePayments")
-        
-        // Check if we have credentials
-        guard let accessToken = self.accessToken, let locationId = self.locationId else {
-            appLog("❌ Missing credentials", category: "SquareMobilePayments")
-            isStarting = false
-            completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Square credentials not available"
-            ])))
-            return
-        }
-        
-        appLog("📍 Location ID: \(locationId)", category: "SquareMobilePayments")
-        
-        // If SDK is not authorized, authorize it first (this can happen if authorization is still in progress)
-        if currentAuthState != .authorized {
-            appLog("⚠️ SDK not authorized (state: \(currentAuthState)) - authorizing now...", category: "SquareMobilePayments")
-            self.authorize(accessToken: accessToken, locationId: locationId) { error in
-                if let error = error {
-                    appLog("❌ Authorization failed: \(error.localizedDescription)", category: "SquareMobilePayments")
-                    self.isStarting = false
-                    completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                        NSLocalizedDescriptionKey: "Square SDK authorization failed. Please check Square connection."
-                    ])))
-                } else {
-                    appLog("✅ Authorization successful - proceeding with payment", category: "SquareMobilePayments")
-                    // Retry payment after authorization (with a small delay for hardware to wake up)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        self.takePayment(amount: amount, donationId: donationId, from: viewController, completion: completion)
-                    }
-                }
-            }
-            return
-        }
-        
-        // Proceed with payment flow - SDK will detect hardware when starting payment
-        proceedWithPaymentFlow(
+        // Map donationId to referenceID for new API
+        takePayment(
             amount: amount,
-            donationId: donationId,
-            accessToken: accessToken,
-            locationId: locationId,
-            viewController: viewController
+            referenceID: donationId,
+            note: nil,
+            from: viewController,
+            completion: completion
         )
     }
     
-    // Proceed with payment flow after hardware check
-    private func proceedWithPaymentFlow(
-        amount: Double,
-        donationId: String,
-        accessToken: String,
-        locationId: String,
-        viewController: UIViewController
-    ) {
+    // MARK: - Start Payment
+    
+    private func startPayment(amount: Double, referenceID: String, note: String?, from viewController: UIViewController) {
+        let cents = Int((amount * 100.0).rounded())
+        let money = Money(amount: cents, currency: .USD)
         
-        // Update local flag to match SDK state
-        self.isAuthorized = true
+        // paymentAttemptID must be unique per attempt (idempotencyKey is deprecated in 2.3.0+)
+        let paymentAttemptID = UUID().uuidString
         
-        // Create payment parameters
-        let amountMoney = Money(amount: UInt(amount * 100), currency: .USD)
-        let idempotencyKey = String(donationId.prefix(45))
+        let processingMode: ProcessingMode = .autoDetect
         
-        let paymentParameters = PaymentParameters(
-            idempotencyKey: idempotencyKey,
-            amountMoney: amountMoney
+        let paymentParams = PaymentParameters(
+            paymentAttemptID: paymentAttemptID,
+            amountMoney: money,
+            processingMode: processingMode
         )
         
-        // Enable all payment methods including Cash App Pay
-        let promptParameters = PromptParameters(
+        // Important: referenceID is how you match this payment to YOUR donation record
+        paymentParams.referenceID = referenceID
+        
+        if let note = note, !note.isEmpty {
+            paymentParams.note = note
+        }
+        
+        // PromptParameters: keep it simple. You can remove manual entry by using an empty list.
+        let promptParams = PromptParameters(
             mode: .default,
             additionalMethods: .all
         )
         
-        // Always force re-authorize before payment to wake hardware
-        // This ensures the SDK has a fresh connection and can wake the Stand
-        appLog("🔄 Force re-authorizing SDK before payment to wake hardware...", category: "SquareMobilePayments")
-        self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
-            if let error = error {
-                appLog("⚠️ Re-authorization warning (may still work): \(error.localizedDescription)", category: "SquareMobilePayments")
-            } else {
-                appLog("✅ Re-authorization completed - hardware should be ready", category: "SquareMobilePayments")
-            }
-            
-            // Small delay after re-authorization to let hardware wake up
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self = self else { return }
-                self.startPaymentFlow(
-                    paymentParameters: paymentParameters,
-                    promptParameters: promptParameters,
-                    viewController: viewController
-                )
-            }
-        }
-    }
-    
-    // Start payment flow - check for readers first, then start payment
-    private func startPaymentFlow(
-        paymentParameters: PaymentParameters,
-        promptParameters: PromptParameters,
-        viewController: UIViewController
-    ) {
-        appLog("🚀 Starting Square SDK payment flow...", category: "SquareMobilePayments")
+        log("💳 Starting payment. amount=\(cents)¢ referenceID=\(referenceID) attemptID=\(paymentAttemptID)")
         
-        // Ensure view is still loaded
-        _ = viewController.view
-        
-        // Verify SDK authorization state before starting
-        let finalAuthState = MobilePaymentsSDK.shared.authorizationManager.state
-        appLog("🔐 Authorization check before payment: \(finalAuthState)", category: "SquareMobilePayments")
-        
-        guard finalAuthState == .authorized else {
-            appLog("❌ SDK not authorized at payment start (state: \(finalAuthState))", category: "SquareMobilePayments")
-            isStarting = false
-            hasPaymentHandle = false
-            self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -6, userInfo: [
-                NSLocalizedDescriptionKey: "Square SDK not ready. Please try again.",
-                NSLocalizedFailureReasonErrorKey: "sdk_not_authorized"
-            ])))
-            self.currentPaymentCompletion = nil
-            return
-        }
-        
-        // Check for available readers using ReaderManager
-        let readerManager = MobilePaymentsSDK.shared.readerManager
-        let readers = readerManager.readers
-        
-        appLog("🔍 Checking for available readers...", category: "SquareMobilePayments")
-        appLog("📊 Found \(readers.count) reader(s)", category: "SquareMobilePayments")
-        
-        if !readers.isEmpty {
-            // Reader exists - start payment immediately
-            // SDK will verify reader readiness when payment starts
-            appLog("✅ Reader found - starting payment...", category: "SquareMobilePayments")
-            self.startPaymentImmediately(
-                paymentParameters: paymentParameters,
-                promptParameters: promptParameters,
-                viewController: viewController
-            )
-        } else {
-            // No readers found - try to discover paired readers
-            appLog("⚠️ No readers found - attempting to discover paired readers...", category: "SquareMobilePayments")
-            appLog("💡 Reader is paired in iOS Settings (since Square POS works), but SDK hasn't discovered it", category: "SquareMobilePayments")
-            
-            // Store payment start closure to call when reader is discovered
-            self.pendingPaymentStart = { [weak self] in
-                guard let self = self else { return }
-                self.startPaymentImmediately(
-                    paymentParameters: paymentParameters,
-                    promptParameters: promptParameters,
-                    viewController: viewController
-                )
-            }
-            
-            // Check if pairing is stuck (in progress for more than 30 seconds)
-            if readerManager.isPairingInProgress {
-                if let startTime = pairingStartTime {
-                    let elapsed = Date().timeIntervalSince(startTime)
-                    if elapsed > 30.0 {
-                        appLog("⚠️ Pairing has been in progress for \(Int(elapsed))s - stopping and restarting...", category: "SquareMobilePayments")
-                        pairingHandle?.stop()
-                        pairingHandle = nil
-                        pairingStartTime = nil
-                        // Wait a moment then restart
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                            self?.startReaderDiscovery()
-                        }
-                    } else {
-                        appLog("⏳ Reader pairing already in progress (\(Int(elapsed))s) - waiting...", category: "SquareMobilePayments")
-                        self.waitForReaderAndStartPayment(
-                            paymentParameters: paymentParameters,
-                            promptParameters: promptParameters,
-                            viewController: viewController,
-                            maxWaitTime: 10.0
-                        )
-                    }
-                } else {
-                    appLog("⏳ Reader pairing already in progress (start time unknown) - waiting...", category: "SquareMobilePayments")
-                    pairingStartTime = Date() // Set start time if we don't have it
-                    self.waitForReaderAndStartPayment(
-                        paymentParameters: paymentParameters,
-                        promptParameters: promptParameters,
-                        viewController: viewController,
-                        maxWaitTime: 10.0
-                    )
-                }
-            } else {
-                // Start new pairing
-                startReaderDiscovery()
-            }
-        }
-    }
-    
-    // Start payment immediately (reader is ready)
-    private func startPaymentImmediately(
-        paymentParameters: PaymentParameters,
-        promptParameters: PromptParameters,
-        viewController: UIViewController
-    ) {
-        appLog("🚀 Starting payment immediately - reader is ready", category: "SquareMobilePayments")
-        
-        let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
-            paymentParameters,
-            promptParameters: promptParameters,
+        paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
+            paymentParams,
+            promptParameters: promptParams,
             from: viewController,
             delegate: self
         )
         
-        self.processPaymentHandle(paymentHandle)
-    }
-    
-    // Wait for reader to become ready, then start payment
-    private func waitForReaderAndStartPayment(
-        paymentParameters: PaymentParameters,
-        promptParameters: PromptParameters,
-        viewController: UIViewController,
-        maxWaitTime: TimeInterval
-    ) {
-        let startTime = Date()
-        let checkInterval = 0.5 // Check every 500ms
-        
-        func checkReader() {
-            let readerManager = MobilePaymentsSDK.shared.readerManager
-            let readers = readerManager.readers
-            
-            if !readers.isEmpty {
-                appLog("✅ Reader found - starting payment", category: "SquareMobilePayments")
-                self.startPaymentImmediately(
-                    paymentParameters: paymentParameters,
-                    promptParameters: promptParameters,
-                    viewController: viewController
-                )
-            } else if Date().timeIntervalSince(startTime) < maxWaitTime {
-                // Still waiting
-                DispatchQueue.main.asyncAfter(deadline: .now() + checkInterval) {
-                    checkReader()
+        // If a payment is already in progress, Square will fail immediately (see delegate error),
+        // but some versions can return nil handle as well.
+        if paymentHandle == nil {
+            log("⚠️ startPayment returned nil handle (possible paymentAlreadyInProgress).")
+            // Let delegate handle, but also release the gate to allow retry if nothing comes back.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                if self?.currentCompletion != nil {
+                    self?.finishWithError(message: "Payment could not start. If a payment is already in progress, wait/cancel and try again.", code: -103)
                 }
-            } else {
-                // Timeout - start payment anyway (SDK will show error if no reader)
-                appLog("⏱️ Timeout waiting for reader - starting payment anyway", category: "SquareMobilePayments")
-                appLog("💡 SDK will show error if no reader is available", category: "SquareMobilePayments")
-                self.startPaymentImmediately(
-                    paymentParameters: paymentParameters,
-                    promptParameters: promptParameters,
-                    viewController: viewController
-                )
-            }
-        }
-        
-        checkReader()
-    }
-    
-    // Process payment handle result
-    private func processPaymentHandle(_ paymentHandle: PaymentHandle?) {
-        
-        if let handle = paymentHandle {
-            hasPaymentHandle = true // Mark that payment has actually started
-            appLog("✅ Payment started successfully! Handle: \(handle)", category: "SquareMobilePayments")
-            appLog("💡 Square SDK should now show card entry UI", category: "SquareMobilePayments")
-            appLog("💡 User can tap or insert card on Square Reader 2nd Gen", category: "SquareMobilePayments")
-            appLog("💡 SDK will automatically discover and connect to Bluetooth reader", category: "SquareMobilePayments")
-        } else {
-            appLog("❌ Payment handle is nil - payment already in progress", category: "SquareMobilePayments")
-            // Reset gate so user can try again
-            isStarting = false
-            hasPaymentHandle = false
-            
-            // Call completion with specific error about payment in progress
-            self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -5, userInfo: [
-                NSLocalizedDescriptionKey: "Payment already in progress. Please wait for the current payment to complete or cancel it first.",
-                NSLocalizedFailureReasonErrorKey: "payment_already_in_progress"
-            ])))
-            self.currentPaymentCompletion = nil
-        }
-    }
-    
-    // Temporary: Process payment through backend until SDK is fixed
-    private func processPaymentThroughBackend(
-        amount: Double,
-        donationId: String,
-        completion: @escaping (Result<PaymentResult, Error>) -> Void
-    ) async {
-        guard let url = URL(string: "\(Config.apiBaseURL)/donations/process-payment") else {
-            completion(.failure(NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Invalid API URL"
-            ])))
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let keychain = KeychainHelper()
-        if let token = keychain.load(forKey: "deviceToken") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let body: [String: Any] = [
-            "donationId": donationId,
-            "amount": amount,
-            "idempotencyKey": "\(donationId)-\(Date().timeIntervalSince1970)"
-        ]
-        
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw NSError(domain: "SquareMobilePayments", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "Invalid response"
-                ])
-            }
-            
-            guard (200...299).contains(httpResponse.statusCode) else {
-                let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-                let errorMessage = errorData?["message"] as? String ?? "Payment processing failed"
-                throw NSError(domain: "SquareMobilePayments", code: httpResponse.statusCode, userInfo: [
-                    NSLocalizedDescriptionKey: errorMessage
-                ])
-            }
-            
-            let result = try JSONDecoder().decode(ProcessPaymentResponse.self, from: data)
-            
-            await MainActor.run {
-                completion(.success(PaymentResult(
-                    success: result.success,
-                    paymentId: result.paymentId,
-                    error: result.success ? nil : "Payment failed"
-                )))
-            }
-        } catch {
-            await MainActor.run {
-                completion(.failure(error))
             }
         }
     }
@@ -767,191 +365,94 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
     // MARK: - PaymentManagerDelegate
     
     func paymentManager(_ paymentManager: PaymentManager, didFinish payment: Payment) {
-        appLog("✅ Payment succeeded!", category: "SquareMobilePayments")
+        log("✅ Payment finished")
         
-        // Extract payment ID - try different payment types
         var paymentId: String? = nil
+        var isOffline = false
         
-        if let onlinePayment = payment as? OnlinePayment {
-            paymentId = onlinePayment.id
-            appLog("Online payment ID: \(paymentId ?? "nil")", category: "SquareMobilePayments")
-        } else if let offlinePayment = payment as? OfflinePayment {
-            paymentId = offlinePayment.id
-            appLog("Offline payment ID: \(paymentId ?? "nil")", category: "SquareMobilePayments")
-        } else {
-            appLog("⚠️ Unknown payment type", category: "SquareMobilePayments")
+        if let online = payment as? OnlinePayment {
+            paymentId = online.id
+            isOffline = false
+            log("OnlinePayment id=\(paymentId ?? "nil") status=\(online.status.description)")
+        } else if let offline = payment as? OfflinePayment {
+            // Offline payment object has a local identifier
+            paymentId = offline.localID
+            isOffline = true
+            log("OfflinePayment localID=\(paymentId ?? "nil") status=\(offline.status.description)")
         }
         
-        let result = PaymentResult(
-            success: true,
-            paymentId: paymentId,
-            error: nil
-        )
-        
-        // Reset gate in ALL delegate exits
-        isStarting = false
-        hasPaymentHandle = false // Reset handle flag
-        currentPaymentCompletion?(.success(result))
-        currentPaymentCompletion = nil
+        let result = PaymentResult(success: true, paymentId: paymentId, isOffline: isOffline, error: nil)
+        finishSuccess(result)
     }
     
     func paymentManager(_ paymentManager: PaymentManager, didFail payment: Payment, withError error: Error) {
-        // Log full error details for debugging
-        appLog("❌ Payment failed: \(error.localizedDescription)", category: "SquareMobilePayments")
-        if let nsError = error as NSError? {
-            appLog("❌ Error domain: \(nsError.domain)", category: "SquareMobilePayments")
-            appLog("❌ Error code: \(nsError.code)", category: "SquareMobilePayments")
-            appLog("❌ Error userInfo: \(nsError.userInfo)", category: "SquareMobilePayments")
-        }
-        
-        // Check if it's a hardware detection error
-        let errorDescription = error.localizedDescription.lowercased()
-        let errorDomain = (error as NSError).domain.lowercased()
-        let errorCode = (error as NSError).code
-        let isHardwareError = errorDescription.contains("reader") || 
-                             errorDescription.contains("hardware") || 
-                             errorDescription.contains("connect hardware") ||
-                             errorDescription.contains("no reader") ||
-                             errorDescription.contains("reader not found") ||
-                             errorDescription.contains("bluetooth") ||
-                             errorDescription.contains("device") ||
-                             errorDescription.contains("peripheral") ||
-                             errorDescription.contains("manual card entry") ||
-                             errorDomain.contains("bluetooth") ||
-                             errorCode == 1001 || // Common Bluetooth/connection error codes
-                             errorCode == 1009
-        
-        if isHardwareError {
-            appLog("⚠️ Square Reader connection issue detected", category: "SquareMobilePayments")
-            appLog("💡 Full error: \(error)", category: "SquareMobilePayments")
-            appLog("💡 Error description: \(error.localizedDescription)", category: "SquareMobilePayments")
-            appLog("💡 Error code: \(errorCode)", category: "SquareMobilePayments")
-            appLog("💡 Reader is paired in iOS Settings (since Square POS works), but SDK hasn't discovered it", category: "SquareMobilePayments")
-            appLog("💡 The SDK may need to discover the reader through its own Settings screen", category: "SquareMobilePayments")
-            appLog("💡 Try opening Reader Settings to let SDK discover the paired reader", category: "SquareMobilePayments")
-            let userFriendlyError = NSError(domain: "SquareMobilePayments", code: -3, userInfo: [
-                NSLocalizedDescriptionKey: "Connect hardware to take card payments. The reader is paired, but the SDK needs to discover it. Please open Reader Settings to connect the reader.",
-                NSLocalizedFailureReasonErrorKey: "reader_not_connected"
-            ])
-            currentPaymentCompletion?(.failure(userFriendlyError))
-        } else {
-            appLog("💡 Non-hardware error - passing through: \(error.localizedDescription)", category: "SquareMobilePayments")
-            currentPaymentCompletion?(.failure(error))
-        }
-        
-        // Reset gate in ALL delegate exits
-        isStarting = false
-        hasPaymentHandle = false // Reset handle flag
-        currentPaymentCompletion = nil
+        log("❌ Payment failed: \(error.localizedDescription)")
+        finishFailure(error)
     }
     
     func paymentManager(_ paymentManager: PaymentManager, didCancel payment: Payment) {
-        appLog("🚫 Payment cancelled by user", category: "SquareMobilePayments")
-        
-        let error = NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
-            NSLocalizedDescriptionKey: "Payment was cancelled"
+        log("🚫 Payment canceled")
+        let err = NSError(domain: "SquareMPSDK", code: -104, userInfo: [
+            NSLocalizedDescriptionKey: "Payment was canceled."
         ])
-        
-        // Reset gate in ALL delegate exits
-        isStarting = false
-        hasPaymentHandle = false // Reset handle flag
-        currentPaymentCompletion?(.failure(error))
-        currentPaymentCompletion = nil
-    }
-    
-    // Public method to check if payment handle was received (payment actually started in SDK)
-    func hasActivePaymentHandle() -> Bool {
-        return hasPaymentHandle
-    }
-    
-    // Public method to check if payment is in progress
-    // Uses app-level gate (isStarting) as primary indicator
-    // SDK's startPayment will return nil if payment already in progress
-    func isPaymentInProgress() -> Bool {
-        return isStarting || currentPaymentCompletion != nil
-    }
-    
-    // Public method to cancel any in-progress payment
-    // This resets app-level state and optionally force re-authorizes SDK to clear stuck payment state
-    func cancelCurrentPayment(forceReauthorize: Bool = false) {
-        appLog("🚫 Cancelling current payment (forceReauthorize: \(forceReauthorize))", category: "SquareMobilePayments")
-        
-        // Reset app-level gate
-        isStarting = false
-        hasPaymentHandle = false // Reset handle flag
-        
-        // Call completion with cancellation error if we have one
-        // Note: SDK will handle its own payment cancellation when view is dismissed
-        if currentPaymentCompletion != nil {
-            currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -2, userInfo: [
-                NSLocalizedDescriptionKey: "Payment was cancelled"
-            ])))
-            currentPaymentCompletion = nil
-        }
-        
-        // If force re-authorize is requested, re-authorize SDK to clear any stuck payment state
-        // This is needed when SDK reports payment_already_in_progress even after cancellation
-        if forceReauthorize, let accessToken = self.accessToken, let locationId = self.locationId {
-            appLog("🔄 Force re-authorizing SDK to clear stuck payment state...", category: "SquareMobilePayments")
-            self.authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: true) { error in
-                if let error = error {
-                    appLog("⚠️ Force re-authorization warning: \(error.localizedDescription)", category: "SquareMobilePayments")
-                } else {
-                    appLog("✅ Force re-authorization completed - SDK state should be cleared", category: "SquareMobilePayments")
-                }
-            }
-        }
+        finishFailure(err)
     }
     
     // MARK: - ReaderObserver
     
     func readerWasAdded(_ readerInfo: ReaderInfo) {
-        appLog("✅ Reader was added: \(readerInfo.model)", category: "SquareMobilePayments")
+        log("✅ Reader added: \(readerInfo.model)")
+        if let batteryLevel = readerInfo.batteryStatus?.level {
+            log("   Battery: \(batteryLevel)")
+        }
         
-        // If we have a pending payment start, start it now that reader is available
+        // If we have a pending payment, start it now that reader is available
         if let startPayment = pendingPaymentStart {
-            appLog("✅ Reader found - starting pending payment", category: "SquareMobilePayments")
+            log("✅ Reader discovered - starting pending payment")
             pendingPaymentStart = nil
             pairingHandle?.stop()
             pairingHandle = nil
-            startPayment()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                startPayment()
+            }
         }
     }
     
     func readerWasRemoved(_ readerInfo: ReaderInfo) {
-        appLog("⚠️ Reader was removed: \(readerInfo.model)", category: "SquareMobilePayments")
+        log("⚠️ Reader removed: \(readerInfo.model)")
     }
     
     func readerDidChange(_ readerInfo: ReaderInfo, change: ReaderChange) {
+        // Log state changes
         switch change {
+        case .connectionStateDidChange:
+            log("🔌 Reader connection state changed: \(readerInfo.model)")
+        case .connectionDidFail:
+            log("❌ Reader connection failed: \(readerInfo.model)")
         case .batteryLevelDidChange:
-            if let batteryLevel = readerInfo.batteryStatus?.level {
-                appLog("🔋 Reader battery changed: \(readerInfo.model) -> \(batteryLevel)", category: "SquareMobilePayments")
+            if let level = readerInfo.batteryStatus?.level {
+                log("🔋 Battery: \(readerInfo.model) level=\(level)")
             }
         case .batteryDidBeginCharging:
-            appLog("🔌 Reader started charging: \(readerInfo.model)", category: "SquareMobilePayments")
+            log("🔌 Reader started charging: \(readerInfo.model)")
         case .batteryDidEndCharging:
-            appLog("🔌 Reader stopped charging: \(readerInfo.model)", category: "SquareMobilePayments")
+            log("🔌 Reader stopped charging: \(readerInfo.model)")
         case .stateDidChange:
-            appLog("📊 Reader state changed: \(readerInfo.model)", category: "SquareMobilePayments")
+            log("📊 Reader state changed: \(readerInfo.model)")
         case .firmwareUpdatePercentDidChange:
-            appLog("📥 Reader firmware update progress: \(readerInfo.model)", category: "SquareMobilePayments")
-        case .connectionStateDidChange:
-            appLog("🔌 Reader connection state changed: \(readerInfo.model)", category: "SquareMobilePayments")
-        case .connectionDidFail:
-            appLog("❌ Reader connection failed: \(readerInfo.model)", category: "SquareMobilePayments")
+            log("📥 Reader firmware update progress: \(readerInfo.model)")
         case .firmwareUpdateDidFail:
-            appLog("❌ Reader firmware update failed: \(readerInfo.model)", category: "SquareMobilePayments")
+            log("❌ Reader firmware update failed: \(readerInfo.model)")
         case .cardInserted:
-            appLog("💳 Card inserted: \(readerInfo.model)", category: "SquareMobilePayments")
+            log("💳 Card inserted: \(readerInfo.model)")
         case .cardRemoved:
-            appLog("💳 Card removed: \(readerInfo.model)", category: "SquareMobilePayments")
+            log("💳 Card removed: \(readerInfo.model)")
         @unknown default:
-            appLog("📊 Reader change (unknown): \(readerInfo.model) -> \(change)", category: "SquareMobilePayments")
+            log("📊 Reader change (unknown): \(readerInfo.model) -> \(change)")
             
             // If we have a pending payment, start it when any change occurs (reader might be ready now)
             if let startPayment = pendingPaymentStart {
-                appLog("✅ Reader changed - starting pending payment", category: "SquareMobilePayments")
+                log("✅ Reader changed - starting pending payment")
                 pendingPaymentStart = nil
                 pairingHandle?.stop()
                 pairingHandle = nil
@@ -960,18 +461,18 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         }
     }
     
-    // MARK: - ReaderPairingDelegate
+    // MARK: - ReaderPairingDelegate (for automatic discovery)
     
     func readerPairingDidBegin() {
-        appLog("🔍 Reader pairing began - scanning for readers...", category: "SquareMobilePayments")
+        log("🔍 Reader pairing began - scanning for readers...")
         pairingStartTime = Date()
     }
     
     func readerPairingDidSucceed() {
-        appLog("✅ Reader pairing succeeded!", category: "SquareMobilePayments")
+        log("✅ Reader pairing succeeded!")
         if let startTime = pairingStartTime {
             let elapsed = Date().timeIntervalSince(startTime)
-            appLog("⏱️ Pairing completed in \(String(format: "%.1f", elapsed))s", category: "SquareMobilePayments")
+            log("⏱️ Pairing completed in \(String(format: "%.1f", elapsed))s")
         }
         pairingHandle = nil
         pairingStartTime = nil
@@ -979,14 +480,14 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         // Check if readers are now available
         let readerManager = MobilePaymentsSDK.shared.readerManager
         let readers = readerManager.readers
-        appLog("📊 Readers after pairing: \(readers.count)", category: "SquareMobilePayments")
+        log("📊 Readers after pairing: \(readers.count)")
     }
     
     func readerPairingDidFail(with error: Error) {
-        appLog("❌ Reader pairing failed: \(error.localizedDescription)", category: "SquareMobilePayments")
+        log("❌ Reader pairing failed: \(error.localizedDescription)")
         if let startTime = pairingStartTime {
             let elapsed = Date().timeIntervalSince(startTime)
-            appLog("⏱️ Pairing failed after \(String(format: "%.1f", elapsed))s", category: "SquareMobilePayments")
+            log("⏱️ Pairing failed after \(String(format: "%.1f", elapsed))s")
         }
         pairingHandle = nil
         pairingStartTime = nil
@@ -994,21 +495,86 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         // If pairing failed but we have a pending payment, try starting it anyway
         // The SDK might still discover the reader when payment starts
         if let startPayment = pendingPaymentStart {
-            appLog("💡 Pairing failed but trying payment anyway - SDK may discover reader", category: "SquareMobilePayments")
+            log("💡 Pairing failed but trying payment anyway - SDK may discover reader")
             pendingPaymentStart = nil
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 startPayment()
             }
         }
     }
+    
+    // MARK: - Helpers (finish/reset)
+    
+    private func finishSuccess(_ result: PaymentResult) {
+        let completion = currentCompletion
+        resetState()
+        completion?(.success(result))
+    }
+    
+    private func finishFailure(_ error: Error) {
+        let completion = currentCompletion
+        resetState()
+        completion?(.failure(error))
+    }
+    
+    private func finishWithError(message: String, code: Int) {
+        let err = NSError(domain: "SquareMPSDK", code: code, userInfo: [
+            NSLocalizedDescriptionKey: message
+        ])
+        finishFailure(err)
+    }
+    
+    private func resetState() {
+        isStartingPayment = false
+        currentCompletion = nil
+        currentPaymentViewController = nil
+        paymentHandle = nil
+    }
+    
+    // MARK: - Legacy Methods (for backward compatibility)
+    
+    /// Check if Square Reader is actually connected using ReaderManager
+    /// Made public so AppState can check hardware connection
+    func checkHardwareConnection() -> Bool {
+        // First check if SDK is authorized
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        guard authState == .authorized else {
+            log("⚠️ SDK not authorized - cannot check reader connection")
+            return false
+        }
+        
+        // Use ReaderManager to check for available readers
+        let readerManager = MobilePaymentsSDK.shared.readerManager
+        let readers = readerManager.readers
+        
+        log("🔍 Checking for available readers...")
+        log("📊 Found \(readers.count) reader(s)")
+        
+        if !readers.isEmpty {
+            log("✅ Found \(readers.count) reader(s)")
+            for reader in readers {
+                if let batteryLevel = reader.batteryStatus?.level {
+                    log("   - Reader: \(reader.model), Battery: \(batteryLevel)")
+                } else {
+                    log("   - Reader: \(reader.model)")
+                }
+            }
+            return true
+        } else {
+            log("❌ No readers found")
+            return false
+        }
+    }
+    
+    /// Attempt to wake up Square Reader (Bluetooth)
+    /// Note: Square Reader 2nd Gen uses Bluetooth, so we can't use EASession
+    /// The SDK automatically manages Bluetooth connections - no manual wake-up needed
+    func attemptHardwareWakeUp() {
+        log("💡 Square Reader 2nd Gen uses Bluetooth - SDK will connect automatically when payment starts")
+    }
+    
+    /// Check if payment is in progress
+    func isPaymentInProgress() -> Bool {
+        return isStartingPayment
+    }
 }
-
-// Temporary response struct for backend payment processing
-struct ProcessPaymentResponse: Codable {
-    let success: Bool
-    let paymentId: String
-    let status: String
-}
-
-
-
