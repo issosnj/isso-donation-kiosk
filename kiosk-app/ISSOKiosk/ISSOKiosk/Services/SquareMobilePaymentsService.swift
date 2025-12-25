@@ -137,11 +137,14 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             return
         }
         
-        // If forcing reauthorize, deauthorize first
+        // If forcing reauthorize, deauthorize first (add delay to avoid database issues)
         if forceReauthorize && state == .authorized {
-            log("🔄 Force reauthorizing")
+            log("🔄 Force reauthorizing (deauthorizing first - may cause brief database warnings)")
             auth.deauthorize { [weak self] in
-                self?.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
+                // Add a small delay to let SDK clean up database connections before reauthorizing
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self?.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
+                }
             }
             return
         }
@@ -309,26 +312,30 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         currentCompletion = completion
         currentPaymentViewController = viewController
         
-        // CRITICAL: Force reauthorization before every payment to fix disconnection issues
-        // This ensures SDK is always fresh and connected, even after long idle periods
-        log("🔄 Force reauthorizing before payment to ensure connection...")
+        // Check authorization state and ensure connection
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
         
-        // Always force reauthorize before payment (like app restart)
         if authState == .authorized {
-            // Deauthorize first, then reauthorize
-            MobilePaymentsSDK.shared.authorizationManager.deauthorize { [weak self] in
-                guard let self = self else { return }
-                self.performReauthorizationAndPayment(
+            // Already authorized - check if reader is available, if not, refresh authorization
+            let readers = MobilePaymentsSDK.shared.readerManager.readers
+            if readers.isEmpty {
+                log("⚠️ Authorized but no readers - refreshing authorization...")
+                // Refresh authorization without deauthorizing (safer - avoids database issues)
+                performReauthorizationAndPayment(
                     amount: amount,
                     referenceID: referenceID,
                     note: note,
                     from: viewController,
                     completion: completion
                 )
+            } else {
+                // Already authorized and reader available - proceed directly
+                log("✅ Already authorized with reader - proceeding to payment")
+                startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
             }
         } else {
             // Not authorized - authorize first
+            log("🔄 Not authorized - authorizing...")
             performReauthorizationAndPayment(
                 amount: amount,
                 referenceID: referenceID,
@@ -389,6 +396,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     }
     
     /// Perform reauthorization with credentials and then start payment
+    /// Uses forceReauthorize=false to avoid database issues - just refreshes if already authorized
     private func performReauthorizationWithCredentials(
         accessToken: String,
         locationId: String,
@@ -397,37 +405,40 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         note: String?,
         from viewController: UIViewController
     ) {
-        // Reauthorize
-        performAuthorization(accessToken: accessToken, locationId: locationId) { [weak self] error in
-            guard let self = self else { return }
-            
-            if let error = error {
-                self.finishWithError(message: "Failed to reconnect Square SDK: \(error.localizedDescription)", code: -106)
-                return
-            }
-            
-            // Wait longer for hardware to wake up after reauthorization (3 seconds)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+        // Check current state - only deauthorize if absolutely necessary
+        let currentState = MobilePaymentsSDK.shared.authorizationManager.state
+        
+        if currentState == .authorized {
+            // Already authorized - just refresh without deauthorizing (avoids database issues)
+            log("✅ Already authorized - refreshing connection without deauthorizing...")
+            // Reauthorize with forceReauthorize=false to avoid database cleanup issues
+            performAuthorization(accessToken: accessToken, locationId: locationId, forceReauthorize: false) { [weak self] error in
                 guard let self = self else { return }
                 
-                // Check if reader is available
-                let readers = MobilePaymentsSDK.shared.readerManager.readers
-                if readers.isEmpty {
-                    // No readers - wait longer and try again (hardware might be slow to wake)
-                    self.log("⚠️ No readers after reauthorization - waiting longer...")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                        guard let self = self else { return }
-                        let readersAfterWait = MobilePaymentsSDK.shared.readerManager.readers
-                        if readersAfterWait.isEmpty {
-                            self.log("⚠️ Still no readers - proceeding anyway (SDK will handle)")
-                        } else {
-                            self.log("✅ Reader detected after longer wait")
-                        }
-                        self.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
-                    }
-                } else {
-                    // Reader available - proceed
-                    self.log("✅ Reader detected immediately after reauthorization")
+                if let error = error {
+                    self.log("⚠️ Refresh failed: \(error.localizedDescription) - proceeding anyway")
+                }
+                
+                // Wait for hardware to wake up (shorter wait since we didn't deauthorize)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                    guard let self = self else { return }
+                    self.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
+                }
+            }
+        } else {
+            // Not authorized - authorize normally
+            log("🔄 Authorizing SDK...")
+            performAuthorization(accessToken: accessToken, locationId: locationId) { [weak self] error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    self.finishWithError(message: "Failed to reconnect Square SDK: \(error.localizedDescription)", code: -106)
+                    return
+                }
+                
+                // Wait for hardware to wake up after authorization
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    guard let self = self else { return }
                     self.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
                 }
             }
