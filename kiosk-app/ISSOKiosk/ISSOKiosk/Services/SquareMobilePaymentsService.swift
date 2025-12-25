@@ -26,7 +26,10 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     
     private override init() {
         super.init()
-        // Register for accessory notifications to detect when Square Stand connects/disconnects
+        // Note: Square Reader 2nd Gen connects via Bluetooth, not External Accessory framework
+        // The SDK automatically detects and manages Bluetooth reader connections
+        // We keep these notifications for backward compatibility (Square Stand uses External Accessory)
+        // But they won't detect Bluetooth readers - SDK handles those automatically
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(accessoryConnected),
@@ -39,7 +42,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             name: .EAAccessoryDidDisconnect,
             object: nil
         )
-        // Register with EAAccessoryManager to receive notifications
+        // Register with EAAccessoryManager (for Square Stand compatibility, not needed for Bluetooth readers)
         EAAccessoryManager.shared().registerForLocalNotifications()
     }
     
