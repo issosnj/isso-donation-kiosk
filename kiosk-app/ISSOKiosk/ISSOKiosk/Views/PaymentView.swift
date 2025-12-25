@@ -106,13 +106,14 @@ struct ModernPaymentView: View {
                 Task {
                     try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                     await MainActor.run {
+                        guard let self = self else { return }
                         // Now proceed with new payment
-                        if !hasStartedPayment {
+                        if !self.hasStartedPayment {
                             appLog("✅ SDK state cleared - proceeding with new payment", category: "PaymentView")
-                            hasStartedPayment = true
-                            isReady = true
-                            isProcessing = true
-                            processPayment()
+                            self.hasStartedPayment = true
+                            self.isReady = true
+                            self.isProcessing = true
+                            self.processPayment()
                         }
                     }
                 }
@@ -245,6 +246,7 @@ struct ModernPaymentView: View {
                 // Store donation ID for potential cancellation
                 currentDonationId = donation.id
                 await MainActor.run {
+                    guard let self = self else { return }
                     self.donationId = donation.id
                 }
                 
@@ -254,6 +256,7 @@ struct ModernPaymentView: View {
                 try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
                 
                 await MainActor.run {
+                    guard let self = self else { return }
                     print("[PaymentView] 📱 Step 2: Getting UIViewController for SDK...")
                     guard let viewController = UIViewController.topViewController() else {
                         print("[PaymentView] ❌ Failed to get top view controller")
@@ -518,8 +521,9 @@ struct ModernPaymentView: View {
                     }
                 }
                 await MainActor.run {
-                    isProcessing = false
-                    paymentStatus = .failure(error.localizedDescription)
+                    guard let self = self else { return }
+                    self.isProcessing = false
+                    self.paymentStatus = .failure(error.localizedDescription)
                 }
             }
         }
