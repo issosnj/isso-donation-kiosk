@@ -362,7 +362,7 @@ class AppState: ObservableObject {
         return nil
     }
     
-    private func authorizeSquareSDK() async {
+    private func authorizeSquareSDK(forceReauthorize: Bool = false) async {
         // Step 2: Verify SDK is available
         let _ = MobilePaymentsSDK.shared
         print("[AppState] ✅ Square Mobile Payments SDK is available")
@@ -420,10 +420,14 @@ class AppState: ObservableObject {
             return // Exit early - don't try to authorize without credentials
         }
         
-        // Check if we need to force re-authorize (for periodic refresh)
+        // Determine if we should force reauthorize
         let shouldForceReauthorize: Bool
-        if let lastAuth = lastSquareAuthorizationTime {
-            shouldForceReauthorize = Date().timeIntervalSince(lastAuth) >= 15 * 60 // 15 minutes
+        if forceReauthorize {
+            // Force reauthorize if explicitly requested (like when Start Donation is clicked)
+            shouldForceReauthorize = true
+        } else if let lastAuth = lastSquareAuthorizationTime {
+            // Otherwise, check if 15 minutes have passed (periodic refresh)
+            shouldForceReauthorize = Date().timeIntervalSince(lastAuth) >= 15 * 60
         } else {
             shouldForceReauthorize = false
         }
@@ -519,11 +523,17 @@ class AppState: ObservableObject {
         }
     }
     
-    /// Full reconnection sequence: checks SDK, reauthorizes if needed, and detects hardware with retries
-    /// This is the same logic that runs when the app becomes active
+    /// Full reconnection sequence: forces reauthorization (like app restart) and detects hardware with retries
+    /// This mimics what happens when the app is closed and reopened - forces fresh authorization
     func ensureSquareConnectionReady() async {
-        // First, check and reconnect SDK
-        await checkAndReconnectSquareSDK()
+        appLog("🔄 Ensuring Square connection ready (forcing reauthorization like app restart)...", category: "AppState")
+        
+        // Force reauthorization - this is what happens when app restarts and wakes up the reader
+        // Even if already authorized, force reauthorize to ensure fresh connection (deauthorize then reauthorize)
+        await authorizeSquareSDK(forceReauthorize: true)
+        
+        // Wait a moment for authorization to complete and hardware to wake up
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
         
         // Then check hardware connection with retries (same as app becoming active)
         let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
@@ -543,12 +553,18 @@ class AppState: ObservableObject {
                 let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
                 if hardwareStillConnected {
                     appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "AppState")
-                    await checkAndReconnectSquareSDK()
+                    // Reauthorize again now that hardware is detected
+                    await authorizeSquareSDK(forceReauthorize: true)
                     break
                 }
             }
+        } else {
+            appLog("✅ Hardware detected immediately after reauthorization", category: "AppState")
         }
     }
+    
+    /// Authorize Square SDK with optional force reauthorization
+    private func authorizeSquareSDK(forceReauthorize: Bool = false) async {
     
     // Extract device ID from JWT token payload
     private func extractDeviceId(from token: String) -> String? {
