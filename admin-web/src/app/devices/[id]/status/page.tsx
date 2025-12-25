@@ -95,7 +95,7 @@ export default function DeviceStatusPage() {
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
             <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between">
             <div>
               <button
                 onClick={() => router.push(`/dashboard?tab=devices`)}
@@ -124,14 +124,14 @@ export default function DeviceStatusPage() {
               }`}>
                 {device?.status}
               </span>
+              </div>
             </div>
-          </div>
             </div>
 
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Battery Status */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+              {/* Battery Status */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Battery</h3>
             {latestTelemetry ? (
               <div className="space-y-2">
@@ -148,13 +148,13 @@ export default function DeviceStatusPage() {
                   </span>
                 </div>
               </div>
-            ) : (
-              <p className="text-gray-500 text-sm">No data available</p>
-            )}
-          </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No data available</p>
+              )}
+              </div>
 
-          {/* Network Status */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+              {/* Network Status */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Network</h3>
             {latestTelemetry ? (
               <div className="space-y-2">
@@ -174,13 +174,13 @@ export default function DeviceStatusPage() {
                   </div>
                 )}
               </div>
-            ) : (
-              <p className="text-gray-500 text-sm">No data available</p>
-            )}
-          </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No data available</p>
+              )}
+              </div>
 
-          {/* Square Hardware */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+              {/* Square Hardware */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Square Hardware</h3>
             {latestTelemetry ? (
               <div className="space-y-2">
@@ -197,14 +197,14 @@ export default function DeviceStatusPage() {
                   </div>
                 )}
               </div>
-            ) : (
-              <p className="text-gray-500 text-sm">No data available</p>
-            )}
-          </div>
-        </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No data available</p>
+              )}
+              </div>
+            </div>
 
-        {/* System Information */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+            {/* System Information */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h3 className="text-sm font-semibold text-gray-600 uppercase mb-4">System Information</h3>
           {latestTelemetry ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -248,11 +248,11 @@ export default function DeviceStatusPage() {
           ) : (
             <p className="text-gray-500 text-sm">No system information available</p>
           )}
-        </div>
+            </div>
 
-        {/* Telemetry History */}
-        {telemetryHistory && telemetryHistory.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            {/* Telemetry History */}
+            {telemetryHistory && telemetryHistory.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-semibold text-gray-600 uppercase mb-4">Telemetry History</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -283,9 +283,9 @@ export default function DeviceStatusPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
-        )}
+              </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
