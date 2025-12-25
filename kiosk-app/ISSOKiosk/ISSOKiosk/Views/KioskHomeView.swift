@@ -48,11 +48,18 @@ struct KioskHomeView: View {
         return Color(red: red, green: green, blue: blue)
     }
     
-    // Background view
+    // Background view - uses separate homepage background
     @ViewBuilder
     private func backgroundView(geometry: GeometryProxy) -> some View {
-        // First try to use asset (local, no network needed)
-        if UIImage(named: "KioskBackground") != nil {
+        // First try homepage-specific background asset
+        if UIImage(named: "KioskHomeBackground") != nil {
+            Image("KioskHomeBackground")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else if UIImage(named: "KioskBackground") != nil {
+            // Fallback to general background if homepage background not found
             Image("KioskBackground")
                 .resizable()
                 .aspectRatio(contentMode: .fill)
