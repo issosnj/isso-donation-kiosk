@@ -28,16 +28,20 @@ struct LoadingView: View {
         return Color(red: red, green: green, blue: blue)
     }
     
-    // Background view (same as KioskHomeView)
+    // Background view - ensure image fits screen properly
     @ViewBuilder
     private func backgroundView(geometry: GeometryProxy) -> some View {
         if UIImage(named: "KioskBackground") != nil {
             Image("KioskBackground")
                 .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: geometry.size.width, height: geometry.size.height)
+                .scaledToFill()
+                .frame(
+                    width: geometry.size.width,
+                    height: geometry.size.height + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom
+                )
                 .clipped()
-                .ignoresSafeArea(.all)
+                .offset(y: -(geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom) / 2)
+                .ignoresSafeArea(.all, edges: .all)
         } else {
             LinearGradient(
                 gradient: Gradient(colors: [
