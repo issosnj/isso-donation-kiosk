@@ -8,6 +8,11 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import Sidebar from '@/components/Sidebar'
 
+export function generateStaticParams() {
+  // Return empty array for dynamic routes - pages will be generated on-demand
+  return []
+}
+
 export default function DeviceLogsPage() {
   const params = useParams()
   const router = useRouter()
