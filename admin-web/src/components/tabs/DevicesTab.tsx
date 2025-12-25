@@ -120,10 +120,9 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
                     key={device.id} 
                     className="hover:bg-purple-50/30 transition-colors border-b border-gray-100 cursor-pointer"
                     onClick={(e) => {
-                      // Navigate to device details
+                      // Navigate to device status page (separate URL)
                       e.stopPropagation()
-                      // Use router to navigate - this will update the URL and trigger re-render
-                      router.push(`/dashboard?tab=devices&deviceId=${device.id}`)
+                      router.push(`/devices/${device.id}/status`)
                     }}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
