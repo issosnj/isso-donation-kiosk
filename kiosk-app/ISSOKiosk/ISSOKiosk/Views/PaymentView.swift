@@ -106,14 +106,13 @@ struct ModernPaymentView: View {
                 Task {
                     try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                     await MainActor.run {
-                        guard let self = self else { return }
                         // Now proceed with new payment
-                        if !self.hasStartedPayment {
+                        if !hasStartedPayment {
                             appLog("✅ SDK state cleared - proceeding with new payment", category: "PaymentView")
-                            self.hasStartedPayment = true
-                            self.isReady = true
-                            self.isProcessing = true
-                            self.processPayment()
+                            hasStartedPayment = true
+                            isReady = true
+                            isProcessing = true
+                            processPayment()
                         }
                     }
                 }
@@ -246,8 +245,7 @@ struct ModernPaymentView: View {
                 // Store donation ID for potential cancellation
                 currentDonationId = donation.id
                 await MainActor.run {
-                    guard let self = self else { return }
-                    self.donationId = donation.id
+                    donationId = donation.id
                 }
                 
                 // 2. Start payment using Square Mobile Payments SDK
@@ -256,12 +254,11 @@ struct ModernPaymentView: View {
                 try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
                 
                 await MainActor.run {
-                    guard let self = self else { return }
                     print("[PaymentView] 📱 Step 2: Getting UIViewController for SDK...")
                     guard let viewController = UIViewController.topViewController() else {
                         print("[PaymentView] ❌ Failed to get top view controller")
-                        self.isProcessing = false
-                        self.paymentStatus = .failure("Unable to present payment interface")
+                        isProcessing = false
+                        paymentStatus = .failure("Unable to present payment interface")
                         return
                     }
                     
@@ -279,7 +276,7 @@ struct ModernPaymentView: View {
                         donationId: donation.id,
                         amount: amount,
                         from: viewController
-                    ) { [weak self] result in
+                    ) { result in
                         print("[PaymentView] 📬 Payment result received")
                         Task {
                             // Declare paymentResult outside do-catch so it's accessible in catch block
@@ -301,13 +298,12 @@ struct ModernPaymentView: View {
                                         print("[PaymentView] ⚠️ Reader not connected - offering to open Reader Settings...")
                                         // Show alert offering to open Reader Settings
                                         await MainActor.run {
-                                            guard let self = self else { return }
-                                            self.isProcessing = false
-                                            self.hasStartedPayment = false
+                                            isProcessing = false
+                                            hasStartedPayment = false
                                             
                                             // Get the current view controller to present alert
                                             guard let alertVC = UIViewController.topViewController() else {
-                                                self.paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
+                                                paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
                                                 return
                                             }
                                             
@@ -326,8 +322,8 @@ struct ModernPaymentView: View {
                                                 }
                                             })
                                             
-                                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
-                                                self?.paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
+                                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+                                                paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
                                             })
                                             
                                             alertVC.present(alert, animated: true)
@@ -347,16 +343,14 @@ struct ModernPaymentView: View {
                                         try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                                         // Reset state and retry
                                         await MainActor.run {
-                                            guard let self = self else { return }
-                                            self.hasStartedPayment = false
-                                            self.isProcessing = false
-                                            self.isReady = false
+                                            hasStartedPayment = false
+                                            isProcessing = false
+                                            isReady = false
                                         }
                                         // Retry payment
                                         await MainActor.run {
-                                            guard let self = self else { return }
-                                            self.hasStartedPayment = true
-                                            self.processPayment()
+                                            hasStartedPayment = true
+                                            processPayment()
                                         }
                                         return
                                     }
@@ -378,10 +372,9 @@ struct ModernPaymentView: View {
                                         print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
                                     }
                                     await MainActor.run {
-                                        guard let self = self else { return }
-                                        self.isProcessing = false
-                                        self.hasStartedPayment = false
-                                        self.paymentStatus = .failure(errorDescription)
+                                        isProcessing = false
+                                        hasStartedPayment = false
+                                        paymentStatus = .failure(errorDescription)
                                     }
                                     return
                                 }
@@ -389,9 +382,8 @@ struct ModernPaymentView: View {
                                 guard let result = paymentResult else {
                                     print("[PaymentView] ❌ Payment result is nil")
                                     await MainActor.run {
-                                        guard let self = self else { return }
-                                        self.isProcessing = false
-                                        self.paymentStatus = .failure("Payment result is missing")
+                                        isProcessing = false
+                                        paymentStatus = .failure("Payment result is missing")
                                     }
                                     return
                                 }
@@ -410,16 +402,15 @@ struct ModernPaymentView: View {
                                 )
                                 
                                 await MainActor.run {
-                                    guard let self = self else { return }
-                                    self.isProcessing = false
+                                    isProcessing = false
                                     if result.success {
                                         // Payment succeeded - set success status (will auto-dismiss)
                                         print("[PaymentView] ✅ Payment succeeded, returning to home")
-                                        self.paymentStatus = .success
+                                        paymentStatus = .success
                                     } else {
                                         // Payment failed - show error
                                         print("[PaymentView] ❌ Payment failed: \(result.error ?? "Unknown error")")
-                                        self.paymentStatus = .failure(result.error ?? "Payment failed")
+                                        paymentStatus = .failure(result.error ?? "Payment failed")
                                     }
                                 }
                             } catch {
@@ -446,17 +437,15 @@ struct ModernPaymentView: View {
                                             )
                                             print("[PaymentView] ✅ Donation marked as SUCCEEDED after retry")
                                             await MainActor.run {
-                                                guard let self = self else { return }
-                                                self.isProcessing = false
-                                                self.paymentStatus = .success
+                                                isProcessing = false
+                                                paymentStatus = .success
                                             }
                                         } catch {
                                             print("[PaymentView] ⚠️ Retry also failed: \(error.localizedDescription)")
                                             // Still show success to user since payment went through on Square
                                             await MainActor.run {
-                                                guard let self = self else { return }
-                                                self.isProcessing = false
-                                                self.paymentStatus = .success
+                                                isProcessing = false
+                                                paymentStatus = .success
                                             }
                                         }
                                     } else {
@@ -476,9 +465,8 @@ struct ModernPaymentView: View {
                                             print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
                                         }
                                         await MainActor.run {
-                                            guard let self = self else { return }
-                                            self.isProcessing = false
-                                            self.paymentStatus = .failure(error.localizedDescription)
+                                            isProcessing = false
+                                            paymentStatus = .failure(error.localizedDescription)
                                         }
                                     }
                                 } else {
@@ -499,9 +487,8 @@ struct ModernPaymentView: View {
                                         print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
                                     }
                                     await MainActor.run {
-                                        guard let self = self else { return }
-                                        self.isProcessing = false
-                                        self.paymentStatus = .failure(error.localizedDescription)
+                                        isProcessing = false
+                                        paymentStatus = .failure(error.localizedDescription)
                                     }
                                 }
                             }
@@ -521,9 +508,8 @@ struct ModernPaymentView: View {
                     }
                 }
                 await MainActor.run {
-                    guard let self = self else { return }
-                    self.isProcessing = false
-                    self.paymentStatus = .failure(error.localizedDescription)
+                    isProcessing = false
+                    paymentStatus = .failure(error.localizedDescription)
                 }
             }
         }
