@@ -265,7 +265,13 @@ struct ModernPaymentView: View {
                     donationId = donation.id
                 }
                 
-                // 2. Start payment using Square Mobile Payments SDK
+                // 2. Ensure Square connection is ready (same as app restart)
+                // This forces reauthorization and hardware detection to fix any disconnection issues
+                appLog("🔄 Ensuring Square connection ready before payment (full reconnection)...", category: "PaymentView")
+                await appState.ensureSquareConnectionReady()
+                appLog("✅ Square connection ready - proceeding with payment", category: "PaymentView")
+                
+                // 3. Start payment using Square Mobile Payments SDK
                 // This will show card entry UI and detect card interactions from Square hardware
                 // Add small delay to ensure view is fully ready
                 try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
