@@ -85,13 +85,22 @@ struct ModernPaymentView: View {
             print("[PaymentView] 📊 State - isReady: \(isReady), isProcessing: \(isProcessing)")
             
             appLog("👁️ View appeared", category: "PaymentView")
-            appLog("📊 State - isReady: \(isReady), isProcessing: \(isProcessing), hasStartedPayment: \(hasStartedPayment)", category: "PaymentView")
+            appLog("📊 State - isReady: \(isReady), isProcessing: \(isProcessing), hasStartedPayment: \(hasStartedPayment), isStartingPayment: \(isStartingPayment)", category: "PaymentView")
+            
+            // Synchronous guard to prevent race conditions from rapid onAppear calls
+            guard !isStartingPayment else {
+                appLog("⚠️ Payment start already in progress (synchronous guard) - ignoring duplicate onAppear", category: "PaymentView")
+                return
+            }
             
             // Guard against multiple payment attempts from rapid onAppear/onDisappear cycles
             guard !hasStartedPayment else {
                 appLog("⚠️ Payment already started - ignoring duplicate onAppear", category: "PaymentView")
                 return
             }
+            
+            // Set synchronous flag immediately to prevent race conditions
+            isStartingPayment = true
             
             // Check if there's already a payment in progress
             if SquarePaymentService.shared.isPaymentInProgress() {
@@ -103,13 +112,15 @@ struct ModernPaymentView: View {
                 isProcessing = false
                 paymentStatus = nil
                 hasStartedPayment = false
+                isStartingPayment = false
                 // Wait a moment for SDK to clear before proceeding
                 Task {
                     try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                     await MainActor.run {
                         // Now proceed with new payment
-                        if !hasStartedPayment {
+                        if !hasStartedPayment && !isStartingPayment {
                             appLog("✅ SDK state cleared - proceeding with new payment", category: "PaymentView")
+                            isStartingPayment = true
                             hasStartedPayment = true
                             isReady = true
                             isProcessing = true
@@ -131,6 +142,7 @@ struct ModernPaymentView: View {
                 processPayment()
             } else {
                 print("[PaymentView] ⚠️ Skipping payment start - isReady: \(isReady), isProcessing: \(isProcessing)")
+                isStartingPayment = false
             }
         }
         .onDisappear {
