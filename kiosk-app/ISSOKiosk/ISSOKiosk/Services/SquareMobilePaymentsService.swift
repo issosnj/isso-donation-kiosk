@@ -14,7 +14,7 @@ import ExternalAccessory
 // See: https://developer.squareup.com/docs/mobile-payments-sdk#requirements-and-limitations
 
 // SquareMobilePaymentsService handles in-person payments with Square Reader 2nd Gen (Bluetooth)
-class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
+class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObserver, ReaderPairingDelegate {
     static let shared = SquareMobilePaymentsService()
     
     private var isAuthorized = false
@@ -23,6 +23,8 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
     private var currentPaymentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private var isStarting = false // Gate to prevent multiple simultaneous payment attempts
     private var hasPaymentHandle = false // Track if we actually got a payment handle from SDK
+    private var pairingHandle: PairingHandle? // Handle for reader pairing
+    private var pendingPaymentStart: (() -> Void)? // Store payment start closure if waiting for reader
     
     private override init() {
         super.init()
@@ -414,7 +416,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         }
     }
     
-    // Start payment flow - SDK will detect hardware automatically
+    // Start payment flow - check for readers first, then start payment
     private func startPaymentFlow(
         paymentParameters: PaymentParameters,
         promptParameters: PromptParameters,
@@ -441,58 +443,120 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return
         }
         
-        // Square Reader 2nd Gen uses Bluetooth - SDK automatically discovers and connects
-        // IMPORTANT: Reader must be paired via iOS Settings > Bluetooth first!
-        // The SDK can only discover already-paired readers, it cannot pair them automatically
-        appLog("💡 Square Reader 2nd Gen - SDK will discover and connect via Bluetooth", category: "SquareMobilePayments")
-        appLog("⚠️ IMPORTANT: Reader must be paired in iOS Settings > Bluetooth before payment", category: "SquareMobilePayments")
-        appLog("💡 Check iPad Settings > Bluetooth to ensure reader is paired", category: "SquareMobilePayments")
-        
-        // Note: Even if reader is paired in iOS Settings > Bluetooth, the SDK needs to discover it
-        // The SDK manages its own reader connections and will automatically discover paired readers
-        // However, we need to give it time to scan and connect
-        
-        // Access the reader manager to trigger SDK's internal reader discovery
-        // The SDK will automatically scan for paired Bluetooth readers when we access the manager
+        // Check for available readers using ReaderManager
         let readerManager = MobilePaymentsSDK.shared.readerManager
-        appLog("🔍 Accessing ReaderManager to trigger SDK reader discovery...", category: "SquareMobilePayments")
-        appLog("💡 SDK will scan for paired Square Reader 2nd Gen via Bluetooth", category: "SquareMobilePayments")
-        appLog("💡 Reader must be paired in iOS Settings > Bluetooth (which it is, since Square POS works)", category: "SquareMobilePayments")
+        let readers = readerManager.readers
+        let readyReaders = readers.filter { $0.statusInfo.status == .ready }
         
-        // According to Square docs, the SDK automatically discovers readers when payment starts
-        // But we give it extra time to ensure Bluetooth discovery completes
-        // Bluetooth discovery can take 2-5 seconds, especially if reader was just powered on
-        appLog("⏳ Waiting 3 seconds for Bluetooth discovery and reader connection...", category: "SquareMobilePayments")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-            guard let self = self else { return }
-            
-            // Double-check authorization state (may have changed during delay)
-            let currentAuthState = MobilePaymentsSDK.shared.authorizationManager.state
-            guard currentAuthState == .authorized else {
-                appLog("❌ SDK authorization lost during hardware wake-up (state: \(currentAuthState))", category: "SquareMobilePayments")
-                self.isStarting = false
-                self.hasPaymentHandle = false
-                self.currentPaymentCompletion?(.failure(NSError(domain: "SquareMobilePayments", code: -6, userInfo: [
-                    NSLocalizedDescriptionKey: "Square SDK not ready. Please try again.",
-                    NSLocalizedFailureReasonErrorKey: "sdk_not_authorized"
-                ])))
-                self.currentPaymentCompletion = nil
-                return
-            }
-            
-            appLog("🚀 Starting payment - SDK should now detect paired reader...", category: "SquareMobilePayments")
-            
-            // Start payment - delegate is passed as parameter to startPayment
-            // The SDK will automatically discover and connect to paired readers when payment starts
-            let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
-                paymentParameters,
+        appLog("🔍 Checking for available readers...", category: "SquareMobilePayments")
+        appLog("📊 Found \(readers.count) reader(s), \(readyReaders.count) ready", category: "SquareMobilePayments")
+        
+        if !readyReaders.isEmpty {
+            // Reader is ready - start payment immediately
+            appLog("✅ Reader is ready - starting payment...", category: "SquareMobilePayments")
+            self.startPaymentImmediately(
+                paymentParameters: paymentParameters,
                 promptParameters: promptParameters,
-                from: viewController,
-                delegate: self
+                viewController: viewController
             )
+        } else if !readers.isEmpty {
+            // Reader exists but not ready - wait a bit for it to become ready
+            appLog("⏳ Reader found but not ready (status: \(readers.first?.statusInfo.status ?? .unknown)) - waiting...", category: "SquareMobilePayments")
+            self.waitForReaderAndStartPayment(
+                paymentParameters: paymentParameters,
+                promptParameters: promptParameters,
+                viewController: viewController,
+                maxWaitTime: 5.0
+            )
+        } else {
+            // No readers found - try to discover paired readers
+            appLog("⚠️ No readers found - attempting to discover paired readers...", category: "SquareMobilePayments")
+            appLog("💡 Reader is paired in iOS Settings (since Square POS works), but SDK hasn't discovered it", category: "SquareMobilePayments")
             
-            self.processPaymentHandle(paymentHandle)
+            // Start pairing to discover already-paired readers
+            // This will trigger the SDK to scan for paired Bluetooth readers
+            if !readerManager.isPairingInProgress {
+                appLog("🔍 Starting reader discovery/pairing...", category: "SquareMobilePayments")
+                self.pairingHandle = readerManager.startPairing(with: self)
+                
+                // Store payment start closure to call when reader is discovered
+                self.pendingPaymentStart = { [weak self] in
+                    guard let self = self else { return }
+                    self.startPaymentImmediately(
+                        paymentParameters: paymentParameters,
+                        promptParameters: promptParameters,
+                        viewController: viewController
+                    )
+                }
+            } else {
+                appLog("⏳ Reader pairing already in progress - waiting...", category: "SquareMobilePayments")
+                self.waitForReaderAndStartPayment(
+                    paymentParameters: paymentParameters,
+                    promptParameters: promptParameters,
+                    viewController: viewController,
+                    maxWaitTime: 10.0
+                )
+            }
         }
+    }
+    
+    // Start payment immediately (reader is ready)
+    private func startPaymentImmediately(
+        paymentParameters: PaymentParameters,
+        promptParameters: PromptParameters,
+        viewController: UIViewController
+    ) {
+        appLog("🚀 Starting payment immediately - reader is ready", category: "SquareMobilePayments")
+        
+        let paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
+            paymentParameters,
+            promptParameters: promptParameters,
+            from: viewController,
+            delegate: self
+        )
+        
+        self.processPaymentHandle(paymentHandle)
+    }
+    
+    // Wait for reader to become ready, then start payment
+    private func waitForReaderAndStartPayment(
+        paymentParameters: PaymentParameters,
+        promptParameters: PromptParameters,
+        viewController: UIViewController,
+        maxWaitTime: TimeInterval
+    ) {
+        let startTime = Date()
+        let checkInterval = 0.5 // Check every 500ms
+        
+        func checkReader() {
+            let readerManager = MobilePaymentsSDK.shared.readerManager
+            let readyReaders = readerManager.readers.filter { $0.statusInfo.status == .ready }
+            
+            if !readyReaders.isEmpty {
+                appLog("✅ Reader is now ready - starting payment", category: "SquareMobilePayments")
+                self.startPaymentImmediately(
+                    paymentParameters: paymentParameters,
+                    promptParameters: promptParameters,
+                    viewController: viewController
+                )
+            } else if Date().timeIntervalSince(startTime) < maxWaitTime {
+                // Still waiting
+                DispatchQueue.main.asyncAfter(deadline: .now() + checkInterval) {
+                    checkReader()
+                }
+            } else {
+                // Timeout - start payment anyway (SDK will show error if no reader)
+                appLog("⏱️ Timeout waiting for reader - starting payment anyway", category: "SquareMobilePayments")
+                appLog("💡 SDK will show error if no reader is available", category: "SquareMobilePayments")
+                self.startPaymentImmediately(
+                    paymentParameters: paymentParameters,
+                    promptParameters: promptParameters,
+                    viewController: viewController
+                )
+            }
+        }
+        
+        checkReader()
     }
     
     // Process payment handle result
