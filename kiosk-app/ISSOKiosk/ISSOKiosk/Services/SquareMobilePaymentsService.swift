@@ -524,7 +524,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     /// Cancel current payment
     func cancelCurrentPayment() {
         log("🚫 Canceling payment")
-        if let handle = paymentHandle {
+        if paymentHandle != nil {
             // Note: SDK may not have explicit cancel method, but we can reset state
             paymentHandle = nil
         }
