@@ -35,13 +35,9 @@ struct LoadingView: View {
             Image("KioskBackground")
                 .resizable()
                 .scaledToFill()
-                .frame(
-                    width: geometry.size.width,
-                    height: geometry.size.height + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom
-                )
+                .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
-                .offset(y: -(geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom) / 2)
-                .ignoresSafeArea(.all, edges: .all)
+                .frame(width: geometry.size.width, height: geometry.size.height)
         } else {
             LinearGradient(
                 gradient: Gradient(colors: [
@@ -51,16 +47,16 @@ struct LoadingView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .ignoresSafeArea(.all)
         }
     }
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background
+                // Background - ensure it covers entire screen including safe areas
                 backgroundView(geometry: geometry)
-                    .ignoresSafeArea(.all)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .ignoresSafeArea(.all, edges: .all)
                 
                 // Loading content
                 VStack(spacing: 40) {
