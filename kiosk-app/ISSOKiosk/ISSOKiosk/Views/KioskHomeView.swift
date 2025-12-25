@@ -208,13 +208,9 @@ struct KioskHomeView: View {
                         GoldAccentDonateButton(
                             buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                             action: {
-                            // Full reconnection sequence: same as when app becomes active
-                            Task {
-                                await appState.ensureSquareConnectionReady()
-                                await MainActor.run {
-                                    navigationState.showDonationFlow = true
-                                }
-                            }
+                            // Navigate immediately - no Square SDK work here
+                            // Authorization will happen when payment actually starts
+                            navigationState.showDonationFlow = true
                         })
                         .padding(.horizontal, 20) // Add padding to prevent clipping during animation
                         .padding(.vertical, 10) // Add vertical padding for zoom animation
