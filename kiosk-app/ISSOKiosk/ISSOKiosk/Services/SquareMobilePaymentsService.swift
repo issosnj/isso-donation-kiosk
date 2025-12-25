@@ -394,11 +394,15 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         }
         
         // Square Reader 2nd Gen uses Bluetooth - SDK automatically discovers and connects
-        // No manual wake-up needed - SDK handles Bluetooth connection management
+        // IMPORTANT: Reader must be paired via iOS Settings > Bluetooth first!
+        // The SDK can only discover already-paired readers, it cannot pair them automatically
         appLog("💡 Square Reader 2nd Gen - SDK will discover and connect via Bluetooth", category: "SquareMobilePayments")
+        appLog("⚠️ IMPORTANT: Reader must be paired in iOS Settings > Bluetooth before payment", category: "SquareMobilePayments")
+        appLog("💡 Check iPad Settings > Bluetooth to ensure reader is paired", category: "SquareMobilePayments")
         
-        // Start payment immediately - SDK handles Bluetooth reader connection automatically
-        DispatchQueue.main.async { [weak self] in
+        // Add a small delay to allow Bluetooth discovery to complete
+        // This gives the SDK time to discover the paired reader
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self = self else { return }
             
             // Double-check authorization state (may have changed during delay)
@@ -558,8 +562,11 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         
         if isHardwareError {
             appLog("⚠️ Square Reader connection issue detected", category: "SquareMobilePayments")
+            appLog("💡 Error details: \(error.localizedDescription)", category: "SquareMobilePayments")
+            appLog("💡 Make sure Square Reader 2nd Gen is powered on and Bluetooth is enabled on iPad", category: "SquareMobilePayments")
+            appLog("💡 The reader should be paired/connected via Bluetooth before starting payment", category: "SquareMobilePayments")
             let userFriendlyError = NSError(domain: "SquareMobilePayments", code: -3, userInfo: [
-                NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Stand is connected and powered on."
+                NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Reader 2nd Gen is powered on, Bluetooth is enabled on the iPad, and the reader is paired."
             ])
             currentPaymentCompletion?(.failure(userFriendlyError))
         } else {
