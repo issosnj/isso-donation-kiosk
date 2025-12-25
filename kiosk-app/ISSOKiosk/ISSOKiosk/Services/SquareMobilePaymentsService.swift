@@ -25,6 +25,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
     private var hasPaymentHandle = false // Track if we actually got a payment handle from SDK
     private var pairingHandle: PairingHandle? // Handle for reader pairing
     private var pendingPaymentStart: (() -> Void)? // Store payment start closure if waiting for reader
+    private var pairingStartTime: Date? // Track when pairing started to detect stuck pairing
     
     private override init() {
         super.init()
@@ -271,16 +272,64 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
             appLog("❌ No readers found - starting automatic reader discovery...", category: "SquareMobilePayments")
             appLog("💡 Reader may need to be paired in iOS Settings > Bluetooth first", category: "SquareMobilePayments")
             
-            // Automatically start pairing to discover readers
-            // This will scan for paired Bluetooth readers
-            if !readerManager.isPairingInProgress {
-                appLog("🔍 Starting automatic reader discovery/pairing...", category: "SquareMobilePayments")
-                self.pairingHandle = readerManager.startPairing(with: self)
+            // Check if pairing is stuck (in progress for more than 30 seconds)
+            if readerManager.isPairingInProgress {
+                if let startTime = pairingStartTime {
+                    let elapsed = Date().timeIntervalSince(startTime)
+                    if elapsed > 30.0 {
+                        appLog("⚠️ Pairing has been in progress for \(Int(elapsed))s - stopping and restarting...", category: "SquareMobilePayments")
+                        pairingHandle?.stop()
+                        pairingHandle = nil
+                        pairingStartTime = nil
+                        // Wait a moment then restart
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                            self?.startReaderDiscovery()
+                        }
+                    } else {
+                        appLog("⏳ Reader pairing already in progress (\(Int(elapsed))s)...", category: "SquareMobilePayments")
+                    }
+                } else {
+                    appLog("⏳ Reader pairing already in progress (start time unknown)...", category: "SquareMobilePayments")
+                    // Set start time if we don't have it
+                    pairingStartTime = Date()
+                }
             } else {
-                appLog("⏳ Reader pairing already in progress...", category: "SquareMobilePayments")
+                // Start new pairing
+                startReaderDiscovery()
             }
             
             return false
+        }
+    }
+    
+    // Start reader discovery/pairing
+    private func startReaderDiscovery() {
+        let readerManager = MobilePaymentsSDK.shared.readerManager
+        guard !readerManager.isPairingInProgress else {
+            appLog("⚠️ Cannot start discovery - pairing already in progress", category: "SquareMobilePayments")
+            return
+        }
+        
+        appLog("🔍 Starting automatic reader discovery/pairing...", category: "SquareMobilePayments")
+        pairingStartTime = Date()
+        self.pairingHandle = readerManager.startPairing(with: self)
+        
+        // Set a timeout to check if pairing completes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) { [weak self] in
+            guard let self = self else { return }
+            let readerManager = MobilePaymentsSDK.shared.readerManager
+            if readerManager.isPairingInProgress {
+                let readers = readerManager.readers
+                if readers.isEmpty {
+                    appLog("⏱️ Pairing timeout (30s) - checking if reader was discovered anyway...", category: "SquareMobilePayments")
+                    // Check one more time - sometimes reader is discovered but pairing callback hasn't fired
+                    if !readers.isEmpty {
+                        appLog("✅ Reader found after timeout check!", category: "SquareMobilePayments")
+                    } else {
+                        appLog("⚠️ Pairing timeout - reader still not found. Reader may need to be re-paired.", category: "SquareMobilePayments")
+                    }
+                }
+            }
         }
     }
     
@@ -521,29 +570,51 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
             appLog("⚠️ No readers found - attempting to discover paired readers...", category: "SquareMobilePayments")
             appLog("💡 Reader is paired in iOS Settings (since Square POS works), but SDK hasn't discovered it", category: "SquareMobilePayments")
             
-            // Start pairing to discover already-paired readers
-            // This will trigger the SDK to scan for paired Bluetooth readers
-            if !readerManager.isPairingInProgress {
-                appLog("🔍 Starting reader discovery/pairing...", category: "SquareMobilePayments")
-                self.pairingHandle = readerManager.startPairing(with: self)
-                
-                // Store payment start closure to call when reader is discovered
-                self.pendingPaymentStart = { [weak self] in
-                    guard let self = self else { return }
-                    self.startPaymentImmediately(
+            // Store payment start closure to call when reader is discovered
+            self.pendingPaymentStart = { [weak self] in
+                guard let self = self else { return }
+                self.startPaymentImmediately(
+                    paymentParameters: paymentParameters,
+                    promptParameters: promptParameters,
+                    viewController: viewController
+                )
+            }
+            
+            // Check if pairing is stuck (in progress for more than 30 seconds)
+            if readerManager.isPairingInProgress {
+                if let startTime = pairingStartTime {
+                    let elapsed = Date().timeIntervalSince(startTime)
+                    if elapsed > 30.0 {
+                        appLog("⚠️ Pairing has been in progress for \(Int(elapsed))s - stopping and restarting...", category: "SquareMobilePayments")
+                        pairingHandle?.stop()
+                        pairingHandle = nil
+                        pairingStartTime = nil
+                        // Wait a moment then restart
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                            self?.startReaderDiscovery()
+                        }
+                    } else {
+                        appLog("⏳ Reader pairing already in progress (\(Int(elapsed))s) - waiting...", category: "SquareMobilePayments")
+                        self.waitForReaderAndStartPayment(
+                            paymentParameters: paymentParameters,
+                            promptParameters: promptParameters,
+                            viewController: viewController,
+                            maxWaitTime: 10.0
+                        )
+                    }
+                } else {
+                    appLog("⏳ Reader pairing already in progress (start time unknown) - waiting...", category: "SquareMobilePayments")
+                    pairingStartTime = Date() // Set start time if we don't have it
+                    self.waitForReaderAndStartPayment(
                         paymentParameters: paymentParameters,
                         promptParameters: promptParameters,
-                        viewController: viewController
+                        viewController: viewController,
+                        maxWaitTime: 10.0
                     )
                 }
             } else {
-                appLog("⏳ Reader pairing already in progress - waiting...", category: "SquareMobilePayments")
-                self.waitForReaderAndStartPayment(
-                    paymentParameters: paymentParameters,
-                    promptParameters: promptParameters,
-                    viewController: viewController,
-                    maxWaitTime: 10.0
-                )
+                // Start new pairing
+                startReaderDiscovery()
             }
         }
     }
@@ -893,16 +964,32 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
     
     func readerPairingDidBegin() {
         appLog("🔍 Reader pairing began - scanning for readers...", category: "SquareMobilePayments")
+        pairingStartTime = Date()
     }
     
     func readerPairingDidSucceed() {
         appLog("✅ Reader pairing succeeded!", category: "SquareMobilePayments")
+        if let startTime = pairingStartTime {
+            let elapsed = Date().timeIntervalSince(startTime)
+            appLog("⏱️ Pairing completed in \(String(format: "%.1f", elapsed))s", category: "SquareMobilePayments")
+        }
         pairingHandle = nil
+        pairingStartTime = nil
+        
+        // Check if readers are now available
+        let readerManager = MobilePaymentsSDK.shared.readerManager
+        let readers = readerManager.readers
+        appLog("📊 Readers after pairing: \(readers.count)", category: "SquareMobilePayments")
     }
     
     func readerPairingDidFail(with error: Error) {
         appLog("❌ Reader pairing failed: \(error.localizedDescription)", category: "SquareMobilePayments")
+        if let startTime = pairingStartTime {
+            let elapsed = Date().timeIntervalSince(startTime)
+            appLog("⏱️ Pairing failed after \(String(format: "%.1f", elapsed))s", category: "SquareMobilePayments")
+        }
         pairingHandle = nil
+        pairingStartTime = nil
         
         // If pairing failed but we have a pending payment, try starting it anyway
         // The SDK might still discover the reader when payment starts
