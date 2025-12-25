@@ -323,7 +323,28 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
             return
         }
         
-        // 2) Check if SDK is authorized (reader connection will be verified by SDK when payment starts)
+        // 2) Check permissions first (required by Square SDK before payment)
+        // According to Square docs: "you should only start a payment if you've determined that location access has been granted"
+        let locationStatus = CLLocationManager.authorizationStatus()
+        guard locationStatus == .authorizedWhenInUse || locationStatus == .authorizedAlways else {
+            appLog("❌ Location permission not granted - cannot start payment", category: "SquareMobilePayments")
+            appLog("💡 Location permission is required for Square payments", category: "SquareMobilePayments")
+            let error = NSError(domain: "SquareMobilePayments", code: -7, userInfo: [
+                NSLocalizedDescriptionKey: "Location permission is required for payments. Please enable location access in Settings.",
+                NSLocalizedFailureReasonErrorKey: "location_permission_denied"
+            ])
+            completion(.failure(error))
+            return
+        }
+        
+        // Check Bluetooth permission (required for contactless readers)
+        let bluetoothStatus = CBManager.authorization
+        guard bluetoothStatus == .allowedAlways else {
+            appLog("⚠️ Bluetooth permission not granted - contactless payments may fail", category: "SquareMobilePayments")
+            // Don't block payment, but warn - SDK will handle the error if reader can't connect
+        }
+        
+        // 3) Check if SDK is authorized (reader connection will be verified by SDK when payment starts)
         // We can't reliably check reader connection before payment, so we'll let the SDK handle it
         // If no reader is connected, the SDK will return an error which we'll handle gracefully
         let authState = MobilePaymentsSDK.shared.authorizationManager.state

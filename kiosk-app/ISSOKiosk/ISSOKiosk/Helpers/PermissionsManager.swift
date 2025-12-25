@@ -18,8 +18,9 @@ class PermissionsManager: NSObject {
     }
     
     // Request location permission (required for Square payments)
+    // Following Square's recommended pattern from Mobile Payments SDK documentation
     func requestLocationPermission(completion: @escaping (Bool) -> Void) {
-        switch locationManager.authorizationStatus {
+        switch CLLocationManager.authorizationStatus() {
         case .notDetermined:
             print("[PermissionsManager] Requesting location permission...")
             locationPermissionCompletion = completion
@@ -27,9 +28,10 @@ class PermissionsManager: NSObject {
             // Note: Completion will be called in delegate method when user responds
         case .restricted, .denied:
             print("[PermissionsManager] ⚠️ Location permission denied - user must enable in Settings")
+            print("[PermissionsManager] 💡 Show UI directing the user to the iOS Settings app")
             completion(false)
         case .authorizedAlways, .authorizedWhenInUse:
-            print("[PermissionsManager] ✅ Location permission already granted")
+            print("[PermissionsManager] ✅ Location services have already been authorized")
             completion(true)
         @unknown default:
             print("[PermissionsManager] ⚠️ Unknown location authorization status")
@@ -38,30 +40,36 @@ class PermissionsManager: NSObject {
     }
     
     // Request Bluetooth permission (required for contactless readers)
+    // Following Square's recommended pattern from Mobile Payments SDK documentation
     func requestBluetoothPermission(completion: @escaping (Bool) -> Void) {
         // Check current authorization state
-        let authStatus = CBManager.authorization
-        switch authStatus {
-        case .notDetermined:
-            print("[PermissionsManager] Requesting Bluetooth permission...")
-            bluetoothPermissionCompletion = completion
-            // Create CBCentralManager to trigger permission prompt
-            // Note: Completion will be called in delegate method when state updates
-            centralManager = CBCentralManager(
-                delegate: self,
-                queue: .main,
-                options: nil
-            )
-        case .restricted, .denied:
-            print("[PermissionsManager] ⚠️ Bluetooth permission denied - user must enable in Settings")
-            completion(false)
-        case .allowedAlways:
-            print("[PermissionsManager] ✅ Bluetooth permission already granted")
-            completion(true)
-        @unknown default:
-            print("[PermissionsManager] ⚠️ Unknown Bluetooth authorization status")
-            completion(false)
+        guard CBManager.authorization == .notDetermined else {
+            // Already determined - check if granted
+            let authStatus = CBManager.authorization
+            switch authStatus {
+            case .allowedAlways:
+                print("[PermissionsManager] ✅ Bluetooth permission already granted")
+                completion(true)
+            case .restricted, .denied:
+                print("[PermissionsManager] ⚠️ Bluetooth permission denied - user must enable in Settings")
+                completion(false)
+            @unknown default:
+                print("[PermissionsManager] ⚠️ Unknown Bluetooth authorization status")
+                completion(false)
+            }
+            return
         }
+        
+        print("[PermissionsManager] Requesting Bluetooth permission...")
+        bluetoothPermissionCompletion = completion
+        // Create CBCentralManager to trigger permission prompt
+        // Following Square's recommended pattern: create CBCentralManager with delegate
+        // Note: Completion will be called in delegate method when state updates
+        centralManager = CBCentralManager(
+            delegate: self,
+            queue: .main,
+            options: nil
+        )
     }
     
     // Check if all required permissions are granted
