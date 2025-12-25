@@ -29,6 +29,7 @@ struct ModernPaymentView: View {
     @State private var isReady = false
     @State private var donationId: String? = nil
     @State private var hasStartedPayment = false // Guard against multiple payment attempts
+    @State private var isStartingPayment = false // Synchronous flag to prevent race conditions
     @SwiftUIEnvironment(\.dismiss) var dismiss: DismissAction
     
     var body: some View {
@@ -205,8 +206,12 @@ struct ModernPaymentView: View {
         // This protects against race conditions from rapid onAppear calls
         guard !isProcessing || donationId == nil else {
             appLog("⚠️ Payment already processing with donation ID: \(donationId ?? "unknown") - ignoring duplicate call", category: "PaymentView")
+            isStartingPayment = false // Reset flag if we're bailing out
             return
         }
+        
+        // Reset the starting flag once we're actually processing
+        isStartingPayment = false
         
         appLog("📋 Checking prerequisites...", category: "PaymentView")
         
