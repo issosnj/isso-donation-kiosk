@@ -137,15 +137,13 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             return
         }
         
-        // If forcing reauthorize, deauthorize first (add delay to avoid database issues)
+        // NEVER deauthorize if already authorized - this causes SQLite database errors
+        // If forceReauthorize is requested but already authorized, just refresh without deauthorizing
         if forceReauthorize && state == .authorized {
-            log("🔄 Force reauthorizing (deauthorizing first - may cause brief database warnings)")
-            auth.deauthorize { [weak self] in
-                // Add a small delay to let SDK clean up database connections before reauthorizing
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self?.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
-                }
-            }
+            log("✅ Already authorized - skipping deauthorization to avoid database issues")
+            // Just refresh the connection without deauthorizing
+            startHealthMonitor()
+            completion(nil)
             return
         }
         
