@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -8,7 +8,7 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import Sidebar from '@/components/Sidebar'
 
-export default function DeviceLogsPage() {
+function DeviceLogsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isAuthenticated, user } = useAuthStore()
@@ -190,6 +190,21 @@ export default function DeviceLogsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function DeviceLogsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading device logs...</p>
+        </div>
+      </div>
+    }>
+      <DeviceLogsContent />
+    </Suspense>
   )
 }
 
