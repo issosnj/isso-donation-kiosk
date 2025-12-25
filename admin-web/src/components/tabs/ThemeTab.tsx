@@ -694,48 +694,6 @@ export default function ThemeTab() {
             <div className="mb-8">
               <h5 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-200">Action Buttons</h5>
               <div className="space-y-4">
-                {/* Tap to Donate Button */}
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-medium text-gray-700">Tap to Donate Button</label>
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <span className="text-xs text-gray-600">Gradient</span>
-                      <input
-                        type="checkbox"
-                        checked={formData.colors.tapToDonateButtonGradient}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          colors: { ...formData.colors, tapToDonateButtonGradient: e.target.checked }
-                        })}
-                        disabled={!isEditing}
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:opacity-50"
-                      />
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={formData.colors.tapToDonateButtonColor}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        colors: { ...formData.colors, tapToDonateButtonColor: e.target.value }
-                      })}
-                      disabled={!isEditing}
-                      className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                    <input
-                      type="text"
-                      value={formData.colors.tapToDonateButtonColor}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        colors: { ...formData.colors, tapToDonateButtonColor: e.target.value }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="#000000"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
-                    />
-                  </div>
-                </div>
 
                 {/* Donation Selection Page Buttons Section */}
                 <div className="mb-4">
