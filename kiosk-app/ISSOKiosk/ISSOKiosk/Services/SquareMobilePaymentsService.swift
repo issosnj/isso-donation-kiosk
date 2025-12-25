@@ -309,8 +309,8 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         appLog("💳 Starting payment: $\(amount) for donation \(donationId)", category: "SquareMobilePayments")
         
         // Check SDK's actual authorization state (source of truth, not local flag)
-        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        appLog("🔐 SDK Authorization state: \(authState)", category: "SquareMobilePayments")
+        let currentAuthState = MobilePaymentsSDK.shared.authorizationManager.state
+        appLog("🔐 SDK Authorization state: \(currentAuthState)", category: "SquareMobilePayments")
         
         // Check if we have credentials
         guard let accessToken = self.accessToken, let locationId = self.locationId else {
@@ -325,8 +325,8 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         appLog("📍 Location ID: \(locationId)", category: "SquareMobilePayments")
         
         // If SDK is not authorized, authorize it first (this can happen if authorization is still in progress)
-        if authState != .authorized {
-            appLog("⚠️ SDK not authorized (state: \(authState)) - authorizing now...", category: "SquareMobilePayments")
+        if currentAuthState != .authorized {
+            appLog("⚠️ SDK not authorized (state: \(currentAuthState)) - authorizing now...", category: "SquareMobilePayments")
             self.authorize(accessToken: accessToken, locationId: locationId) { error in
                 if let error = error {
                     appLog("❌ Authorization failed: \(error.localizedDescription)", category: "SquareMobilePayments")

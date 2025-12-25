@@ -344,12 +344,14 @@ struct ModernPaymentView: View {
                                         try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                                         // Reset state and retry
                                         await MainActor.run {
+                                            guard let self = self else { return }
                                             self.hasStartedPayment = false
                                             self.isProcessing = false
                                             self.isReady = false
                                         }
                                         // Retry payment
                                         await MainActor.run {
+                                            guard let self = self else { return }
                                             self.hasStartedPayment = true
                                             self.processPayment()
                                         }
