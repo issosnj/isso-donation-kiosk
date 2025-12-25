@@ -81,45 +81,27 @@ struct ModernPaymentView: View {
             }
         }
         .onAppear {
-            print("[PaymentView] 👁️ View appeared")
-            print("[PaymentView] 📊 State - isReady: \(isReady), isProcessing: \(isProcessing)")
-            
-            appLog("👁️ View appeared", category: "PaymentView")
-            appLog("📊 State - isReady: \(isReady), isProcessing: \(isProcessing), hasStartedPayment: \(hasStartedPayment), isStartingPayment: \(isStartingPayment)", category: "PaymentView")
-            
-            // Synchronous guard to prevent race conditions from rapid onAppear calls
-            guard !isStartingPayment else {
-                appLog("⚠️ Payment start already in progress (synchronous guard) - ignoring duplicate onAppear", category: "PaymentView")
+            // Guard against multiple payment attempts
+            guard !isStartingPayment && !hasStartedPayment else {
                 return
             }
             
-            // Guard against multiple payment attempts from rapid onAppear/onDisappear cycles
-            guard !hasStartedPayment else {
-                appLog("⚠️ Payment already started - ignoring duplicate onAppear", category: "PaymentView")
-                return
-            }
-            
-            // Set synchronous flag immediately to prevent race conditions
+            // Set flag immediately to prevent race conditions
             isStartingPayment = true
             
             // Check if there's already a payment in progress
             if SquarePaymentService.shared.isPaymentInProgress() {
-                appLog("⚠️ Payment already in progress - canceling existing payment", category: "PaymentView")
-                // Cancel existing payment
                 SquarePaymentService.shared.cancelCurrentPayment()
-                // Reset state
+                // Reset state and wait briefly for SDK to clear
                 isReady = false
                 isProcessing = false
                 paymentStatus = nil
                 hasStartedPayment = false
                 isStartingPayment = false
-                // Wait a moment for SDK to clear before proceeding
                 Task {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                     await MainActor.run {
-                        // Now proceed with new payment
                         if !hasStartedPayment && !isStartingPayment {
-                            appLog("✅ SDK state cleared - proceeding with new payment", category: "PaymentView")
                             isStartingPayment = true
                             hasStartedPayment = true
                             isReady = true
@@ -131,17 +113,13 @@ struct ModernPaymentView: View {
                 return
             }
             
-            // Start payment immediately - Square SDK will show its own UI
-            // No need for intermediate "Ready" screen
+            // Start payment immediately
             if !isReady && !isProcessing {
-                appLog("✅ Starting payment immediately...", category: "PaymentView")
                 hasStartedPayment = true
                 isReady = true
-                isProcessing = true // Set processing immediately so SDK UI shows
-                // Start payment immediately - Square SDK will present its own UI
+                isProcessing = true
                 processPayment()
             } else {
-                print("[PaymentView] ⚠️ Skipping payment start - isReady: \(isReady), isProcessing: \(isProcessing)")
                 isStartingPayment = false
             }
         }
@@ -212,52 +190,36 @@ struct ModernPaymentView: View {
     }
     
     private func processPayment() {
-        appLog("💳 processPayment() called", category: "PaymentView")
-        
-        // Additional guard inside processPayment to prevent duplicate calls
-        // This protects against race conditions from rapid onAppear calls
+        // Guard against duplicate calls
         guard !isProcessing || donationId == nil else {
-            appLog("⚠️ Payment already processing with donation ID: \(donationId ?? "unknown") - ignoring duplicate call", category: "PaymentView")
-            isStartingPayment = false // Reset flag if we're bailing out
+            isStartingPayment = false
             return
         }
         
-        // Reset the starting flag once we're actually processing
         isStartingPayment = false
         
-        appLog("📋 Checking prerequisites...", category: "PaymentView")
-        
         guard let templeId = appState.temple?.id else {
-            appLog("❌ Missing temple ID", category: "PaymentView")
             paymentStatus = .failure("Device not properly activated - missing temple")
             return
         }
         
         guard let deviceId = appState.deviceId else {
-            appLog("❌ Missing device ID", category: "PaymentView")
             paymentStatus = .failure("Device not properly activated - missing device")
             return
         }
         
-        appLog("✅ Prerequisites OK - templeId: \(templeId), deviceId: \(deviceId)", category: "PaymentView")
-        appLog("💰 Amount: $\(amount)", category: "PaymentView")
-        appLog("📦 Category: \(category?.name ?? "none")", category: "PaymentView")
-        
         isProcessing = true
-        appLog("🔄 Starting payment flow...", category: "PaymentView")
         
         Task {
             var currentDonationId: String? = nil
             do {
-                print("[PaymentView] 📡 Step 1: Initiating donation with backend...")
-                // 1. Initiate donation
+                // Initiate donation with backend
                 let donation = try await APIService.shared.initiateDonation(
                     templeId: templeId,
                     deviceId: deviceId,
                     amount: amount,
                     categoryId: category?.id
                 )
-                appLog("✅ Donation initiated: \(donation.id)", category: "PaymentView")
                 
                 // Store donation ID for potential cancellation
                 currentDonationId = donation.id
@@ -267,55 +229,22 @@ struct ModernPaymentView: View {
                 
                 // 2. Start payment using Square Mobile Payments SDK
                 // Authorization will be handled inside takePayment() when needed
-                // This will show card entry UI and detect card interactions from Square hardware
-                // Add small delay to ensure view is fully ready
-                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
-                
                 await MainActor.run {
-                    print("[PaymentView] 📱 Step 2: Getting UIViewController for SDK...")
                     guard let viewController = UIViewController.topViewController() else {
-                        print("[PaymentView] ❌ Failed to get top view controller")
                         isProcessing = false
                         paymentStatus = .failure("Unable to present payment interface")
                         return
                     }
                     
-                    appLog("✅ Got viewController: \(type(of: viewController))", category: "PaymentView")
-                    print("[PaymentView] 📱 ViewController isViewLoaded: \(viewController.isViewLoaded)")
-                    print("[PaymentView] 📱 ViewController viewIfLoaded: \(viewController.viewIfLoaded != nil ? "loaded" : "not loaded")")
-                    
                     // Ensure view is loaded
                     _ = viewController.view
-                    
-                    print("[PaymentView] 🚀 Step 3: Starting Square SDK payment...")
-                    print("[PaymentView] 💡 Cash App Pay will be available if enabled in Square Dashboard")
-                    
-                    // Add a timeout to detect if SDK shows "Connect hardware" screen
-                    // If payment doesn't complete within 10 seconds, assume no reader was found
-                    var timeoutTask: Task<Void, Never>?
-                    
-                    timeoutTask = Task {
-                        try? await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds
-                        if !Task.isCancelled {
-                            // Check if payment is still in progress (SDK might be showing "Connect hardware" screen)
-                            if SquarePaymentService.shared.isPaymentInProgress() {
-                                print("[PaymentView] ⏱️ Payment timeout - SDK may be showing 'Connect hardware' screen")
-                                print("[PaymentView] 💡 This usually means Square Reader 2nd Gen is not paired in iOS Settings > Bluetooth")
-                                // Don't cancel here - let the SDK handle it, but log for debugging
-                            }
-                        }
-                    }
                     
                     SquarePaymentService.shared.startPayment(
                         donationId: donation.id,
                         amount: amount,
                         from: viewController
                     ) { result in
-                        // Cancel timeout task when payment completes
-                        timeoutTask?.cancel()
-                        print("[PaymentView] 📬 Payment result received")
                         Task {
-                            // Declare paymentResult outside do-catch so it's accessible in catch block
                             var paymentResult: SquarePaymentService.PaymentResult?
                             
                             do {
@@ -323,7 +252,6 @@ struct ModernPaymentView: View {
                                 case .success(let result):
                                     paymentResult = result
                                 case .failure(let error):
-                                    // Check if this is a reader_not_connected error
                                     let nsError = error as NSError
                                     let errorDescription = error.localizedDescription
                                     let errorCode = nsError.code
@@ -332,22 +260,18 @@ struct ModernPaymentView: View {
                                                                errorDescription.lowercased().contains("reader not connected") ||
                                                                errorDescription.lowercased().contains("connect hardware") ||
                                                                errorDescription.lowercased().contains("hardware") ||
-                                                               errorCode == -3 // Our custom reader_not_connected error code
+                                                               errorCode == -3
                                     
                                     if isReaderNotConnected {
-                                        print("[PaymentView] ⚠️ Reader not connected - offering to open Reader Settings...")
-                                        // Show alert offering to open Reader Settings
                                         await MainActor.run {
                                             isProcessing = false
                                             hasStartedPayment = false
                                             
-                                            // Get the current view controller to present alert
                                             guard let alertVC = UIViewController.topViewController() else {
                                                 paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
                                                 return
                                             }
                                             
-                                            // Create alert to open Reader Settings
                                             let alert = UIAlertController(
                                                 title: "Reader Not Connected",
                                                 message: "No Square Reader is connected. Would you like to open Reader Settings to pair a reader?",
@@ -355,11 +279,7 @@ struct ModernPaymentView: View {
                                             )
                                             
                                             alert.addAction(UIAlertAction(title: "Open Settings", style: .default) { _ in
-                                                // Present Reader Settings screen
-                                                SquareMobilePaymentsService.shared.presentReaderSettings(from: alertVC) {
-                                                    // After settings dismissed, user can try payment again
-                                                    print("[PaymentView] Reader Settings dismissed - user can try payment again")
-                                                }
+                                                SquareMobilePaymentsService.shared.presentReaderSettings(from: alertVC) {}
                                             })
                                             
                                             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
@@ -376,19 +296,12 @@ struct ModernPaymentView: View {
                                                                    nsError.userInfo["NSLocalizedFailureReasonErrorKey"] as? String == "payment_already_in_progress"
                                     
                                     if isPaymentInProgressError {
-                                        print("[PaymentView] ⚠️ Payment already in progress error - canceling and retrying...")
-                                        // Cancel any existing payment
                                         SquarePaymentService.shared.cancelCurrentPayment()
-                                        // Wait for payment to clear (1 second should be enough for POS SDK)
-                                        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-                                        // Reset state and retry
+                                        try? await Task.sleep(nanoseconds: 1_000_000_000)
                                         await MainActor.run {
                                             hasStartedPayment = false
                                             isProcessing = false
                                             isReady = false
-                                        }
-                                        // Retry payment
-                                        await MainActor.run {
                                             hasStartedPayment = true
                                             processPayment()
                                         }
@@ -396,7 +309,6 @@ struct ModernPaymentView: View {
                                     }
                                     
                                     // Payment failed - mark donation as FAILED
-                                    print("[PaymentView] ❌ Payment failed: \(errorDescription)")
                                     do {
                                         _ = try await APIService.shared.completeDonation(
                                             donationId: donation.id,
@@ -407,10 +319,7 @@ struct ModernPaymentView: View {
                                             donorEmail: donorEmail,
                                             donorAddress: donorAddress
                                         )
-                                        print("[PaymentView] ✅ Donation marked as FAILED")
-                                    } catch {
-                                        print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
-                                    }
+                                    } catch {}
                                     await MainActor.run {
                                         isProcessing = false
                                         hasStartedPayment = false
@@ -420,7 +329,6 @@ struct ModernPaymentView: View {
                                 }
                                 
                                 guard let result = paymentResult else {
-                                    print("[PaymentView] ❌ Payment result is nil")
                                     await MainActor.run {
                                         isProcessing = false
                                         paymentStatus = .failure("Payment result is missing")
@@ -428,9 +336,7 @@ struct ModernPaymentView: View {
                                     return
                                 }
                                 
-                                // 3. Complete donation
-                                print("[PaymentView] 📡 Completing donation with status: \(result.success ? "SUCCEEDED" : "FAILED")")
-                                print("[PaymentView] 📡 Payment ID: \(result.paymentId ?? "nil")")
+                                // Complete donation
                                 _ = try await APIService.shared.completeDonation(
                                     donationId: donation.id,
                                     squarePaymentId: result.paymentId ?? "",
@@ -444,27 +350,16 @@ struct ModernPaymentView: View {
                                 await MainActor.run {
                                     isProcessing = false
                                     if result.success {
-                                        // Payment succeeded - set success status (will auto-dismiss)
-                                        print("[PaymentView] ✅ Payment succeeded, returning to home")
                                         paymentStatus = .success
                                     } else {
-                                        // Payment failed - show error
-                                        print("[PaymentView] ❌ Payment failed: \(result.error ?? "Unknown error")")
                                         paymentStatus = .failure(result.error ?? "Payment failed")
                                     }
                                 }
                             } catch {
-                                // Error during payment completion
-                                // If paymentResult.success was true, the payment actually succeeded on Square
-                                // So we should still mark it as SUCCEEDED even if the completion API call failed
-                                print("[PaymentView] ❌ Error completing donation: \(error.localizedDescription)")
+                                // Error during payment completion - if payment succeeded on Square, still show success
                                 if let result = paymentResult {
-                                    print("[PaymentView] 🔍 Payment result success: \(result.success)")
-                                    print("[PaymentView] 🔍 Payment ID: \(result.paymentId ?? "nil")")
-                                    
-                                    // If payment actually succeeded on Square, try to complete it again with the payment ID
                                     if result.success, let paymentId = result.paymentId, !paymentId.isEmpty {
-                                        print("[PaymentView] 🔄 Retrying completion with payment ID: \(paymentId)")
+                                        // Retry completion with payment ID
                                         do {
                                             _ = try await APIService.shared.completeDonation(
                                                 donationId: donation.id,
@@ -475,21 +370,13 @@ struct ModernPaymentView: View {
                                                 donorEmail: donorEmail,
                                                 donorAddress: donorAddress
                                             )
-                                            print("[PaymentView] ✅ Donation marked as SUCCEEDED after retry")
-                                            await MainActor.run {
-                                                isProcessing = false
-                                                paymentStatus = .success
-                                            }
-                                        } catch {
-                                            print("[PaymentView] ⚠️ Retry also failed: \(error.localizedDescription)")
-                                            // Still show success to user since payment went through on Square
-                                            await MainActor.run {
-                                                isProcessing = false
-                                                paymentStatus = .success
-                                            }
+                                        } catch {}
+                                        await MainActor.run {
+                                            isProcessing = false
+                                            paymentStatus = .success
                                         }
                                     } else {
-                                        // Payment actually failed - mark as FAILED
+                                        // Payment failed - mark as FAILED
                                         do {
                                             _ = try await APIService.shared.completeDonation(
                                                 donationId: donation.id,
@@ -500,10 +387,7 @@ struct ModernPaymentView: View {
                                                 donorEmail: donorEmail,
                                                 donorAddress: donorAddress
                                             )
-                                            print("[PaymentView] ✅ Donation marked as FAILED after error")
-                                        } catch {
-                                            print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
-                                        }
+                                        } catch {}
                                         await MainActor.run {
                                             isProcessing = false
                                             paymentStatus = .failure(error.localizedDescription)
@@ -511,7 +395,6 @@ struct ModernPaymentView: View {
                                     }
                                 } else {
                                     // No payment result - mark as FAILED
-                                    print("[PaymentView] ⚠️ No payment result available")
                                     do {
                                         _ = try await APIService.shared.completeDonation(
                                             donationId: donation.id,
@@ -522,10 +405,7 @@ struct ModernPaymentView: View {
                                             donorEmail: donorEmail,
                                             donorAddress: donorAddress
                                         )
-                                        print("[PaymentView] ✅ Donation marked as FAILED")
-                                    } catch {
-                                        print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
-                                    }
+                                    } catch {}
                                     await MainActor.run {
                                         isProcessing = false
                                         paymentStatus = .failure(error.localizedDescription)
@@ -536,16 +416,11 @@ struct ModernPaymentView: View {
                     }
                 }
             } catch {
-                print("[PaymentView] ❌ Error in payment flow: \(error)")
-                print("[PaymentView] ❌ Error details: \(error.localizedDescription)")
                 // If donation was initiated but payment failed to start, cancel it
                 if let donationId = currentDonationId {
                     do {
                         _ = try await APIService.shared.cancelDonation(donationId: donationId)
-                        print("[PaymentView] ✅ Donation canceled after payment flow error")
-                    } catch {
-                        print("[PaymentView] ⚠️ Failed to cancel donation: \(error.localizedDescription)")
-                    }
+                    } catch {}
                 }
                 await MainActor.run {
                     isProcessing = false
