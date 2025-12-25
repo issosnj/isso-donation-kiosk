@@ -723,8 +723,8 @@ struct KioskHomeView: View {
     
     // Computed properties for headers with defaults
     private var header1Text: String {
-        // Use localized ISSO text
-        return "isso".localized
+        // Use localized ISSO text - directly access languageManager to ensure SwiftUI observes changes
+        return languageManager.translate("isso")
     }
     
     private var timeString: String {
