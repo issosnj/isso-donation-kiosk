@@ -275,7 +275,7 @@ struct ModernPaymentView: View {
                         donationId: donation.id,
                         amount: amount,
                         from: viewController
-                    ) { result in
+                    ) { [weak self] result in
                         print("[PaymentView] 📬 Payment result received")
                         Task {
                             // Declare paymentResult outside do-catch so it's accessible in catch block

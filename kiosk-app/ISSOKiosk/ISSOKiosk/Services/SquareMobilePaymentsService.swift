@@ -219,26 +219,55 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         print("[SquareMobilePayments] ============================================\n")
     }
     
-    // Check if Square Reader is available
+    // Check if Square Reader is actually connected using ReaderManager
     // Made public so AppState can check hardware connection
-    // Note: Square Reader 2nd Gen uses Bluetooth, so we can't detect it via ExternalAccessory framework
-    // The SDK automatically manages Bluetooth reader connections
     func checkHardwareConnection() -> Bool {
-        // Square Reader 2nd Gen connects via Bluetooth, not External Accessory framework
-        // We can't detect Bluetooth readers via EAAccessoryManager
-        // The SDK handles Bluetooth discovery and connection automatically
-        // This method returns true if SDK is authorized (reader will be detected when payment starts)
-        
+        // First check if SDK is authorized
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        if authState == .authorized {
-            appLog("✅ SDK authorized - Square Reader will be detected automatically via Bluetooth when payment starts", category: "SquareMobilePayments")
-            appLog("💡 Note: Square Reader 2nd Gen uses Bluetooth - SDK manages connection automatically", category: "SquareMobilePayments")
-            appLog("⚠️ IMPORTANT: Reader must be paired in iOS Settings > Bluetooth before payment", category: "SquareMobilePayments")
+        guard authState == .authorized else {
+            appLog("⚠️ SDK not authorized - cannot check reader connection", category: "SquareMobilePayments")
+            return false
+        }
+        
+        // Use ReaderManager to check if a reader is actually connected
+        // ReaderManager provides the actual connection status
+        let readerManager = MobilePaymentsSDK.shared.readerManager
+        let connectedReaders = readerManager.connectedReaders
+        
+        if !connectedReaders.isEmpty {
+            appLog("✅ Reader connected: \(connectedReaders.count) reader(s) available", category: "SquareMobilePayments")
+            for reader in connectedReaders {
+                appLog("   - Reader: \(reader.name ?? "Unknown")", category: "SquareMobilePayments")
+            }
             return true
         } else {
-            appLog("⚠️ SDK not authorized - cannot check reader connection", category: "SquareMobilePayments")
-            appLog("💡 Authorize SDK first - Square Reader will be detected via Bluetooth", category: "SquareMobilePayments")
+            appLog("⚠️ No readers connected - reader must be paired in iOS Settings > Bluetooth", category: "SquareMobilePayments")
+            appLog("💡 Use presentReaderSettings() to pair a reader", category: "SquareMobilePayments")
             return false
+        }
+    }
+    
+    // Present Square's built-in Reader Settings screen for pairing/managing readers
+    // This is the recommended way to pair Square Reader 2nd Gen
+    func presentReaderSettings(from viewController: UIViewController, completion: (() -> Void)? = nil) {
+        appLog("📱 Presenting Square Reader Settings screen...", category: "SquareMobilePayments")
+        
+        // Check if SDK is authorized first
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        guard authState == .authorized else {
+            appLog("⚠️ SDK not authorized - cannot show settings", category: "SquareMobilePayments")
+            completion?()
+            return
+        }
+        
+        // Present Square's built-in Reader Settings screen
+        // This allows users to pair/manage Square Reader 2nd Gen
+        MobilePaymentsSDK.shared.settingsManager.presentSettings(viewController: viewController) { [weak self] in
+            appLog("📱 Reader Settings screen dismissed", category: "SquareMobilePayments")
+            // Check connection status after settings are dismissed
+            let connected = self?.checkHardwareConnection() ?? false
+            appLog("📱 Reader connection status after settings: \(connected ? "✅ Connected" : "❌ Not connected")", category: "SquareMobilePayments")
+            completion?()
         }
     }
     
@@ -268,8 +297,21 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             appLog("⚠️ Payment start already in progress (app gate) - ignoring duplicate call", category: "SquareMobilePayments")
             return
         }
-        isStarting = true
         
+        // 2) Check if reader is actually connected BEFORE starting payment
+        // This prevents the "connect hardware" error
+        guard checkHardwareConnection() else {
+            appLog("❌ No reader connected - cannot start payment", category: "SquareMobilePayments")
+            appLog("💡 Reader must be paired in iOS Settings > Bluetooth or via Reader Settings screen", category: "SquareMobilePayments")
+            let error = NSError(domain: "SquareMobilePayments", code: -4, userInfo: [
+                NSLocalizedDescriptionKey: "No Square Reader connected. Please pair a reader in Settings or use the Reader Settings screen.",
+                NSLocalizedFailureReasonErrorKey: "reader_not_connected"
+            ])
+            completion(.failure(error))
+            return
+        }
+        
+        isStarting = true
         self.currentPaymentCompletion = completion
         
         appLog("💳 Starting payment: $\(amount) for donation \(donationId)", category: "SquareMobilePayments")
