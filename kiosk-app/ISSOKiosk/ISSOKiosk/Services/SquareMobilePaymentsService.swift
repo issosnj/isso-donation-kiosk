@@ -222,7 +222,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     }
     
     /// Ensures at least one reader is discovered by the SDK.
-    /// If none are discovered, it opens the Settings UI for staff to connect.
+    /// If none are discovered, tries reauthorization first before opening Reader Settings.
     private func ensureReaderDiscovered(from viewController: UIViewController, completion: @escaping (Bool) -> Void) {
         let readers = MobilePaymentsSDK.shared.readerManager.readers
         if !readers.isEmpty {
@@ -230,10 +230,58 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             return
         }
         
-        log("⚠️ No reader discovered - opening Reader Settings")
-        presentReaderSettings(from: viewController) {
-            let after = MobilePaymentsSDK.shared.readerManager.readers
-            completion(!after.isEmpty)
+        log("⚠️ No reader discovered - trying reauthorization first...")
+        
+        // Try reauthorizing first - this often wakes up the reader
+        guard let accessToken = accessToken, let locationId = locationId else {
+            log("❌ No credentials available - opening Reader Settings")
+            presentReaderSettings(from: viewController) {
+                let after = MobilePaymentsSDK.shared.readerManager.readers
+                completion(!after.isEmpty)
+            }
+            return
+        }
+        
+        // Force reauthorize to wake up the reader
+        performAuthorization(accessToken: accessToken, locationId: locationId) { [weak self] error in
+            guard let self = self else {
+                completion(false)
+                return
+            }
+            
+            if let error = error {
+                self.log("❌ Reauthorization failed: \(error.localizedDescription)")
+            } else {
+                self.log("✅ Reauthorized - checking for readers...")
+            }
+            
+            // Wait a moment for hardware to wake up
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                let readersAfterAuth = MobilePaymentsSDK.shared.readerManager.readers
+                if !readersAfterAuth.isEmpty {
+                    self.log("✅ Reader detected after reauthorization")
+                    completion(true)
+                    return
+                }
+                
+                // Still no readers - try one more time with longer wait
+                self.log("⚠️ Still no readers - waiting longer and retrying...")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    let readersFinal = MobilePaymentsSDK.shared.readerManager.readers
+                    if !readersFinal.isEmpty {
+                        self.log("✅ Reader detected after longer wait")
+                        completion(true)
+                        return
+                    }
+                    
+                    // Last resort - open Reader Settings
+                    self.log("⚠️ No readers found after reauthorization - opening Reader Settings")
+                    self.presentReaderSettings(from: viewController) {
+                        let after = MobilePaymentsSDK.shared.readerManager.readers
+                        completion(!after.isEmpty)
+                    }
+                }
+            }
         }
     }
     
@@ -257,18 +305,142 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             return
         }
         
-        // Must be authorized
-        guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
-            completion(.failure(NSError(domain: "SquareMPSDK", code: -100, userInfo: [
-                NSLocalizedDescriptionKey: "Square SDK is not authorized. Call authorize() first."
-            ])))
-            return
-        }
-        
         isStartingPayment = true
         currentCompletion = completion
         currentPaymentViewController = viewController
         
+        // CRITICAL: Force reauthorization before every payment to fix disconnection issues
+        // This ensures SDK is always fresh and connected, even after long idle periods
+        log("🔄 Force reauthorizing before payment to ensure connection...")
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        
+        // Always force reauthorize before payment (like app restart)
+        if authState == .authorized {
+            // Deauthorize first, then reauthorize
+            MobilePaymentsSDK.shared.authorizationManager.deauthorize { [weak self] in
+                guard let self = self else { return }
+                self.performReauthorizationAndPayment(
+                    amount: amount,
+                    referenceID: referenceID,
+                    note: note,
+                    from: viewController,
+                    completion: completion
+                )
+            }
+        } else {
+            // Not authorized - authorize first
+            performReauthorizationAndPayment(
+                amount: amount,
+                referenceID: referenceID,
+                note: note,
+                from: viewController,
+                completion: completion
+            )
+        }
+    }
+    
+    /// Perform reauthorization and then start payment
+    private func performReauthorizationAndPayment(
+        amount: Double,
+        referenceID: String,
+        note: String?,
+        from viewController: UIViewController,
+        completion: @escaping (Result<PaymentResult, Error>) -> Void
+    ) {
+        // Get credentials - use stored if available, otherwise fetch from backend
+        if let accessToken = accessToken, let locationId = locationId {
+            // Use stored credentials
+            performReauthorizationWithCredentials(
+                accessToken: accessToken,
+                locationId: locationId,
+                amount: amount,
+                referenceID: referenceID,
+                note: note,
+                from: viewController
+            )
+        } else {
+            // Fetch fresh credentials from backend
+            log("⚠️ No stored credentials - fetching from backend...")
+            Task {
+                do {
+                    let credentials = try await APIService.shared.getSquareCredentials()
+                    await MainActor.run {
+                        // Store credentials
+                        self.accessToken = credentials.accessToken
+                        self.locationId = credentials.locationId
+                        
+                        // Now reauthorize with fresh credentials
+                        self.performReauthorizationWithCredentials(
+                            accessToken: credentials.accessToken,
+                            locationId: credentials.locationId,
+                            amount: amount,
+                            referenceID: referenceID,
+                            note: note,
+                            from: viewController
+                        )
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.finishWithError(message: "Failed to get Square credentials: \(error.localizedDescription)", code: -105)
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Perform reauthorization with credentials and then start payment
+    private func performReauthorizationWithCredentials(
+        accessToken: String,
+        locationId: String,
+        amount: Double,
+        referenceID: String,
+        note: String?,
+        from viewController: UIViewController
+    ) {
+        // Reauthorize
+        performAuthorization(accessToken: accessToken, locationId: locationId) { [weak self] error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                self.finishWithError(message: "Failed to reconnect Square SDK: \(error.localizedDescription)", code: -106)
+                return
+            }
+            
+            // Wait longer for hardware to wake up after reauthorization (3 seconds)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                guard let self = self else { return }
+                
+                // Check if reader is available
+                let readers = MobilePaymentsSDK.shared.readerManager.readers
+                if readers.isEmpty {
+                    // No readers - wait longer and try again (hardware might be slow to wake)
+                    self.log("⚠️ No readers after reauthorization - waiting longer...")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        guard let self = self else { return }
+                        let readersAfterWait = MobilePaymentsSDK.shared.readerManager.readers
+                        if readersAfterWait.isEmpty {
+                            self.log("⚠️ Still no readers - proceeding anyway (SDK will handle)")
+                        } else {
+                            self.log("✅ Reader detected after longer wait")
+                        }
+                        self.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
+                    }
+                } else {
+                    // Reader available - proceed
+                    self.log("✅ Reader detected immediately after reauthorization")
+                    self.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
+                }
+            }
+        }
+    }
+    
+    /// Start the payment flow (permissions + reader check + payment)
+    private func startPaymentFlow(
+        amount: Double,
+        referenceID: String,
+        note: String?,
+        from viewController: UIViewController
+    ) {
         // 1) Ensure permissions
         ensureLocationPermission(from: viewController) { [weak self] granted in
             guard let self = self else { return }
