@@ -326,9 +326,13 @@ struct ModernPaymentView: View {
                                     // Check if this is a reader_not_connected error
                                     let nsError = error as NSError
                                     let errorDescription = error.localizedDescription
+                                    let errorCode = nsError.code
                                     let isReaderNotConnected = nsError.userInfo["NSLocalizedFailureReasonErrorKey"] as? String == "reader_not_connected" ||
                                                                errorDescription.lowercased().contains("no reader") ||
-                                                               errorDescription.lowercased().contains("reader not connected")
+                                                               errorDescription.lowercased().contains("reader not connected") ||
+                                                               errorDescription.lowercased().contains("connect hardware") ||
+                                                               errorDescription.lowercased().contains("hardware") ||
+                                                               errorCode == -3 // Our custom reader_not_connected error code
                                     
                                     if isReaderNotConnected {
                                         print("[PaymentView] ⚠️ Reader not connected - offering to open Reader Settings...")
