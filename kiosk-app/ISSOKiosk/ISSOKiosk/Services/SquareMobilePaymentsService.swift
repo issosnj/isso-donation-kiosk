@@ -818,27 +818,25 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
     
     func readerDidChange(_ readerInfo: ReaderInfo, change: ReaderChange) {
         switch change {
-        case .statusDidChange:
-            appLog("📊 Reader status changed: \(readerInfo.model)", category: "SquareMobilePayments")
-            
-            // If we have a pending payment, start it when status changes (reader might be ready now)
-            if let startPayment = pendingPaymentStart {
-                appLog("✅ Reader status changed - starting pending payment", category: "SquareMobilePayments")
-                pendingPaymentStart = nil
-                pairingHandle?.stop()
-                pairingHandle = nil
-                startPayment()
-            }
         case .batteryLevelDidChange:
             if let batteryLevel = readerInfo.batteryStatus?.level {
-                appLog("🔋 Reader battery changed: \(readerInfo.model) -> \(batteryLevel)%", category: "SquareMobilePayments")
+                appLog("🔋 Reader battery changed: \(readerInfo.model) -> \(batteryLevel)", category: "SquareMobilePayments")
             }
         case .batteryDidBeginCharging:
             appLog("🔌 Reader started charging: \(readerInfo.model)", category: "SquareMobilePayments")
         case .batteryDidEndCharging:
             appLog("🔌 Reader stopped charging: \(readerInfo.model)", category: "SquareMobilePayments")
         @unknown default:
-            appLog("📊 Reader change: \(change)", category: "SquareMobilePayments")
+            appLog("📊 Reader change: \(readerInfo.model) -> \(change)", category: "SquareMobilePayments")
+            
+            // If we have a pending payment, start it when any change occurs (reader might be ready now)
+            if let startPayment = pendingPaymentStart {
+                appLog("✅ Reader changed - starting pending payment", category: "SquareMobilePayments")
+                pendingPaymentStart = nil
+                pairingHandle?.stop()
+                pairingHandle = nil
+                startPayment()
+            }
         }
     }
     
