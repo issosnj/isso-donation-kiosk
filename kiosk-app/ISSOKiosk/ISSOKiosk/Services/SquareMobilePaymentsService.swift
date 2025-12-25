@@ -213,7 +213,28 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
         print("[SquareMobilePayments] 📍 Location permission: \(locationStatus == .authorizedWhenInUse || locationStatus == .authorizedAlways ? "✅ Granted" : "⚠️ Not granted")")
         print("[SquareMobilePayments] 📡 Bluetooth permission: \(bluetoothStatus == .allowedAlways ? "✅ Granted" : "⚠️ Not granted")")
         
-        // 5. Note: Actual hardware detection happens when starting a payment
+        // 5. Check for connected readers using ReaderManager
+        print("[SquareMobilePayments] 🔍 Checking for connected readers...")
+        let readerManager = MobilePaymentsSDK.shared.readerManager
+        let connectedReaders = readerManager.connectedReaders
+        
+        if connectedReaders.isEmpty {
+            print("[SquareMobilePayments] ⚠️ No readers currently connected")
+            print("[SquareMobilePayments] 💡 Reader will be discovered automatically when payment starts")
+            print("[SquareMobilePayments] 💡 Make sure reader is paired in iOS Settings > Bluetooth")
+        } else {
+            print("[SquareMobilePayments] ✅ Found \(connectedReaders.count) connected reader(s):")
+            for (index, reader) in connectedReaders.enumerated() {
+                let readerName = reader.name ?? "Unknown"
+                let readerType = reader.type.rawValue
+                let readerSerial = reader.serialNumber ?? "Unknown"
+                print("[SquareMobilePayments]    \(index + 1). Name: \(readerName)")
+                print("[SquareMobilePayments]       Type: \(readerType)")
+                print("[SquareMobilePayments]       Serial: \(readerSerial)")
+            }
+        }
+        
+        // 6. Note: Actual hardware detection happens when starting a payment
         print("[SquareMobilePayments] 💡 Note: Square Reader will be detected automatically when you start a payment")
         print("[SquareMobilePayments] 💡 The SDK will show an error if no reader is found during payment")
         print("[SquareMobilePayments] ============================================\n")
@@ -229,13 +250,24 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             return false
         }
         
-        // Note: ReaderManager API may vary by SDK version
-        // For now, we'll rely on SDK authorization state and let the SDK handle reader detection
-        // The SDK will show an error if no reader is found when starting payment
-        // This is a simplified check - actual reader connection will be verified when payment starts
-        appLog("✅ SDK authorized - reader connection will be verified when payment starts", category: "SquareMobilePayments")
-        appLog("💡 If reader not connected, SDK will show error and user can open Reader Settings", category: "SquareMobilePayments")
-        return true
+        // Check for connected readers using ReaderManager
+        let readerManager = MobilePaymentsSDK.shared.readerManager
+        let connectedReaders = readerManager.connectedReaders
+        
+        if connectedReaders.isEmpty {
+            appLog("⚠️ No readers currently connected", category: "SquareMobilePayments")
+            appLog("💡 Reader will be discovered automatically when payment starts", category: "SquareMobilePayments")
+            return false
+        } else {
+            let readerNames = connectedReaders.compactMap { $0.name }
+            appLog("✅ Found \(connectedReaders.count) connected reader(s): \(readerNames.joined(separator: ", "))", category: "SquareMobilePayments")
+            for reader in connectedReaders {
+                let readerName = reader.name ?? "Unknown"
+                let readerType = reader.type.rawValue
+                appLog("   📱 Reader: \(readerName) (Type: \(readerType))", category: "SquareMobilePayments")
+            }
+            return true
+        }
     }
     
     // Present Square's built-in Reader Settings screen for pairing/managing readers
