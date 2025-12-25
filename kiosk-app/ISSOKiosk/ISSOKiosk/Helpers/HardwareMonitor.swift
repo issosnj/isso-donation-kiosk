@@ -1,6 +1,7 @@
 import Foundation
 import ExternalAccessory
 import Combine
+import SquareMobilePaymentsSDK
 
 class HardwareMonitor: ObservableObject {
     static let shared = HardwareMonitor()
@@ -23,7 +24,7 @@ class HardwareMonitor: ObservableObject {
             self?.checkHardware()
         }
         
-        // Also listen for accessory connection/disconnection notifications
+        // Also listen for accessory connection/disconnection notifications (for Square Stand compatibility)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(accessoryConnected),
@@ -49,10 +50,21 @@ class HardwareMonitor: ObservableObject {
     }
     
     private func checkHardware() {
+        // First check for Bluetooth reader using Square SDK (primary method for Square Reader 2nd Gen)
+        var foundBluetoothReader = false
+        
+        // Check if SDK is authorized and has readers
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        if authState == .authorized {
+            let readerManager = MobilePaymentsSDK.shared.readerManager
+            let readers = readerManager.readers
+            foundBluetoothReader = !readers.isEmpty
+        }
+        
+        // Also check for Square Stand (External Accessory) for backward compatibility
+        var foundSquareStand = false
         let manager = EAAccessoryManager.shared()
         let connectedAccessories = manager.connectedAccessories
-        
-        var foundSquareHardware = false
         
         for accessory in connectedAccessories {
             let accessoryProtocols = accessory.protocolStrings
@@ -61,13 +73,16 @@ class HardwareMonitor: ObservableObject {
             }
             
             if hasSquareProtocol {
-                foundSquareHardware = true
+                foundSquareStand = true
                 break
             }
         }
         
+        // Hardware is connected if either Bluetooth reader or Square Stand is found
+        let isConnected = foundBluetoothReader || foundSquareStand
+        
         DispatchQueue.main.async { [weak self] in
-            self?.isHardwareConnected = foundSquareHardware
+            self?.isHardwareConnected = isConnected
         }
     }
     
