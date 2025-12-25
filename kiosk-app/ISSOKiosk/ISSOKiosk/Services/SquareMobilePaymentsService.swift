@@ -257,8 +257,11 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         if !readers.isEmpty {
             appLog("✅ Found \(readers.count) reader(s)", category: "SquareMobilePayments")
             for reader in readers {
-                let batteryLevel = reader.batteryStatus?.level ?? 0
-                appLog("   - Reader: \(reader.model), Battery: \(batteryLevel)%", category: "SquareMobilePayments")
+                if let batteryLevel = reader.batteryStatus?.level {
+                    appLog("   - Reader: \(reader.model), Battery: \(batteryLevel)", category: "SquareMobilePayments")
+                } else {
+                    appLog("   - Reader: \(reader.model)", category: "SquareMobilePayments")
+                }
             }
             // If readers exist, assume they might be ready (SDK will verify when payment starts)
             return true
