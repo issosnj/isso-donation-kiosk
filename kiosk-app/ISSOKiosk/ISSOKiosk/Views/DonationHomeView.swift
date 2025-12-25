@@ -1091,6 +1091,15 @@ struct CleanCategoryButton: View {
     let unselectedColor: Color
     let action: () -> Void
     
+    // Check if custom background images exist
+    private var hasSelectedImage: Bool {
+        UIImage(named: "CategoryButtonSelected") != nil
+    }
+    
+    private var hasUnselectedImage: Bool {
+        UIImage(named: "CategoryButtonUnselected") != nil
+    }
+    
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
@@ -1138,11 +1147,41 @@ struct CleanCategoryButton: View {
             .padding(.horizontal, 16)
             .frame(maxWidth: .infinity)
             .frame(height: 70)
-            .background(isSelected ? selectedColor : unselectedColor)
+            .background(buttonBackground)
             .cornerRadius(12)
         }
         .scaleEffect(isSelected ? 1.02 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: isSelected)
+    }
+    
+    // Button background - uses custom images if available, otherwise falls back to colors
+    @ViewBuilder
+    private var buttonBackground: some View {
+        if isSelected {
+            if hasSelectedImage {
+                // Use custom selected background image
+                Image("CategoryButtonSelected")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            } else {
+                // Fall back to color
+                selectedColor
+            }
+        } else {
+            if hasUnselectedImage {
+                // Use custom unselected background image
+                Image("CategoryButtonUnselected")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            } else {
+                // Fall back to color
+                unselectedColor
+            }
+        }
     }
 }
 
