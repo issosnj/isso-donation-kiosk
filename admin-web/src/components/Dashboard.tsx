@@ -30,12 +30,21 @@ export default function Dashboard({ user }: DashboardProps) {
   const [activeTab, setActiveTab] = useState(tabFromUrl)
   const [squareMessage, setSquareMessage] = useState<{ type: 'success' | 'error'; message: string; templeId?: string } | null>(null)
   
+  // Redirect old deviceId query param to new page structure
+  useEffect(() => {
+    if (deviceIdFromUrl && tabFromUrl === 'devices') {
+      // Redirect to new device status page
+      router.replace(`/devices/${deviceIdFromUrl}/status`)
+      return
+    }
+  }, [deviceIdFromUrl, tabFromUrl, router])
+
   // Update activeTab when URL changes (including deviceId changes)
   useEffect(() => {
     if (tabFromUrl) {
       setActiveTab(tabFromUrl)
     }
-  }, [tabFromUrl, deviceIdFromUrl]) // Also react to deviceId changes
+  }, [tabFromUrl]) // Removed deviceIdFromUrl since we redirect now
   
   // Handle tab changes while preserving deviceId if present
   const handleTabChange = (tab: string) => {
