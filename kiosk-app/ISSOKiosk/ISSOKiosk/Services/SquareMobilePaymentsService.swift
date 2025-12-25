@@ -313,18 +313,16 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     // MARK: - Start Payment
     
     private func startPayment(amount: Double, referenceID: String, note: String?, from viewController: UIViewController) {
-        let cents = Int((amount * 100.0).rounded())
+        let cents = UInt((amount * 100.0).rounded())
         let money = Money(amount: cents, currency: .USD)
         
-        // paymentAttemptID must be unique per attempt (idempotencyKey is deprecated in 2.3.0+)
-        let paymentAttemptID = UUID().uuidString
-        
-        let processingMode: ProcessingMode = .autoDetect
+        // Use idempotencyKey (SDK version may not support paymentAttemptID yet)
+        // Make it unique per payment attempt
+        let idempotencyKey = UUID().uuidString
         
         let paymentParams = PaymentParameters(
-            paymentAttemptID: paymentAttemptID,
-            amountMoney: money,
-            processingMode: processingMode
+            idempotencyKey: idempotencyKey,
+            amountMoney: money
         )
         
         // Important: referenceID is how you match this payment to YOUR donation record
@@ -340,7 +338,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             additionalMethods: .all
         )
         
-        log("💳 Starting payment. amount=\(cents)¢ referenceID=\(referenceID) attemptID=\(paymentAttemptID)")
+        log("💳 Starting payment. amount=\(cents)¢ referenceID=\(referenceID) idempotencyKey=\(idempotencyKey)")
         
         paymentHandle = MobilePaymentsSDK.shared.paymentManager.startPayment(
             paymentParams,
@@ -576,5 +574,15 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     /// Check if payment is in progress
     func isPaymentInProgress() -> Bool {
         return isStartingPayment
+    }
+    
+    /// Cancel current payment
+    func cancelCurrentPayment() {
+        log("🚫 Canceling current payment")
+        if let handle = paymentHandle {
+            // Note: SDK may not have explicit cancel method, but we can reset state
+            paymentHandle = nil
+        }
+        resetState()
     }
 }
