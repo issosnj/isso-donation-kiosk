@@ -443,6 +443,7 @@ struct ModernPaymentView: View {
                                             )
                                             print("[PaymentView] ✅ Donation marked as SUCCEEDED after retry")
                                             await MainActor.run {
+                                                guard let self = self else { return }
                                                 self.isProcessing = false
                                                 self.paymentStatus = .success
                                             }
@@ -450,6 +451,7 @@ struct ModernPaymentView: View {
                                             print("[PaymentView] ⚠️ Retry also failed: \(error.localizedDescription)")
                                             // Still show success to user since payment went through on Square
                                             await MainActor.run {
+                                                guard let self = self else { return }
                                                 self.isProcessing = false
                                                 self.paymentStatus = .success
                                             }
@@ -471,6 +473,7 @@ struct ModernPaymentView: View {
                                             print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
                                         }
                                         await MainActor.run {
+                                            guard let self = self else { return }
                                             self.isProcessing = false
                                             self.paymentStatus = .failure(error.localizedDescription)
                                         }
@@ -493,6 +496,7 @@ struct ModernPaymentView: View {
                                         print("[PaymentView] ⚠️ Failed to update donation status: \(error.localizedDescription)")
                                     }
                                     await MainActor.run {
+                                        guard let self = self else { return }
                                         self.isProcessing = false
                                         self.paymentStatus = .failure(error.localizedDescription)
                                     }
