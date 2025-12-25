@@ -38,6 +38,10 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
             name: .EAAccessoryDidConnect,
             object: nil
         )
+        
+        // Add self as ReaderObserver to monitor reader status changes
+        MobilePaymentsSDK.shared.readerManager.add(self)
+        
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(accessoryDisconnected),
@@ -240,14 +244,36 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
             return false
         }
         
-        // Note: ReaderManager API doesn't expose connected readers directly
-        // The SDK manages reader connections internally and will discover readers when payment starts
-        // For Bluetooth readers, they must be paired in iOS Settings > Bluetooth first
-        // We can only verify SDK authorization - actual reader connection will be verified when payment starts
-        appLog("✅ SDK authorized - reader connection will be verified when payment starts", category: "SquareMobilePayments")
-        appLog("💡 If reader not connected, SDK will show error and user can open Reader Settings", category: "SquareMobilePayments")
-        // Return true if authorized (reader will be discovered when payment starts)
-        return true
+        // Use ReaderManager to check for available readers
+        let readerManager = MobilePaymentsSDK.shared.readerManager
+        let readers = readerManager.readers
+        
+        appLog("🔍 Checking for available readers...", category: "SquareMobilePayments")
+        appLog("📊 Found \(readers.count) reader(s)", category: "SquareMobilePayments")
+        
+        // Check if any reader is ready
+        let readyReaders = readers.filter { reader in
+            reader.statusInfo.status == .ready
+        }
+        
+        if !readyReaders.isEmpty {
+            appLog("✅ Found \(readyReaders.count) ready reader(s)", category: "SquareMobilePayments")
+            for reader in readyReaders {
+                appLog("   - Reader: \(reader.model), Status: \(reader.statusInfo.status), Battery: \(reader.batteryStatus?.level ?? 0)%", category: "SquareMobilePayments")
+            }
+            return true
+        } else if !readers.isEmpty {
+            // Readers exist but not ready
+            appLog("⚠️ Found \(readers.count) reader(s) but none are ready", category: "SquareMobilePayments")
+            for reader in readers {
+                appLog("   - Reader: \(reader.model), Status: \(reader.statusInfo.status)", category: "SquareMobilePayments")
+            }
+            return false
+        } else {
+            // No readers found
+            appLog("❌ No readers found - reader may need to be paired", category: "SquareMobilePayments")
+            return false
+        }
     }
     
     // Present Square's built-in Reader Settings screen for pairing/managing readers
