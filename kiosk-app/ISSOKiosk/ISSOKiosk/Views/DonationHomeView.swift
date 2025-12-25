@@ -813,7 +813,7 @@ struct DonationHomeView: View {
                     .font(.custom("Inter-Medium", size: 18))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 18)
                     .background(
                         Group {
                             let buttonColor = colorFromHex(
@@ -838,7 +838,7 @@ struct DonationHomeView: View {
                         .font(.custom("Inter-Medium", size: 18))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 18)
                         .background(
                             Group {
                                 if hasValidAmount {
