@@ -236,6 +236,7 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
     
     // Check if Square Reader is actually connected using ReaderManager
     // Made public so AppState can check hardware connection
+    // If no readers are found and SDK is authorized, automatically start discovery
     func checkHardwareConnection() -> Bool {
         // First check if SDK is authorized
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
@@ -266,8 +267,19 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
             // If readers exist, assume they might be ready (SDK will verify when payment starts)
             return true
         } else {
-            // No readers found
-            appLog("❌ No readers found - reader may need to be paired", category: "SquareMobilePayments")
+            // No readers found - automatically start discovery/pairing
+            appLog("❌ No readers found - starting automatic reader discovery...", category: "SquareMobilePayments")
+            appLog("💡 Reader may need to be paired in iOS Settings > Bluetooth first", category: "SquareMobilePayments")
+            
+            // Automatically start pairing to discover readers
+            // This will scan for paired Bluetooth readers
+            if !readerManager.isPairingInProgress {
+                appLog("🔍 Starting automatic reader discovery/pairing...", category: "SquareMobilePayments")
+                self.pairingHandle = readerManager.startPairing(with: self)
+            } else {
+                appLog("⏳ Reader pairing already in progress...", category: "SquareMobilePayments")
+            }
+            
             return false
         }
     }
