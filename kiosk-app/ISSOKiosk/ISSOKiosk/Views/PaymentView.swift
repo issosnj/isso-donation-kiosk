@@ -291,7 +291,6 @@ struct ModernPaymentView: View {
                     
                     // Add a timeout to detect if SDK shows "Connect hardware" screen
                     // If payment doesn't complete within 10 seconds, assume no reader was found
-                    let paymentStartTime = Date()
                     var timeoutTask: Task<Void, Never>?
                     
                     timeoutTask = Task {

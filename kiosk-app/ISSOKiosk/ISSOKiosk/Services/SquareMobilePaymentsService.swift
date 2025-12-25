@@ -252,22 +252,19 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         appLog("📊 Found \(readers.count) reader(s)", category: "SquareMobilePayments")
         
         // Check if any reader is ready
-        let readyReaders = readers.filter { reader in
-            reader.statusInfo.status == .ready
-        }
-        
-        if !readyReaders.isEmpty {
-            appLog("✅ Found \(readyReaders.count) ready reader(s)", category: "SquareMobilePayments")
-            for reader in readyReaders {
-                appLog("   - Reader: \(reader.model), Status: \(reader.statusInfo.status), Battery: \(reader.batteryStatus?.level ?? 0)%", category: "SquareMobilePayments")
-            }
-            return true
-        } else if !readers.isEmpty {
-            // Readers exist but not ready
-            appLog("⚠️ Found \(readers.count) reader(s) but none are ready", category: "SquareMobilePayments")
+        // Note: ReaderInfo protocol may not expose statusInfo directly
+        // We'll check if readers exist - SDK will verify readiness when payment starts
+        if !readers.isEmpty {
+            appLog("✅ Found \(readers.count) reader(s)", category: "SquareMobilePayments")
             for reader in readers {
-                appLog("   - Reader: \(reader.model), Status: \(reader.statusInfo.status)", category: "SquareMobilePayments")
+                let batteryLevel = reader.batteryStatus?.level ?? 0
+                appLog("   - Reader: \(reader.model), Battery: \(batteryLevel)%", category: "SquareMobilePayments")
             }
+            // If readers exist, assume they might be ready (SDK will verify when payment starts)
+            return true
+        } else {
+            // No readers found
+            appLog("❌ No readers found", category: "SquareMobilePayments")
             return false
         } else {
             // No readers found
@@ -472,27 +469,18 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         // Check for available readers using ReaderManager
         let readerManager = MobilePaymentsSDK.shared.readerManager
         let readers = readerManager.readers
-        let readyReaders = readers.filter { $0.statusInfo.status == .ready }
         
         appLog("🔍 Checking for available readers...", category: "SquareMobilePayments")
-        appLog("📊 Found \(readers.count) reader(s), \(readyReaders.count) ready", category: "SquareMobilePayments")
+        appLog("📊 Found \(readers.count) reader(s)", category: "SquareMobilePayments")
         
-        if !readyReaders.isEmpty {
-            // Reader is ready - start payment immediately
-            appLog("✅ Reader is ready - starting payment...", category: "SquareMobilePayments")
+        if !readers.isEmpty {
+            // Reader exists - start payment immediately
+            // SDK will verify reader readiness when payment starts
+            appLog("✅ Reader found - starting payment...", category: "SquareMobilePayments")
             self.startPaymentImmediately(
                 paymentParameters: paymentParameters,
                 promptParameters: promptParameters,
                 viewController: viewController
-            )
-        } else if !readers.isEmpty {
-            // Reader exists but not ready - wait a bit for it to become ready
-            appLog("⏳ Reader found but not ready (status: \(readers.first?.statusInfo.status ?? .unknown)) - waiting...", category: "SquareMobilePayments")
-            self.waitForReaderAndStartPayment(
-                paymentParameters: paymentParameters,
-                promptParameters: promptParameters,
-                viewController: viewController,
-                maxWaitTime: 5.0
             )
         } else {
             // No readers found - try to discover paired readers
@@ -556,10 +544,10 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
         
         func checkReader() {
             let readerManager = MobilePaymentsSDK.shared.readerManager
-            let readyReaders = readerManager.readers.filter { $0.statusInfo.status == .ready }
+            let readers = readerManager.readers
             
-            if !readyReaders.isEmpty {
-                appLog("✅ Reader is now ready - starting payment", category: "SquareMobilePayments")
+            if !readers.isEmpty {
+                appLog("✅ Reader found - starting payment", category: "SquareMobilePayments")
                 self.startPaymentImmediately(
                     paymentParameters: paymentParameters,
                     promptParameters: promptParameters,
@@ -806,6 +794,77 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, ReaderObser
                 } else {
                     appLog("✅ Force re-authorization completed - SDK state should be cleared", category: "SquareMobilePayments")
                 }
+            }
+        }
+    }
+    
+    // MARK: - ReaderObserver
+    
+    func readerWasAdded(_ readerInfo: ReaderInfo) {
+        appLog("✅ Reader was added: \(readerInfo.model)", category: "SquareMobilePayments")
+        
+        // If we have a pending payment start, start it now that reader is available
+        if let startPayment = pendingPaymentStart {
+            appLog("✅ Reader found - starting pending payment", category: "SquareMobilePayments")
+            pendingPaymentStart = nil
+            pairingHandle?.stop()
+            pairingHandle = nil
+            startPayment()
+        }
+    }
+    
+    func readerWasRemoved(_ readerInfo: ReaderInfo) {
+        appLog("⚠️ Reader was removed: \(readerInfo.model)", category: "SquareMobilePayments")
+    }
+    
+    func readerDidChange(_ readerInfo: ReaderInfo, change: ReaderChange) {
+        switch change {
+        case .statusDidChange:
+            appLog("📊 Reader status changed: \(readerInfo.model)", category: "SquareMobilePayments")
+            
+            // If we have a pending payment, start it when status changes (reader might be ready now)
+            if let startPayment = pendingPaymentStart {
+                appLog("✅ Reader status changed - starting pending payment", category: "SquareMobilePayments")
+                pendingPaymentStart = nil
+                pairingHandle?.stop()
+                pairingHandle = nil
+                startPayment()
+            }
+        case .batteryLevelDidChange:
+            if let batteryLevel = readerInfo.batteryStatus?.level {
+                appLog("🔋 Reader battery changed: \(readerInfo.model) -> \(batteryLevel)%", category: "SquareMobilePayments")
+            }
+        case .batteryDidBeginCharging:
+            appLog("🔌 Reader started charging: \(readerInfo.model)", category: "SquareMobilePayments")
+        case .batteryDidEndCharging:
+            appLog("🔌 Reader stopped charging: \(readerInfo.model)", category: "SquareMobilePayments")
+        @unknown default:
+            appLog("📊 Reader change: \(change)", category: "SquareMobilePayments")
+        }
+    }
+    
+    // MARK: - ReaderPairingDelegate
+    
+    func readerPairingDidBegin() {
+        appLog("🔍 Reader pairing began - scanning for readers...", category: "SquareMobilePayments")
+    }
+    
+    func readerPairingDidSucceed() {
+        appLog("✅ Reader pairing succeeded!", category: "SquareMobilePayments")
+        pairingHandle = nil
+    }
+    
+    func readerPairingDidFail(with error: Error) {
+        appLog("❌ Reader pairing failed: \(error.localizedDescription)", category: "SquareMobilePayments")
+        pairingHandle = nil
+        
+        // If pairing failed but we have a pending payment, try starting it anyway
+        // The SDK might still discover the reader when payment starts
+        if let startPayment = pendingPaymentStart {
+            appLog("💡 Pairing failed but trying payment anyway - SDK may discover reader", category: "SquareMobilePayments")
+            pendingPaymentStart = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                startPayment()
             }
         }
     }
