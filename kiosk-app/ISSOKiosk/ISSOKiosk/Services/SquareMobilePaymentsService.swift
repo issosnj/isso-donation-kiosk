@@ -643,12 +643,11 @@ class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate {
             appLog("💡 Full error: \(error)", category: "SquareMobilePayments")
             appLog("💡 Error description: \(error.localizedDescription)", category: "SquareMobilePayments")
             appLog("💡 Error code: \(errorCode)", category: "SquareMobilePayments")
-            appLog("💡 Make sure Square Reader 2nd Gen is powered on and Bluetooth is enabled on iPad", category: "SquareMobilePayments")
-            appLog("💡 The reader MUST be paired in iOS Settings > Bluetooth before starting payment", category: "SquareMobilePayments")
-            appLog("💡 Go to iPad Settings > Bluetooth and verify 'Square Reader' shows as 'Connected'", category: "SquareMobilePayments")
-            appLog("💡 If reader is not listed, pair it first, then try payment again", category: "SquareMobilePayments")
+            appLog("💡 Reader is paired in iOS Settings (since Square POS works), but SDK hasn't discovered it", category: "SquareMobilePayments")
+            appLog("💡 The SDK may need to discover the reader through its own Settings screen", category: "SquareMobilePayments")
+            appLog("💡 Try opening Reader Settings to let SDK discover the paired reader", category: "SquareMobilePayments")
             let userFriendlyError = NSError(domain: "SquareMobilePayments", code: -3, userInfo: [
-                NSLocalizedDescriptionKey: "Connect hardware to take card payments. Please ensure the Square Reader 2nd Gen is powered on, Bluetooth is enabled on the iPad, and the reader is paired in iOS Settings > Bluetooth.",
+                NSLocalizedDescriptionKey: "Connect hardware to take card payments. The reader is paired, but the SDK needs to discover it. Please open Reader Settings to connect the reader.",
                 NSLocalizedFailureReasonErrorKey: "reader_not_connected"
             ])
             currentPaymentCompletion?(.failure(userFriendlyError))
