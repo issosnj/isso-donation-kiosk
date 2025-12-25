@@ -519,6 +519,37 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Full reconnection sequence: checks SDK, reauthorizes if needed, and detects hardware with retries
+    /// This is the same logic that runs when the app becomes active
+    func ensureSquareConnectionReady() async {
+        // First, check and reconnect SDK
+        await checkAndReconnectSquareSDK()
+        
+        // Then check hardware connection with retries (same as app becoming active)
+        let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+        if !hardwareConnected {
+            appLog("⚠️ Hardware not detected - checking with retries...", category: "AppState")
+            
+            // Try to detect hardware with retries (up to 10 attempts, 3 seconds apart = 30 seconds total)
+            for attempt in 1...10 {
+                let totalSeconds = attempt * 3
+                if attempt > 1 {
+                    try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds between checks
+                }
+                
+                // Try to wake hardware on each attempt
+                SquareMobilePaymentsService.shared.attemptHardwareWakeUp()
+                
+                let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+                if hardwareStillConnected {
+                    appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "AppState")
+                    await checkAndReconnectSquareSDK()
+                    break
+                }
+            }
+        }
+    }
+    
     // Extract device ID from JWT token payload
     private func extractDeviceId(from token: String) -> String? {
         let parts = token.components(separatedBy: ".")

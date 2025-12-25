@@ -208,9 +208,9 @@ struct KioskHomeView: View {
                         GoldAccentDonateButton(
                             buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                             action: {
-                            // Re-authorize Square SDK and preload background image before navigating
+                            // Full reconnection sequence: same as when app becomes active
                             Task {
-                                await appState.checkAndReconnectSquareSDK()
+                                await appState.ensureSquareConnectionReady()
                                 await MainActor.run {
                                     navigationState.showDonationFlow = true
                                 }
@@ -412,7 +412,8 @@ struct KioskHomeView: View {
                 buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                 action: {
                 Task {
-                    await appState.checkAndReconnectSquareSDK()
+                    // Full reconnection sequence: same as when app becomes active
+                    await appState.ensureSquareConnectionReady()
                     await MainActor.run {
                         navigationState.showDonationFlow = true
                     }
@@ -427,7 +428,8 @@ struct KioskHomeView: View {
                 buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                 action: {
                 Task {
-                    await appState.checkAndReconnectSquareSDK()
+                    // Full reconnection sequence: same as when app becomes active
+                    await appState.ensureSquareConnectionReady()
                     await MainActor.run {
                         navigationState.showDonationFlow = true
                     }
