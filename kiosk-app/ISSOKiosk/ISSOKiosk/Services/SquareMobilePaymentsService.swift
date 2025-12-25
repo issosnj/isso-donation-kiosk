@@ -411,8 +411,8 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         if currentState == .authorized {
             // Already authorized - just refresh without deauthorizing (avoids database issues)
             log("✅ Already authorized - refreshing connection without deauthorizing...")
-            // Reauthorize with forceReauthorize=false to avoid database cleanup issues
-            performAuthorization(accessToken: accessToken, locationId: locationId, forceReauthorize: false) { [weak self] error in
+            // Use authorize with forceReauthorize=false to avoid database cleanup issues
+            authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: false) { [weak self] error in
                 guard let self = self else { return }
                 
                 if let error = error {
