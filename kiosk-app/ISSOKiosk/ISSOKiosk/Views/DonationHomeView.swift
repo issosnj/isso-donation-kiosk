@@ -368,6 +368,8 @@ struct DonationHomeView: View {
                         donorPhone = nil
                         donorEmail = nil
                     }
+                    // Also dismiss the donation flow to go back to home screen
+                    onDismiss()
                 }
             )
         }
