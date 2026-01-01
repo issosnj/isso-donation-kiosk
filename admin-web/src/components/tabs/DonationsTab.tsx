@@ -301,7 +301,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
             )}
             </div>
             <div className="flex items-center gap-4">
-              {/* Toggle to show/hide failed and cancelled */}
+              {/* Toggle to show/hide failed and cancelled - visible for all users */}
               <div className="flex items-center gap-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -315,8 +315,8 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   </span>
                 </label>
               </div>
-            {isMasterAdmin && (
-              <div className="flex gap-2">
+              {isMasterAdmin && (
+                <div className="flex gap-2">
                 <button
                   onClick={handleGenerateReceiptNumbers}
                   disabled={generateReceiptNumbersMutation.isPending}
@@ -332,10 +332,10 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   {backfillSquareFeesMutation.isPending ? 'Backfilling...' : 'Backfill Square Fees'}
                 </button>
               </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      )}
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">

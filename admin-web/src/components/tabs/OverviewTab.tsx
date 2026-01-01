@@ -65,7 +65,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
           <div>
             <p className="text-purple-100 text-sm font-medium mb-1">Congratulations! You have raised</p>
             <p className="text-4xl font-bold mb-1">${stats?.total?.toFixed(2) || '0.00'}</p>
-            <p className="text-purple-100 text-sm">year to date</p>
+            <p className="text-purple-100 text-sm">in the last 7 days</p>
           </div>
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
