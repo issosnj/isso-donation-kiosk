@@ -105,7 +105,7 @@ struct ModernPaymentView: View {
             if !isReady && !isProcessing {
                 hasStartedPayment = true
                 isReady = true
-                isProcessing = true
+                // Don't set isProcessing here - let processPayment() set it after guard checks
                 processPayment()
             } else {
                 isStartingPayment = false
