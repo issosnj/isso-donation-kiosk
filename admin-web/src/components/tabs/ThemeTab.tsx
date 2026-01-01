@@ -73,8 +73,8 @@ export default function ThemeTab() {
       amountButtonWidth: 120,
       amountButtonHeight: 70,
       categoryButtonHeight: 70,
-      headerTopPadding: 120,
-      categoryHeaderTopPadding: 120,
+      headerTopPadding: 80,
+      categoryHeaderTopPadding: 80,
       sectionSpacing: 40,
       categoryAmountSectionSpacing: 40,
       buttonSpacing: 12,
@@ -199,8 +199,8 @@ export default function ThemeTab() {
           amountButtonWidth: temple.kioskTheme.layout?.amountButtonWidth || 120,
           amountButtonHeight: temple.kioskTheme.layout?.amountButtonHeight || 70,
           categoryButtonHeight: temple.kioskTheme.layout?.categoryButtonHeight || 70,
-          headerTopPadding: temple.kioskTheme.layout?.headerTopPadding || 120,
-          categoryHeaderTopPadding: temple.kioskTheme.layout?.categoryHeaderTopPadding || 120,
+          headerTopPadding: temple.kioskTheme.layout?.headerTopPadding || 80,
+          categoryHeaderTopPadding: temple.kioskTheme.layout?.categoryHeaderTopPadding || 80,
           sectionSpacing: temple.kioskTheme.layout?.sectionSpacing || 40,
           categoryAmountSectionSpacing: temple.kioskTheme.layout?.categoryAmountSectionSpacing || 40,
           buttonSpacing: temple.kioskTheme.layout?.buttonSpacing || 12,
@@ -370,8 +370,8 @@ export default function ThemeTab() {
                       amountButtonWidth: temple.kioskTheme.layout?.amountButtonWidth || 120,
                       amountButtonHeight: temple.kioskTheme.layout?.amountButtonHeight || 70,
                       categoryButtonHeight: temple.kioskTheme.layout?.categoryButtonHeight || 70,
-                      headerTopPadding: temple.kioskTheme.layout?.headerTopPadding || 120,
-                      categoryHeaderTopPadding: temple.kioskTheme.layout?.categoryHeaderTopPadding || 120,
+                      headerTopPadding: temple.kioskTheme.layout?.headerTopPadding || 80,
+                      categoryHeaderTopPadding: temple.kioskTheme.layout?.categoryHeaderTopPadding || 80,
                       sectionSpacing: temple.kioskTheme.layout?.sectionSpacing || 40,
                       categoryAmountSectionSpacing: temple.kioskTheme.layout?.categoryAmountSectionSpacing || 40,
                       buttonSpacing: temple.kioskTheme.layout?.buttonSpacing || 12,
@@ -1988,15 +1988,33 @@ export default function ThemeTab() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Top Spacing
+                    Select Amount Top Padding
                   </label>
-                  <p className="text-xs text-gray-500 mb-2">Space from top of screen to content</p>
+                  <p className="text-xs text-gray-500 mb-2">Space from top of screen to "Select Amount" section</p>
                   <input
                     type="number"
                     value={formData.layout.headerTopPadding}
                     onChange={(e) => setFormData({
                       ...formData,
-                      layout: { ...formData.layout, headerTopPadding: parseInt(e.target.value) || 120 }
+                      layout: { ...formData.layout, headerTopPadding: parseInt(e.target.value) || 80 }
+                    })}
+                    disabled={!isEditing}
+                    min="0"
+                    max="300"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Category Top Padding
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Space from top of screen to "Select Category" section</p>
+                  <input
+                    type="number"
+                    value={formData.layout.categoryHeaderTopPadding}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      layout: { ...formData.layout, categoryHeaderTopPadding: parseInt(e.target.value) || 80 }
                     })}
                     disabled={!isEditing}
                     min="0"
