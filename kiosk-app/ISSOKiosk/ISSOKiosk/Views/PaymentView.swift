@@ -36,27 +36,15 @@ struct ModernPaymentView: View {
         ZStack {
             Group {
                 if let status = paymentStatus {
-                    // Only show result view for failures - successful payments go directly back
-                    if case .failure = status {
-                        ModernPaymentResultView(
-                            status: status,
-                            amount: amount,
-                            onDismiss: {
-                                paymentStatus = nil
-                                onComplete()
-                            }
-                        )
-                    } else {
-                        // Success - go directly back to home
-                        Color.clear
-                            .onAppear {
-                                // Small delay to ensure payment is complete, then return to home
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                    paymentStatus = nil
-                                    onComplete()
-                                }
-                            }
-                    }
+                    // Show result view for both success and failure
+                    ModernPaymentResultView(
+                        status: status,
+                        amount: amount,
+                        onDismiss: {
+                            paymentStatus = nil
+                            onComplete()
+                        }
+                    )
                 } else if isProcessing {
                     // While processing, show nothing - Square SDK will show its own UI
                     // The SDK UI will overlay on top of this view
@@ -877,13 +865,26 @@ struct ModernPaymentResultView: View {
                         .offset(y: appearAnimation ? 0 : 20)
                     
                     if case .success = status {
-                        Text("Your donation of $\(String(format: "%.2f", amount)) has been processed successfully.")
-                            .font(.custom("Inter-Regular", size: 20))
-                            .foregroundColor(bodyTextColor)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                            .opacity(appearAnimation ? 1.0 : 0.0)
-                            .offset(y: appearAnimation ? 0 : 20)
+                        VStack(spacing: 12) {
+                            Text("Your donation was approved!")
+                                .font(.custom("Inter-SemiBold", size: 24))
+                                .foregroundColor(headingColor)
+                                .multilineTextAlignment(.center)
+                            
+                            Text("You will receive an email receipt shortly.")
+                                .font(.custom("Inter-Regular", size: 20))
+                                .foregroundColor(bodyTextColor)
+                                .multilineTextAlignment(.center)
+                            
+                            Text("Donation amount: $\(String(format: "%.2f", amount))")
+                                .font(.custom("Inter-Medium", size: 18))
+                                .foregroundColor(bodyTextColor.opacity(0.8))
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 4)
+                        }
+                        .padding(.horizontal, 40)
+                        .opacity(appearAnimation ? 1.0 : 0.0)
+                        .offset(y: appearAnimation ? 0 : 20)
                     } else if case .failure(let error) = status {
                         Text(error)
                             .font(.custom("Inter-Medium", size: 18))
