@@ -39,7 +39,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     // Health check timer to monitor connection and recover if needed
     private var healthTimer: Timer?
-    private let healthCheckInterval: TimeInterval = 10 // 10 seconds
+    private let healthCheckInterval: TimeInterval = 60 // 60 seconds (watchdog handles every 30s)
     
     struct PaymentResult {
         let success: Bool
