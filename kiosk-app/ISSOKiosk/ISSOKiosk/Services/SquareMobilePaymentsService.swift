@@ -133,6 +133,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         if state == .authorized && !forceReauthorize {
             log("✅ Already authorized")
             startHealthMonitor()
+            SquareReaderWatchdog.shared.start()
             completion(nil)
             return
         }
@@ -143,6 +144,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             log("✅ Already authorized - skipping deauthorization to avoid database issues")
             // Just refresh the connection without deauthorizing
             startHealthMonitor()
+            SquareReaderWatchdog.shared.start()
             completion(nil)
             return
         }
@@ -161,6 +163,8 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             } else {
                 self?.log("✅ Authorized")
                 self?.startHealthMonitor()
+                // Start watchdog after successful authorization
+                SquareReaderWatchdog.shared.start()
                 completion(nil)
             }
         }
@@ -168,6 +172,9 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     /// Call on logout or long inactivity.
     func deauthorize(completion: (() -> Void)? = nil) {
+        // Stop watchdog when deauthorizing
+        SquareReaderWatchdog.shared.stop()
+        
         MobilePaymentsSDK.shared.authorizationManager.deauthorize { [weak self] in
             self?.log("🔓 deauthorized")
             completion?()
@@ -218,8 +225,86 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         MobilePaymentsSDK.shared.settingsManager.presentSettings(with: viewController) { [weak self] _ in
             let readers = MobilePaymentsSDK.shared.readerManager.readers
             self?.log("📱 Reader Settings dismissed. Readers discovered: \(readers.count)")
+            // Clear stuck connection flag if reader is now available
+            if !readers.isEmpty {
+                SquareReaderWatchdog.shared.clearStuckConnection()
+            }
             completion?()
         }
+    }
+    
+    /// Presents a "Reconnect Reader" alert with instructions for staff
+    /// Detects if it's a stuck connection (reader count = 1) or reader disappeared (count = 0)
+    func presentReconnectReaderAlert(
+        from viewController: UIViewController,
+        error: Error? = nil,
+        completion: (() -> Void)? = nil
+    ) {
+        let readerCount = MobilePaymentsSDK.shared.readerManager.readers.count
+        let diagnostic = SquareReaderWatchdog.shared.getDiagnosticInfo()
+        let isStuckConnection = diagnostic.isStuck || readerCount == 1
+        
+        let title: String
+        let message: String
+        let primaryAction: String
+        
+        if isStuckConnection {
+            // Stuck connection: reader count = 1 but not responsive
+            title = "Reader Not Responding"
+            message = """
+            The Square Reader appears connected but isn't responding.
+            
+            Quick Fix:
+            1. Press the reader button once
+            2. Tap "Reconnect Reader" below to open Square Settings
+            3. If still stuck: iPad Settings → Bluetooth → Square Reader → (i) → Disconnect / Forget
+            
+            This usually fixes the connection without restarting the app.
+            """
+            primaryAction = "Reconnect Reader"
+        } else {
+            // Reader disappeared: count = 0
+            title = "Reader Not Connected"
+            message = """
+            No Square Reader is detected.
+            
+            Troubleshooting Steps:
+            1. Check that the reader is powered on (press button)
+            2. Check cable and power source (try different cable/outlet)
+            3. Tap "Open Reader Settings" to pair a reader
+            4. If needed: iPad Settings → Bluetooth → Forget Square Reader, then re-pair
+            
+            Hardware checks:
+            • Try a different USB cable and power adapter
+            • Update reader firmware (in Square Settings)
+            • Hard reset reader (hold power ~20 seconds until red lights)
+            """
+            primaryAction = "Open Reader Settings"
+        }
+        
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        
+        // Primary action: Open Square Settings
+        alert.addAction(UIAlertAction(title: primaryAction, style: .default) { [weak self] _ in
+            self?.presentReaderSettings(from: viewController) {
+                completion?()
+            }
+        })
+        
+        // Secondary action: Open iPad Bluetooth Settings
+        alert.addAction(UIAlertAction(title: "Open iPad Bluetooth", style: .default) { _ in
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+            completion?()
+        })
+        
+        // Cancel action
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            completion?()
+        })
+        
+        viewController.present(alert, animated: true)
     }
     
     /// Ensures at least one reader is discovered by the SDK.
@@ -630,6 +715,9 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     func paymentManager(_ paymentManager: PaymentManager, didFinish payment: Payment) {
         log("✅ Payment completed")
         
+        // Clear stuck connection flag on successful payment
+        SquareReaderWatchdog.shared.clearStuckConnection()
+        
         var paymentId: String? = nil
         var isOffline = false
         
@@ -663,6 +751,9 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     func readerWasAdded(_ readerInfo: ReaderInfo) {
         log("✅ Reader connected: \(readerInfo.model)")
         
+        // Clear stuck connection flag when reader is added
+        SquareReaderWatchdog.shared.clearStuckConnection()
+        
         // If we have a pending payment, start it now that reader is available
         if let startPayment = pendingPaymentStart {
             pendingPaymentStart = nil
@@ -676,6 +767,10 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     func readerWasRemoved(_ readerInfo: ReaderInfo) {
         log("⚠️ Reader disconnected: \(readerInfo.model)")
+        
+        // Log diagnostic info when reader is removed
+        let diagnostic = SquareReaderWatchdog.shared.getDiagnosticInfo()
+        log("📊 Reader diagnostic: count=\(diagnostic.readerCount), lastSeen=\(diagnostic.lastSeenCount), consecutiveZero=\(diagnostic.consecutiveZero), stuck=\(diagnostic.isStuck)")
     }
     
     func readerDidChange(_ readerInfo: ReaderInfo, change: ReaderChange) {
@@ -736,6 +831,26 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     }
     
     private func finishFailure(_ error: Error) {
+        // Check if this is a stuck connection (reader count = 1 but payment failed)
+        let readerCount = MobilePaymentsSDK.shared.readerManager.readers.count
+        let nsError = error as NSError
+        let errorDescription = error.localizedDescription.lowercased()
+        
+        // Detect if this looks like a reader/bluetooth error
+        let isReaderError = errorDescription.contains("reader") ||
+                           errorDescription.contains("bluetooth") ||
+                           errorDescription.contains("hardware") ||
+                           errorDescription.contains("connection") ||
+                           nsError.code == -3
+        
+        // If reader count is 1 but we got a reader error, mark as stuck connection
+        if readerCount == 1 && isReaderError {
+            SquareReaderWatchdog.shared.markStuckConnection()
+            log("⚠️ STUCK CONNECTION detected: reader count = 1 but payment failed with reader error")
+        } else if readerCount == 0 {
+            log("⚠️ Reader disappeared: count went to 0 (pairing/power/firmware issue)")
+        }
+        
         let completion = currentCompletion
         resetState()
         completion?(.failure(error))

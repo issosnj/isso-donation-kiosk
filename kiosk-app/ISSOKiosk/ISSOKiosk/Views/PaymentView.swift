@@ -272,21 +272,13 @@ struct ModernPaymentView: View {
                                                 return
                                             }
                                             
-                                            let alert = UIAlertController(
-                                                title: "Reader Not Connected",
-                                                message: "No Square Reader is connected. Would you like to open Reader Settings to pair a reader?",
-                                                preferredStyle: .alert
-                                            )
-                                            
-                                            alert.addAction(UIAlertAction(title: "Open Settings", style: .default) { _ in
-                                                SquareMobilePaymentsService.shared.presentReaderSettings(from: alertVC) {}
-                                            })
-                                            
-                                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
-                                                paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
-                                            })
-                                            
-                                            alertVC.present(alert, animated: true)
+                                            // Use the new reconnect alert with diagnostic info and instructions
+                                            SquareMobilePaymentsService.shared.presentReconnectReaderAlert(
+                                                from: alertVC,
+                                                error: error
+                                            ) {
+                                                // After reconnect attempt, user can try payment again
+                                            }
                                         }
                                         return
                                     }
