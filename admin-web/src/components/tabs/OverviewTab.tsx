@@ -12,14 +12,14 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['donation-stats', templeId],
     queryFn: async () => {
+      // Get year-to-date stats (from January 1st of current year to today)
       const today = new Date()
-      // Create a new date object to avoid mutating the original
-      const startOfWeek = new Date(today)
-      startOfWeek.setDate(today.getDate() - 7)
+      const startOfYear = new Date(today.getFullYear(), 0, 1) // January 1st
       const endDate = new Date()
+      
       const response = await api.get('/donations/stats', {
         params: {
-          startDate: startOfWeek.toISOString(),
+          startDate: startOfYear.toISOString(),
           endDate: endDate.toISOString(),
           ...(templeId && { templeId }),
         },
@@ -65,7 +65,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
           <div>
             <p className="text-purple-100 text-sm font-medium mb-1">Congratulations! You have raised</p>
             <p className="text-4xl font-bold mb-1">${stats?.total?.toFixed(2) || '0.00'}</p>
-            <p className="text-purple-100 text-sm">in the last 7 days</p>
+            <p className="text-purple-100 text-sm">year to date</p>
           </div>
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +87,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
             </div>
           </div>
           <p className="text-3xl font-bold text-gray-900">{stats?.count || 0}</p>
-          <p className="text-xs text-gray-500 mt-2">Last 7 days</p>
+          <p className="text-xs text-gray-500 mt-2">Year to date</p>
         </div>
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
