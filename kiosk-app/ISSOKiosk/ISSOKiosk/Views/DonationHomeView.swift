@@ -203,11 +203,11 @@ struct DonationHomeView: View {
     }
     
     var headerTopPadding: CGFloat {
-        CGFloat(theme?.layout?.headerTopPadding ?? 120)
+        CGFloat(theme?.layout?.headerTopPadding ?? 80)
     }
     
     var categoryHeaderTopPadding: CGFloat {
-        CGFloat((theme?.layout?.categoryHeaderTopPadding ?? headerTopPadding) + 5)
+        CGFloat(theme?.layout?.categoryHeaderTopPadding ?? headerTopPadding)
     }
     
     var sectionSpacing: CGFloat {
@@ -324,7 +324,7 @@ struct DonationHomeView: View {
                     },
                     onCancel: {
                         showingDetails = false
-                        onDismiss()
+                        // Just dismiss the details view, don't go all the way back to home
                     }
                 )
             }
@@ -721,12 +721,20 @@ struct DonationHomeView: View {
             selectedColor: amountSelectedColorValue,
             unselectedColor: amountUnselectedColorValue,
             action: {
-                // Clear category when preset amount is selected
-                selectedCategory = nil
-                quantity = 1
-                selectedAmount = amount
-                customAmount = ""
-                customAmountFocused = false
+                // Toggle selection: if already selected, unselect it; otherwise select it
+                if selectedAmount == amount && selectedCategory == nil {
+                    // Unselect the amount
+                    selectedAmount = nil
+                    customAmount = ""
+                    customAmountFocused = false
+                } else {
+                    // Select the amount and clear category
+                    selectedCategory = nil
+                    quantity = 1
+                    selectedAmount = amount
+                    customAmount = ""
+                    customAmountFocused = false
+                }
             }
         )
     }
@@ -1105,22 +1113,17 @@ struct CleanCategoryButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                // Icon on the left (orange leaf-like icon)
-                Image(systemName: "leaf.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 1.0, green: 0.58, blue: 0.0))
-                
                 // Category name and amount side by side
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
             Text(category.name)
-                            .font(.custom("Inter-SemiBold", size: 18))
+                            .font(.custom("Inter-Bold", size: 18))
                             .foregroundColor(.white)
                             .lineLimit(1)
                         
                         if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
                             Text("$\(Int(defaultAmount))")
-                                .font(.custom("Inter-Regular", size: 18))
+                                .font(.custom("Inter-Bold", size: 18))
                                 .foregroundColor(.white)
                         }
                     }

@@ -630,11 +630,13 @@ struct KioskHomeView: View {
         ZStack {
             GeometryReader { geometry in
                 backgroundView(geometry: geometry)
+                    .id("homeBackground") // Stable identity to prevent recreation
             }
             .ignoresSafeArea(.all, edges: .all)
             
             mainContentView
         }
+        .animation(.none, value: navigationState.showDonationFlow) // Disable animation for background during transition
         .sheet(isPresented: $showWhatsAppQR) {
             if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink {
                 QRCodeDisplayView(url: whatsAppLink, title: "whatsappGroup".localized, cachedImage: qrCodeCache[whatsAppLink])
@@ -731,10 +733,14 @@ struct KioskHomeView: View {
 
 // Reusable Time and Network Status View Component
 struct TimeAndNetworkStatusView: View {
+    @EnvironmentObject var appState: AppState
     @ObservedObject private var networkMonitor = NetworkMonitor.shared
     @ObservedObject private var hardwareMonitor = HardwareMonitor.shared
     @State private var currentTime = Date()
     @State private var timer: Timer?
+    @State private var tapCount = 0
+    @State private var lastTapTime: Date?
+    @State private var showPasswordPrompt = false
     
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -763,11 +769,14 @@ struct TimeAndNetworkStatusView: View {
                         .frame(width: 12, height: 12)
                         .shadow(color: networkMonitor.isConnected ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 4)
                     
-                    // Time display
+                    // Time display - tappable for admin access
                     Text(timeString)
                         .font(.custom("Inter-Medium", size: 18))
                         .foregroundColor(.white)
                         .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        .onTapGesture {
+                            handleTimeTap()
+                        }
                 }
             }
             Spacer()
@@ -784,6 +793,32 @@ struct TimeAndNetworkStatusView: View {
         .onDisappear {
             timer?.invalidate()
             timer = nil
+        }
+        .sheet(isPresented: $showPasswordPrompt) {
+            AdminPasswordView(isPresented: $showPasswordPrompt)
+                .environmentObject(appState)
+        }
+    }
+    
+    private func handleTimeTap() {
+        let now = Date()
+        
+        // Reset tap count if more than 3 seconds have passed since last tap
+        if let lastTap = lastTapTime, now.timeIntervalSince(lastTap) > 3.0 {
+            tapCount = 0
+        }
+        
+        tapCount += 1
+        lastTapTime = now
+        
+        appLog("🔧 Admin tap detected: \(tapCount)/10", category: "AdminAccess")
+        
+        // If 10 taps reached, show password prompt
+        if tapCount >= 10 {
+            tapCount = 0
+            lastTapTime = nil
+            showPasswordPrompt = true
+            appLog("🔧 Admin access requested - showing password prompt", category: "AdminAccess")
         }
     }
 }

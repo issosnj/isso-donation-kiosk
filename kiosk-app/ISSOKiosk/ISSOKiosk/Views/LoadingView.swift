@@ -4,6 +4,8 @@ struct LoadingView: View {
     @EnvironmentObject var appState: AppState
     @State private var rotationAngle: Double = 0
     @State private var pulseScale: CGFloat = 1.0
+    @State private var animationTimer: Timer?
+    @State private var currentAngle: Double = 0
     
     // Helper function to convert hex string to Color (same as KioskHomeView)
     private func colorFromHex(_ hex: String) -> Color {
@@ -34,10 +36,9 @@ struct LoadingView: View {
         if UIImage(named: "KioskBackground") != nil {
             Image("KioskBackground")
                 .resizable()
-                .scaledToFill()
+                .aspectRatio(contentMode: .fill)
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
-                .frame(width: geometry.size.width, height: geometry.size.height)
         } else {
             LinearGradient(
                 gradient: Gradient(colors: [
@@ -62,9 +63,9 @@ struct LoadingView: View {
                 VStack(spacing: 40) {
                     Spacer()
                     
-                    // Animated spinner with theme colors
+                    // Animated spinner with theme colors - optimized for smooth animation
                     ZStack {
-                        // Outer rotating circle
+                        // Outer rotating circle - using continuous rotation
                         Circle()
                             .trim(from: 0.0, to: 0.7)
                             .stroke(
@@ -101,15 +102,28 @@ struct LoadingView: View {
             }
         }
         .onAppear {
-            // Start continuous rotation animation
-            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
-                rotationAngle = 360
+            // Start smooth rotation animation using Timer for better performance (60 FPS)
+            animationTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { _ in
+                currentAngle += 5.76 // 360 degrees / 60 FPS ≈ 5.76 degrees per frame
+                if currentAngle >= 360 {
+                    currentAngle = 0
+                }
+                rotationAngle = currentAngle
+            }
+            // Add timer to RunLoop for smooth animation
+            if let timer = animationTimer {
+                RunLoop.current.add(timer, forMode: .common)
             }
             
-            // Start pulsing animation
+            // Start pulsing animation - optimized for performance
             withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
                 pulseScale = 1.2
             }
+        }
+        .onDisappear {
+            // Clean up when view disappears
+            animationTimer?.invalidate()
+            animationTimer = nil
         }
     }
 }

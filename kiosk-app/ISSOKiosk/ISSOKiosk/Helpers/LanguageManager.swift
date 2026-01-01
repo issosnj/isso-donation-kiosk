@@ -82,6 +82,7 @@ class LanguageManager: ObservableObject {
             "continue": "Continue",
             "proceedToPayment": "Proceed to Payment",
             "returnToHome": "Return to Home",
+            "backToDonation": "Back to Donation",
             "home": "Home",
             "selectAmountToContinue": "Select Amount to Continue",
             
@@ -143,6 +144,7 @@ class LanguageManager: ObservableObject {
             "continue": "ચાલુ રાખો",
             "proceedToPayment": "પેમેન્ટ પર આગળ વધો",
             "returnToHome": "હોમ પર પાછા જાઓ",
+            "backToDonation": "દાન પૃષ્ઠ પર પાછા જાઓ",
             "home": "હોમ",
             "selectAmountToContinue": "ચાલુ રાખવા માટે રકમ પસંદ કરો",
             
@@ -204,6 +206,7 @@ class LanguageManager: ObservableObject {
             "continue": "जारी रखें",
             "proceedToPayment": "भुगतान पर आगे बढ़ें",
             "returnToHome": "होम पर वापस जाएं",
+            "backToDonation": "दान पृष्ठ पर वापस जाएं",
             "home": "होम",
             "selectAmountToContinue": "जारी रखने के लिए राशि चुनें",
             

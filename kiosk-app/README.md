@@ -58,14 +58,16 @@ This app is designed for **private/internal distribution via MDM (Mobile Device 
 - Landscape orientation lock
 - Idle timer (returns to home after inactivity)
 
-### ⏳ In Progress
-- Square Mobile Payments SDK integration (waiting for package URL)
-- Real-time payment processing with Square Stand hardware
+### ✅ Completed (Recent)
+- Square Mobile Payments SDK integration with Square Reader 2nd Gen
+- Real-time payment processing with Square hardware
+- Admin menu for troubleshooting (tap time 10 times)
+- Keep-alive mechanism to prevent Square Reader from sleeping
 
 ### 📋 Architecture
 - **AppState**: Manages app-wide state (device token, temple, categories)
 - **APIService**: Handles all backend API calls
-- **SquareMobilePaymentsService**: Mobile Payments SDK integration (ready for implementation)
+- **SquareMobilePaymentsService**: Mobile Payments SDK integration (fully implemented)
 - **SquarePaymentService**: Payment flow coordinator
 - **KeychainHelper**: Secure token storage
 - **Views**: SwiftUI views for each screen
@@ -129,12 +131,12 @@ static let apiBaseURL = "https://kiosk-backend.issousa.org/api"
 **⚠️ Important:** See [MOBILE_PAYMENTS_SDK.md](./MOBILE_PAYMENTS_SDK.md) for complete integration guide.
 
 **Current Status:**
-- Backend ready (OAuth scope includes `PAYMENTS_WRITE_IN_PERSON`)
-- Backend endpoint provides Square credentials
-- iOS app structure ready
-- ⏳ Waiting for Mobile Payments SDK package URL from Square
+- ✅ Backend ready (OAuth scope includes `PAYMENTS_WRITE_IN_PERSON`)
+- ✅ Backend endpoint provides Square credentials
+- ✅ iOS app fully integrated with Square Mobile Payments SDK
+- ✅ Square Reader 2nd Gen support with Bluetooth pairing
 
-**⚠️ Critical:** Do NOT add `https://github.com/square/in-app-payments-ios` package. See [IMPORTANT_NO_SQUARE_PACKAGES.md](./IMPORTANT_NO_SQUARE_PACKAGES.md).
+**⚠️ Critical:** Do NOT add `https://github.com/square/in-app-payments-ios` package. This is the In-App Payments SDK (wrong) and causes `ThreeDS_SDK.framework` crashes. See troubleshooting section below.
 
 ## Troubleshooting
 

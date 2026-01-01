@@ -403,8 +403,9 @@ See TypeORM entities in `backend/src/*/entities/` for full schema.
 - Check Railway PostgreSQL service is running
 
 **Square Integration Issues:**
-- See [SQUARE_SETUP.md](./SQUARE_SETUP.md) for setup guide
-- See [SQUARE_VERIFICATION.md](./SQUARE_VERIFICATION.md) for verification checklist
+- See [kiosk-app/SQUARE_READER_2ND_GEN_SETUP.md](./kiosk-app/SQUARE_READER_2ND_GEN_SETUP.md) for Square Reader setup
+- See [kiosk-app/SQUARE_STAND_SETUP.md](./kiosk-app/SQUARE_STAND_SETUP.md) for Square Stand setup
+- See [kiosk-app/MOBILE_PAYMENTS_SDK.md](./kiosk-app/MOBILE_PAYMENTS_SDK.md) for SDK integration
 - Verify redirect URI matches exactly (no trailing slash, HTTPS only)
 
 ### Testing Endpoints

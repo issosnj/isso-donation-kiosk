@@ -289,7 +289,7 @@ struct ModernDonationDetailsView: View {
                         
                         Spacer()
                         
-                        // Return to Home button at bottom (same style as Proceed to Payment)
+                        // Back to Donation button at bottom (same style as Proceed to Payment)
                         Button(action: {
                             withAnimation {
                                 if let onCancel = onCancel {
@@ -300,9 +300,9 @@ struct ModernDonationDetailsView: View {
                             }
                         }) {
                             HStack(spacing: 12) {
-                                Image(systemName: "house.fill")
+                                Image(systemName: "arrow.left.circle.fill")
                                     .font(.system(size: detailsButtonFontSize - 4, weight: .semibold))
-                                Text("returnToHome".localized)
+                                Text("backToDonation".localized)
                                     .font(.custom("Inter-Medium", size: detailsButtonFontSize))
                             }
                             .foregroundColor(Color.white)

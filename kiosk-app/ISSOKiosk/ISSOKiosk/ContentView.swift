@@ -32,10 +32,12 @@ struct ContentView: View {
                     // Show donation flow on top when active
                     if navigationState.showDonationFlow {
                         DonationHomeView(onDismiss: {
-                            navigationState.showDonationFlow = false
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                navigationState.showDonationFlow = false
+                            }
                         })
                         .environmentObject(appState)
-                        .transition(.move(edge: .bottom))
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                         .zIndex(1)
                     }
                 }
