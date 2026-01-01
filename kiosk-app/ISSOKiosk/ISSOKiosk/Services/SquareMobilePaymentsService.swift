@@ -41,6 +41,10 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     private var healthTimer: Timer?
     private let healthCheckInterval: TimeInterval = 60 // 60 seconds (watchdog handles every 30s)
     
+    // Keep-alive timer to prevent reader from sleeping
+    private var keepAliveTimer: Timer?
+    private let keepAliveInterval: TimeInterval = 30 // 30 seconds - frequent enough to prevent sleep
+    
     struct PaymentResult {
         let success: Bool
         let paymentId: String?
@@ -80,6 +84,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     deinit {
         NotificationCenter.default.removeObserver(self)
         healthTimer?.invalidate()
+        keepAliveTimer?.invalidate()
     }
     
     // MARK: - Logging helper
@@ -172,8 +177,9 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     /// Call on logout or long inactivity.
     func deauthorize(completion: (() -> Void)? = nil) {
-        // Stop watchdog when deauthorizing
+        // Stop watchdog and keep-alive when deauthorizing
         SquareReaderWatchdog.shared.stop()
+        stopHealthMonitor()
         
         MobilePaymentsSDK.shared.authorizationManager.deauthorize { [weak self] in
             self?.log("🔓 deauthorized")
@@ -914,10 +920,11 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     /// Start health check timer to monitor connection and recover if needed
     private func startHealthMonitor() {
-        // Stop existing timer if any
+        // Stop existing timers if any
         healthTimer?.invalidate()
+        keepAliveTimer?.invalidate()
         
-        // Only start timer if authorized
+        // Only start timers if authorized
         guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
             return
         }
@@ -927,12 +934,60 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         healthTimer = Timer.scheduledTimer(withTimeInterval: healthCheckInterval, repeats: true) { [weak self] _ in
             self?.performHealthCheck()
         }
+        
+        // Start keep-alive timer to prevent reader from sleeping
+        log("💓 Starting keep-alive timer (every \(Int(keepAliveInterval)) seconds)")
+        keepAliveTimer = Timer.scheduledTimer(withTimeInterval: keepAliveInterval, repeats: true) { [weak self] _ in
+            self?.performKeepAlive()
+        }
     }
     
-    /// Stop health monitor
+    /// Stop health monitor and keep-alive
     func stopHealthMonitor() {
         healthTimer?.invalidate()
         healthTimer = nil
+        keepAliveTimer?.invalidate()
+        keepAliveTimer = nil
+    }
+    
+    /// Perform keep-alive: periodically access reader state to prevent it from sleeping
+    private func performKeepAlive() {
+        // Don't perform keep-alive if a payment is in progress
+        guard !isStartingPayment else {
+            return
+        }
+        
+        // Only perform keep-alive if authorized
+        guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
+            return
+        }
+        
+        // Access reader state to keep the connection alive
+        // This prevents the Square Reader from going to sleep
+        let readers = MobilePaymentsSDK.shared.readerManager.readers
+        
+        // Access reader properties to keep Bluetooth connection active
+        // Accessing the reader's model property requires the SDK to communicate with the reader,
+        // which sends keep-alive signals and prevents the reader from sleeping
+        for reader in readers {
+            // Access reader model to keep connection alive
+            // This property access triggers communication with the reader
+            let _ = reader.model
+        }
+        
+        // If no readers found, the SDK will reconnect automatically on next payment
+        // But we can log this for monitoring
+        if readers.count == 0 {
+            // Only log occasionally to avoid spam (every 20th check = ~10 minutes)
+            if Int.random(in: 0..<20) == 0 {
+                log("💓 Keep-alive: No readers detected (will reconnect on next payment)", verbose: true)
+            }
+        } else {
+            // Only log occasionally to avoid spam (every 10th check = ~5 minutes)
+            if Int.random(in: 0..<10) == 0 {
+                log("💓 Keep-alive: Reader connection active (\(readers.count) reader(s))", verbose: true)
+            }
+        }
     }
     
     /// Perform health check: monitor connection status and recover if needed

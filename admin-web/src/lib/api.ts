@@ -35,7 +35,14 @@ api.interceptors.response.use(
     }
     
     if (error.response?.status === 401) {
+      // Clear auth token from localStorage
       localStorage.removeItem('authToken')
+      // Clear persisted auth store state to prevent redirect loop
+      localStorage.removeItem('auth-storage')
+      // Dispatch custom event to notify auth store
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:logout'))
+      }
       // Don't redirect on login page
       if (window.location.pathname !== '/') {
         window.location.href = '/'

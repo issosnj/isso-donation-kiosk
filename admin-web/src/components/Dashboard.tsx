@@ -21,7 +21,7 @@ interface DashboardProps {
 export default function Dashboard({ user }: DashboardProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { logout } = useAuthStore()
+  const { logout, isAuthenticated } = useAuthStore()
   
   // Get tab and deviceId from URL params
   const tabFromUrl = searchParams.get('tab') || 'overview'
@@ -29,6 +29,16 @@ export default function Dashboard({ user }: DashboardProps) {
   
   const [activeTab, setActiveTab] = useState(tabFromUrl)
   const [squareMessage, setSquareMessage] = useState<{ type: 'success' | 'error'; message: string; templeId?: string } | null>(null)
+  
+  // Check if token exists in localStorage - if not, clear auth state to prevent redirect loop
+  useEffect(() => {
+    const token = localStorage.getItem('authToken')
+    if (!token && isAuthenticated) {
+      // Token is missing but store thinks we're authenticated - clear state
+      logout()
+      router.push('/')
+    }
+  }, [isAuthenticated, logout, router])
   
   // Redirect old deviceId query param to new page structure
   useEffect(() => {

@@ -17,7 +17,7 @@ interface AuthState {
   logout: () => void
 }
 
-export const useAuthStore = create<AuthState>()(
+const store = create<AuthState>()(
   persist(
     (set) => ({
       isAuthenticated: false,
@@ -35,7 +35,28 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        // After rehydration, check if token exists in localStorage
+        // If not, clear the authenticated state to prevent redirect loops
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('authToken')
+          if (!token && state?.isAuthenticated) {
+            state.isAuthenticated = false
+            state.user = null
+            state.token = null
+          }
+        }
+      },
     }
   )
 )
+
+// Set up event listener for logout events from API interceptor
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:logout', () => {
+    store.getState().logout()
+  })
+}
+
+export const useAuthStore = store
 

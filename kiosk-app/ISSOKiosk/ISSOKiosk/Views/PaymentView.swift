@@ -69,6 +69,15 @@ struct ModernPaymentView: View {
             }
         }
         .onAppear {
+            // Reset state if no payment is actually in progress
+            if !SquarePaymentService.shared.isPaymentInProgress() {
+                // If payment isn't active but flags are set, reset them
+                if isProcessing && donationId == nil {
+                    appLog("🔄 Resetting stale isProcessing flag (no active payment)", category: "PaymentView")
+                    isProcessing = false
+                }
+            }
+            
             // Guard against multiple payment attempts
             guard !isStartingPayment && !hasStartedPayment else {
                 return
@@ -86,6 +95,7 @@ struct ModernPaymentView: View {
                 paymentStatus = nil
                 hasStartedPayment = false
                 isStartingPayment = false
+                donationId = nil
                 Task {
                     try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                     await MainActor.run {
@@ -198,6 +208,13 @@ struct ModernPaymentView: View {
             return
         }
         
+        // Check if Square payment is already in progress
+        if SquarePaymentService.shared.isPaymentInProgress() {
+            appLog("⚠️ Square payment already in progress - ignoring duplicate call", category: "PaymentView")
+            isStartingPayment = false
+            return
+        }
+        
         isStartingPayment = false
         
         guard let templeId = appState.temple?.id else {
@@ -209,8 +226,6 @@ struct ModernPaymentView: View {
             paymentStatus = .failure("Device not properly activated - missing device")
             return
         }
-        
-        isProcessing = true
         
         Task {
             var currentDonationId: String? = nil
@@ -227,6 +242,8 @@ struct ModernPaymentView: View {
                 currentDonationId = donation.id
                 await MainActor.run {
                     donationId = donation.id
+                    // Set isProcessing only after donation is initiated and we're about to start Square payment
+                    isProcessing = true
                 }
                 
                 // 2. Start payment using Square Mobile Payments SDK
