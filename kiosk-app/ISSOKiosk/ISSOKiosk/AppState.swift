@@ -106,6 +106,12 @@ class AppState: ObservableObject {
             return
         }
         
+        // Prevent duplicate refresh calls
+        guard !isRefreshingTempleConfig else {
+            print("[AppState] ⚠️ Temple config refresh already in progress - skipping duplicate call")
+            return
+        }
+        
         // Refresh temple config to get latest theme settings
         guard let token = deviceToken,
               let templeId = extractTempleId(from: token) else {
@@ -113,7 +119,14 @@ class AppState: ObservableObject {
             return
         }
         
+        isRefreshingTempleConfig = true
         print("[AppState] 🔄 Refreshing temple config for theme updates...")
+        
+        defer {
+            Task { @MainActor in
+                isRefreshingTempleConfig = false
+            }
+        }
         
         do {
             let temple = try await APIService.shared.getTemple(templeId: templeId)
@@ -126,21 +139,33 @@ class AppState: ObservableObject {
                 print("[AppState] ✅ Temple config refreshed (including theme)")
             }
             
-            
-            // Also refresh categories when temple config is refreshed (categories might have changed)
-            await refreshCategories()
+            // Don't automatically refresh categories here - let timers handle it to avoid duplicates
+            // Categories will be refreshed by the category refresh timer
         } catch {
             print("[AppState] ❌ Failed to refresh temple config: \(error.localizedDescription)")
         }
     }
     
     func refreshCategories() async {
+        // Prevent duplicate refresh calls
+        guard !isRefreshingCategories else {
+            print("[AppState] ⚠️ Category refresh already in progress - skipping duplicate call")
+            return
+        }
+        
         guard let templeId = extractTempleId(from: deviceToken ?? "") else {
             print("[AppState] ⚠️ Cannot refresh categories - missing templeId")
             return
         }
         
+        isRefreshingCategories = true
         print("[AppState] 📡 Refreshing categories for templeId: \(templeId)")
+        
+        defer {
+            Task { @MainActor in
+                isRefreshingCategories = false
+            }
+        }
         
         do {
             // Fetch fresh categories from kiosk endpoint (filtered by date/time)
@@ -210,6 +235,8 @@ class AppState: ObservableObject {
     }
     
     private var isLoadingTempleConfig = false // Guard to prevent multiple simultaneous loads
+    private var isRefreshingTempleConfig = false // Guard to prevent duplicate refresh calls
+    private var isRefreshingCategories = false // Guard to prevent duplicate category refresh calls
     
     private func loadTempleConfig() async {
         // Prevent multiple simultaneous temple config loads

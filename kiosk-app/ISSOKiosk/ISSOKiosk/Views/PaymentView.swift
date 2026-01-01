@@ -112,6 +112,12 @@ struct ModernPaymentView: View {
             }
         }
         .onDisappear {
+            // Don't cancel if payment was successful - success view is showing
+            if case .success = paymentStatus {
+                appLog("✅ View disappeared after successful payment - no cleanup needed", category: "PaymentView")
+                return
+            }
+            
             // For POS SDK, check if payment is in progress
             // If payment is processing, Square POS app is handling it
             let isPaymentActive = SquarePaymentService.shared.isPaymentInProgress()
@@ -178,8 +184,16 @@ struct ModernPaymentView: View {
     }
     
     private func processPayment() {
-        // Guard against duplicate calls
-        guard !isProcessing || donationId == nil else {
+        // Guard against duplicate calls - check both flags
+        guard !isProcessing else {
+            appLog("⚠️ Payment already processing - ignoring duplicate call", category: "PaymentView")
+            isStartingPayment = false
+            return
+        }
+        
+        // Also check if we already have a donation ID (payment already started)
+        if donationId != nil {
+            appLog("⚠️ Payment already started with donation ID: \(donationId!) - ignoring duplicate call", category: "PaymentView")
             isStartingPayment = false
             return
         }
