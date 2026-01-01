@@ -209,16 +209,38 @@ class AppState: ObservableObject {
         
         do {
             let events = try await APIService.shared.getReligiousEvents()
+            
+            // Filter out past events - only show events on or after today
+            let today = Calendar.current.startOfDay(for: Date())
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            
+            let upcomingEvents = events.filter { event in
+                // Only include active events
+                guard event.isActive == true else { return false }
+                
+                // Parse the event date
+                guard let eventDate = dateFormatter.date(from: event.date) else {
+                    print("[AppState] ⚠️ Invalid date format for event: \(event.name) - \(event.date)")
+                    return false
+                }
+                
+                // Compare dates (ignoring time)
+                let eventDateStart = Calendar.current.startOfDay(for: eventDate)
+                return eventDateStart >= today
+            }
+            
             await MainActor.run {
-                self.religiousEvents = events
-                print("[AppState] ✅ Religious events updated: \(events.count) events")
-                if events.isEmpty {
-                    print("[AppState] ⚠️ No religious events found. Make sure:")
+                self.religiousEvents = upcomingEvents
+                print("[AppState] ✅ Religious events updated: \(upcomingEvents.count) upcoming events (filtered from \(events.count) total)")
+                if upcomingEvents.isEmpty {
+                    print("[AppState] ⚠️ No upcoming religious events found. Make sure:")
                     print("[AppState]   1. Religious events are created in the admin portal")
                     print("[AppState]   2. Events are marked as active (isActive = true)")
+                    print("[AppState]   3. Events have dates on or after today")
                 } else {
-                    print("[AppState] 📋 Events list:")
-                    for (index, event) in events.enumerated() {
+                    print("[AppState] 📋 Upcoming events list:")
+                    for (index, event) in upcomingEvents.enumerated() {
                         print("[AppState]   \(index + 1). \(event.name) - Date: \(event.date), Active: \(event.isActive ?? false)")
                     }
                 }

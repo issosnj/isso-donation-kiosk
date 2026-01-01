@@ -13,11 +13,14 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
     queryKey: ['donation-stats', templeId],
     queryFn: async () => {
       const today = new Date()
-      const startOfWeek = new Date(today.setDate(today.getDate() - 7))
+      // Create a new date object to avoid mutating the original
+      const startOfWeek = new Date(today)
+      startOfWeek.setDate(today.getDate() - 7)
+      const endDate = new Date()
       const response = await api.get('/donations/stats', {
         params: {
           startDate: startOfWeek.toISOString(),
-          endDate: new Date().toISOString(),
+          endDate: endDate.toISOString(),
           ...(templeId && { templeId }),
         },
       })
