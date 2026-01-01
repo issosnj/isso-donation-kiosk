@@ -20,6 +20,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   const [selectedTempleId, setSelectedTempleId] = useState<string>('all')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
+  const [showFailedAndCancelled, setShowFailedAndCancelled] = useState<boolean>(false)
   const [viewingDonorInfo, setViewingDonorInfo] = useState<{
     phone: string
     name?: string | null
@@ -198,15 +199,54 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     )
   }
 
+  // Count donations by status for info display
+  const statusCounts = donations.reduce((acc: any, donation: any) => {
+    acc[donation.status] = (acc[donation.status] || 0) + 1
+    return acc
+  }, {})
+
+  const pendingCount = statusCounts.PENDING || 0
+  const failedCount = statusCounts.FAILED || 0
+  const cancelledCount = statusCounts.CANCELED || 0
+
+  // Filter donations based on toggle
+  const filteredDonations = donations.filter((donation: any) => {
+    if (showFailedAndCancelled) {
+      // Show all donations when toggle is on
+      return true
+    } else {
+      // Only show SUCCEEDED donations when toggle is off
+      return donation.status === 'SUCCEEDED'
+    }
+  })
+
+  if (filteredDonations.length === 0) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <p className="text-gray-500 font-medium">No successful donations found</p>
+        <p className="text-sm text-gray-400 mt-1">
+          Showing only successful donations. 
+          {failedCount > 0 || cancelledCount > 0 ? (
+            <> Toggle "Show Failed & Cancelled" to see {failedCount + cancelledCount} other donation(s).</>
+          ) : null}
+        </p>
+      </div>
+    )
+  }
+
   const showTempleColumn = isMasterAdmin && selectedTempleId === 'all'
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       {/* Filters */}
-      {(isMasterAdmin || startDate || endDate) && (
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <div className="flex flex-wrap gap-4 items-end justify-between">
-            <div className="flex flex-wrap gap-4 items-end">
+      <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="flex flex-wrap gap-4 items-end justify-between">
+          <div className="flex flex-wrap gap-4 items-end">
             {isMasterAdmin && (
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -260,6 +300,21 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
               </button>
             )}
             </div>
+            <div className="flex items-center gap-4">
+              {/* Toggle to show/hide failed and cancelled */}
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showFailedAndCancelled}
+                    onChange={(e) => setShowFailedAndCancelled(e.target.checked)}
+                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Show Failed & Cancelled
+                  </span>
+                </label>
+              </div>
             {isMasterAdmin && (
               <div className="flex gap-2">
                 <button
@@ -301,7 +356,23 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {donations.map((donation: any) => (
+            {/* Show info about PENDING donations if any exist */}
+            {pendingCount > 0 && (
+              <tr>
+                <td colSpan={showTempleColumn ? 10 : 9} className="px-6 py-3 bg-yellow-50 border-y border-yellow-200">
+                  <div className="flex items-center gap-2 text-sm text-yellow-800">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>
+                      <strong>{pendingCount} donation(s) with PENDING status</strong> - These are donations that were initiated but the payment flow was interrupted (app closed, network error, etc.). 
+                      They should be automatically cleaned up or can be manually cancelled.
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            )}
+            {filteredDonations.map((donation: any) => (
               <tr key={donation.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
