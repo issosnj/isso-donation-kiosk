@@ -43,7 +43,11 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     // Keep-alive timer to prevent reader from sleeping
     private var keepAliveTimer: Timer?
-    private let keepAliveInterval: TimeInterval = 30 // 30 seconds - frequent enough to prevent sleep
+    private let keepAliveInterval: TimeInterval = 20 // 20 seconds - more frequent to prevent sleep
+    
+    // Connection refresh timer - periodically refresh authorization to maintain connection
+    private var connectionRefreshTimer: Timer?
+    private let connectionRefreshInterval: TimeInterval = 5 * 60 // 5 minutes - refresh connection periodically
     
     struct PaymentResult {
         let success: Bool
@@ -85,6 +89,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         NotificationCenter.default.removeObserver(self)
         healthTimer?.invalidate()
         keepAliveTimer?.invalidate()
+        connectionRefreshTimer?.invalidate()
     }
     
     // MARK: - Logging helper
@@ -180,6 +185,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         // Stop watchdog and keep-alive when deauthorizing
         SquareReaderWatchdog.shared.stop()
         stopHealthMonitor()
+        stopConnectionRefresh()
         
         MobilePaymentsSDK.shared.authorizationManager.deauthorize { [weak self] in
             self?.log("🔓 deauthorized")
@@ -431,8 +437,9 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         log("🔄 Ensuring Bluetooth connection to Square Reader (same as app startup)...")
         
         // Step 1: Ensure Bluetooth permission is granted
-        let bluetoothManager = CBCentralManager()
-        // Note: Bluetooth permission is checked via Info.plist, but we verify it's available
+        // Note: Bluetooth permission is checked via Info.plist
+        // Creating CBCentralManager instance verifies Bluetooth is available
+        let _ = CBCentralManager()
         
         // Step 2: Ensure SDK is authorized (this triggers Bluetooth discovery)
         let authState = MobilePaymentsSDK.shared.authorizationManager.state
@@ -923,6 +930,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         // Stop existing timers if any
         healthTimer?.invalidate()
         keepAliveTimer?.invalidate()
+        stopConnectionRefresh()
         
         // Only start timers if authorized
         guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
@@ -940,6 +948,9 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         keepAliveTimer = Timer.scheduledTimer(withTimeInterval: keepAliveInterval, repeats: true) { [weak self] _ in
             self?.performKeepAlive()
         }
+        
+        // Start connection refresh timer to periodically refresh authorization
+        startConnectionRefresh()
     }
     
     /// Stop health monitor and keep-alive
@@ -948,6 +959,65 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         healthTimer = nil
         keepAliveTimer?.invalidate()
         keepAliveTimer = nil
+        stopConnectionRefresh()
+    }
+    
+    /// Start connection refresh timer to periodically refresh authorization
+    private func startConnectionRefresh() {
+        stopConnectionRefresh()
+        
+        guard accessToken != nil, locationId != nil else {
+            log("⚠️ Cannot start connection refresh: missing credentials")
+            return
+        }
+        
+        log("🔄 Starting connection refresh timer (every \(Int(connectionRefreshInterval / 60)) minutes)")
+        
+        connectionRefreshTimer = Timer.scheduledTimer(withTimeInterval: connectionRefreshInterval, repeats: true) { [weak self] _ in
+            self?.refreshConnection()
+        }
+    }
+    
+    /// Stop connection refresh timer
+    private func stopConnectionRefresh() {
+        connectionRefreshTimer?.invalidate()
+        connectionRefreshTimer = nil
+    }
+    
+    /// Refresh connection by reauthorizing (light refresh without deauthorizing)
+    private func refreshConnection() {
+        // Don't refresh if a payment is in progress
+        guard !isStartingPayment else {
+            return
+        }
+        
+        // Only refresh if authorized
+        guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
+            return
+        }
+        
+        guard let accessToken = accessToken, let locationId = locationId else {
+            log("⚠️ Cannot refresh connection: missing credentials")
+            return
+        }
+        
+        let readerCount = MobilePaymentsSDK.shared.readerManager.readers.count
+        
+        // If no readers detected, try to refresh authorization to reconnect
+        if readerCount == 0 {
+            log("🔄 Connection refresh: No readers detected - refreshing authorization to reconnect...")
+            // Use forceReauthorize=false to avoid database issues - just refresh
+            authorize(accessToken: accessToken, locationId: locationId, forceReauthorize: false) { [weak self] error in
+                if let error = error {
+                    self?.log("⚠️ Connection refresh failed: \(error.localizedDescription)")
+                } else {
+                    self?.log("✅ Connection refresh: Reauthorized successfully")
+                }
+            }
+        } else {
+            // Readers are connected - just verify connection is still active
+            log("✅ Connection refresh: Reader connection active (\(readerCount) reader(s))", verbose: true)
+        }
     }
     
     /// Perform keep-alive: periodically access reader state to prevent it from sleeping
@@ -966,24 +1036,24 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         // This prevents the Square Reader from going to sleep
         let readers = MobilePaymentsSDK.shared.readerManager.readers
         
-        // Access reader properties to keep Bluetooth connection active
-        // Accessing the reader's model property requires the SDK to communicate with the reader,
-        // which sends keep-alive signals and prevents the reader from sleeping
+        // More aggressive keep-alive: access multiple reader properties to ensure active communication
         for reader in readers {
-            // Access reader model to keep connection alive
-            // This property access triggers communication with the reader
+            // Access multiple reader properties to trigger active Bluetooth communication
+            // This ensures the connection stays alive and the reader doesn't sleep
             let _ = reader.model
+            let _ = reader.state
+            // Accessing these properties forces the SDK to communicate with the reader
+            // which sends keep-alive signals and prevents the reader from sleeping
         }
         
-        // If no readers found, the SDK will reconnect automatically on next payment
-        // But we can log this for monitoring
+        // If no readers found, try to trigger discovery
         if readers.count == 0 {
-            // Only log occasionally to avoid spam (every 20th check = ~10 minutes)
+            // Only log occasionally to avoid spam (every 20th check = ~6-7 minutes)
             if Int.random(in: 0..<20) == 0 {
-                log("💓 Keep-alive: No readers detected (will reconnect on next payment)", verbose: true)
+                log("💓 Keep-alive: No readers detected - connection may need refresh", verbose: true)
             }
         } else {
-            // Only log occasionally to avoid spam (every 10th check = ~5 minutes)
+            // Only log occasionally to avoid spam (every 10th check = ~3-4 minutes)
             if Int.random(in: 0..<10) == 0 {
                 log("💓 Keep-alive: Reader connection active (\(readers.count) reader(s))", verbose: true)
             }

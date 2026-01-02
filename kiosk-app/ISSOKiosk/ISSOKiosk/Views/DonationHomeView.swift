@@ -782,29 +782,78 @@ struct DonationHomeView: View {
                         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
                     
-                    // Total display
+                    // Total display - liquid glass styling
                     VStack(spacing: 6) {
                         Text("total".localized)
                             .font(.custom(bodyFont, size: bodySize))
                             .foregroundColor(subtitleColor)
                         
                         Text("$\(String(format: "%.2f", defaultAmount * Double(quantity)))")
-                            .font(.custom(headingFont, size: 28))
+                            .font(.custom(headingFont, size: 32))
                             .foregroundColor(quantityTotalColor)
+                            .fontWeight(.semibold)
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 20)
+                    .background(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: cornerRadius)
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.white.opacity(0.6),
+                                                Color.white.opacity(0.1)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                    )
                 }
                 .padding(.bottom, 8)
                 .transition(.scale.combined(with: .opacity))
             } else if hasValidAmount {
-                // Show total only when amount is selected (no quantity)
-                VStack(spacing: 6) {
-                    Text("Total")
-                        .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                    
-                    Text("$\(String(format: "%.2f", currentAmount))")
-                        .font(.custom("Inter-SemiBold", size: 28))
-                        .foregroundColor(colorFromHex("423232"))
+                // Show total only when amount is selected (no quantity) - liquid glass styling
+                HStack {
+                    Spacer()
+                    VStack(spacing: 6) {
+                        Text("total".localized)
+                            .font(.custom(bodyFont, size: bodySize))
+                            .foregroundColor(subtitleColor)
+                        
+                        Text("$\(String(format: "%.2f", currentAmount))")
+                            .font(.custom(headingFont, size: 32))
+                            .foregroundColor(quantityTotalColor)
+                            .fontWeight(.semibold)
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: cornerRadius)
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.white.opacity(0.6),
+                                                Color.white.opacity(0.1)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                    )
+                    Spacer()
                 }
                 .padding(.bottom, 8)
                 .transition(.scale.combined(with: .opacity))
