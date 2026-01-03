@@ -500,9 +500,13 @@ struct ModernDonationDetailsView: View {
                                                         Text(suggestion.structured_formatting.main_text)
                                                             .font(.custom("Inter-Medium", size: detailsInputFontSize))
                                                             .foregroundColor(detailsTextColor)
+                                                            .lineLimit(2)
+                                                            .fixedSize(horizontal: false, vertical: true)
                                                         Text(suggestion.structured_formatting.secondary_text)
                                                             .font(.custom("Inter-Regular", size: detailsInputFontSize - 2))
                                                             .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                                            .lineLimit(2)
+                                                            .fixedSize(horizontal: false, vertical: true)
                                                     }
                                                     .frame(maxWidth: .infinity, alignment: .leading)
                                                     .padding(.horizontal, 16)
@@ -520,6 +524,7 @@ struct ModernDonationDetailsView: View {
                                         .cornerRadius(12)
                                         .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
                                         .padding(.top, 8)
+                                        .fixedSize(horizontal: false, vertical: false)
                                     }
                                 }
                             }

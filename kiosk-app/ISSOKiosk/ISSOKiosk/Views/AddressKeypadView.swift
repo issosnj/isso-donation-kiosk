@@ -80,9 +80,13 @@ struct AddressKeypadView: View {
                                             Text(suggestion.structured_formatting.main_text)
                                                 .font(.custom("Inter-Medium", size: 16))
                                                 .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                                .lineLimit(2)
+                                                .fixedSize(horizontal: false, vertical: true)
                                             Text(suggestion.structured_formatting.secondary_text)
                                                 .font(.custom("Inter-Regular", size: 14))
                                                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                                .lineLimit(2)
+                                                .fixedSize(horizontal: false, vertical: true)
                                         }
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .padding(.horizontal, 20)
@@ -101,6 +105,7 @@ struct AddressKeypadView: View {
                             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
                             .padding(.horizontal, 32)
                             .padding(.top, 8)
+                            .fixedSize(horizontal: false, vertical: false)
                         }
                     }
                     .padding(.bottom, 16)
