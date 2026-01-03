@@ -11,6 +11,9 @@ class AppState: ObservableObject {
     @Published var religiousEvents: [ReligiousEvent] = []
     @Published var languageManager = LanguageManager.shared
     
+    // Track last successful donation time for idle reconnection
+    @Published var lastSuccessfulDonationTime: Date?
+    
     private let keychain = KeychainHelper()
     private var themeRefreshTimer: Timer?
     private var categoryRefreshTimer: Timer?
@@ -570,6 +573,25 @@ class AppState: ObservableObject {
                 await self.checkAndReconnectSquareSDK()
             }
         }
+    }
+    
+    /// Check if device has been idle for 5+ minutes since last successful donation
+    func hasBeenIdleFor5Minutes() -> Bool {
+        guard let lastDonationTime = lastSuccessfulDonationTime else {
+            // No previous donation - consider it idle (will reconnect on first donation)
+            return true
+        }
+        
+        let timeSinceLastDonation = Date().timeIntervalSince(lastDonationTime)
+        let fiveMinutes: TimeInterval = 5 * 60 // 5 minutes in seconds
+        
+        return timeSinceLastDonation >= fiveMinutes
+    }
+    
+    /// Record successful donation time
+    func recordSuccessfulDonation() {
+        lastSuccessfulDonationTime = Date()
+        appLog("✅ Recorded successful donation time: \(Date())", category: "AppState")
     }
     
     /// Full reconnection sequence: forces reauthorization (like app restart) and detects hardware with retries

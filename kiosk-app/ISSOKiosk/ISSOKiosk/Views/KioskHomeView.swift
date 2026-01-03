@@ -208,9 +208,22 @@ struct KioskHomeView: View {
                         GoldAccentDonateButton(
                             buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                             action: {
-                            // Navigate immediately - no Square SDK work here
-                            // Authorization will happen when payment actually starts
-                            navigationState.showDonationFlow = true
+                            // Check if device has been idle for 5+ minutes since last successful donation
+                            // If yes, trigger reconnection sequence (same as app restart)
+                            if appState.hasBeenIdleFor5Minutes() {
+                                appLog("⏰ Device idle for 5+ minutes - triggering reconnection sequence...", category: "KioskHomeView")
+                                Task {
+                                    // Trigger same reconnection behavior as app restart
+                                    await appState.ensureSquareConnectionReady()
+                                    // Show donation flow after reconnection completes
+                                    await MainActor.run {
+                                        navigationState.showDonationFlow = true
+                                    }
+                                }
+                            } else {
+                                // Recent donation - just show donation flow
+                                navigationState.showDonationFlow = true
+                            }
                         })
                         .padding(.horizontal, 20) // Add padding to prevent clipping during animation
                         .padding(.vertical, 10) // Add vertical padding for zoom animation
@@ -407,9 +420,22 @@ struct KioskHomeView: View {
             GoldAccentDonateButton(
                 buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                 action: {
-                // Navigate immediately - no Square SDK work here
-                // Authorization will happen when payment actually starts
-                navigationState.showDonationFlow = true
+                // Check if device has been idle for 5+ minutes since last successful donation
+                // If yes, trigger reconnection sequence (same as app restart)
+                if appState.hasBeenIdleFor5Minutes() {
+                    appLog("⏰ Device idle for 5+ minutes - triggering reconnection sequence...", category: "KioskHomeView")
+                    Task {
+                        // Trigger same reconnection behavior as app restart
+                        await appState.ensureSquareConnectionReady()
+                        // Show donation flow after reconnection completes
+                        await MainActor.run {
+                            navigationState.showDonationFlow = true
+                        }
+                    }
+                } else {
+                    // Recent donation - just show donation flow
+                    navigationState.showDonationFlow = true
+                }
             })
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
@@ -419,9 +445,22 @@ struct KioskHomeView: View {
             GoldAccentDonateButton(
                 buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                 action: {
-                // Navigate immediately - no Square SDK work here
-                // Authorization will happen when payment actually starts
-                navigationState.showDonationFlow = true
+                // Check if device has been idle for 5+ minutes since last successful donation
+                // If yes, trigger reconnection sequence (same as app restart)
+                if appState.hasBeenIdleFor5Minutes() {
+                    appLog("⏰ Device idle for 5+ minutes - triggering reconnection sequence...", category: "KioskHomeView")
+                    Task {
+                        // Trigger same reconnection behavior as app restart
+                        await appState.ensureSquareConnectionReady()
+                        // Show donation flow after reconnection completes
+                        await MainActor.run {
+                            navigationState.showDonationFlow = true
+                        }
+                    }
+                } else {
+                    // Recent donation - just show donation flow
+                    navigationState.showDonationFlow = true
+                }
             })
             .padding(.horizontal, 20)
             .padding(.vertical, 10)

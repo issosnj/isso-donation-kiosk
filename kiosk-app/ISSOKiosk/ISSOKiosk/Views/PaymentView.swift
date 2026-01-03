@@ -362,6 +362,8 @@ struct ModernPaymentView: View {
                                     isProcessing = false
                                     if result.success {
                                         paymentStatus = .success
+                                        // Record successful donation time for idle detection
+                                        appState.recordSuccessfulDonation()
                                     } else {
                                         paymentStatus = .failure(result.error ?? "Payment failed")
                                     }
@@ -385,6 +387,8 @@ struct ModernPaymentView: View {
                                         await MainActor.run {
                                             isProcessing = false
                                             paymentStatus = .success
+                                            // Record successful donation time for idle detection
+                                            appState.recordSuccessfulDonation()
                                         }
                                     } else {
                                         // Payment failed - mark as FAILED
