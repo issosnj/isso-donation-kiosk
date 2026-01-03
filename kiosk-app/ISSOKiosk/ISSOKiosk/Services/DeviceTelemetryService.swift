@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import ExternalAccessory
 import SystemConfiguration.CaptiveNetwork
+import SquareMobilePaymentsSDK
 #if canImport(Darwin)
 import Darwin
 #endif
@@ -291,6 +292,22 @@ class DeviceTelemetryService {
     
     // Square Hardware Info
     private func getSquareHardwareInfo() -> (connected: Bool, model: String?) {
+        // First, check for Bluetooth Square Readers via Mobile Payments SDK
+        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+        if authState == .authorized {
+            let readers = MobilePaymentsSDK.shared.readerManager.readers
+            if !readers.isEmpty {
+                // Get the first connected reader
+                let reader = readers.first!
+                // Access reader properties to get model
+                let modelName = reader.model
+                
+                // Return connected with model name (or default)
+                return (connected: true, model: modelName.isEmpty ? "Square Reader" : modelName)
+            }
+        }
+        
+        // Fallback: Check for wired Square Stand via External Accessory
         let manager = EAAccessoryManager.shared()
         let connectedAccessories = manager.connectedAccessories
         let squareProtocols = ["com.squareup.s020", "com.squareup.s025", "com.squareup.s089", "com.squareup.protocol.stand"]
@@ -303,7 +320,7 @@ class DeviceTelemetryService {
             
             if hasSquareProtocol {
                 let model = accessory.modelNumber.isEmpty ? accessory.name : accessory.modelNumber
-                return (connected: true, model: model)
+                return (connected: true, model: model.isEmpty ? "Square Stand" : model)
             }
         }
         
