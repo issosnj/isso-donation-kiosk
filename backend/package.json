@@ -26,7 +26,8 @@
     "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/create-master-admin.ts",
     "seed:user": "ts-node -r tsconfig-paths/register src/scripts/create-user.ts",
     "seed:user:direct": "ts-node -r tsconfig-paths/register src/scripts/create-user-direct.ts",
-    "seed:user:simple": "node create-user-simple.js"
+    "seed:user:simple": "node create-user-simple.js",
+    "restore:donations": "ts-node -r tsconfig-paths/register src/scripts/restore-deleted-donations.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
