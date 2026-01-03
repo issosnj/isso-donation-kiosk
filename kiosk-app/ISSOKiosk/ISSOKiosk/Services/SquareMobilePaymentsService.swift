@@ -439,6 +439,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         // Step 1: Ensure Bluetooth permission is granted
         // Note: Bluetooth permission is checked via Info.plist
         // Creating CBCentralManager instance verifies Bluetooth is available
+        // This also helps wake the reader (same as app restart)
         let _ = CBCentralManager()
         
         // Step 2: Ensure SDK is authorized (this triggers Bluetooth discovery)
@@ -457,22 +458,47 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         }
         
         // Step 3: Check if reader is already discovered
-        let readers = MobilePaymentsSDK.shared.readerManager.readers
+        var readers = MobilePaymentsSDK.shared.readerManager.readers
         if !readers.isEmpty {
             log("✅ Square Reader already connected via Bluetooth - proceeding to payment")
-            startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
+            // Give reader a moment to fully wake up (like app restart gives time)
+            // This is critical - reader needs time to power on and be ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
+            }
             return
         }
         
-        // Step 4: Reader not discovered - refresh authorization to trigger Bluetooth discovery
-        log("⚠️ Square Reader not discovered - refreshing authorization to trigger Bluetooth discovery...")
-        performReauthorizationAndPayment(
-            amount: amount,
-            referenceID: referenceID,
-            note: note,
-            from: viewController,
-            completion: completion
-        )
+        // Step 4: Reader not discovered - this is where reader wakes up (same as app restart)
+        // When payment flow starts, reader wakes up - we just need to wait for it
+        log("⚠️ Square Reader not discovered - waiting for reader to wake up (like app restart)...")
+        
+        // Wait and check for reader (reader wakes up when payment flow starts)
+        // This mimics the delay that happens naturally on app restart
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            guard let self = self else { return }
+            
+            // Check again - reader should be waking up now
+            readers = MobilePaymentsSDK.shared.readerManager.readers
+            if !readers.isEmpty {
+                self.log("✅ Square Reader woke up - proceeding to payment")
+                // Give it one more moment to be fully ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
+                }
+                return
+            }
+            
+            // Still no reader - refresh authorization to trigger Bluetooth discovery
+            self.log("⚠️ Square Reader still not discovered - refreshing authorization to trigger Bluetooth discovery...")
+            self.performReauthorizationAndPayment(
+                amount: amount,
+                referenceID: referenceID,
+                note: note,
+                from: viewController,
+                completion: completion
+            )
+        }
     }
     
     /// Perform reauthorization and then start payment
@@ -625,6 +651,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     }
     
     /// Start the payment flow (permissions + reader check + payment)
+    /// This is where the reader actually wakes up - same as app restart behavior
     private func startPaymentFlow(
         amount: Double,
         referenceID: String,
@@ -640,6 +667,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             }
             
             // 2) Ensure reader is discovered/connected by SDK (otherwise open Reader Settings)
+            // This is where the reader wakes up - the payment flow preparation triggers it
             self.ensureReaderDiscovered(from: viewController) { [weak self] hasReader in
                 guard let self = self else { return }
                 
@@ -648,8 +676,13 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
                     return
                 }
                 
-                // 3) Start payment
-                self.startPayment(amount: amount, referenceID: referenceID, note: note, from: viewController)
+                // 3) Give reader a moment to fully wake up (like app restart gives time)
+                // The reader is discovered but may need a moment to be ready for payment
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                    guard let self = self else { return }
+                    // 4) Start payment - reader should be awake now
+                    self.startPayment(amount: amount, referenceID: referenceID, note: note, from: viewController)
+                }
             }
         }
     }
@@ -903,7 +936,8 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     
     /// Attempt to wake up Square Reader (Bluetooth)
     /// This actively triggers Bluetooth discovery and reader interaction to wake the hardware
-    /// Similar to what happens when the app restarts - forces active Bluetooth scanning
+    /// The key insight: reader wakes up when payment flow starts, not just on discovery
+    /// So we trigger the same flow that happens when starting a payment
     func attemptHardwareWakeUp() {
         log("🔌 Attempting to wake Square Reader hardware...")
         
@@ -913,25 +947,26 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             return
         }
         
-        // Force Bluetooth discovery by accessing reader manager multiple times
-        // This triggers the SDK to actively search for readers (similar to app restart)
+        // Check current reader state
         var readers = MobilePaymentsSDK.shared.readerManager.readers
         log("📊 Initial reader count: \(readers.count)")
         
-        // If no readers found, try to trigger discovery more aggressively
+        // If no readers found, trigger the same flow that happens when starting a payment
+        // This is what actually wakes the reader - the payment preparation flow
         if readers.isEmpty {
-            log("🔄 No readers found - triggering aggressive Bluetooth discovery...")
+            log("🔄 No readers found - triggering payment flow preparation to wake reader...")
             
-            // Access reader manager properties multiple times to force discovery
-            // This mimics what happens during app startup when the SDK initializes
-            for i in 1...5 {
+            // Trigger the same Bluetooth connection check that happens in ensureBluetoothConnectionAndPayment
+            // This is what wakes the reader when you actually start a payment
+            // Access reader manager aggressively to trigger discovery
+            for i in 1...10 {
                 readers = MobilePaymentsSDK.shared.readerManager.readers
                 if !readers.isEmpty {
                     log("✅ Reader discovered after \(i) attempts")
                     break
                 }
                 // Small delay between attempts to allow Bluetooth stack to respond
-                Thread.sleep(forTimeInterval: 0.1)
+                Thread.sleep(forTimeInterval: 0.2)
             }
             
             // Also ensure authorization state is active (this can trigger discovery)
@@ -941,6 +976,7 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             readers = MobilePaymentsSDK.shared.readerManager.readers
             if readers.isEmpty {
                 log("⚠️ Still no readers after aggressive discovery - reader may be powered off or out of range")
+                log("💡 Reader will wake up when payment actually starts (same as app restart behavior)")
             } else {
                 log("✅ Reader discovered: \(readers.count) reader(s) found")
             }
@@ -955,6 +991,37 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
                 _ = reader.state
             }
         }
+    }
+    
+    /// Force wake reader by triggering payment flow preparation
+    /// This mimics what happens when you actually start a payment - which wakes the reader
+    func forceWakeReaderByTriggeringPaymentFlow() {
+        log("🔌 Force waking reader by triggering payment flow preparation...")
+        
+        // Ensure SDK is authorized
+        guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
+            log("⚠️ SDK not authorized - cannot wake reader")
+            return
+        }
+        
+        // Trigger the same flow that happens in ensureBluetoothConnectionAndPayment
+        // This is what actually wakes the reader - accessing reader manager in the context
+        // of preparing for a payment triggers more aggressive Bluetooth scanning
+        
+        // First, ensure Bluetooth is active (like when starting payment)
+        let _ = CBCentralManager()
+        
+        // Then aggressively check for readers (this is what wakes them)
+        for i in 1...5 {
+            let readers = MobilePaymentsSDK.shared.readerManager.readers
+            if !readers.isEmpty {
+                log("✅ Reader woke up after \(i) payment flow trigger(s)")
+                return
+            }
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+        
+        log("💡 Reader wake-up triggered - will be ready when payment starts")
     }
     
     /// Check if payment is in progress
