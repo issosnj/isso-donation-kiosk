@@ -36,12 +36,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
     address: '',
     timezone: '',
     defaultCurrency: 'USD',
-    logoUrl: '',
     yajmanOpportunitiesEnabled: false,
-    branding: {
-      primaryColor: '',
-      secondaryColor: '',
-    },
   })
 
   // Initialize form data when temple loads
@@ -53,12 +48,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
         address: temple.address || '',
         timezone: temple.timezone || '',
         defaultCurrency: temple.defaultCurrency || 'USD',
-        logoUrl: temple.logoUrl || '',
         yajmanOpportunitiesEnabled: temple.yajmanOpportunitiesEnabled || false,
-        branding: {
-          primaryColor: temple.branding?.primaryColor || '',
-          secondaryColor: temple.branding?.secondaryColor || '',
-        },
       })
     }
   }, [temple])
@@ -291,84 +281,6 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Logo URL
-              </label>
-              <input
-                type="url"
-                value={formData.logoUrl}
-                onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                disabled={!isEditing}
-                placeholder="https://example.com/logo.png"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-              />
-              {formData.logoUrl && (
-                <div className="mt-2">
-                  <img src={formData.logoUrl} alt="Logo preview" className="h-20 w-20 object-contain border border-gray-200 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-4">
-                Branding Colors
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-2">Primary Color</label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="color"
-                      value={formData.branding.primaryColor || '#9333ea'}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        branding: { ...formData.branding, primaryColor: e.target.value }
-                      })}
-                      disabled={!isEditing}
-                      className="h-10 w-20 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed"
-                    />
-                    <input
-                      type="text"
-                      value={formData.branding.primaryColor}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        branding: { ...formData.branding, primaryColor: e.target.value }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="#9333ea"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-2">Secondary Color</label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="color"
-                      value={formData.branding.secondaryColor || '#a855f7'}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        branding: { ...formData.branding, secondaryColor: e.target.value }
-                      })}
-                      disabled={!isEditing}
-                      className="h-10 w-20 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed"
-                    />
-                    <input
-                      type="text"
-                      value={formData.branding.secondaryColor}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        branding: { ...formData.branding, secondaryColor: e.target.value }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="#a855f7"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {isMasterAdmin && (
               <div className="pt-4 border-t border-gray-200">
