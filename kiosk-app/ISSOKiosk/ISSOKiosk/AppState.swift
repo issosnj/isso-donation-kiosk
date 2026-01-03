@@ -617,31 +617,48 @@ class AppState: ObservableObject {
         // Even if already authorized, force reauthorize to ensure fresh connection (deauthorize then reauthorize)
         await authorizeSquareSDK(forceReauthorize: true)
         
-        // Wait a moment for authorization to complete and hardware to wake up
-        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+        // Wait longer for authorization to complete and hardware to wake up (like app restart)
+        // App restart gives more time for hardware to initialize
+        try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds (increased from 2)
+        
+        // Aggressively try to wake hardware immediately after reauthorization
+        SquareMobilePaymentsService.shared.attemptHardwareWakeUp()
+        
+        // Wait a bit more for hardware to respond to wake-up attempt
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 more seconds
         
         // Then check hardware connection with retries (same as app becoming active)
-        let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+        var hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
         if !hardwareConnected {
             appLog("⚠️ Hardware not detected - checking with retries...", category: "AppState")
             
-            // Try to detect hardware with retries (up to 10 attempts, 3 seconds apart = 30 seconds total)
-            for attempt in 1...10 {
-                let totalSeconds = attempt * 3
+            // Try to detect hardware with retries (up to 15 attempts, 2 seconds apart = 30 seconds total)
+            // More frequent checks to catch hardware as soon as it wakes up
+            for attempt in 1...15 {
+                let totalSeconds = attempt * 2
                 if attempt > 1 {
-                    try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds between checks
+                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds between checks
                 }
                 
-                // Try to wake hardware on each attempt
+                // Aggressively try to wake hardware on each attempt
                 SquareMobilePaymentsService.shared.attemptHardwareWakeUp()
                 
-                let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
-                if hardwareStillConnected {
+                hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
+                if hardwareConnected {
                     appLog("✅ Hardware detected after \(totalSeconds) seconds - re-authorizing...", category: "AppState")
                     // Reauthorize again now that hardware is detected
                     await authorizeSquareSDK(forceReauthorize: true)
                     break
                 }
+                
+                // Log progress every 3 attempts
+                if attempt % 3 == 0 {
+                    appLog("⏳ Still waiting for hardware... (attempt \(attempt)/15)", category: "AppState")
+                }
+            }
+            
+            if !hardwareConnected {
+                appLog("⚠️ Hardware not detected after all retries - may need manual wake-up", category: "AppState")
             }
         } else {
             appLog("✅ Hardware detected immediately after reauthorization", category: "AppState")

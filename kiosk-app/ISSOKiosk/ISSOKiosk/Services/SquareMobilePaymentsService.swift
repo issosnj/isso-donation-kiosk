@@ -902,10 +902,59 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
     }
     
     /// Attempt to wake up Square Reader (Bluetooth)
-    /// Note: Square Reader 2nd Gen uses Bluetooth, so we can't use EASession
-    /// The SDK automatically manages Bluetooth connections - no manual wake-up needed
+    /// This actively triggers Bluetooth discovery and reader interaction to wake the hardware
+    /// Similar to what happens when the app restarts - forces active Bluetooth scanning
     func attemptHardwareWakeUp() {
-        log("💡 Square Reader 2nd Gen uses Bluetooth - SDK will connect automatically when payment starts")
+        log("🔌 Attempting to wake Square Reader hardware...")
+        
+        // Ensure SDK is authorized first
+        guard MobilePaymentsSDK.shared.authorizationManager.state == .authorized else {
+            log("⚠️ SDK not authorized - cannot wake reader")
+            return
+        }
+        
+        // Force Bluetooth discovery by accessing reader manager multiple times
+        // This triggers the SDK to actively search for readers (similar to app restart)
+        var readers = MobilePaymentsSDK.shared.readerManager.readers
+        log("📊 Initial reader count: \(readers.count)")
+        
+        // If no readers found, try to trigger discovery more aggressively
+        if readers.isEmpty {
+            log("🔄 No readers found - triggering aggressive Bluetooth discovery...")
+            
+            // Access reader manager properties multiple times to force discovery
+            // This mimics what happens during app startup when the SDK initializes
+            for i in 1...5 {
+                readers = MobilePaymentsSDK.shared.readerManager.readers
+                if !readers.isEmpty {
+                    log("✅ Reader discovered after \(i) attempts")
+                    break
+                }
+                // Small delay between attempts to allow Bluetooth stack to respond
+                Thread.sleep(forTimeInterval: 0.1)
+            }
+            
+            // Also ensure authorization state is active (this can trigger discovery)
+            _ = MobilePaymentsSDK.shared.authorizationManager.state
+            
+            // Final check
+            readers = MobilePaymentsSDK.shared.readerManager.readers
+            if readers.isEmpty {
+                log("⚠️ Still no readers after aggressive discovery - reader may be powered off or out of range")
+            } else {
+                log("✅ Reader discovered: \(readers.count) reader(s) found")
+            }
+        } else {
+            // Reader is already connected - interact with it to keep it awake
+            log("✅ Reader already connected (\(readers.count) reader(s)) - keeping connection alive")
+            performKeepAlive()
+            
+            // Also access reader properties to ensure active connection
+            for reader in readers {
+                _ = reader.model
+                _ = reader.state
+            }
+        }
     }
     
     /// Check if payment is in progress
