@@ -208,21 +208,19 @@ struct KioskHomeView: View {
                         GoldAccentDonateButton(
                             buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                             action: {
-                            // Check if device has been idle for 5+ minutes since last successful donation
-                            // If yes, trigger reconnection sequence (same as app restart)
+                            // Show donation flow immediately - don't block UI
+                            navigationState.showDonationFlow = true
+                            
+                            // If device has been idle for 5+ minutes, trigger reconnection in background
+                            // This happens while user selects donation, so hardware is ready when they proceed to payment
                             if appState.hasBeenIdleFor5Minutes() {
-                                appLog("⏰ Device idle for 5+ minutes - triggering reconnection sequence...", category: "KioskHomeView")
-                                Task {
-                                    // Trigger same reconnection behavior as app restart
+                                appLog("⏰ Device idle for 5+ minutes - triggering reconnection in background...", category: "KioskHomeView")
+                                Task.detached(priority: .utility) { [weak appState] in
+                                    guard let appState = appState else { return }
+                                    // Trigger same reconnection behavior as app restart (in background)
                                     await appState.ensureSquareConnectionReady()
-                                    // Show donation flow after reconnection completes
-                                    await MainActor.run {
-                                        navigationState.showDonationFlow = true
-                                    }
+                                    appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
                                 }
-                            } else {
-                                // Recent donation - just show donation flow
-                                navigationState.showDonationFlow = true
                             }
                         })
                         .padding(.horizontal, 20) // Add padding to prevent clipping during animation
@@ -420,21 +418,19 @@ struct KioskHomeView: View {
             GoldAccentDonateButton(
                 buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                 action: {
-                // Check if device has been idle for 5+ minutes since last successful donation
-                // If yes, trigger reconnection sequence (same as app restart)
+                // Show donation flow immediately - don't block UI
+                navigationState.showDonationFlow = true
+                
+                // If device has been idle for 5+ minutes, trigger reconnection in background
+                // This happens while user selects donation, so hardware is ready when they proceed to payment
                 if appState.hasBeenIdleFor5Minutes() {
-                    appLog("⏰ Device idle for 5+ minutes - triggering reconnection sequence...", category: "KioskHomeView")
-                    Task {
-                        // Trigger same reconnection behavior as app restart
+                    appLog("⏰ Device idle for 5+ minutes - triggering reconnection in background...", category: "KioskHomeView")
+                    Task.detached(priority: .utility) { [weak appState] in
+                        guard let appState = appState else { return }
+                        // Trigger same reconnection behavior as app restart (in background)
                         await appState.ensureSquareConnectionReady()
-                        // Show donation flow after reconnection completes
-                        await MainActor.run {
-                            navigationState.showDonationFlow = true
-                        }
+                        appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
                     }
-                } else {
-                    // Recent donation - just show donation flow
-                    navigationState.showDonationFlow = true
                 }
             })
             .padding(.horizontal, 20)
@@ -445,21 +441,19 @@ struct KioskHomeView: View {
             GoldAccentDonateButton(
                 buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                 action: {
-                // Check if device has been idle for 5+ minutes since last successful donation
-                // If yes, trigger reconnection sequence (same as app restart)
+                // Show donation flow immediately - don't block UI
+                navigationState.showDonationFlow = true
+                
+                // If device has been idle for 5+ minutes, trigger reconnection in background
+                // This happens while user selects donation, so hardware is ready when they proceed to payment
                 if appState.hasBeenIdleFor5Minutes() {
-                    appLog("⏰ Device idle for 5+ minutes - triggering reconnection sequence...", category: "KioskHomeView")
-                    Task {
-                        // Trigger same reconnection behavior as app restart
+                    appLog("⏰ Device idle for 5+ minutes - triggering reconnection in background...", category: "KioskHomeView")
+                    Task.detached(priority: .utility) { [weak appState] in
+                        guard let appState = appState else { return }
+                        // Trigger same reconnection behavior as app restart (in background)
                         await appState.ensureSquareConnectionReady()
-                        // Show donation flow after reconnection completes
-                        await MainActor.run {
-                            navigationState.showDonationFlow = true
-                        }
+                        appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
                     }
-                } else {
-                    // Recent donation - just show donation flow
-                    navigationState.showDonationFlow = true
                 }
             })
             .padding(.horizontal, 20)

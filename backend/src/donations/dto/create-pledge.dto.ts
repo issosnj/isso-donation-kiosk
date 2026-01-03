@@ -6,9 +6,10 @@ export class CreatePledgeDto {
   @IsUUID()
   templeId: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsUUID()
-  deviceId: string;
+  deviceId?: string;
 
   @ApiProperty()
   @IsNumber()

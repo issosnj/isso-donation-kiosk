@@ -16,9 +16,10 @@ struct ContentView: View {
             Color.white
                 .ignoresSafeArea(.all)
             
-            // Show loading state until activated AND temple config is loaded (server connection ready)
-            if !appState.isActivated || (appState.isActivated && appState.temple == nil && appState.deviceToken != nil) {
-                // Loading state - waiting for activation or temple config from server
+            // Show loading state only if we have a token and are waiting for temple config
+            // If no token, show activation screen
+            if appState.deviceToken != nil && (!appState.isActivated || (appState.isActivated && appState.temple == nil)) {
+                // Loading state - waiting for temple config from server
                 LoadingView()
                     .environmentObject(appState)
             } else if appState.isActivated {

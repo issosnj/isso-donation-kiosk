@@ -32,10 +32,10 @@ export class Donation {
   @JoinColumn({ name: 'templeId' })
   temple: Temple;
 
-  @Column()
+  @Column({ nullable: true })
   deviceId: string;
 
-  @ManyToOne(() => Device)
+  @ManyToOne(() => Device, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'deviceId' })
   device: Device;
 

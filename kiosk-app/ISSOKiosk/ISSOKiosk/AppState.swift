@@ -73,12 +73,24 @@ class AppState: ObservableObject {
             // This ensures loading screen shows until server connection is ready
             appLog("📡 Found stored credentials - loading temple config from server...", category: "AppState")
             
+            // Add a safety timeout: if temple config doesn't load within 15 seconds, activate UI anyway
+            let timeoutTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 15_000_000_000) // 15 seconds
+                if !self.isActivated {
+                    appLog("⏰ Safety timeout reached - activating UI even without temple config", category: "AppState")
+                    self.isActivated = true
+                }
+            }
+            
             // Load temple config FIRST with highest priority - UI waits for this
             Task(priority: .userInitiated) { [weak self] in
                 guard let self = self else { return }
                 await self.loadTempleConfig()
                 // Only activate after temple config loads successfully
                 await MainActor.run {
+                    // Cancel timeout task since we loaded successfully
+                    timeoutTask.cancel()
+                    
                     if self.temple != nil {
                         self.isActivated = true
                         appLog("✅ Temple config loaded - activating UI", category: "AppState")
@@ -99,6 +111,8 @@ class AppState: ObservableObject {
                     }
                 }
             }
+        } else {
+            appLog("ℹ️ No stored credentials found - showing activation screen", category: "AppState")
         }
     }
     

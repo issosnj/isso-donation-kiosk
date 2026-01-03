@@ -6,9 +6,10 @@ export class InitiateDonationDto {
   @IsUUID()
   templeId: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsUUID()
-  deviceId: string;
+  deviceId?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
