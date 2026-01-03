@@ -98,6 +98,8 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
         // Only log important messages, skip verbose debug logs
         if !verbose {
             print("[SquareMPSDK] \(message)")
+            // Also send to telemetry system so logs appear in admin dashboard
+            appLog(message, category: "SquareMPSDK")
         }
     }
     
