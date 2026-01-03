@@ -7,7 +7,6 @@ import api from '@/lib/api'
 import DevicesTab from './DevicesTab'
 import CategoriesTab from './CategoriesTab'
 import SquareTab from './SquareTab'
-import EventsCalendarTab from './EventsCalendarTab'
 import KioskHomeTab from './KioskHomeTab'
 
 interface TempleEditViewProps {
@@ -120,7 +119,6 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
     { id: 'devices', label: 'Devices' },
     { id: 'categories', label: 'Categories' },
     { id: 'square', label: 'Square' },
-    { id: 'events', label: 'Events Calendar' },
     { id: 'kiosk', label: 'Kiosk Home' },
   ]
 
@@ -423,7 +421,6 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
               {activeTab === 'devices' && <DevicesTab templeId={templeId} />}
               {activeTab === 'categories' && <CategoriesTab templeId={templeId} />}
               {activeTab === 'square' && <SquareTab templeId={templeId} />}
-              {activeTab === 'events' && <EventsCalendarTab templeId={templeId} />}
               {activeTab === 'kiosk' && <KioskHomeTab templeId={templeId} />}
       </div>
     </div>

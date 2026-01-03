@@ -22,10 +22,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
 
   const [formData, setFormData] = useState({
     idleTimeoutSeconds: 60,
-    customMessage: '',
     whatsAppLink: '',
-    eventsText: '',
-    googleCalendarLink: '',
     presetAmounts: [5, 10, 25, 50, 100] as number[],
   })
 
@@ -33,10 +30,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
     if (temple?.homeScreenConfig) {
       setFormData({
         idleTimeoutSeconds: temple.homeScreenConfig.idleTimeoutSeconds || 60,
-        customMessage: temple.homeScreenConfig.customMessage || '',
         whatsAppLink: temple.homeScreenConfig.whatsAppLink || '',
-        eventsText: temple.homeScreenConfig.eventsText || '',
-        googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
         presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
       })
     }
@@ -85,10 +79,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                 if (temple?.homeScreenConfig) {
                   setFormData({
                     idleTimeoutSeconds: temple.homeScreenConfig.idleTimeoutSeconds || 60,
-                    customMessage: temple.homeScreenConfig.customMessage || '',
                     whatsAppLink: temple.homeScreenConfig.whatsAppLink || '',
-                    eventsText: temple.homeScreenConfig.eventsText || '',
-                    googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
                     presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
                   })
                 }
@@ -126,21 +117,6 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
           <p className="mt-1 text-xs text-gray-500">Time in seconds before kiosk returns to home screen after inactivity (10-300)</p>
         </div>
 
-        {/* Custom Message */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Custom Message (Bottom of Screen)
-          </label>
-          <textarea
-            value={formData.customMessage}
-            onChange={(e) => setFormData({ ...formData, customMessage: e.target.value })}
-            disabled={!isEditing}
-            rows={3}
-            placeholder="e.g., Thank you for your support!"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-          />
-        </div>
-
         {/* WhatsApp Link */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -155,27 +131,6 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
           />
           <p className="mt-1 text-xs text-gray-500">QR code will be generated automatically</p>
-        </div>
-
-        {/* Google Calendar Link */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Google Calendar Public Link
-          </label>
-          <input
-            type="url"
-            value={formData.googleCalendarLink}
-            onChange={(e) => setFormData({ ...formData, googleCalendarLink: e.target.value })}
-            disabled={!isEditing}
-            placeholder="https://calendar.google.com/calendar/embed?src=..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Get your public calendar link from Google Calendar settings. The kiosk will display upcoming events from this calendar.
-          </p>
-          <p className="mt-1 text-xs text-gray-400">
-            To get your public link: Google Calendar → Settings → Calendar → Access permissions → Make available to public → Copy the public URL
-          </p>
         </div>
 
         {/* Preset Donation Amounts */}
