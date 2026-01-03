@@ -219,7 +219,9 @@ struct KioskHomeView: View {
                                     guard let appState = appState else { return }
                                     // Trigger same reconnection behavior as app restart (in background)
                                     await appState.ensureSquareConnectionReady()
-                                    appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
+                                    await MainActor.run {
+                                        appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
+                                    }
                                 }
                             }
                         })
@@ -429,7 +431,9 @@ struct KioskHomeView: View {
                         guard let appState = appState else { return }
                         // Trigger same reconnection behavior as app restart (in background)
                         await appState.ensureSquareConnectionReady()
-                        appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
+                        await MainActor.run {
+                            appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
+                        }
                     }
                 }
             })
@@ -452,7 +456,9 @@ struct KioskHomeView: View {
                         guard let appState = appState else { return }
                         // Trigger same reconnection behavior as app restart (in background)
                         await appState.ensureSquareConnectionReady()
-                        appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
+                        await MainActor.run {
+                            appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
+                        }
                     }
                 }
             })

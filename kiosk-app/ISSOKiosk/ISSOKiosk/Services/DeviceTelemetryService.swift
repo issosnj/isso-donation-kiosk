@@ -38,7 +38,7 @@ class DeviceTelemetryService {
         let machineMirror = Mirror(reflecting: systemInfo.machine)
         let identifier = machineMirror.children.reduce("") { identifier, element in
             guard let value = element.value as? Int8, value != 0 else { return identifier }
-            return identifier + String(UnicodeScalar(UInt8(value))!)
+            return identifier + String(UnicodeScalar(UInt8(value)))
         }
         telemetry["hardwareModel"] = identifier
         
@@ -125,7 +125,6 @@ class DeviceTelemetryService {
         telemetry["screenHeight"] = screen.bounds.height
         telemetry["screenScale"] = screen.scale
         telemetry["screenBrightness"] = screen.brightness
-        telemetry["screenMaxBrightness"] = screen.maximumBrightness
         
         // Additional Device Information
         telemetry["processorCount"] = ProcessInfo.processInfo.processorCount
@@ -148,8 +147,7 @@ class DeviceTelemetryService {
             "screenBrightness": screen.brightness,
             "isIdleTimerDisabled": UIApplication.shared.isIdleTimerDisabled,
             "orientation": device.orientation.rawValue,
-            "userInterfaceIdiom": device.userInterfaceIdiom.rawValue, // 0=phone, 1=pad
-            "isMultitaskingSupported": UIApplication.shared.isMultitaskingSupported
+            "userInterfaceIdiom": device.userInterfaceIdiom.rawValue // 0=phone, 1=pad
         ]
         
         return telemetry
@@ -346,8 +344,8 @@ class DeviceTelemetryService {
             // iPad Air
             "iPad13,16": "iPad Air (4th generation)",
             "iPad13,17": "iPad Air (4th generation)",
-            "iPad14,1": "iPad Air (5th generation)",
-            "iPad14,2": "iPad Air (5th generation)",
+            "iPad15,3": "iPad Air (5th generation)",
+            "iPad15,4": "iPad Air (5th generation)",
             // iPad
             "iPad11,1": "iPad (8th generation)",
             "iPad11,2": "iPad (8th generation)",
