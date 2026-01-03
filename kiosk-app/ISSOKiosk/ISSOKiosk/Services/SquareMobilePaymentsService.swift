@@ -148,14 +148,25 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             return
         }
         
-        // NEVER deauthorize if already authorized - this causes SQLite database errors
-        // If forceReauthorize is requested but already authorized, just refresh without deauthorizing
+        // If forceReauthorize is requested and already authorized, we need to deauthorize first
+        // This is necessary to wake the reader from sleep (same as app restart)
+        // The database warnings are harmless - they're just SQLite cleanup messages
         if forceReauthorize && state == .authorized {
-            log("✅ Already authorized - skipping deauthorization to avoid database issues")
-            // Just refresh the connection without deauthorizing
-            startHealthMonitor()
-            SquareReaderWatchdog.shared.start()
-            completion(nil)
+            log("🔄 Force reauthorize requested - deauthorizing first to wake reader (like app restart)")
+            // Stop timers before deauthorizing
+            stopHealthMonitor()
+            SquareReaderWatchdog.shared.stop()
+            
+            // Deauthorize first (this is what happens on app restart - fresh start)
+            MobilePaymentsSDK.shared.authorizationManager.deauthorize { [weak self] in
+                guard let self = self else {
+                    completion(NSError(domain: "SquareMPSDK", code: -1, userInfo: [NSLocalizedDescriptionKey: "Service deallocated"]))
+                    return
+                }
+                self.log("🔓 Deauthorized - now reauthorizing to wake reader")
+                // Now reauthorize (fresh authorization wakes the reader)
+                self.performAuthorization(accessToken: accessToken, locationId: locationId, completion: completion)
+            }
             return
         }
         
@@ -457,47 +468,16 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
             return
         }
         
-        // Step 3: Check if reader is already discovered
-        var readers = MobilePaymentsSDK.shared.readerManager.readers
-        if !readers.isEmpty {
-            log("✅ Square Reader already connected via Bluetooth - proceeding to payment")
-            // Give reader a moment to fully wake up (like app restart gives time)
-            // This is critical - reader needs time to power on and be ready
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                self?.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
-            }
-            return
-        }
+        // Step 3: Start payment flow immediately - the SDK will wake the reader when payment starts
+        // This is the key: the reader wakes up when startPayment() is called, not when we check for it
+        // On app restart, the reader wakes when payment starts - same behavior here
+        // Don't wait for reader discovery - just start the payment and let SDK wake the reader
+        log("💳 Starting payment flow immediately - SDK will wake reader when payment starts (like app restart)")
         
-        // Step 4: Reader not discovered - this is where reader wakes up (same as app restart)
-        // When payment flow starts, reader wakes up - we just need to wait for it
-        log("⚠️ Square Reader not discovered - waiting for reader to wake up (like app restart)...")
-        
-        // Wait and check for reader (reader wakes up when payment flow starts)
-        // This mimics the delay that happens naturally on app restart
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-            guard let self = self else { return }
-            
-            // Check again - reader should be waking up now
-            readers = MobilePaymentsSDK.shared.readerManager.readers
-            if !readers.isEmpty {
-                self.log("✅ Square Reader woke up - proceeding to payment")
-                // Give it one more moment to be fully ready
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
-                }
-                return
-            }
-            
-            // Still no reader - refresh authorization to trigger Bluetooth discovery
-            self.log("⚠️ Square Reader still not discovered - refreshing authorization to trigger Bluetooth discovery...")
-            self.performReauthorizationAndPayment(
-                amount: amount,
-                referenceID: referenceID,
-                note: note,
-                from: viewController,
-                completion: completion
-            )
+        // Give a brief moment for reauthorization to complete (if it happened)
+        // Then start payment - this is what wakes the reader
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.startPaymentFlow(amount: amount, referenceID: referenceID, note: note, from: viewController)
         }
     }
     
@@ -666,23 +646,18 @@ final class SquareMobilePaymentsService: NSObject, PaymentManagerDelegate, Reade
                 return
             }
             
-            // 2) Ensure reader is discovered/connected by SDK (otherwise open Reader Settings)
-            // This is where the reader wakes up - the payment flow preparation triggers it
-            self.ensureReaderDiscovered(from: viewController) { [weak self] hasReader in
+            // 2) Start payment immediately - this is what wakes the reader (same as app restart)
+            // The SDK's startPayment() call is what physically wakes the reader from sleep
+            // Don't wait for reader discovery - just start the payment and let SDK handle it
+            // On app restart, the reader wakes when payment starts - same behavior here
+            log("💳 Starting payment - this will wake the reader (like app restart)")
+            
+            // Give a brief moment for any background reauthorization to complete
+            // Then start payment immediately - the SDK will wake the reader
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 guard let self = self else { return }
-                
-                guard hasReader else {
-                    self.finishWithError(message: "No Square Reader connected. Please connect the reader in Reader Settings.", code: -102)
-                    return
-                }
-                
-                // 3) Give reader a moment to fully wake up (like app restart gives time)
-                // The reader is discovered but may need a moment to be ready for payment
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-                    guard let self = self else { return }
-                    // 4) Start payment - reader should be awake now
-                    self.startPayment(amount: amount, referenceID: referenceID, note: note, from: viewController)
-                }
+                // Start payment - this is what wakes the reader (same as app restart)
+                self.startPayment(amount: amount, referenceID: referenceID, note: note, from: viewController)
             }
         }
     }
