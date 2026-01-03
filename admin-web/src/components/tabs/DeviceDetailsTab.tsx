@@ -201,13 +201,13 @@ export default function DeviceDetailsTab({ deviceId, onBack }: DeviceDetailsTabP
                 <div>
                   <div className="text-xs text-gray-500 mb-1">Disk Space</div>
                   <div className="text-sm font-medium text-gray-900">
-                    {latestTelemetry.diskSpaceUsed?.toFixed(1) || '0'} / {latestTelemetry.diskSpaceTotal.toFixed(1)} GB
+                    {Number(latestTelemetry.diskSpaceUsed || 0).toFixed(1)} / {Number(latestTelemetry.diskSpaceTotal || 0).toFixed(1)} GB
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 mb-1">Memory</div>
                   <div className="text-sm font-medium text-gray-900">
-                    {latestTelemetry.memoryUsed ? (latestTelemetry.memoryUsed / 1024).toFixed(1) : '0'} / {latestTelemetry.memoryTotal ? (latestTelemetry.memoryTotal / 1024).toFixed(1) : '0'} GB
+                    {latestTelemetry.memoryUsed ? Number(latestTelemetry.memoryUsed / 1024).toFixed(1) : '0'} / {latestTelemetry.memoryTotal ? Number(latestTelemetry.memoryTotal / 1024).toFixed(1) : '0'} GB
                   </div>
                 </div>
               </>
