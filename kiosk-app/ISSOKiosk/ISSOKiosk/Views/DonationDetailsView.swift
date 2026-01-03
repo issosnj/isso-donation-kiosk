@@ -455,12 +455,12 @@ struct ModernDonationDetailsView: View {
                             }
                             
                             // Address field with icon and autocomplete
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("mailingAddressOptional".localized)
-                                    .font(.custom("Inter-Regular", size: 14))
-                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                
-                                VStack(alignment: .leading, spacing: 0) {
+                            ZStack(alignment: .topLeading) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("mailingAddressOptional".localized)
+                                        .font(.custom("Inter-Regular", size: 14))
+                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                    
                                     Button(action: {
                                         showingAddressKeypad = true
                                     }) {
@@ -486,16 +486,23 @@ struct ModernDonationDetailsView: View {
                                                 )
                                         )
                                     }
-                                    
-                                    // Address suggestions dropdown - positioned below button without layout shift
-                                    if showAddressSuggestions && !addressSuggestions.isEmpty && addressFocused {
-                                        VStack(spacing: 0) {
-                                            ForEach(addressSuggestions.prefix(5)) { suggestion in
-                                                Button(action: {
-                                                    Task {
-                                                        await selectAddress(suggestion: suggestion)
-                                                    }
-                                                }) {
+                                }
+                                
+                                // Address suggestions overlay - positioned absolutely to prevent layout shifts
+                                if showAddressSuggestions && !addressSuggestions.isEmpty && addressFocused {
+                                    VStack(spacing: 0) {
+                                        ForEach(addressSuggestions.prefix(5)) { suggestion in
+                                            Button(action: {
+                                                Task {
+                                                    await selectAddress(suggestion: suggestion)
+                                                }
+                                            }) {
+                                                HStack(alignment: .top, spacing: 12) {
+                                                    Image(systemName: "mappin.circle.fill")
+                                                        .font(.system(size: 18))
+                                                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                                        .padding(.top, 2)
+                                                    
                                                     VStack(alignment: .leading, spacing: 4) {
                                                         Text(suggestion.structured_formatting.main_text)
                                                             .font(.custom("Inter-Medium", size: detailsInputFontSize))
@@ -509,23 +516,25 @@ struct ModernDonationDetailsView: View {
                                                             .fixedSize(horizontal: false, vertical: true)
                                                     }
                                                     .frame(maxWidth: .infinity, alignment: .leading)
+                                                }
+                                                .padding(.horizontal, 16)
+                                                .padding(.vertical, 12)
+                                                .background(Color.white)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                            
+                                            if suggestion.id != addressSuggestions.prefix(5).last?.id {
+                                                Divider()
                                                     .padding(.horizontal, 16)
-                                                    .padding(.vertical, 12)
-                                                }
-                                                .buttonStyle(PlainButtonStyle())
-                                                
-                                                if suggestion.id != addressSuggestions.prefix(5).last?.id {
-                                                    Divider()
-                                                        .padding(.horizontal, 16)
-                                                }
                                             }
                                         }
-                                        .background(Color.white)
-                                        .cornerRadius(12)
-                                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                        .padding(.top, 8)
-                                        .fixedSize(horizontal: false, vertical: false)
                                     }
+                                    .background(Color.white)
+                                    .cornerRadius(12)
+                                    .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+                                    .frame(maxWidth: 400)
+                                    .frame(maxHeight: 300)
+                                    .padding(.top, 60) // Position below the address input field
                                 }
                             }
                         }

@@ -299,8 +299,8 @@ class DeviceTelemetryService {
             if !readers.isEmpty {
                 // Get the first connected reader
                 let reader = readers.first!
-                // Access reader properties to get model
-                let modelName = reader.model
+                // Access reader properties to get model - convert ReaderModel enum to String
+                let modelName = String(describing: reader.model)
                 
                 // Return connected with model name (or default)
                 return (connected: true, model: modelName.isEmpty ? "Square Reader" : modelName)

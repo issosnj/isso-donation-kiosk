@@ -108,6 +108,19 @@ struct EmailKeypadView: View {
                     
                     // Text keypad
                     VStack(spacing: 12) {
+                        // Number row (0-9) - at the top like address keypad
+                        HStack(spacing: 12) {
+                            TextKeypadButton(character: "1", enteredText: $enteredEmail)
+                            TextKeypadButton(character: "2", enteredText: $enteredEmail)
+                            TextKeypadButton(character: "3", enteredText: $enteredEmail)
+                            TextKeypadButton(character: "4", enteredText: $enteredEmail)
+                            TextKeypadButton(character: "5", enteredText: $enteredEmail)
+                            TextKeypadButton(character: "6", enteredText: $enteredEmail)
+                            TextKeypadButton(character: "7", enteredText: $enteredEmail)
+                            TextKeypadButton(character: "8", enteredText: $enteredEmail)
+                            TextKeypadButton(character: "9", enteredText: $enteredEmail)
+                            TextKeypadButton(character: "0", enteredText: $enteredEmail)
+                        }
                         HStack(spacing: 12) {
                             TextKeypadButton(character: "Q", enteredText: $enteredEmail)
                             TextKeypadButton(character: "W", enteredText: $enteredEmail)
@@ -141,19 +154,6 @@ struct EmailKeypadView: View {
                             TextKeypadButton(character: "M", enteredText: $enteredEmail)
                             TextKeypadButton(character: "@", enteredText: $enteredEmail)
                             TextKeypadButton(character: ".", enteredText: $enteredEmail)
-                        }
-                        // Number row (0-9)
-                        HStack(spacing: 12) {
-                            TextKeypadButton(character: "1", enteredText: $enteredEmail)
-                            TextKeypadButton(character: "2", enteredText: $enteredEmail)
-                            TextKeypadButton(character: "3", enteredText: $enteredEmail)
-                            TextKeypadButton(character: "4", enteredText: $enteredEmail)
-                            TextKeypadButton(character: "5", enteredText: $enteredEmail)
-                            TextKeypadButton(character: "6", enteredText: $enteredEmail)
-                            TextKeypadButton(character: "7", enteredText: $enteredEmail)
-                            TextKeypadButton(character: "8", enteredText: $enteredEmail)
-                            TextKeypadButton(character: "9", enteredText: $enteredEmail)
-                            TextKeypadButton(character: "0", enteredText: $enteredEmail)
                         }
                         HStack(spacing: 12) {
                             // Space button
