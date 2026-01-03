@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { User } from '../users/entities/user.entity';
 import { Temple } from '../temples/entities/temple.entity';
 import { Device } from '../devices/entities/device.entity';
+import { DeviceTelemetry } from '../devices/entities/device-telemetry.entity';
 import { DonationCategory } from '../donations/entities/donation-category.entity';
 import { Donation } from '../donations/entities/donation.entity';
 import { Donor } from '../donors/entities/donor.entity';
@@ -26,7 +27,7 @@ export const typeOrmConfig = (): DataSourceOptions => {
       username: url.username,
       password: url.password,
       database: url.pathname.slice(1), // Remove leading /
-      entities: [User, Temple, Device, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent],
+      entities: [User, Temple, Device, DeviceTelemetry, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent],
       synchronize: false, // Disabled to use existing Railway database schema
       logging: configService.get('NODE_ENV') === 'development',
       migrations: ['dist/migrations/*.js'],
@@ -61,7 +62,7 @@ export const typeOrmConfig = (): DataSourceOptions => {
     username,
     password: configService.get('DB_PASSWORD', 'postgres'),
     database,
-    entities: [User, Temple, Device, DonationCategory, Donation, AuditLog],
+    entities: [User, Temple, Device, DeviceTelemetry, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent],
     synchronize: configService.get('NODE_ENV') === 'development',
     logging: configService.get('NODE_ENV') === 'development',
     migrations: ['dist/migrations/*.js'],
