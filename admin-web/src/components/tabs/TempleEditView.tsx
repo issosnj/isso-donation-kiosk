@@ -143,12 +143,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
                     address: temple.address || '',
                     timezone: temple.timezone || '',
                     defaultCurrency: temple.defaultCurrency || 'USD',
-                    logoUrl: temple.logoUrl || '',
                     yajmanOpportunitiesEnabled: temple.yajmanOpportunitiesEnabled || false,
-                    branding: {
-                      primaryColor: temple.branding?.primaryColor || '',
-                      secondaryColor: temple.branding?.secondaryColor || '',
-                    },
                   })
                 }}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm"
