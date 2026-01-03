@@ -260,13 +260,20 @@ export class DonationsService {
     let failed = 0;
 
     for (const donation of donations) {
-      // Skip if already has fee information
-      if (donation.squareFee !== null && donation.netAmount !== null && donation.squareFee !== undefined && donation.netAmount !== undefined) {
+      // Skip if no Square payment ID
+      if (!donation.squarePaymentId) {
         continue;
       }
 
-      // Skip if no Square payment ID
-      if (!donation.squarePaymentId) {
+      // Backfill if fee information is missing OR if fee is 0 (might be incorrect)
+      // Check if fee is null, undefined, or 0 (0 might be a placeholder for missing data)
+      const hasFeeInfo = donation.squareFee !== null && 
+                        donation.squareFee !== undefined && 
+                        donation.netAmount !== null && 
+                        donation.netAmount !== undefined &&
+                        donation.squareFee > 0; // Also backfill if fee is 0 (might be incorrect)
+      
+      if (hasFeeInfo) {
         continue;
       }
 
