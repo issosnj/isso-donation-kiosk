@@ -2,6 +2,9 @@ import Foundation
 import UIKit
 import ExternalAccessory
 import SystemConfiguration.CaptiveNetwork
+#if canImport(Darwin)
+import Darwin
+#endif
 
 class DeviceTelemetryService {
     static let shared = DeviceTelemetryService()
@@ -17,11 +20,40 @@ class DeviceTelemetryService {
     func collectTelemetry() -> [String: Any] {
         var telemetry: [String: Any] = [:]
         
-        // Device Information
-        telemetry["deviceModel"] = UIDevice.current.model
-        telemetry["osVersion"] = UIDevice.current.systemVersion
+        // Device Information - Comprehensive
+        let device = UIDevice.current
+        telemetry["deviceModel"] = device.model // e.g., "iPad"
+        telemetry["deviceName"] = device.name // User-assigned device name
+        telemetry["systemName"] = device.systemName // "iOS"
+        telemetry["osVersion"] = device.systemVersion // e.g., "17.0"
+        
+        // Device Identifier (identifierForVendor - unique per app vendor)
+        if let identifierForVendor = device.identifierForVendor?.uuidString {
+            telemetry["deviceIdentifier"] = identifierForVendor
+        }
+        
+        // Hardware Model Identifier (e.g., "iPad13,1" for iPad Pro 11-inch)
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = machineMirror.children.reduce("") { identifier, element in
+            guard let value = element.value as? Int8, value != 0 else { return identifier }
+            return identifier + String(UnicodeScalar(UInt8(value))!)
+        }
+        telemetry["hardwareModel"] = identifier
+        
+        // Human-readable model name
+        telemetry["modelName"] = getModelName(from: identifier)
+        
+        // App Information
         if let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
             telemetry["appVersion"] = appVersion
+        }
+        if let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+            telemetry["appBuildNumber"] = buildNumber
+        }
+        if let bundleId = Bundle.main.bundleIdentifier {
+            telemetry["bundleIdentifier"] = bundleId
         }
         
         // Battery Information
@@ -87,11 +119,37 @@ class DeviceTelemetryService {
             logBuffer.removeAll() // Clear buffer after sending
         }
         
-        // Metadata
+        // Screen Information
+        let screen = UIScreen.main
+        telemetry["screenWidth"] = screen.bounds.width
+        telemetry["screenHeight"] = screen.bounds.height
+        telemetry["screenScale"] = screen.scale
+        telemetry["screenBrightness"] = screen.brightness
+        telemetry["screenMaxBrightness"] = screen.maximumBrightness
+        
+        // Additional Device Information
+        telemetry["processorCount"] = ProcessInfo.processInfo.processorCount
+        telemetry["physicalMemory"] = ProcessInfo.processInfo.physicalMemory // bytes
+        telemetry["systemUptime"] = ProcessInfo.processInfo.systemUptime // seconds
+        telemetry["isLowPowerModeEnabled"] = ProcessInfo.processInfo.isLowPowerModeEnabled
+        
+        // Orientation and UI State
+        telemetry["deviceOrientation"] = device.orientation.rawValue
+        telemetry["isIdleTimerDisabled"] = UIApplication.shared.isIdleTimerDisabled
+        
+        // Time Information
+        let now = Date()
+        telemetry["timestamp"] = ISO8601DateFormatter().string(from: now)
+        telemetry["timezone"] = TimeZone.current.identifier
+        telemetry["timezoneOffset"] = TimeZone.current.secondsFromGMT()
+        
+        // Metadata (additional context)
         telemetry["metadata"] = [
-            "screenBrightness": UIScreen.main.brightness,
+            "screenBrightness": screen.brightness,
             "isIdleTimerDisabled": UIApplication.shared.isIdleTimerDisabled,
-            "orientation": UIDevice.current.orientation.rawValue
+            "orientation": device.orientation.rawValue,
+            "userInterfaceIdiom": device.userInterfaceIdiom.rawValue, // 0=phone, 1=pad
+            "isMultitaskingSupported": UIApplication.shared.isMultitaskingSupported
         ]
         
         return telemetry
@@ -252,6 +310,57 @@ class DeviceTelemetryService {
         }
         
         return (connected: false, model: nil)
+    }
+    
+    // Convert hardware identifier to human-readable model name
+    private func getModelName(from identifier: String) -> String {
+        // Common iPad models
+        let modelMap: [String: String] = [
+            // iPad Pro
+            "iPad13,1": "iPad Pro 11-inch (3rd generation)",
+            "iPad13,2": "iPad Pro 11-inch (3rd generation)",
+            "iPad13,4": "iPad Pro 11-inch (4th generation)",
+            "iPad13,5": "iPad Pro 11-inch (4th generation)",
+            "iPad13,6": "iPad Pro 11-inch (4th generation)",
+            "iPad13,7": "iPad Pro 11-inch (4th generation)",
+            "iPad13,8": "iPad Pro 12.9-inch (5th generation)",
+            "iPad13,9": "iPad Pro 12.9-inch (5th generation)",
+            "iPad13,10": "iPad Pro 12.9-inch (5th generation)",
+            "iPad13,11": "iPad Pro 12.9-inch (5th generation)",
+            "iPad14,3": "iPad Pro 11-inch (4th generation)",
+            "iPad14,4": "iPad Pro 11-inch (4th generation)",
+            "iPad14,5": "iPad Pro 12.9-inch (6th generation)",
+            "iPad14,6": "iPad Pro 12.9-inch (6th generation)",
+            "iPad8,1": "iPad Pro 11-inch (1st generation)",
+            "iPad8,2": "iPad Pro 11-inch (1st generation)",
+            "iPad8,3": "iPad Pro 11-inch (1st generation)",
+            "iPad8,4": "iPad Pro 11-inch (1st generation)",
+            "iPad8,5": "iPad Pro 12.9-inch (3rd generation)",
+            "iPad8,6": "iPad Pro 12.9-inch (3rd generation)",
+            "iPad8,7": "iPad Pro 12.9-inch (3rd generation)",
+            "iPad8,8": "iPad Pro 12.9-inch (3rd generation)",
+            "iPad8,9": "iPad Pro 11-inch (2nd generation)",
+            "iPad8,10": "iPad Pro 11-inch (2nd generation)",
+            "iPad8,11": "iPad Pro 12.9-inch (4th generation)",
+            "iPad8,12": "iPad Pro 12.9-inch (4th generation)",
+            // iPad Air
+            "iPad13,16": "iPad Air (4th generation)",
+            "iPad13,17": "iPad Air (4th generation)",
+            "iPad14,1": "iPad Air (5th generation)",
+            "iPad14,2": "iPad Air (5th generation)",
+            // iPad
+            "iPad11,1": "iPad (8th generation)",
+            "iPad11,2": "iPad (8th generation)",
+            "iPad12,1": "iPad (9th generation)",
+            "iPad12,2": "iPad (9th generation)",
+            "iPad13,18": "iPad (10th generation)",
+            "iPad13,19": "iPad (10th generation)",
+            // iPad mini
+            "iPad14,1": "iPad mini (6th generation)",
+            "iPad14,2": "iPad mini (6th generation)",
+        ]
+        
+        return modelMap[identifier] ?? identifier
     }
 }
 

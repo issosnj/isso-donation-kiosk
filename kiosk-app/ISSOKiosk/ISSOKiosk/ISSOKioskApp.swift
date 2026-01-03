@@ -128,8 +128,8 @@ struct ISSOKioskApp: App {
             }
         }
         
-        // Send telemetry every 5 minutes when device is activated
-        Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { _ in
+        // Send telemetry every 30 seconds when device is activated
+        Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
             Task { @MainActor in
                 if appState.isActivated, let deviceId = appState.deviceId {
                     do {
