@@ -43,7 +43,9 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories', templeId],
     queryFn: async () => {
-      const response = await api.get('/donation-categories')
+      const response = await api.get('/donation-categories', {
+        params: { templeId },
+      })
       console.log('[CategoriesTab] Fetched categories:', response.data)
       console.log('[CategoriesTab] Categories count:', response.data?.length)
       console.log('[CategoriesTab] First category displayOrder:', response.data?.[0]?.displayOrder)

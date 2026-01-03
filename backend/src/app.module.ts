@@ -12,6 +12,7 @@ import { SquareModule } from './square/square.module';
 import { GmailModule } from './gmail/gmail.module';
 import { PlacesModule } from './places/places.module';
 import { ReligiousEventsModule } from './religious-events/religious-events.module';
+import { GlobalSettingsModule } from './global-settings/global-settings.module';
 import { typeOrmConfig } from './config/typeorm.config';
 
 @Module({
@@ -34,6 +35,7 @@ import { typeOrmConfig } from './config/typeorm.config';
     GmailModule,
     PlacesModule,
     ReligiousEventsModule,
+    GlobalSettingsModule,
   ],
 })
 export class AppModule {}

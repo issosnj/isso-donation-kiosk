@@ -9,6 +9,7 @@ import { Donation } from '../donations/entities/donation.entity';
 import { Donor } from '../donors/entities/donor.entity';
 import { AuditLog } from '../audit/entities/audit-log.entity';
 import { ReligiousEvent } from '../religious-events/entities/religious-event.entity';
+import { GlobalSettings } from '../global-settings/entities/global-settings.entity';
 
 export const typeOrmConfig = (): DataSourceOptions => {
   const configService = new ConfigService();
@@ -27,7 +28,7 @@ export const typeOrmConfig = (): DataSourceOptions => {
       username: url.username,
       password: url.password,
       database: url.pathname.slice(1), // Remove leading /
-      entities: [User, Temple, Device, DeviceTelemetry, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent],
+      entities: [User, Temple, Device, DeviceTelemetry, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent, GlobalSettings],
       synchronize: false, // Disabled to use existing Railway database schema
       logging: configService.get('NODE_ENV') === 'development',
       migrations: ['dist/migrations/*.js'],

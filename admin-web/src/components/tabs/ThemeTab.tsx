@@ -15,26 +15,14 @@ const getApiBaseUrl = () => {
 export default function ThemeTab() {
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
-  const [selectedTempleId, setSelectedTempleId] = useState<string | null>(null)
 
-  // Fetch all temples for selection
-  const { data: temples } = useQuery({
-    queryKey: ['temples'],
+  // Fetch global settings (kiosk theme is now global, master-admin controlled)
+  const { data: globalSettings, isLoading } = useQuery({
+    queryKey: ['global-settings'],
     queryFn: async () => {
-      const response = await api.get('/temples')
+      const response = await api.get('/global-settings')
       return response.data
     },
-  })
-
-  // Fetch selected temple
-  const { data: temple, isLoading } = useQuery({
-    queryKey: ['temple', selectedTempleId],
-    queryFn: async () => {
-      if (!selectedTempleId) return null
-      const response = await api.get(`/temples/${selectedTempleId}`)
-      return response.data
-    },
-    enabled: !!selectedTempleId,
   })
 
   const [formData, setFormData] = useState({
@@ -162,143 +150,144 @@ export default function ThemeTab() {
   })
 
   useEffect(() => {
-    if (temple?.kioskTheme) {
+    if (globalSettings?.kioskTheme) {
       setFormData({
         fonts: {
-          headingFamily: temple.kioskTheme.fonts?.headingFamily || 'Inter-SemiBold',
-          headingSize: temple.kioskTheme.fonts?.headingSize || 32,
-          buttonFamily: temple.kioskTheme.fonts?.buttonFamily || 'Inter-Medium',
-          buttonSize: temple.kioskTheme.fonts?.buttonSize || 18,
-          bodyFamily: temple.kioskTheme.fonts?.bodyFamily || 'Inter-Regular',
-          bodySize: temple.kioskTheme.fonts?.bodySize || 14,
+          headingFamily: globalSettings.kioskTheme.fonts?.headingFamily || 'Inter-SemiBold',
+          headingSize: globalSettings.kioskTheme.fonts?.headingSize || 32,
+          buttonFamily: globalSettings.kioskTheme.fonts?.buttonFamily || 'Inter-Medium',
+          buttonSize: globalSettings.kioskTheme.fonts?.buttonSize || 18,
+          bodyFamily: globalSettings.kioskTheme.fonts?.bodyFamily || 'Inter-Regular',
+          bodySize: globalSettings.kioskTheme.fonts?.bodySize || 14,
         },
         colors: {
-          headingColor: temple.kioskTheme.colors?.headingColor || '#423232',
-          buttonTextColor: temple.kioskTheme.colors?.buttonTextColor || '#FFFFFF',
-          bodyTextColor: temple.kioskTheme.colors?.bodyTextColor || '#808080',
-          subtitleColor: temple.kioskTheme.colors?.subtitleColor || '#808080',
-          quantityTotalColor: temple.kioskTheme.colors?.quantityTotalColor || '#423232',
-          tapToDonateButtonColor: temple.kioskTheme.colors?.tapToDonateButtonColor || '#D4AF37',
-          categorySelectedColor: temple.kioskTheme.colors?.categorySelectedColor || temple.homeScreenConfig?.buttonColors?.categorySelected || '#3366CC',
-          categoryUnselectedColor: temple.kioskTheme.colors?.categoryUnselectedColor || temple.homeScreenConfig?.buttonColors?.categoryUnselected || '#3366CC',
-          amountSelectedColor: temple.kioskTheme.colors?.amountSelectedColor || temple.homeScreenConfig?.buttonColors?.amountSelected || '#3366CC',
-          amountUnselectedColor: temple.kioskTheme.colors?.amountUnselectedColor || temple.homeScreenConfig?.buttonColors?.amountUnselected || '#3366CC',
-          doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
-          returnToHomeButtonColor: temple.kioskTheme.colors?.returnToHomeButtonColor || '#D9C080',
-          proceedToPaymentButtonColor: temple.kioskTheme.colors?.proceedToPaymentButtonColor || '#FF9500',
-          continueButtonColor: temple.kioskTheme.colors?.continueButtonColor || '#D9C080',
-          tapToDonateButtonGradient: temple.kioskTheme.colors?.tapToDonateButtonGradient ?? false,
-          returnToHomeButtonGradient: temple.kioskTheme.colors?.returnToHomeButtonGradient ?? true,
-          proceedToPaymentButtonGradient: temple.kioskTheme.colors?.proceedToPaymentButtonGradient ?? true,
-          doneButtonGradient: temple.kioskTheme.colors?.doneButtonGradient ?? false,
-          continueButtonGradient: temple.kioskTheme.colors?.continueButtonGradient ?? true,
+          headingColor: globalSettings.kioskTheme.colors?.headingColor || '#423232',
+          buttonTextColor: globalSettings.kioskTheme.colors?.buttonTextColor || '#FFFFFF',
+          bodyTextColor: globalSettings.kioskTheme.colors?.bodyTextColor || '#808080',
+          subtitleColor: globalSettings.kioskTheme.colors?.subtitleColor || '#808080',
+          quantityTotalColor: globalSettings.kioskTheme.colors?.quantityTotalColor || '#423232',
+          tapToDonateButtonColor: globalSettings.kioskTheme.colors?.tapToDonateButtonColor || '#D4AF37',
+          categorySelectedColor: globalSettings.kioskTheme.colors?.categorySelectedColor || '#3366CC',
+          categoryUnselectedColor: globalSettings.kioskTheme.colors?.categoryUnselectedColor || '#3366CC',
+          amountSelectedColor: globalSettings.kioskTheme.colors?.amountSelectedColor || '#3366CC',
+          amountUnselectedColor: globalSettings.kioskTheme.colors?.amountUnselectedColor || '#3366CC',
+          doneButtonColor: globalSettings.kioskTheme.colors?.doneButtonColor || '#007AFF',
+          returnToHomeButtonColor: globalSettings.kioskTheme.colors?.returnToHomeButtonColor || '#D9C080',
+          proceedToPaymentButtonColor: globalSettings.kioskTheme.colors?.proceedToPaymentButtonColor || '#FF9500',
+          continueButtonColor: globalSettings.kioskTheme.colors?.continueButtonColor || '#D9C080',
+          tapToDonateButtonGradient: globalSettings.kioskTheme.colors?.tapToDonateButtonGradient ?? false,
+          returnToHomeButtonGradient: globalSettings.kioskTheme.colors?.returnToHomeButtonGradient ?? true,
+          proceedToPaymentButtonGradient: globalSettings.kioskTheme.colors?.proceedToPaymentButtonGradient ?? true,
+          doneButtonGradient: globalSettings.kioskTheme.colors?.doneButtonGradient ?? false,
+          continueButtonGradient: globalSettings.kioskTheme.colors?.continueButtonGradient ?? true,
         },
         layout: {
-          categoryBoxMaxWidth: temple.kioskTheme.layout?.categoryBoxMaxWidth || 400,
-          amountButtonWidth: temple.kioskTheme.layout?.amountButtonWidth || 120,
-          amountButtonHeight: temple.kioskTheme.layout?.amountButtonHeight || 70,
-          categoryButtonHeight: temple.kioskTheme.layout?.categoryButtonHeight || 70,
-          headerTopPadding: temple.kioskTheme.layout?.headerTopPadding || 80,
-          categoryHeaderTopPadding: temple.kioskTheme.layout?.categoryHeaderTopPadding || 80,
-          categoryAmountSectionSpacing: temple.kioskTheme.layout?.categoryAmountSectionSpacing || 40,
-          buttonSpacing: temple.kioskTheme.layout?.buttonSpacing || 12,
-          cornerRadius: temple.kioskTheme.layout?.cornerRadius || 12,
-          quantityTotalSpacing: temple.kioskTheme.layout?.quantityTotalSpacing || 24,
-          donationSelectionPageLeftPadding: temple.kioskTheme.layout?.donationSelectionPageLeftPadding || 40,
-          donationSelectionPageRightPadding: temple.kioskTheme.layout?.donationSelectionPageRightPadding || 40,
-          customAmountKeypadX: temple.kioskTheme.layout?.customAmountKeypadX || 0,
-          customAmountKeypadY: temple.kioskTheme.layout?.customAmountKeypadY || 0,
-          customAmountKeypadWidth: temple.kioskTheme.layout?.customAmountKeypadWidth || 320,
-          customAmountKeypadButtonHeight: temple.kioskTheme.layout?.customAmountKeypadButtonHeight || 70,
-          customAmountKeypadButtonSpacing: temple.kioskTheme.layout?.customAmountKeypadButtonSpacing || 12,
-          customAmountKeypadButtonCornerRadius: temple.kioskTheme.layout?.customAmountKeypadButtonCornerRadius || 12,
-          customAmountKeypadBackgroundColor: temple.kioskTheme.layout?.customAmountKeypadBackgroundColor || '#87512B',
-          customAmountKeypadBorderColor: temple.kioskTheme.layout?.customAmountKeypadBorderColor || '#F4A44E',
-          customAmountKeypadBorderWidth: temple.kioskTheme.layout?.customAmountKeypadBorderWidth || 3,
-          customAmountKeypadGlowColor: temple.kioskTheme.layout?.customAmountKeypadGlowColor || '#F4A44E',
-          customAmountKeypadGlowRadius: temple.kioskTheme.layout?.customAmountKeypadGlowRadius || 15,
-          customAmountKeypadButtonColor: temple.kioskTheme.layout?.customAmountKeypadButtonColor || '#F8D8A1',
-          customAmountKeypadButtonTextColor: temple.kioskTheme.layout?.customAmountKeypadButtonTextColor || '#333355',
-          customAmountKeypadNumberFontSize: temple.kioskTheme.layout?.customAmountKeypadNumberFontSize || 32,
-          customAmountKeypadLetterFontSize: temple.kioskTheme.layout?.customAmountKeypadLetterFontSize || 10,
-          customAmountKeypadPadding: temple.kioskTheme.layout?.customAmountKeypadPadding || 16,
-          customAmountKeypadCornerRadius: temple.kioskTheme.layout?.customAmountKeypadCornerRadius || 16,
+          categoryBoxMaxWidth: globalSettings.kioskTheme.layout?.categoryBoxMaxWidth || 400,
+          amountButtonWidth: globalSettings.kioskTheme.layout?.amountButtonWidth || 120,
+          amountButtonHeight: globalSettings.kioskTheme.layout?.amountButtonHeight || 70,
+          categoryButtonHeight: globalSettings.kioskTheme.layout?.categoryButtonHeight || 70,
+          headerTopPadding: globalSettings.kioskTheme.layout?.headerTopPadding || 80,
+          categoryHeaderTopPadding: globalSettings.kioskTheme.layout?.categoryHeaderTopPadding || 80,
+          categoryAmountSectionSpacing: globalSettings.kioskTheme.layout?.categoryAmountSectionSpacing || 40,
+          buttonSpacing: globalSettings.kioskTheme.layout?.buttonSpacing || 12,
+          cornerRadius: globalSettings.kioskTheme.layout?.cornerRadius || 12,
+          quantityTotalSpacing: globalSettings.kioskTheme.layout?.quantityTotalSpacing || 24,
+          donationSelectionPageLeftPadding: globalSettings.kioskTheme.layout?.donationSelectionPageLeftPadding || 40,
+          donationSelectionPageRightPadding: globalSettings.kioskTheme.layout?.donationSelectionPageRightPadding || 40,
+          customAmountKeypadX: globalSettings.kioskTheme.layout?.customAmountKeypadX || 0,
+          customAmountKeypadY: globalSettings.kioskTheme.layout?.customAmountKeypadY || 0,
+          customAmountKeypadWidth: globalSettings.kioskTheme.layout?.customAmountKeypadWidth || 320,
+          customAmountKeypadButtonHeight: globalSettings.kioskTheme.layout?.customAmountKeypadButtonHeight || 70,
+          customAmountKeypadButtonSpacing: globalSettings.kioskTheme.layout?.customAmountKeypadButtonSpacing || 12,
+          customAmountKeypadButtonCornerRadius: globalSettings.kioskTheme.layout?.customAmountKeypadButtonCornerRadius || 12,
+          customAmountKeypadBackgroundColor: globalSettings.kioskTheme.layout?.customAmountKeypadBackgroundColor || '#87512B',
+          customAmountKeypadBorderColor: globalSettings.kioskTheme.layout?.customAmountKeypadBorderColor || '#F4A44E',
+          customAmountKeypadBorderWidth: globalSettings.kioskTheme.layout?.customAmountKeypadBorderWidth || 3,
+          customAmountKeypadGlowColor: globalSettings.kioskTheme.layout?.customAmountKeypadGlowColor || '#F4A44E',
+          customAmountKeypadGlowRadius: globalSettings.kioskTheme.layout?.customAmountKeypadGlowRadius || 15,
+          customAmountKeypadButtonColor: globalSettings.kioskTheme.layout?.customAmountKeypadButtonColor || '#F8D8A1',
+          customAmountKeypadButtonTextColor: globalSettings.kioskTheme.layout?.customAmountKeypadButtonTextColor || '#333355',
+          customAmountKeypadNumberFontSize: globalSettings.kioskTheme.layout?.customAmountKeypadNumberFontSize || 32,
+          customAmountKeypadLetterFontSize: globalSettings.kioskTheme.layout?.customAmountKeypadLetterFontSize || 10,
+          customAmountKeypadPadding: globalSettings.kioskTheme.layout?.customAmountKeypadPadding || 16,
+          customAmountKeypadCornerRadius: globalSettings.kioskTheme.layout?.customAmountKeypadCornerRadius || 16,
           // Home Screen Layout Positioning (Legacy)
-          homeScreenHeaderTopPadding: temple.kioskTheme.layout?.homeScreenHeaderTopPadding || 60,
-          homeScreenSpacerMaxHeight: temple.kioskTheme.layout?.homeScreenSpacerMaxHeight || 100,
-          homeScreenContentSpacing: temple.kioskTheme.layout?.homeScreenContentSpacing || 20,
-          homeScreenBottomButtonsPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsPadding || 50,
-          homeScreenBottomButtonsLeftPadding: temple.kioskTheme.layout?.homeScreenBottomButtonsLeftPadding || 20,
+          homeScreenHeaderTopPadding: globalSettings.kioskTheme.layout?.homeScreenHeaderTopPadding || 60,
+          homeScreenSpacerMaxHeight: globalSettings.kioskTheme.layout?.homeScreenSpacerMaxHeight || 100,
+          homeScreenContentSpacing: globalSettings.kioskTheme.layout?.homeScreenContentSpacing || 20,
+          homeScreenBottomButtonsPadding: globalSettings.kioskTheme.layout?.homeScreenBottomButtonsPadding || 50,
+          homeScreenBottomButtonsLeftPadding: globalSettings.kioskTheme.layout?.homeScreenBottomButtonsLeftPadding || 20,
           // Home Screen Element Positioning (X/Y Coordinates)
-          homeScreenWelcomeTextX: temple.kioskTheme.layout?.homeScreenWelcomeTextX,
-          homeScreenWelcomeTextY: temple.kioskTheme.layout?.homeScreenWelcomeTextY,
-          homeScreenHeader1X: temple.kioskTheme.layout?.homeScreenHeader1X,
-          homeScreenHeader1Y: temple.kioskTheme.layout?.homeScreenHeader1Y,
-          homeScreenUnderGadiTextX: temple.kioskTheme.layout?.homeScreenUnderGadiTextX,
-          homeScreenUnderGadiTextY: temple.kioskTheme.layout?.homeScreenUnderGadiTextY,
-          homeScreenAddressX: temple.kioskTheme.layout?.homeScreenAddressX,
-          homeScreenAddressY: temple.kioskTheme.layout?.homeScreenAddressY,
-          homeScreenTimeStatusX: temple.kioskTheme.layout?.homeScreenTimeStatusX,
-          homeScreenTimeStatusY: temple.kioskTheme.layout?.homeScreenTimeStatusY,
-          homeScreenTapToDonateX: temple.kioskTheme.layout?.homeScreenTapToDonateX,
-          homeScreenTapToDonateY: temple.kioskTheme.layout?.homeScreenTapToDonateY,
-          homeScreenQuickActionsX: temple.kioskTheme.layout?.homeScreenQuickActionsX,
-          homeScreenQuickActionsY: temple.kioskTheme.layout?.homeScreenQuickActionsY,
-          homeScreenCustomMessageX: temple.kioskTheme.layout?.homeScreenCustomMessageX,
-          homeScreenCustomMessageY: temple.kioskTheme.layout?.homeScreenCustomMessageY,
-          homeScreenWhatsAppButtonsX: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
-          homeScreenWhatsAppButtonsY: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
-          homeScreenLanguageSelectorX: temple.kioskTheme.layout?.homeScreenLanguageSelectorX,
-          homeScreenLanguageSelectorY: temple.kioskTheme.layout?.homeScreenLanguageSelectorY,
+          homeScreenWelcomeTextX: globalSettings.kioskTheme.layout?.homeScreenWelcomeTextX,
+          homeScreenWelcomeTextY: globalSettings.kioskTheme.layout?.homeScreenWelcomeTextY,
+          homeScreenHeader1X: globalSettings.kioskTheme.layout?.homeScreenHeader1X,
+          homeScreenHeader1Y: globalSettings.kioskTheme.layout?.homeScreenHeader1Y,
+          homeScreenUnderGadiTextX: globalSettings.kioskTheme.layout?.homeScreenUnderGadiTextX,
+          homeScreenUnderGadiTextY: globalSettings.kioskTheme.layout?.homeScreenUnderGadiTextY,
+          homeScreenAddressX: globalSettings.kioskTheme.layout?.homeScreenAddressX,
+          homeScreenAddressY: globalSettings.kioskTheme.layout?.homeScreenAddressY,
+          homeScreenTimeStatusX: globalSettings.kioskTheme.layout?.homeScreenTimeStatusX,
+          homeScreenTimeStatusY: globalSettings.kioskTheme.layout?.homeScreenTimeStatusY,
+          homeScreenTapToDonateX: globalSettings.kioskTheme.layout?.homeScreenTapToDonateX,
+          homeScreenTapToDonateY: globalSettings.kioskTheme.layout?.homeScreenTapToDonateY,
+          homeScreenQuickActionsX: globalSettings.kioskTheme.layout?.homeScreenQuickActionsX,
+          homeScreenQuickActionsY: globalSettings.kioskTheme.layout?.homeScreenQuickActionsY,
+          homeScreenCustomMessageX: globalSettings.kioskTheme.layout?.homeScreenCustomMessageX,
+          homeScreenCustomMessageY: globalSettings.kioskTheme.layout?.homeScreenCustomMessageY,
+          homeScreenWhatsAppButtonsX: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
+          homeScreenWhatsAppButtonsY: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
+          homeScreenLanguageSelectorX: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorX,
+          homeScreenLanguageSelectorY: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorY,
           // Home Screen Element Visibility
-          homeScreenWelcomeTextVisible: temple.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
-          homeScreenHeader1Visible: temple.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
-          homeScreenUnderGadiTextVisible: temple.kioskTheme.layout?.homeScreenUnderGadiTextVisible ?? true,
-          homeScreenAddressVisible: temple.kioskTheme.layout?.homeScreenAddressVisible ?? true,
-          homeScreenTimeStatusVisible: temple.kioskTheme.layout?.homeScreenTimeStatusVisible ?? true,
-          homeScreenTapToDonateVisible: temple.kioskTheme.layout?.homeScreenTapToDonateVisible ?? true,
-          homeScreenQuickActionsVisible: temple.kioskTheme.layout?.homeScreenQuickActionsVisible ?? true,
-          homeScreenCustomMessageVisible: temple.kioskTheme.layout?.homeScreenCustomMessageVisible ?? true,
-          homeScreenWhatsAppButtonsVisible: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
-          homeScreenLanguageSelectorVisible: temple.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
+          homeScreenWelcomeTextVisible: globalSettings.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
+          homeScreenHeader1Visible: globalSettings.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
+          homeScreenUnderGadiTextVisible: globalSettings.kioskTheme.layout?.homeScreenUnderGadiTextVisible ?? true,
+          homeScreenAddressVisible: globalSettings.kioskTheme.layout?.homeScreenAddressVisible ?? true,
+          homeScreenTimeStatusVisible: globalSettings.kioskTheme.layout?.homeScreenTimeStatusVisible ?? true,
+          homeScreenTapToDonateVisible: globalSettings.kioskTheme.layout?.homeScreenTapToDonateVisible ?? true,
+          homeScreenQuickActionsVisible: globalSettings.kioskTheme.layout?.homeScreenQuickActionsVisible ?? true,
+          homeScreenCustomMessageVisible: globalSettings.kioskTheme.layout?.homeScreenCustomMessageVisible ?? true,
+          homeScreenWhatsAppButtonsVisible: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
+          homeScreenLanguageSelectorVisible: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
           // Donation Details Page Layout
-          detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
-          detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
-          detailsPageTopPadding: temple.kioskTheme.layout?.detailsPageTopPadding || 80,
-          detailsPageBottomPadding: temple.kioskTheme.layout?.detailsPageBottomPadding || 40,
-          detailsCardMaxWidth: temple.kioskTheme.layout?.detailsCardMaxWidth || 420,
-          donorFormMaxWidth: temple.kioskTheme.layout?.donorFormMaxWidth || 420,
-          detailsCardPadding: temple.kioskTheme.layout?.detailsCardPadding || 24,
-          detailsCardSpacing: temple.kioskTheme.layout?.detailsCardSpacing || 16,
+          detailsPageHorizontalSpacing: globalSettings.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
+          detailsPageSidePadding: globalSettings.kioskTheme.layout?.detailsPageSidePadding || 60,
+          detailsPageTopPadding: globalSettings.kioskTheme.layout?.detailsPageTopPadding || 80,
+          detailsPageBottomPadding: globalSettings.kioskTheme.layout?.detailsPageBottomPadding || 40,
+          detailsCardMaxWidth: globalSettings.kioskTheme.layout?.detailsCardMaxWidth || 420,
+          donorFormMaxWidth: globalSettings.kioskTheme.layout?.donorFormMaxWidth || 420,
+          detailsCardPadding: globalSettings.kioskTheme.layout?.detailsCardPadding || 24,
+          detailsCardSpacing: globalSettings.kioskTheme.layout?.detailsCardSpacing || 16,
           // Donation Details Page Fonts
-          detailsAmountFontSize: temple.kioskTheme.layout?.detailsAmountFontSize || 56,
-          detailsLabelFontSize: temple.kioskTheme.layout?.detailsLabelFontSize || 18,
-          detailsInputFontSize: temple.kioskTheme.layout?.detailsInputFontSize || 18,
-          detailsButtonFontSize: temple.kioskTheme.layout?.detailsButtonFontSize || 22,
+          detailsAmountFontSize: globalSettings.kioskTheme.layout?.detailsAmountFontSize || 56,
+          detailsLabelFontSize: globalSettings.kioskTheme.layout?.detailsLabelFontSize || 18,
+          detailsInputFontSize: globalSettings.kioskTheme.layout?.detailsInputFontSize || 18,
+          detailsButtonFontSize: globalSettings.kioskTheme.layout?.detailsButtonFontSize || 22,
           // Donation Details Page Colors
-          detailsAmountColor: temple.kioskTheme.layout?.detailsAmountColor || '#423232',
-          detailsTextColor: temple.kioskTheme.layout?.detailsTextColor || '#423232',
-          detailsInputBorderColor: temple.kioskTheme.layout?.detailsInputBorderColor || '#CCCCCC',
-          detailsInputFocusColor: temple.kioskTheme.layout?.detailsInputFocusColor || '#3366CC',
-          detailsButtonColor: temple.kioskTheme.layout?.detailsButtonColor || '#3366CC',
-          detailsButtonTextColor: temple.kioskTheme.layout?.detailsButtonTextColor || '#FFFFFF',
+          detailsAmountColor: globalSettings.kioskTheme.layout?.detailsAmountColor || '#423232',
+          detailsTextColor: globalSettings.kioskTheme.layout?.detailsTextColor || '#423232',
+          detailsInputBorderColor: globalSettings.kioskTheme.layout?.detailsInputBorderColor || '#CCCCCC',
+          detailsInputFocusColor: globalSettings.kioskTheme.layout?.detailsInputFocusColor || '#3366CC',
+          detailsButtonColor: globalSettings.kioskTheme.layout?.detailsButtonColor || '#3366CC',
+          detailsButtonTextColor: globalSettings.kioskTheme.layout?.detailsButtonTextColor || '#FFFFFF',
         },
       })
     }
-  }, [temple])
+  }, [globalSettings])
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      if (!selectedTempleId) throw new Error('No temple selected')
-      const response = await api.patch(`/temples/${selectedTempleId}`, {
+      const response = await api.patch('/global-settings/kiosk-theme', {
         kioskTheme: data,
       })
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['temple', selectedTempleId] })
+      queryClient.invalidateQueries({ queryKey: ['global-settings'] })
+      // Also invalidate all temple queries since they include global theme
+      queryClient.invalidateQueries({ queryKey: ['temple'] })
       setIsEditing(false)
-      alert('Theme settings saved successfully!')
+      alert('Theme settings saved successfully! This theme will apply to all temples.')
     },
     onError: (error: any) => {
       alert(`Failed to save theme: ${error.response?.data?.message || error.message}`)
@@ -332,7 +321,7 @@ export default function ThemeTab() {
             <button
               onClick={() => {
                 setIsEditing(false)
-                if (temple?.kioskTheme) {
+                if (globalSettings?.kioskTheme) {
                   setFormData({
                     fonts: {
                       headingFamily: temple.kioskTheme.fonts?.headingFamily || 'Inter-SemiBold',
@@ -349,10 +338,10 @@ export default function ThemeTab() {
                       subtitleColor: temple.kioskTheme.colors?.subtitleColor || '#808080',
                       quantityTotalColor: temple.kioskTheme.colors?.quantityTotalColor || '#423232',
                       tapToDonateButtonColor: temple.kioskTheme.colors?.tapToDonateButtonColor || '#D4AF37',
-                      categorySelectedColor: temple.kioskTheme.colors?.categorySelectedColor || temple.homeScreenConfig?.buttonColors?.categorySelected || '#3366CC',
-                      categoryUnselectedColor: temple.kioskTheme.colors?.categoryUnselectedColor || temple.homeScreenConfig?.buttonColors?.categoryUnselected || '#3366CC',
-                      amountSelectedColor: temple.kioskTheme.colors?.amountSelectedColor || temple.homeScreenConfig?.buttonColors?.amountSelected || '#3366CC',
-                      amountUnselectedColor: temple.kioskTheme.colors?.amountUnselectedColor || temple.homeScreenConfig?.buttonColors?.amountUnselected || '#3366CC',
+                      categorySelectedColor: globalSettings.kioskTheme.colors?.categorySelectedColor || '#3366CC',
+                      categoryUnselectedColor: globalSettings.kioskTheme.colors?.categoryUnselectedColor || '#3366CC',
+                      amountSelectedColor: globalSettings.kioskTheme.colors?.amountSelectedColor || '#3366CC',
+                      amountUnselectedColor: globalSettings.kioskTheme.colors?.amountUnselectedColor || '#3366CC',
                       doneButtonColor: temple.kioskTheme.colors?.doneButtonColor || '#007AFF',
                       returnToHomeButtonColor: temple.kioskTheme.colors?.returnToHomeButtonColor || '#D9C080',
                       proceedToPaymentButtonColor: temple.kioskTheme.colors?.proceedToPaymentButtonColor || '#FF9500',
@@ -374,8 +363,8 @@ export default function ThemeTab() {
                       buttonSpacing: temple.kioskTheme.layout?.buttonSpacing || 12,
                       cornerRadius: temple.kioskTheme.layout?.cornerRadius || 12,
                       quantityTotalSpacing: temple.kioskTheme.layout?.quantityTotalSpacing || 24,
-          donationSelectionPageLeftPadding: temple.kioskTheme.layout?.donationSelectionPageLeftPadding || 40,
-          donationSelectionPageRightPadding: temple.kioskTheme.layout?.donationSelectionPageRightPadding || 40,
+          donationSelectionPageLeftPadding: globalSettings.kioskTheme.layout?.donationSelectionPageLeftPadding || 40,
+          donationSelectionPageRightPadding: globalSettings.kioskTheme.layout?.donationSelectionPageRightPadding || 40,
                       customAmountKeypadX: temple.kioskTheme.layout?.customAmountKeypadX || 0,
                       customAmountKeypadY: temple.kioskTheme.layout?.customAmountKeypadY || 0,
                       customAmountKeypadWidth: temple.kioskTheme.layout?.customAmountKeypadWidth || 320,
@@ -418,8 +407,8 @@ export default function ThemeTab() {
                       homeScreenCustomMessageY: temple.kioskTheme.layout?.homeScreenCustomMessageY,
                       homeScreenWhatsAppButtonsX: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
                       homeScreenWhatsAppButtonsY: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
-                      homeScreenLanguageSelectorX: temple.kioskTheme.layout?.homeScreenLanguageSelectorX,
-                      homeScreenLanguageSelectorY: temple.kioskTheme.layout?.homeScreenLanguageSelectorY,
+                      homeScreenLanguageSelectorX: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorX,
+                      homeScreenLanguageSelectorY: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorY,
                       // Home Screen Element Visibility
                       homeScreenWelcomeTextVisible: temple.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
                       homeScreenHeader1Visible: temple.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
@@ -430,7 +419,7 @@ export default function ThemeTab() {
                       homeScreenQuickActionsVisible: temple.kioskTheme.layout?.homeScreenQuickActionsVisible ?? true,
                       homeScreenCustomMessageVisible: temple.kioskTheme.layout?.homeScreenCustomMessageVisible ?? true,
                       homeScreenWhatsAppButtonsVisible: temple.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
-                      homeScreenLanguageSelectorVisible: temple.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
+                      homeScreenLanguageSelectorVisible: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
                       // Donation Details Page Layout
                       detailsPageHorizontalSpacing: temple.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
                       detailsPageSidePadding: temple.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -462,7 +451,7 @@ export default function ThemeTab() {
             </button>
             <button
               onClick={handleSave}
-              disabled={updateMutation.isPending || !selectedTempleId}
+              disabled={updateMutation.isPending}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -471,30 +460,14 @@ export default function ThemeTab() {
         )}
       </div>
 
-      {/* Temple Selection */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Select Temple
-        </label>
-        <select
-          value={selectedTempleId || ''}
-          onChange={(e) => {
-            setSelectedTempleId(e.target.value || null)
-            setIsEditing(false)
-          }}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-        >
-          <option value="">-- Select a temple --</option>
-          {temples?.map((t: any) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-        <p className="mt-1 text-xs text-gray-500">Select a temple to customize its kiosk theme</p>
+      {/* Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong>Note:</strong> Kiosk theme is now global and applies to all temples. Changes made here will affect all kiosk devices across all temples.
+        </p>
       </div>
 
-      {selectedTempleId && (
+      {globalSettings && (
         <div className="space-y-6">
           {/* Font Settings */}
           <div className="bg-white rounded-lg shadow p-6">

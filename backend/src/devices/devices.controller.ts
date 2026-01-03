@@ -42,7 +42,12 @@ export class DevicesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all devices' })
-  findAll(@CurrentUser() user: any) {
+  findAll(@CurrentUser() user: any, @Query('templeId') templeId?: string) {
+    // If templeId is provided in query, use it (for master admin viewing specific temple)
+    // Otherwise, use user's templeId (for temple admin) or all (for master admin)
+    if (templeId) {
+      return this.devicesService.findAll(templeId);
+    }
     if (user.role === UserRole.MASTER_ADMIN) {
       return this.devicesService.findAll();
     }

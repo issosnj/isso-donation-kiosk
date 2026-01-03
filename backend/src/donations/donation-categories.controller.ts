@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DonationCategoriesService } from './donation-categories.service';
@@ -91,10 +92,17 @@ export class DonationCategoriesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all donation categories' })
-  async findAll(@CurrentUser() user: any) {
-    const categories = user.role === UserRole.MASTER_ADMIN
-      ? await this.categoriesService.findAll()
-      : await this.categoriesService.findAll(user.templeId);
+  async findAll(@CurrentUser() user: any, @Query('templeId') templeId?: string) {
+    // If templeId is provided in query, use it (for master admin viewing specific temple)
+    // Otherwise, use user's templeId (for temple admin) or all (for master admin)
+    let categories;
+    if (templeId) {
+      categories = await this.categoriesService.findAll(templeId);
+    } else if (user.role === UserRole.MASTER_ADMIN) {
+      categories = await this.categoriesService.findAll();
+    } else {
+      categories = await this.categoriesService.findAll(user.templeId);
+    }
     
     // Fix any duplicate displayOrder values by reassigning them
     // Group by templeId and fix each group

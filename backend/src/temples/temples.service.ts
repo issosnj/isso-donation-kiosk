@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { Temple } from './entities/temple.entity';
 import { CreateTempleDto } from './dto/create-temple.dto';
 import { UpdateTempleDto } from './dto/update-temple.dto';
+import { GlobalSettingsService } from '../global-settings/global-settings.service';
 
 @Injectable()
 export class TemplesService {
   constructor(
     @InjectRepository(Temple)
     private templesRepository: Repository<Temple>,
+    private globalSettingsService: GlobalSettingsService,
   ) { }
 
   async create(createTempleDto: CreateTempleDto): Promise<Temple> {
@@ -124,6 +126,19 @@ export class TemplesService {
       
       if (!temple) {
         throw new NotFoundException(`Temple with ID ${id} not found`);
+      }
+      
+      // Include global kiosk theme (master-admin controlled, same for all temples)
+      try {
+        const globalSettings = await this.globalSettingsService.getSettings();
+        if (globalSettings?.kioskTheme) {
+          // Override temple's kioskTheme with global theme
+          temple.kioskTheme = globalSettings.kioskTheme as any;
+          console.log('[Temples Service] Applied global kiosk theme to temple response');
+        }
+      } catch (globalThemeError) {
+        console.warn('[Temples Service] Could not load global theme (may not exist yet):', globalThemeError.message);
+        // Continue without global theme - temple's own theme (if any) will be used
       }
       
       console.log(`[Temples Service] Temple found: ${temple.name}, devices: ${temple.devices?.length || 0}, categories: ${temple.categories?.length || 0}`);
