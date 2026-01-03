@@ -23,27 +23,49 @@ function DeviceStatusContent() {
     enabled: !!deviceId && isAuthenticated,
   })
 
-  const { data: latestTelemetry, isLoading: telemetryLoading } = useQuery({
+  const { data: latestTelemetry, isLoading: telemetryLoading, error: telemetryError } = useQuery({
     queryKey: ['device-telemetry-latest', deviceId],
     queryFn: async () => {
       if (!deviceId) throw new Error('No device ID provided')
-      const response = await api.get(`/devices/${deviceId}/telemetry/latest`)
-      return response.data
+      try {
+        const response = await api.get(`/devices/${deviceId}/telemetry/latest`)
+        console.log('[DeviceStatus] Latest telemetry response:', response.data)
+        return response.data
+      } catch (error: any) {
+        console.error('[DeviceStatus] Error fetching latest telemetry:', error)
+        // If 404 or no data, return null instead of throwing
+        if (error.response?.status === 404 || error.response?.status === 204) {
+          return null
+        }
+        throw error
+      }
     },
     enabled: !!deviceId && isAuthenticated,
     refetchInterval: 30000, // Refresh every 30 seconds
+    retry: 1, // Only retry once
   })
 
-  const { data: telemetryHistory } = useQuery({
+  const { data: telemetryHistory, error: telemetryHistoryError } = useQuery({
     queryKey: ['device-telemetry-history', deviceId],
     queryFn: async () => {
       if (!deviceId) throw new Error('No device ID provided')
-      const response = await api.get(`/devices/${deviceId}/telemetry`, {
-        params: { limit: 100 },
-      })
-      return response.data
+      try {
+        const response = await api.get(`/devices/${deviceId}/telemetry`, {
+          params: { limit: 100 },
+        })
+        console.log('[DeviceStatus] Telemetry history response:', response.data)
+        return response.data || []
+      } catch (error: any) {
+        console.error('[DeviceStatus] Error fetching telemetry history:', error)
+        // If 404 or no data, return empty array instead of throwing
+        if (error.response?.status === 404 || error.response?.status === 204) {
+          return []
+        }
+        throw error
+      }
     },
     enabled: !!deviceId && isAuthenticated,
+    retry: 1, // Only retry once
   })
 
   useEffect(() => {
@@ -168,7 +190,11 @@ function DeviceStatusContent() {
               {/* Battery Status */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Battery</h3>
-                {latestTelemetry ? (
+                {telemetryLoading ? (
+                  <p className="text-gray-500 text-sm">Loading...</p>
+                ) : telemetryError ? (
+                  <p className="text-red-500 text-sm">Error loading data</p>
+                ) : latestTelemetry ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-bold text-gray-900">
@@ -184,14 +210,18 @@ function DeviceStatusContent() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-sm">No data available</p>
+                  <p className="text-gray-500 text-sm">No telemetry data yet. Device will send data every 5 minutes.</p>
                 )}
               </div>
 
               {/* Network Status */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Network</h3>
-                {latestTelemetry ? (
+                {telemetryLoading ? (
+                  <p className="text-gray-500 text-sm">Loading...</p>
+                ) : telemetryError ? (
+                  <p className="text-red-500 text-sm">Error loading data</p>
+                ) : latestTelemetry ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className={`text-sm font-medium ${
@@ -210,14 +240,18 @@ function DeviceStatusContent() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-sm">No data available</p>
+                  <p className="text-gray-500 text-sm">No telemetry data yet. Device will send data every 5 minutes.</p>
                 )}
               </div>
 
               {/* Square Hardware */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Square Hardware</h3>
-                {latestTelemetry ? (
+                {telemetryLoading ? (
+                  <p className="text-gray-500 text-sm">Loading...</p>
+                ) : telemetryError ? (
+                  <p className="text-red-500 text-sm">Error loading data</p>
+                ) : latestTelemetry ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className={`text-sm font-medium ${
@@ -233,7 +267,7 @@ function DeviceStatusContent() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-sm">No data available</p>
+                  <p className="text-gray-500 text-sm">No telemetry data yet. Device will send data every 5 minutes.</p>
                 )}
               </div>
             </div>
@@ -241,7 +275,11 @@ function DeviceStatusContent() {
             {/* System Information */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-sm font-semibold text-gray-600 uppercase mb-4">System Information</h3>
-              {latestTelemetry ? (
+              {telemetryLoading ? (
+                <p className="text-gray-500 text-sm">Loading...</p>
+              ) : telemetryError ? (
+                <p className="text-red-500 text-sm">Error loading data</p>
+              ) : latestTelemetry ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <div className="text-xs text-gray-500 mb-1">Device Model</div>
@@ -281,7 +319,7 @@ function DeviceStatusContent() {
                   )}
                 </div>
               ) : (
-                <p className="text-gray-500 text-sm">No system information available</p>
+                <p className="text-gray-500 text-sm">No telemetry data yet. Device will send data every 5 minutes.</p>
               )}
             </div>
 
