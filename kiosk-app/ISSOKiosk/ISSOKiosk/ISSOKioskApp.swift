@@ -48,6 +48,20 @@ struct ISSOKioskApp: App {
                         await appState.refreshReligiousEvents()
                         // Check and reconnect Square SDK when app becomes active
                         await appState.checkAndReconnectSquareSDK()
+                        
+                        // Send telemetry when app becomes active (so status page has recent data)
+                        if let deviceId = await appState.deviceId {
+                            do {
+                                try await DeviceTelemetryService.shared.sendTelemetry(deviceId: deviceId)
+                                await MainActor.run {
+                                    appLog("✅ Telemetry sent when app became active", category: "DeviceTelemetry")
+                                }
+                            } catch {
+                                await MainActor.run {
+                                    appLog("⚠️ Failed to send telemetry when app became active: \(error.localizedDescription)", category: "DeviceTelemetry")
+                                }
+                            }
+                        }
                     }
                     
                     // After reboot, hardware might take time to appear - check in background

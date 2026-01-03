@@ -59,7 +59,23 @@ class AppState: ObservableObject {
             await MainActor.run {
                 self.startSquareConnectionMonitoring()
             }
-            
+        }
+        
+        // Send initial telemetry immediately after activation
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self = self else { return }
+            if let deviceId = await self.deviceId {
+                do {
+                    try await DeviceTelemetryService.shared.sendTelemetry(deviceId: deviceId)
+                    await MainActor.run {
+                        appLog("✅ Initial telemetry sent after activation", category: "DeviceTelemetry")
+                    }
+                } catch {
+                    await MainActor.run {
+                        appLog("⚠️ Failed to send initial telemetry: \(error.localizedDescription)", category: "DeviceTelemetry")
+                    }
+                }
+            }
         }
     }
     
