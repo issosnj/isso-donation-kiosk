@@ -26,19 +26,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
     whatsAppLink: '',
     eventsText: '',
     googleCalendarLink: '',
-    socialMedia: [] as Array<{ platform: string; url: string }>,
     presetAmounts: [5, 10, 25, 50, 100] as number[],
-    buttonColors: {
-      categorySelected: '#3366CC',
-      categoryUnselected: '#3366CC',
-      amountSelected: '#3366CC',
-      amountUnselected: '#3366CC',
-    } as {
-      categorySelected?: string;
-      categoryUnselected?: string;
-      amountSelected?: string;
-      amountUnselected?: string;
-    },
   })
 
   useEffect(() => {
@@ -49,14 +37,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
         whatsAppLink: temple.homeScreenConfig.whatsAppLink || '',
         eventsText: temple.homeScreenConfig.eventsText || '',
         googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
-        socialMedia: temple.homeScreenConfig.socialMedia || [],
         presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
-        buttonColors: temple.homeScreenConfig.buttonColors || {
-          categorySelected: '#3366CC',
-          categoryUnselected: '#3366CC',
-          amountSelected: '#3366CC',
-          amountUnselected: '#3366CC',
-        },
       })
     }
   }, [temple])
@@ -76,26 +57,6 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
 
   const handleSave = () => {
     updateMutation.mutate(formData)
-  }
-
-  const addSocialMedia = () => {
-    setFormData({
-      ...formData,
-      socialMedia: [...formData.socialMedia, { platform: '', url: '' }],
-    })
-  }
-
-  const removeSocialMedia = (index: number) => {
-    setFormData({
-      ...formData,
-      socialMedia: formData.socialMedia.filter((_, i) => i !== index),
-    })
-  }
-
-  const updateSocialMedia = (index: number, field: 'platform' | 'url', value: string) => {
-    const updated = [...formData.socialMedia]
-    updated[index] = { ...updated[index], [field]: value }
-    setFormData({ ...formData, socialMedia: updated })
   }
 
   if (isLoading) {
@@ -128,14 +89,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                     whatsAppLink: temple.homeScreenConfig.whatsAppLink || '',
                     eventsText: temple.homeScreenConfig.eventsText || '',
                     googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
-                    socialMedia: temple.homeScreenConfig.socialMedia || [],
                     presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
-                    buttonColors: temple.homeScreenConfig.buttonColors || {
-                      categorySelected: '#3366CC',
-                      categoryUnselected: '#3366CC',
-                      amountSelected: '#3366CC',
-                      amountUnselected: '#3366CC',
-                    },
                   })
                 }
               }}
@@ -279,226 +233,6 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
         </div>
 
 
-        {/* Button Colors */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Button Colors
-          </label>
-          <p className="text-xs text-gray-500 mb-4">
-            Customize the colors for category and amount selection buttons
-          </p>
-          
-          <div className="grid grid-cols-2 gap-4">
-            {/* Category Colors */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700">Category Buttons</h4>
-              
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Selected Category Color
-                </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="color"
-                    value={formData.buttonColors.categorySelected || '#3366CC'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      buttonColors: {
-                        ...formData.buttonColors,
-                        categorySelected: e.target.value,
-                      },
-                    })}
-                    disabled={!isEditing}
-                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                  <input
-                    type="text"
-                    value={formData.buttonColors.categorySelected || '#3366CC'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      buttonColors: {
-                        ...formData.buttonColors,
-                        categorySelected: e.target.value,
-                      },
-                    })}
-                    disabled={!isEditing}
-                    placeholder="#3366CC"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Unselected Category Color
-                </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="color"
-                    value={formData.buttonColors.categoryUnselected || '#3366CC'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      buttonColors: {
-                        ...formData.buttonColors,
-                        categoryUnselected: e.target.value,
-                      },
-                    })}
-                    disabled={!isEditing}
-                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                  <input
-                    type="text"
-                    value={formData.buttonColors.categoryUnselected || '#3366CC'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      buttonColors: {
-                        ...formData.buttonColors,
-                        categoryUnselected: e.target.value,
-                      },
-                    })}
-                    disabled={!isEditing}
-                    placeholder="#3366CC"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            {/* Amount Colors */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700">Amount Buttons</h4>
-              
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Selected Amount Color
-                </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="color"
-                    value={formData.buttonColors.amountSelected || '#3366CC'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      buttonColors: {
-                        ...formData.buttonColors,
-                        amountSelected: e.target.value,
-                      },
-                    })}
-                    disabled={!isEditing}
-                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                  <input
-                    type="text"
-                    value={formData.buttonColors.amountSelected || '#3366CC'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      buttonColors: {
-                        ...formData.buttonColors,
-                        amountSelected: e.target.value,
-                      },
-                    })}
-                    disabled={!isEditing}
-                    placeholder="#3366CC"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Unselected Amount Color
-                </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="color"
-                    value={formData.buttonColors.amountUnselected || '#3366CC'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      buttonColors: {
-                        ...formData.buttonColors,
-                        amountUnselected: e.target.value,
-                      },
-                    })}
-                    disabled={!isEditing}
-                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                  <input
-                    type="text"
-                    value={formData.buttonColors.amountUnselected || '#3366CC'}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      buttonColors: {
-                        ...formData.buttonColors,
-                        amountUnselected: e.target.value,
-                      },
-                    })}
-                    disabled={!isEditing}
-                    placeholder="#3366CC"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500 text-sm font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Note about Events Calendar */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <strong>Events Management:</strong> Use the "Events Calendar" tab to add and manage events.
-            Events from Google Calendar are automatically synced when a calendar link is provided above.
-          </p>
-        </div>
-
-        {/* Social Media */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Social Media Links
-            </label>
-            {isEditing && (
-              <button
-                onClick={addSocialMedia}
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-              >
-                + Add Social Media
-              </button>
-            )}
-          </div>
-          <div className="space-y-3">
-            {formData.socialMedia.map((item, index) => (
-              <div key={index} className="flex space-x-2">
-                <input
-                  type="text"
-                  value={item.platform}
-                  onChange={(e) => updateSocialMedia(index, 'platform', e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="Platform (e.g., Facebook, Instagram)"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                />
-                <input
-                  type="url"
-                  value={item.url}
-                  onChange={(e) => updateSocialMedia(index, 'url', e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="https://..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                />
-                {isEditing && (
-                  <button
-                    onClick={() => removeSocialMedia(index)}
-                    className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            ))}
-            {formData.socialMedia.length === 0 && !isEditing && (
-              <p className="text-sm text-gray-500">No social media links configured</p>
-            )}
-          </div>
-          <p className="mt-2 text-xs text-gray-500">QR codes will be generated automatically for each link</p>
-        </div>
       </div>
     </div>
   )
