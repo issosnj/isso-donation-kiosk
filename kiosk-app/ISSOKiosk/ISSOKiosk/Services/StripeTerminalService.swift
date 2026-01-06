@@ -25,6 +25,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     private var isConnecting = false
     private var paymentInProgress = false
     private var isInitialized = false // Track if SDK has been initialized
+    private var lastConnectionError: String? // Store last connection error for UI display
     
     private var currentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private weak var currentPaymentViewController: UIViewController?
@@ -189,6 +190,8 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
                 self.log("🔓 Reader disconnected")
             }
             self.currentReader = nil
+            // Clear connection error on disconnect
+            self.lastConnectionError = nil
             completion?()
         }
     }
@@ -366,15 +369,48 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         return paymentInProgress
     }
     
-    func getReaderInfo() -> (connected: Bool, model: String?) {
+    func getReaderInfo() -> (connected: Bool, model: String?, error: String?) {
         guard let reader = currentReader else {
-            return (connected: false, model: nil)
+            return (connected: false, model: nil, error: lastConnectionError)
         }
         
         // Use string description for device type to avoid compilation issues
         let deviceTypeString = String(describing: reader.deviceType)
         let modelName = deviceTypeString.contains("chipper2X") || deviceTypeString.contains("M2") ? "Stripe M2" : "Stripe Reader"
-        return (connected: true, model: modelName)
+        return (connected: true, model: modelName, error: nil)
+    }
+    
+    /// Get user-friendly error message from Stripe Terminal error
+    fileprivate func getUserFriendlyError(_ error: Error) -> String {
+        let errorDescription = error.localizedDescription.lowercased()
+        
+        // Check for common error patterns and provide user-friendly messages
+        if errorDescription.contains("battery") && errorDescription.contains("low") {
+            return "Reader battery is too low. Please charge the reader and try again."
+        }
+        
+        if errorDescription.contains("software update") && errorDescription.contains("battery") {
+            return "Reader battery is too low to install software update. Please charge the reader and try again."
+        }
+        
+        if errorDescription.contains("bluetooth") && errorDescription.contains("not available") {
+            return "Bluetooth is not available. Please enable Bluetooth in Settings and try again."
+        }
+        
+        if errorDescription.contains("not found") || errorDescription.contains("no reader") {
+            return "No reader found. Make sure the reader is powered on and nearby."
+        }
+        
+        if errorDescription.contains("connection") && errorDescription.contains("timeout") {
+            return "Connection timed out. Make sure the reader is nearby and try again."
+        }
+        
+        if errorDescription.contains("already connected") {
+            return "Reader is already connected."
+        }
+        
+        // Return original error if no pattern matches
+        return error.localizedDescription
     }
 }
 
@@ -422,9 +458,15 @@ extension StripeTerminalService: DiscoveryDelegate {
                 self.isConnecting = false
                 
                 if let error = error {
+                    let userFriendlyError = self.getUserFriendlyError(error)
+                    self.lastConnectionError = userFriendlyError
                     self.log("❌ Connection failed: \(error.localizedDescription)")
+                    self.log("📱 User-friendly error: \(userFriendlyError)")
                     return
                 }
+                
+                // Clear error on successful connection
+                self.lastConnectionError = nil
                 
                 guard let reader = reader else {
                     self.log("❌ Reader is nil after connection")
@@ -478,9 +520,14 @@ extension StripeTerminalService: BluetoothReaderDelegate {
     
     @objc func reader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
         if let error = error {
+            let userFriendlyError = self.getUserFriendlyError(error)
+            lastConnectionError = userFriendlyError
             log("❌ Reader software update failed: \(error.localizedDescription)")
+            log("📱 User-friendly error: \(userFriendlyError)")
         } else {
             log("✅ Reader software update completed successfully")
+            // Clear error on successful update
+            lastConnectionError = nil
         }
     }
 }

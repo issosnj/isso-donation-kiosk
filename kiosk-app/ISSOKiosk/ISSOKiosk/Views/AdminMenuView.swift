@@ -14,7 +14,7 @@ struct AdminMenuView: View {
     @State private var isDisconnectingReader = false
     @State private var connectionStatus = ""
     @State private var connectionError: String? = nil
-    @State private var readerInfo: (connected: Bool, model: String?) = (false, nil)
+    @State private var readerInfo: (connected: Bool, model: String?, error: String?) = (false, nil, nil)
     @State private var refreshTimer: Timer? = nil
     
     var body: some View {
@@ -50,15 +50,22 @@ struct AdminMenuView: View {
                         }
                     }
                     
-                    // Error Message
-                    if let error = connectionError {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.red)
+                    // Error Message - Show connection error or service error
+                    if let error = connectionError ?? readerInfo.error {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                Text("Connection Error")
+                                    .font(.headline)
+                                    .foregroundColor(.orange)
+                            }
                             Text(error)
                                 .font(.caption)
-                                .foregroundColor(.red)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
+                        .padding(.vertical, 4)
                     }
                     
                     // Connect/Disconnect Buttons
@@ -126,6 +133,7 @@ struct AdminMenuView: View {
                 
                 Section(header: Text("Diagnostics")) {
                     // Stripe Terminal Status
+                    let readerInfo = StripeTerminalService.shared.getReaderInfo()
                     HStack {
                         Image(systemName: "creditcard")
                             .foregroundColor(.blue)
@@ -134,6 +142,24 @@ struct AdminMenuView: View {
                         Text(readerInfo.connected ? "✅ Connected" : "❌ Disconnected")
                             .font(.caption)
                             .foregroundColor(readerInfo.connected ? .green : .red)
+                    }
+                    
+                    // Display error message if available
+                    if let error = readerInfo.error {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                Text("Connection Error")
+                                    .font(.headline)
+                                    .foregroundColor(.orange)
+                            }
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
                 
@@ -327,7 +353,9 @@ struct AdminMenuView: View {
                                 isConnectingReader = false
                                 
                                 if let connectError = connectError {
-                                    connectionError = "Connection failed: \(connectError.localizedDescription)"
+                                    // Get user-friendly error message from service
+                                    let readerInfo = StripeTerminalService.shared.getReaderInfo()
+                                    connectionError = readerInfo.error ?? "Connection failed: \(connectError.localizedDescription)"
                                     connectionStatus = ""
                                 } else {
                                     connectionStatus = "✅ Reader connected successfully"
