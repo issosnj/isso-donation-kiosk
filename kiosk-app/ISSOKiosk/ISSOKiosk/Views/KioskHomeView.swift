@@ -218,7 +218,7 @@ struct KioskHomeView: View {
                                 Task.detached(priority: .utility) { [weak appState] in
                                     guard let appState = appState else { return }
                                     // Trigger same reconnection behavior as app restart (in background)
-                                    await appState.ensureSquareConnectionReady()
+                                    await appState.ensureStripeConnectionReady()
                                     await MainActor.run {
                                         appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
                                     }

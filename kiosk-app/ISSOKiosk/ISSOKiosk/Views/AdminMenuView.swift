@@ -1,5 +1,4 @@
 import SwiftUI
-import SquareMobilePaymentsSDK
 
 struct AdminMenuView: View {
     @SwiftUI.Environment(\.dismiss) var dismiss: DismissAction
@@ -14,48 +13,23 @@ struct AdminMenuView: View {
     var body: some View {
         NavigationView {
             List {
-                Section(header: Text("Square Reader")) {
-                    Button(action: {
-                        reconnectSquareReader()
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.clockwise.circle.fill")
-                                .foregroundColor(.blue)
-                            Text("Reconnect Square Reader")
-                            Spacer()
-                            if !reconnectStatus.isEmpty {
-                                Text(reconnectStatus)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    
-                    Button(action: {
-                        wakeUpSquareReader()
-                    }) {
-                        HStack {
-                            Image(systemName: "power.circle.fill")
-                                .foregroundColor(.green)
-                            Text("Wake Up Square Reader")
-                        }
-                    }
-                    
+                Section(header: Text("Stripe Terminal")) {
                     // Reader Status
                     HStack {
                         Image(systemName: "info.circle")
                             .foregroundColor(.blue)
                         Text("Reader Status")
                         Spacer()
-                        let readerCount = MobilePaymentsSDK.shared.readerManager.readers.count
-                        let authState = MobilePaymentsSDK.shared.authorizationManager.state
+                        let readerInfo = StripeTerminalService.shared.getReaderInfo()
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text(readerCount > 0 ? "Connected (\(readerCount))" : "Disconnected")
+                            Text(readerInfo.connected ? "Connected" : "Disconnected")
                                 .font(.caption)
-                                .foregroundColor(readerCount > 0 ? .green : .red)
-                            Text("Auth: \(authStateDescription(authState))")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(readerInfo.connected ? .green : .red)
+                            if let model = readerInfo.model {
+                                Text(model)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 }
@@ -78,41 +52,26 @@ struct AdminMenuView: View {
                     }
                     
                     HStack {
-                        Text("Square SDK Status")
+                        Text("Stripe Terminal Status")
                         Spacer()
-                        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-                        Text(authStateDescription(authState))
+                        let readerInfo = StripeTerminalService.shared.getReaderInfo()
+                        Text(readerInfo.connected ? "Connected" : "Disconnected")
                             .font(.caption)
-                            .foregroundColor(authState == .authorized ? .green : .orange)
+                            .foregroundColor(readerInfo.connected ? .green : .orange)
                     }
                 }
                 
                 Section(header: Text("Diagnostics")) {
-                    // Reader Watchdog Info
+                    // Stripe Terminal Status
                     HStack {
-                        Image(systemName: "heart.circle")
+                        Image(systemName: "creditcard")
                             .foregroundColor(.blue)
-                        Text("Reader Watchdog")
+                        Text("Stripe Terminal")
                         Spacer()
-                        let diagnostic = SquareReaderWatchdog.shared.getDiagnosticInfo()
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Count: \(diagnostic.readerCount)")
-                                .font(.caption)
-                            Text(diagnostic.isStuck ? "⚠️ Stuck" : "✅ OK")
-                                .font(.caption2)
-                                .foregroundColor(diagnostic.isStuck ? .orange : .green)
-                        }
-                    }
-                    
-                    // Health Monitor Status
-                    HStack {
-                        Image(systemName: "heart.text.square")
-                            .foregroundColor(.blue)
-                        Text("Health Monitor")
-                        Spacer()
-                        Text("Active")
+                        let readerInfo = StripeTerminalService.shared.getReaderInfo()
+                        Text(readerInfo.connected ? "✅ Connected" : "❌ Disconnected")
                             .font(.caption)
-                            .foregroundColor(.green)
+                            .foregroundColor(readerInfo.connected ? .green : .red)
                     }
                 }
                 
@@ -175,106 +134,13 @@ struct AdminMenuView: View {
         }
     }
     
-    private func authStateDescription(_ state: AuthorizationState) -> String {
-        switch state {
-        case .authorized:
-            return "Authorized"
-        case .notAuthorized:
-            return "Not Authorized"
-        case .authorizing:
-            return "Authorizing..."
-        @unknown default:
-            return "Unknown"
-        }
-    }
-    
-    private func reconnectSquareReader() {
-        reconnectStatus = "Reconnecting..."
-        appLog("🔧 Admin: Reconnecting Square Reader", category: "AdminMenu")
-        
-        Task {
-            // Get credentials and force reauthorization
-            do {
-                let credentials = try await APIService.shared.getSquareCredentials()
-                
-                await MainActor.run {
-                    SquareMobilePaymentsService.shared.authorize(
-                        accessToken: credentials.accessToken,
-                        locationId: credentials.locationId,
-                        forceReauthorize: true
-                    ) { error in
-                        DispatchQueue.main.async {
-                            let readerCount = MobilePaymentsSDK.shared.readerManager.readers.count
-                            if error != nil {
-                                reconnectStatus = "❌ Error: \(error!.localizedDescription)"
-                            } else if readerCount > 0 {
-                                reconnectStatus = "✅ Connected"
-                            } else {
-                                reconnectStatus = "⚠️ No reader found"
-                            }
-                            
-                            // Show alert with detailed instructions
-                            if let viewController = UIViewController.topViewController() {
-                                SquareMobilePaymentsService.shared.presentReconnectReaderAlert(
-                                    from: viewController,
-                                    error: error
-                                ) {
-                                    // Refresh status after alert
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                        reconnectStatus = ""
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    reconnectStatus = "❌ Failed to get credentials"
-                    appLog("❌ Admin: Failed to get Square credentials: \(error.localizedDescription)", category: "AdminMenu")
-                }
-            }
-        }
-    }
-    
-    private func wakeUpSquareReader() {
-        appLog("🔧 Admin: Waking up Square Reader", category: "AdminMenu")
-        
-        Task {
-            // Get credentials and ensure authorization
-            do {
-                let credentials = try await APIService.shared.getSquareCredentials()
-                
-                await MainActor.run {
-                    SquareMobilePaymentsService.shared.authorize(
-                        accessToken: credentials.accessToken,
-                        locationId: credentials.locationId,
-                        forceReauthorize: false
-                    ) { error in
-                        DispatchQueue.main.async {
-                            let readerCount = MobilePaymentsSDK.shared.readerManager.readers.count
-                            if readerCount > 0 {
-                                appLog("✅ Square Reader is connected (\(readerCount) reader(s))", category: "AdminMenu")
-                            } else {
-                                appLog("⚠️ No Square Reader found - try reconnecting", category: "AdminMenu")
-                            }
-                        }
-                    }
-                }
-            } catch {
-                appLog("❌ Admin: Failed to get Square credentials: \(error.localizedDescription)", category: "AdminMenu")
-            }
-        }
-    }
     
     private func loadLogs() {
         isLoadingLogs = true
         appLog("🔧 Admin: Loading system info", category: "AdminMenu")
         
         // Get system information
-        let readerCount = MobilePaymentsSDK.shared.readerManager.readers.count
-        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        let diagnostic = SquareReaderWatchdog.shared.getDiagnosticInfo()
+        let readerInfo = StripeTerminalService.shared.getReaderInfo()
         let deviceId = appState.deviceId ?? "Unknown"
         let templeName = appState.temple?.name ?? "Unknown"
         
@@ -284,10 +150,9 @@ struct AdminMenuView: View {
                 "Device ID: \(deviceId)",
                 "Temple: \(templeName)",
                 "",
-                "=== Square Reader Status ===",
-                "Reader Count: \(readerCount)",
-                "Auth State: \(authStateDescription(authState))",
-                "Watchdog: \(diagnostic.isStuck ? "⚠️ Stuck Connection" : "✅ OK")",
+                "=== Stripe Terminal Status ===",
+                "Reader Connected: \(readerInfo.connected ? "Yes" : "No")",
+                "Reader Model: \(readerInfo.model ?? "Unknown")",
                 "",
                 "=== Network Status ===",
                 "Connected: \(networkMonitor.isConnected ? "Yes" : "No")",

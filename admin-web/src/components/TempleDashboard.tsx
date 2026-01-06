@@ -8,7 +8,6 @@ import DonorsTab from './tabs/DonorsTab'
 import DevicesTab from './tabs/DevicesTab'
 import DeviceDetailsTab from './tabs/DeviceDetailsTab'
 import CategoriesTab from './tabs/CategoriesTab'
-import SquareTab from './tabs/SquareTab'
 import StripeTab from './tabs/StripeTab'
 import ReceiptTab from './tabs/ReceiptTab'
 
@@ -56,8 +55,6 @@ export default function TempleDashboard({ activeTab, templeId, deviceId }: Templ
         return <DevicesTab templeId={templeId} />
       case 'categories':
         return <CategoriesTab templeId={templeId} />
-      case 'square':
-        return <SquareTab templeId={templeId} />
       case 'stripe':
         return <StripeTab templeId={templeId} />
       case 'receipts':
@@ -71,7 +68,7 @@ export default function TempleDashboard({ activeTab, templeId, deviceId }: Templ
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">{temple?.name || 'Temple Dashboard'}</h1>
-        <p className="text-sm text-gray-600">Manage your temple's donations, devices, and Square integration</p>
+        <p className="text-sm text-gray-600">Manage your temple's donations, devices, and Stripe integration</p>
       </div>
       {renderTab()}
     </div>

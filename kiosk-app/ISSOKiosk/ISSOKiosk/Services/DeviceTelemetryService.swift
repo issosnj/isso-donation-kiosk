@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import ExternalAccessory
 import SystemConfiguration.CaptiveNetwork
-import SquareMobilePaymentsSDK
 #if canImport(Darwin)
 import Darwin
 #endif
@@ -99,11 +98,11 @@ class DeviceTelemetryService {
             telemetry["memoryTotal"] = memory.total
         }
         
-        // Square Hardware Status
-        let squareInfo = getSquareHardwareInfo()
-        telemetry["squareHardwareConnected"] = squareInfo.connected
-        if let model = squareInfo.model {
-            telemetry["squareHardwareModel"] = model
+        // Stripe Terminal Hardware Status
+        let stripeInfo = getStripeHardwareInfo()
+        telemetry["stripeHardwareConnected"] = stripeInfo.connected
+        if let model = stripeInfo.model {
+            telemetry["stripeHardwareModel"] = model
         }
         
         // Include buffered logs
@@ -290,21 +289,12 @@ class DeviceTelemetryService {
         return nil
     }
     
-    // Square Hardware Info
-    private func getSquareHardwareInfo() -> (connected: Bool, model: String?) {
-        // First, check for Bluetooth Square Readers via Mobile Payments SDK
-        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        if authState == .authorized {
-            let readers = MobilePaymentsSDK.shared.readerManager.readers
-            if !readers.isEmpty {
-                // Get the first connected reader
-                let reader = readers.first!
-                // Access reader properties to get model - convert ReaderModel enum to String
-                let modelName = String(describing: reader.model)
-                
-                // Return connected with model name (or default)
-                return (connected: true, model: modelName.isEmpty ? "Square Reader" : modelName)
-            }
+    // Stripe Terminal Hardware Info
+    private func getStripeHardwareInfo() -> (connected: Bool, model: String?) {
+        // Check for Stripe Terminal reader
+        let readerInfo = StripeTerminalService.shared.getReaderInfo()
+        if readerInfo.connected {
+            return (connected: true, model: readerInfo.model ?? "Stripe M2")
         }
         
         // Fallback: Check for wired Square Stand via External Accessory

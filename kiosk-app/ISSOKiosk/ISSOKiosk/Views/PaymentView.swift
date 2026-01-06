@@ -1,8 +1,7 @@
 import SwiftUI
-import SquareMobilePaymentsSDK
 import UIKit
 
-// Typealias to avoid conflict with Square SDK's Environment enum
+// Typealias to avoid conflict with SDK's Environment enum
 typealias SwiftUIEnvironment = SwiftUI.Environment
 
 // Payment status enum shared across payment views
@@ -46,7 +45,7 @@ struct ModernPaymentView: View {
                         }
                     )
                 } else if isProcessing {
-                    // While processing, show nothing - Square SDK will show its own UI
+                    // While processing, show nothing - Stripe SDK will show its own UI
                     // The SDK UI will overlay on top of this view
                     Color.black.opacity(0.01)
                         .ignoresSafeArea()
@@ -70,7 +69,7 @@ struct ModernPaymentView: View {
         }
         .onAppear {
             // Reset state if no payment is actually in progress
-            if !SquarePaymentService.shared.isPaymentInProgress() {
+            if !StripePaymentService.shared.isPaymentInProgress() {
                 // If payment isn't active but flags are set, reset them
                 if isProcessing && donationId == nil {
                     appLog("🔄 Resetting stale isProcessing flag (no active payment)", category: "PaymentView")
@@ -87,8 +86,8 @@ struct ModernPaymentView: View {
             isStartingPayment = true
             
             // Check if there's already a payment in progress
-            if SquarePaymentService.shared.isPaymentInProgress() {
-                SquarePaymentService.shared.cancelCurrentPayment()
+            if StripePaymentService.shared.isPaymentInProgress() {
+                StripePaymentService.shared.cancelCurrentPayment()
                 // Reset state and wait briefly for SDK to clear
                 isReady = false
                 isProcessing = false
@@ -128,21 +127,21 @@ struct ModernPaymentView: View {
                 return
             }
             
-            // For POS SDK, check if payment is in progress
-            // If payment is processing, Square POS app is handling it
-            let isPaymentActive = SquarePaymentService.shared.isPaymentInProgress()
+            // For Stripe SDK, check if payment is in progress
+            // If payment is processing, Stripe SDK is handling it
+            let isPaymentActive = StripePaymentService.shared.isPaymentInProgress()
             
             appLog("👋 View disappeared - isPaymentActive: \(isPaymentActive), isProcessing: \(isProcessing), paymentStatus: \(paymentStatus != nil ? "set" : "nil")", category: "PaymentView")
             
             // Only cancel if payment hasn't actually started
-            // If payment is active, Square POS app is handling it
+            // If payment is active, Stripe SDK is handling it
             if !isPaymentActive {
                 appLog("💡 Payment not active - view disappeared before payment started", category: "PaymentView")
                 
                 // Cancel any in-progress payment attempt
-                if SquarePaymentService.shared.isPaymentInProgress() {
+                if StripePaymentService.shared.isPaymentInProgress() {
                     appLog("🚫 Cancelling in-progress payment attempt", category: "PaymentView")
-                    SquarePaymentService.shared.cancelCurrentPayment()
+                    StripePaymentService.shared.cancelCurrentPayment()
                 }
                 
                 // Reset local state
@@ -163,8 +162,8 @@ struct ModernPaymentView: View {
                     }
                 }
             } else {
-                // Payment is active - Square POS app is handling it, don't cancel
-                appLog("💡 View disappeared but payment is active (Square POS app open) - not canceling", category: "PaymentView")
+                // Payment is active - Stripe SDK is handling it, don't cancel
+                appLog("💡 View disappeared but payment is active (Stripe SDK processing) - not canceling", category: "PaymentView")
                 // Don't reset state - let the payment complete or fail naturally
             }
             
@@ -176,7 +175,7 @@ struct ModernPaymentView: View {
                     do {
                         _ = try await APIService.shared.completeDonation(
                             donationId: donationId,
-                            squarePaymentId: "",
+                            stripePaymentIntentId: nil,
                             status: "FAILED",
                             donorName: donorName,
                             donorPhone: donorPhone,
@@ -208,9 +207,9 @@ struct ModernPaymentView: View {
             return
         }
         
-        // Check if Square payment is already in progress
-        if SquarePaymentService.shared.isPaymentInProgress() {
-            appLog("⚠️ Square payment already in progress - ignoring duplicate call", category: "PaymentView")
+        // Check if Stripe payment is already in progress
+        if StripePaymentService.shared.isPaymentInProgress() {
+            appLog("⚠️ Stripe payment already in progress - ignoring duplicate call", category: "PaymentView")
             isStartingPayment = false
             return
         }
@@ -246,8 +245,8 @@ struct ModernPaymentView: View {
                     isProcessing = true
                 }
                 
-                // 2. Start payment using Square Mobile Payments SDK
-                // Authorization will be handled inside takePayment() when needed
+                // 2. Start payment using Stripe Terminal SDK
+                // Connection will be handled inside startPayment() when needed
                 await MainActor.run {
                     guard let viewController = UIViewController.topViewController() else {
                         isProcessing = false
@@ -258,13 +257,13 @@ struct ModernPaymentView: View {
                     // Ensure view is loaded
                     _ = viewController.view
                     
-                    SquarePaymentService.shared.startPayment(
+                    StripePaymentService.shared.startPayment(
                         donationId: donation.id,
                         amount: amount,
                         from: viewController
                     ) { result in
                         Task {
-                            var paymentResult: SquarePaymentService.PaymentResult?
+                            var paymentResult: StripePaymentService.PaymentResult?
                             
                             do {
                                 switch result {
@@ -279,35 +278,24 @@ struct ModernPaymentView: View {
                                                                errorDescription.lowercased().contains("reader not connected") ||
                                                                errorDescription.lowercased().contains("connect hardware") ||
                                                                errorDescription.lowercased().contains("hardware") ||
-                                                               errorCode == -3
+                                                               errorCode == -2
                                     
                                     if isReaderNotConnected {
                                         await MainActor.run {
                                             isProcessing = false
                                             hasStartedPayment = false
-                                            
-                                            guard let alertVC = UIViewController.topViewController() else {
-                                                paymentStatus = .failure("Reader not connected. Please pair a reader in Settings.")
-                                                return
-                                            }
-                                            
-                                            // Use the new reconnect alert with diagnostic info and instructions
-                                            SquareMobilePaymentsService.shared.presentReconnectReaderAlert(
-                                                from: alertVC,
-                                                error: error
-                                            ) {
-                                                // After reconnect attempt, user can try payment again
-                                            }
+                                            paymentStatus = .failure("Reader not connected. Please connect your Stripe M2 reader.")
                                         }
                                         return
                                     }
                                     
                                     // Check if this is a payment_already_in_progress error
                                     let isPaymentInProgressError = errorDescription.contains("payment_already_in_progress") || 
+                                                                   errorDescription.contains("already in progress") ||
                                                                    nsError.userInfo["NSLocalizedFailureReasonErrorKey"] as? String == "payment_already_in_progress"
                                     
                                     if isPaymentInProgressError {
-                                        SquarePaymentService.shared.cancelCurrentPayment()
+                                        StripePaymentService.shared.cancelCurrentPayment()
                                         try? await Task.sleep(nanoseconds: 1_000_000_000)
                                         await MainActor.run {
                                             hasStartedPayment = false
@@ -323,7 +311,7 @@ struct ModernPaymentView: View {
                                     do {
                                         _ = try await APIService.shared.completeDonation(
                                             donationId: donation.id,
-                                            squarePaymentId: "",
+                                            stripePaymentIntentId: nil,
                                             status: "FAILED",
                                             donorName: donorName,
                                             donorPhone: donorPhone,
@@ -350,7 +338,7 @@ struct ModernPaymentView: View {
                                 // Complete donation
                                 _ = try await APIService.shared.completeDonation(
                                     donationId: donation.id,
-                                    squarePaymentId: result.paymentId ?? "",
+                                    stripePaymentIntentId: result.paymentIntentId,
                                     status: result.success ? "SUCCEEDED" : "FAILED",
                                     donorName: donorName,
                                     donorPhone: donorPhone,
@@ -369,14 +357,14 @@ struct ModernPaymentView: View {
                                     }
                                 }
                             } catch {
-                                // Error during payment completion - if payment succeeded on Square, still show success
+                                // Error during payment completion - if payment succeeded on Stripe, still show success
                                 if let result = paymentResult {
-                                    if result.success, let paymentId = result.paymentId, !paymentId.isEmpty {
-                                        // Retry completion with payment ID
+                                    if result.success, let paymentIntentId = result.paymentIntentId, !paymentIntentId.isEmpty {
+                                        // Retry completion with payment intent ID
                                         do {
                                             _ = try await APIService.shared.completeDonation(
                                                 donationId: donation.id,
-                                                squarePaymentId: paymentId,
+                                                stripePaymentIntentId: paymentIntentId,
                                                 status: "SUCCEEDED",
                                                 donorName: donorName,
                                                 donorPhone: donorPhone,
@@ -395,7 +383,7 @@ struct ModernPaymentView: View {
                                         do {
                                             _ = try await APIService.shared.completeDonation(
                                                 donationId: donation.id,
-                                                squarePaymentId: result.paymentId ?? "",
+                                                stripePaymentIntentId: result.paymentIntentId,
                                                 status: "FAILED",
                                                 donorName: donorName,
                                                 donorPhone: donorPhone,
@@ -413,7 +401,7 @@ struct ModernPaymentView: View {
                                     do {
                                         _ = try await APIService.shared.completeDonation(
                                             donationId: donation.id,
-                                            squarePaymentId: "",
+                                            stripePaymentIntentId: nil,
                                             status: "FAILED",
                                             donorName: donorName,
                                             donorPhone: donorPhone,
@@ -552,8 +540,8 @@ struct ModernPaymentReadyView: View {
             }
             
             // Note: Payment is started automatically when this view appears
-            // Square Mobile Payments SDK will show its own card entry UI
-            // and detect card interactions from Square hardware automatically
+            // Stripe Terminal SDK will show its own card entry UI
+            // and detect card interactions from Stripe M2 reader automatically
             // User can tap or insert card, and SDK will process it
         }
     }

@@ -6,7 +6,6 @@ import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
 import { TemplesService } from '../temples/temples.service';
 import { GmailService } from '../gmail/gmail.service';
-import { SquareService } from '../square/square.service';
 import { StripeService } from '../stripe/stripe.service';
 import { ReceiptPdfService } from './receipt-pdf.service';
 import { ReceiptGeneratorService } from './receipt-generator.service';
@@ -21,8 +20,6 @@ export class DonationsService {
     private donationsRepository: Repository<Donation>,
     private templesService: TemplesService,
     private gmailService: GmailService,
-    @Inject(forwardRef(() => SquareService))
-    private squareService: SquareService,
     private configService: ConfigService,
     private receiptPdfService: ReceiptPdfService,
     private receiptGeneratorService: ReceiptGeneratorService,

@@ -1,6 +1,5 @@
 import Foundation
 import Combine
-import SquareMobilePaymentsSDK
 
 class AppState: ObservableObject {
     @Published var isActivated = false
@@ -18,7 +17,6 @@ class AppState: ObservableObject {
     private var themeRefreshTimer: Timer?
     private var categoryRefreshTimer: Timer?
     private var religiousEventsRefreshTimer: Timer?
-    private var squareConnectionCheckTimer: Timer?
     
     init() {
         loadStoredCredentials()
@@ -52,13 +50,10 @@ class AppState: ObservableObject {
             startCategoryRefreshTimer()
         }
         
-        // Authorize Square Mobile Payments SDK after activation (non-blocking background task)
+        // Initialize Stripe Terminal SDK after activation (non-blocking background task)
         Task.detached(priority: .utility) { [weak self] in
             guard let self = self else { return }
-            await self.authorizeSquareSDK()
-            await MainActor.run {
-                self.startSquareConnectionMonitoring()
-            }
+            // Stripe Terminal will be initialized when payment is needed
         }
         
         // Send initial telemetry immediately after activation
@@ -117,15 +112,7 @@ class AppState: ObservableObject {
                     }
                 }
                 
-                // Start Square SDK authorization AFTER temple config loads (non-blocking)
-                // This prevents network competition and ensures temple config loads first
-                Task.detached(priority: .utility) { [weak self] in
-                    guard let self = self else { return }
-                    await self.authorizeSquareSDK()
-                    await MainActor.run {
-                        self.startSquareConnectionMonitoring()
-                    }
-                }
+                // Stripe Terminal will be initialized when payment is needed
             }
         } else {
             appLog("ℹ️ No stored credentials found - showing activation screen", category: "AppState")
@@ -404,14 +391,7 @@ class AppState: ObservableObject {
                         self.isActivated = true
                     }
                     
-                    // Still try to authorize SDK even if temple fetch failed (non-blocking)
-                    Task.detached(priority: .utility) { [weak self] in
-                        guard let self = self else { return }
-                        await self.authorizeSquareSDK()
-                        await MainActor.run {
-                            self.startSquareConnectionMonitoring()
-                        }
-                    }
+                    // Stripe Terminal will be initialized when payment is needed
                     
                     // Start a background retry task after short delay
                     Task.detached(priority: .utility) { [weak self] in
@@ -443,168 +423,6 @@ class AppState: ObservableObject {
         
         return nil
     }
-    
-    private func authorizeSquareSDK(forceReauthorize: Bool = false) async {
-        // Step 2: Verify SDK is available
-        let _ = MobilePaymentsSDK.shared
-        print("[AppState] ✅ Square Mobile Payments SDK is available")
-        
-        // Step 5: Request required permissions first
-        print("[AppState] Requesting location and Bluetooth permissions...")
-        
-        // Request location permission
-        let locationGranted = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-            PermissionsManager.shared.requestLocationPermission { granted in
-                if granted {
-                    print("[AppState] ✅ Location permission granted")
-                } else {
-                    print("[AppState] ⚠️ Location permission denied - payments may fail")
-                }
-                continuation.resume(returning: granted)
-            }
-        }
-        
-        // Request Bluetooth permission
-        let bluetoothGranted = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-            PermissionsManager.shared.requestBluetoothPermission { granted in
-                if granted {
-                    print("[AppState] ✅ Bluetooth permission granted")
-                } else {
-                    print("[AppState] ⚠️ Bluetooth permission denied - contactless payments may fail")
-                }
-                continuation.resume(returning: granted)
-            }
-        }
-        
-        // Log final permission status
-        if locationGranted && bluetoothGranted {
-            print("[AppState] ✅ All required permissions granted")
-        } else {
-            print("[AppState] ⚠️ Some permissions were denied - Square SDK may have limited functionality")
-        }
-        
-        // Step 4: Authorize SDK with credentials from backend
-        // Get Square credentials from backend
-        // This may timeout if network is slow - catch and log but don't block app
-        let credentials: SquareCredentials
-        do {
-            credentials = try await APIService.shared.getSquareCredentials()
-        } catch {
-            // Log the error but don't fail completely - Square authorization can happen later
-            appLog("⚠️ Failed to get Square credentials: \(error.localizedDescription)", category: "AppState")
-            if let urlError = error as? URLError {
-                appLog("⚠️ URL Error code: \(urlError.code.rawValue)", category: "AppState")
-                if urlError.code == .timedOut {
-                    appLog("⚠️ Request timed out - network may be slow or backend unreachable", category: "AppState")
-                }
-            }
-            appLog("💡 Square SDK authorization will be retried later", category: "AppState")
-            return // Exit early - don't try to authorize without credentials
-        }
-        
-        // Determine if we should force reauthorize
-        let shouldForceReauthorize: Bool
-        if forceReauthorize {
-            // Force reauthorize if explicitly requested (like when Start Donation is clicked)
-            shouldForceReauthorize = true
-        } else if let lastAuth = lastSquareAuthorizationTime {
-            // Otherwise, check if 15 minutes have passed (periodic refresh)
-            shouldForceReauthorize = Date().timeIntervalSince(lastAuth) >= 15 * 60
-        } else {
-            shouldForceReauthorize = false
-        }
-        
-        // Authorize Mobile Payments SDK (uses completion handler, not async/await)
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            SquareMobilePaymentsService.shared.authorize(
-                accessToken: credentials.accessToken,
-                locationId: credentials.locationId,
-                forceReauthorize: shouldForceReauthorize
-            ) { error in
-                if let error = error {
-                    print("[AppState] ❌ Failed to authorize Square SDK: \(error.localizedDescription)")
-                } else {
-                    print("[AppState] ✅ Square Mobile Payments SDK authorized successfully")
-                    // Update last authorization time
-                    Task { @MainActor in
-                        self.lastSquareAuthorizationTime = Date()
-                    }
-                    // Reader detection is automatically checked after authorization
-                }
-                continuation.resume()
-            }
-        }
-    }
-    
-    // Track last authorization time for periodic refresh
-    private var lastSquareAuthorizationTime: Date?
-    
-    // Check Square SDK connection and reconnect if needed
-    func checkAndReconnectSquareSDK() async {
-        let authState = MobilePaymentsSDK.shared.authorizationManager.state
-        
-        // Check if hardware is actually connected
-        let hardwareConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
-        
-        // If not authorized, try to reconnect immediately
-        if authState != .authorized {
-            appLog("⚠️ Square SDK not authorized - reconnecting", category: "AppState")
-            await authorizeSquareSDK()
-            
-            // After re-authorization, wait and check hardware again
-            if !hardwareConnected {
-                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
-                if !hardwareStillConnected {
-                    appLog("⚠️ Hardware not detected after reconnection", category: "AppState")
-                }
-            }
-            return
-        }
-        
-        // If authorized but hardware not connected, try to reconnect
-        if !hardwareConnected {
-            appLog("⚠️ Hardware not detected - reconnecting", category: "AppState")
-            await authorizeSquareSDK()
-            
-            // Wait for hardware to potentially wake up
-            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-            let hardwareStillConnected = SquareMobilePaymentsService.shared.checkHardwareConnection()
-            if !hardwareStillConnected {
-                appLog("⚠️ Hardware still not detected", category: "AppState")
-            }
-            return
-        }
-        
-        // If authorized, check if we need to refresh the connection (every 15 minutes)
-        let now = Date()
-        if let lastAuth = lastSquareAuthorizationTime {
-            let timeSinceLastAuth = now.timeIntervalSince(lastAuth)
-            let refreshInterval: TimeInterval = 15 * 60 // 15 minutes
-            
-            if timeSinceLastAuth >= refreshInterval {
-                appLog("🔄 Refreshing Square SDK authorization", category: "AppState")
-                await authorizeSquareSDK()
-            }
-        } else {
-            lastSquareAuthorizationTime = now
-        }
-    }
-    
-    // Start periodic monitoring of Square SDK connection
-    private func startSquareConnectionMonitoring() {
-        // Stop any existing timer
-        squareConnectionCheckTimer?.invalidate()
-        
-        // Check connection every 30 seconds
-        squareConnectionCheckTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self = self, self.isActivated else { return }
-                await self.checkAndReconnectSquareSDK()
-            }
-        }
-    }
-    
     /// Check if device has been idle for 5+ minutes since last successful donation
     func hasBeenIdleFor5Minutes() -> Bool {
         guard let lastDonationTime = lastSuccessfulDonationTime else {
@@ -624,22 +442,10 @@ class AppState: ObservableObject {
         appLog("✅ Recorded successful donation time: \(Date())", category: "AppState")
     }
     
-    /// Full reconnection sequence: forces reauthorization (like app restart) and detects hardware with retries
-    /// This mimics what happens when the app is closed and reopened - forces fresh authorization
-    func ensureSquareConnectionReady() async {
-        appLog("🔄 Ensuring Square connection ready (forcing reauthorization like app restart)...", category: "AppState")
-        
-        // Force reauthorization - this is what happens when app restarts
-        // Even if already authorized, force reauthorize to ensure fresh connection
-        await authorizeSquareSDK(forceReauthorize: true)
-        
-        // Wait for authorization to complete (like app restart gives time)
-        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-        
-        // Note: We don't try to wake the reader here in the background
-        // The reader will wake up when the payment flow actually starts (same as app restart)
-        // The payment flow itself will handle waiting for the reader to wake up
-        appLog("✅ Square SDK reauthorized - reader will wake when payment starts", category: "AppState")
+    /// Ensure Stripe Terminal connection is ready
+    /// Stripe Terminal will be initialized when payment is needed
+    func ensureStripeConnectionReady() async {
+        appLog("🔄 Stripe Terminal will be initialized when payment starts", category: "AppState")
     }
     
     // Extract device ID from JWT token payload

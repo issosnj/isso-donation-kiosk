@@ -6,7 +6,6 @@ import { useAuthStore } from '@/store/authStore'
 import api from '@/lib/api'
 import DevicesTab from './DevicesTab'
 import CategoriesTab from './CategoriesTab'
-import SquareTab from './SquareTab'
 import StripeTab from './StripeTab'
 import KioskHomeTab from './KioskHomeTab'
 
@@ -329,7 +328,6 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
 
               {activeTab === 'devices' && <DevicesTab templeId={templeId} />}
               {activeTab === 'categories' && <CategoriesTab templeId={templeId} />}
-              {activeTab === 'square' && <SquareTab templeId={templeId} />}
               {activeTab === 'stripe' && <StripeTab templeId={templeId} />}
               {activeTab === 'kiosk' && <KioskHomeTab templeId={templeId} />}
       </div>

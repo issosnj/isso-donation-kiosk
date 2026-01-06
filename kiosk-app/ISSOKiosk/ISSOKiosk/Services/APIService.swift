@@ -309,7 +309,7 @@ class APIService {
     
     func completeDonation(
         donationId: String,
-        squarePaymentId: String? = nil,
+        stripePaymentIntentId: String? = nil,
         stripePaymentIntentId: String? = nil,
         status: String,
         donorName: String? = nil,
@@ -318,7 +318,7 @@ class APIService {
         donorAddress: String? = nil
     ) async throws -> Donation {
         struct Request: Codable {
-            let squarePaymentId: String?
+            let stripePaymentIntentId: String?
             let stripePaymentIntentId: String?
             let status: String
             let donorName: String?
@@ -328,7 +328,7 @@ class APIService {
         }
         
         let body = Request(
-            squarePaymentId: squarePaymentId,
+            stripePaymentIntentId: stripePaymentIntentId,
             stripePaymentIntentId: stripePaymentIntentId,
             status: status,
             donorName: donorName,
@@ -716,19 +716,6 @@ extension APIService {
         )
     }
     
-    func getSquareCredentials() async throws -> SquareCredentials {
-        // Square credentials request - use default timeout (30s) and fewer retries
-        // This prevents aggressive retries that can cause network issues
-        return try await request(
-            endpoint: "/devices/square-credentials",
-            method: "GET",
-            body: nil,
-            requiresAuth: true,
-            maxRetries: 1, // Only 1 retry (2 total attempts) - prevents network congestion
-            timeout: 30.0 // Use default 30s timeout (was 15s, too aggressive)
-        )
-    }
-    
     func getStripeCredentials() async throws -> StripeCredentials {
         // Stripe credentials request - use default timeout (30s) and fewer retries
         return try await request(
@@ -776,11 +763,6 @@ extension APIService {
             requiresAuth: true
         )
     }
-}
-
-struct SquareCredentials: Codable {
-    let accessToken: String
-    let locationId: String
 }
 
 struct StripeCredentials: Codable {
@@ -838,10 +820,5 @@ struct ConfirmPaymentIntentResponse: Codable {
     let success: Bool
     let paymentIntentId: String
     let status: String
-}
-
-struct StripeCredentials: Codable {
-    let connectionToken: String
-    let locationId: String
 }
 

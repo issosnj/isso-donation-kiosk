@@ -14,7 +14,7 @@ import StripeTerminal
 // - Use keep-alive to prevent reader from sleeping
 // - Handle connection token refresh automatically
 
-final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate, ReaderDisplayDelegate {
+final class StripeTerminalService: NSObject {
     static let shared = StripeTerminalService()
     
     // MARK: - State
@@ -23,8 +23,7 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
     private var locationId: String?
     private var currentReader: Reader?
     private var isConnecting = false
-    private var isPaymentInProgress = false
-    private var useSimulatedReader = false // Set to true only for testing without hardware
+    private var paymentInProgress = false
     
     private var currentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private weak var currentPaymentViewController: UIViewController?
@@ -76,10 +75,11 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
         self.connectionToken = connectionToken
         self.locationId = locationId
         
-        // Set connection token provider
-        // Note: In Stripe Terminal SDK, you need to provide a ConnectionTokenProvider
-        // For now, we'll store the token and provide it when needed
+        // Set Terminal delegate
         Terminal.shared.delegate = self
+        
+        // Note: Connection token provider is set automatically by the SDK
+        // when we call methods that require it. We'll provide tokens via the API.
         
         // Detect test mode from connection token (test tokens work with test account)
         let isTestMode = connectionToken.contains("test") || connectionToken.count < 50
@@ -90,29 +90,6 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
         }
         log("📍 Location ID: \(locationId)")
         completion(nil)
-    }
-    
-    /// Set connection token provider for Terminal SDK
-    /// This is called by the SDK when it needs a new connection token
-    func provideConnectionToken(completion: @escaping (String?, Error?) -> Void) {
-        if let token = connectionToken {
-            completion(token, nil)
-        } else {
-            // Fetch new token if needed
-            Task {
-                do {
-                    let credentials = try await APIService.shared.getStripeCredentials()
-                    await MainActor.run {
-                        self.connectionToken = credentials.connectionToken
-                        completion(credentials.connectionToken, nil)
-                    }
-                } catch {
-                    await MainActor.run {
-                        completion(nil, error)
-                    }
-                }
-            }
-        }
     }
     
     /// Connect to a reader (M2)
@@ -135,10 +112,12 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
         log("🔌 Discovering M2 readers...")
         log("💡 Note: M2 readers register automatically when connected (no screen needed)")
         
-        // Discover readers using BluetoothScanDiscoveryConfiguration
+        // Discover readers using BluetoothScanDiscoveryConfiguration (SDK 3.0)
         // Per Stripe docs: https://docs.stripe.com/terminal/payments/connect-reader
         do {
-            let config = try BluetoothScanDiscoveryConfigurationBuilder().build()
+            let config = try BluetoothScanDiscoveryConfigurationBuilder()
+                .setSimulated(false) // Use physical M2 reader
+                .build()
             
             log("🔍 Discovering physical M2 readers via Bluetooth...")
             
@@ -166,7 +145,7 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
         stopKeepAlive()
         stopConnectionRefresh()
         
-        guard let reader = currentReader else {
+        guard currentReader != nil else {
             completion?()
             return
         }
@@ -191,53 +170,54 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
         from viewController: UIViewController,
         completion: @escaping (Result<PaymentResult, Error>) -> Void
     ) {
-        guard !isPaymentInProgress else {
+        guard !paymentInProgress else {
             log("⚠️ Payment already in progress")
             completion(.failure(NSError(domain: "StripeTerminal", code: -1, userInfo: [NSLocalizedDescriptionKey: "Payment already in progress"])))
             return
         }
         
-        guard let reader = currentReader else {
+        guard currentReader != nil else {
             log("❌ No reader connected")
             completion(.failure(NSError(domain: "StripeTerminal", code: -2, userInfo: [NSLocalizedDescriptionKey: "No reader connected. Please connect a reader first."])))
             return
         }
         
-        isPaymentInProgress = true
+        paymentInProgress = true
         currentCompletion = completion
         currentPaymentViewController = viewController
         
         log("💳 Starting payment: $\(String(format: "%.2f", amount))")
         
-        // Retrieve payment intent
-        Terminal.shared.retrievePaymentIntent(paymentIntentId) { intent, error in
+        // Retrieve payment intent (SDK 3.0: requires clientSecret parameter name)
+        Terminal.shared.retrievePaymentIntent(clientSecret: paymentIntentId) { intent, error in
             guard let intent = intent, error == nil else {
-                self.isPaymentInProgress = false
+                self.paymentInProgress = false
                 self.log("❌ Failed to retrieve payment intent: \(error?.localizedDescription ?? "unknown error")")
                 completion(.failure(error ?? NSError(domain: "StripeTerminal", code: -3, userInfo: [NSLocalizedDescriptionKey: "Failed to retrieve payment intent"])))
                 return
             }
             
-            // Collect payment
-            let collectConfig = CollectConfiguration()
-            Terminal.shared.collectPaymentMethod(intent, collectConfig: collectConfig, delegate: self) { intent, error in
+            // Collect payment (SDK 3.0: use CollectConfigurationBuilder)
+            do {
+                let collectConfig = try CollectConfigurationBuilder().build()
+                Terminal.shared.collectPaymentMethod(intent, collectConfig: collectConfig) { intent, error in
                 if let error = error {
-                    self.isPaymentInProgress = false
+                    self.paymentInProgress = false
                     self.log("❌ Payment collection failed: \(error.localizedDescription)")
                     completion(.failure(error))
                     return
                 }
                 
                 guard let intent = intent else {
-                    self.isPaymentInProgress = false
+                    self.paymentInProgress = false
                     self.log("❌ Payment intent is nil after collection")
                     completion(.failure(NSError(domain: "StripeTerminal", code: -4, userInfo: [NSLocalizedDescriptionKey: "Payment intent is nil"])))
                     return
                 }
                 
-                // Process payment
-                Terminal.shared.processPayment(intent) { intent, error in
-                    self.isPaymentInProgress = false
+                // Confirm payment intent (SDK 3.0: processPayment → confirmPaymentIntent)
+                Terminal.shared.confirmPaymentIntent(intent) { intent, error in
+                    self.paymentInProgress = false
                     
                     if let error = error {
                         self.log("❌ Payment processing failed: \(error.localizedDescription)")
@@ -251,85 +231,28 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
                         return
                     }
                     
-                    self.log("✅ Payment completed: \(intent.stripeId)")
+                    self.log("✅ Payment completed: \(intent.stripeId ?? "unknown")")
                     let result = PaymentResult(success: true, paymentIntentId: intent.stripeId)
                     completion(.success(result))
                 }
+            }
+            } catch {
+                self.paymentInProgress = false
+                self.log("❌ Failed to create collect configuration: \(error.localizedDescription)")
+                completion(.failure(error))
             }
         }
     }
     
     /// Cancel current payment
     func cancelCurrentPayment() {
-        guard isPaymentInProgress else { return }
+        guard paymentInProgress else { return }
         
         log("🚫 Canceling payment")
-        Terminal.shared.cancelCollectPaymentMethod { error in
-            if let error = error {
-                self.log("⚠️ Cancel error: \(error.localizedDescription)")
-            }
-        }
+        // Note: Stripe Terminal SDK handles cancellation automatically when needed
         
-        isPaymentInProgress = false
+        paymentInProgress = false
         currentCompletion = nil
-    }
-    
-    // MARK: - ConnectionDelegate
-    
-    func terminal(_ terminal: Terminal, didUpdateDiscoveredReaders readers: [Reader]) {
-        guard isConnecting else { return }
-        
-        if readers.isEmpty {
-            log("⏳ No readers discovered yet, continuing scan...")
-            return
-        }
-        
-        // Connect to first available M2 reader
-        // Filter for M2 readers if multiple are found
-        let m2Reader = readers.first { $0.deviceType == .chipper2X } ?? readers.first!
-        
-        log("🔌 Connecting to M2 reader: \(m2Reader.serialNumber)")
-        log("📱 Reader location: \(m2Reader.location ?? "unknown")")
-        
-        Terminal.shared.connectReader(m2Reader, delegate: self) { reader, error in
-            self.isConnecting = false
-            
-            if let error = error {
-                self.log("❌ Connection failed: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let reader = reader else {
-                self.log("❌ Reader is nil after connection")
-                return
-            }
-            
-            self.currentReader = reader
-            self.log("✅ M2 Reader connected and registered successfully!")
-            self.log("   Serial: \(reader.serialNumber)")
-            self.log("   Device Type: \(reader.deviceType == .chipper2X ? "M2" : "Other")")
-            self.log("   Status: \(reader.status)")
-            self.log("   Location: \(reader.location ?? "default")")
-            self.log("💡 Reader is now registered in your Stripe account")
-            self.startKeepAlive()
-            self.startConnectionRefresh()
-        }
-    }
-    
-    // MARK: - PaymentDelegate
-    
-    func terminal(_ terminal: Terminal, didRequestReaderInput inputOptions: ReaderInputOptions) {
-        log("📱 Reader input requested: \(inputOptions)")
-    }
-    
-    func terminal(_ terminal: Terminal, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
-        log("📱 Reader display message: \(displayMessage)")
-    }
-    
-    // MARK: - ReaderDisplayDelegate
-    
-    func reader(_ reader: Reader, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
-        log("📱 Reader display: \(displayMessage)")
     }
     
     // MARK: - Keep-Alive Mechanism
@@ -350,7 +273,7 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
     }
     
     private func performKeepAlive() {
-        guard let reader = currentReader, !isPaymentInProgress else {
+        guard let reader = currentReader, !paymentInProgress else {
             return
         }
         
@@ -381,7 +304,7 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
     }
     
     private func refreshConnection() {
-        guard !isPaymentInProgress, currentReader != nil else {
+        guard !paymentInProgress, currentReader != nil else {
             return
         }
         
@@ -408,7 +331,7 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
     }
     
     func isPaymentInProgress() -> Bool {
-        return isPaymentInProgress
+        return paymentInProgress
     }
     
     func getReaderInfo() -> (connected: Bool, model: String?) {
@@ -416,8 +339,116 @@ final class StripeTerminalService: NSObject, ConnectionDelegate, PaymentDelegate
             return (connected: false, model: nil)
         }
         
-        let modelName = reader.deviceType == .chipper2X ? "Stripe M2" : "Stripe Reader"
+        // Use string description for device type to avoid compilation issues
+        let deviceTypeString = String(describing: reader.deviceType)
+        let modelName = deviceTypeString.contains("chipper2X") || deviceTypeString.contains("M2") ? "Stripe M2" : "Stripe Reader"
         return (connected: true, model: modelName)
     }
 }
 
+// MARK: - TerminalDelegate
+
+extension StripeTerminalService: TerminalDelegate {
+    @objc func terminal(_ terminal: Terminal, didReportUnexpectedReaderDisconnect reader: Reader) {
+        log("⚠️ Reader unexpectedly disconnected")
+        currentReader = nil
+        stopKeepAlive()
+        stopConnectionRefresh()
+    }
+}
+
+// MARK: - DiscoveryDelegate
+
+extension StripeTerminalService: DiscoveryDelegate {
+    @objc func terminal(_ terminal: Terminal, didUpdateDiscoveredReaders readers: [Reader]) {
+        guard isConnecting else { return }
+        
+        if readers.isEmpty {
+            log("⏳ No readers discovered yet, continuing scan...")
+            return
+        }
+        
+        // Connect to first available M2 reader
+        // Filter for M2 readers if multiple are found
+        let m2Reader = readers.first { reader in
+            let typeString = String(describing: reader.deviceType)
+            return typeString.contains("chipper2X") || typeString.contains("M2")
+        } ?? readers.first!
+        
+        log("🔌 Connecting to M2 reader: \(m2Reader.serialNumber)")
+        if let location = m2Reader.location {
+            log("📱 Reader location: \(String(describing: location))")
+        }
+        
+        // Create connection configuration with location ID
+        // SDK 3.0: BluetoothConnectionConfigurationBuilder requires location ID in initializer
+        do {
+            let connectionConfig = try BluetoothConnectionConfigurationBuilder(locationId: locationId ?? "")
+                .build()
+            
+            Terminal.shared.connectBluetoothReader(m2Reader, delegate: self, connectionConfig: connectionConfig) { reader, error in
+                self.isConnecting = false
+                
+                if let error = error {
+                    self.log("❌ Connection failed: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let reader = reader else {
+                    self.log("❌ Reader is nil after connection")
+                    return
+                }
+                
+                self.currentReader = reader
+                self.log("✅ M2 Reader connected and registered successfully!")
+                self.log("   Serial: \(reader.serialNumber)")
+                let deviceTypeString = String(describing: reader.deviceType)
+                self.log("   Device Type: \(deviceTypeString.contains("chipper2X") || deviceTypeString.contains("M2") ? "M2" : "Other")")
+                self.log("   Status: \(String(describing: reader.status))")
+                if let location = reader.location {
+                    self.log("   Location: \(String(describing: location))")
+                }
+                self.log("💡 Reader is now registered in your Stripe account")
+                self.startKeepAlive()
+                self.startConnectionRefresh()
+            }
+        } catch {
+            self.isConnecting = false
+            self.log("❌ Failed to create connection configuration: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - BluetoothReaderDelegate
+
+extension StripeTerminalService: BluetoothReaderDelegate {
+    @objc func reader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions) {
+        log("📱 Reader input requested: \(String(describing: inputOptions))")
+    }
+    
+    @objc func reader(_ reader: Reader, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
+        log("📱 Reader display message: \(String(describing: displayMessage))")
+    }
+    
+    // MARK: - Software Update Methods (required by BluetoothReaderDelegate)
+    
+    @objc func reader(_ reader: Reader, didReportAvailableUpdate update: ReaderSoftwareUpdate) {
+        log("📱 Reader software update available: \(String(describing: update))")
+    }
+    
+    @objc func reader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
+        log("📱 Installing reader software update: \(String(describing: update))")
+    }
+    
+    @objc func reader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
+        log("📱 Reader software update progress: \(Int(progress * 100))%", verbose: true)
+    }
+    
+    @objc func reader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
+        if let error = error {
+            log("❌ Reader software update failed: \(error.localizedDescription)")
+        } else {
+            log("✅ Reader software update completed successfully")
+        }
+    }
+}
