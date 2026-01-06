@@ -77,6 +77,26 @@ export class DevicesController {
     }
   }
 
+  @Get('stripe-credentials')
+  @UseGuards(DeviceAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Stripe Terminal connection token (device endpoint)' })
+  async getStripeCredentials(@CurrentDevice() device: any) {
+    try {
+      console.log('[Devices Controller] Stripe credentials request from device:', device?.deviceId);
+      const deviceId = device.deviceId;
+      if (!deviceId) {
+        throw new Error('Device ID not found in token');
+      }
+      const credentials = await this.devicesService.getStripeCredentials(deviceId);
+      console.log('[Devices Controller] Returning Stripe credentials');
+      return credentials;
+    } catch (error: any) {
+      console.error('[Devices Controller] Error in getStripeCredentials:', error);
+      throw error;
+    }
+  }
+
   @Post('activate')
   @ApiOperation({ summary: 'Activate device with device code (public endpoint)' })
   activate(@Body() activateDeviceDto: ActivateDeviceDto) {

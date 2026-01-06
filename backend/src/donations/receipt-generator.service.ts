@@ -152,7 +152,7 @@ export class ReceiptGeneratorService {
           <!-- Payment Method -->
           ${receiptConfig.showPaymentMethod !== false ? `
           <div class="payment-method">
-            <p>Payment Method: Paid by Square</p>
+            <p>Payment Method: ${donation.stripePaymentIntentId ? 'Paid by Stripe' : donation.squarePaymentId ? 'Paid by Square' : 'N/A'}</p>
             ${donation.cardType && donation.cardLast4 ? `
             <p>Card: ${this.escapeHtml(donation.cardType)} ending in ${this.escapeHtml(donation.cardLast4)}</p>
             ` : ''}

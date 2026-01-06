@@ -9,6 +9,7 @@ import DevicesTab from './tabs/DevicesTab'
 import DeviceDetailsTab from './tabs/DeviceDetailsTab'
 import CategoriesTab from './tabs/CategoriesTab'
 import SquareTab from './tabs/SquareTab'
+import StripeTab from './tabs/StripeTab'
 import ReceiptTab from './tabs/ReceiptTab'
 
 interface TempleDashboardProps {
@@ -57,6 +58,8 @@ export default function TempleDashboard({ activeTab, templeId, deviceId }: Templ
         return <CategoriesTab templeId={templeId} />
       case 'square':
         return <SquareTab templeId={templeId} />
+      case 'stripe':
+        return <StripeTab templeId={templeId} />
       case 'receipts':
         return <ReceiptTab templeId={templeId} isMasterAdmin={false} />
       default:

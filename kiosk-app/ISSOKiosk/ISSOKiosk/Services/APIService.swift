@@ -309,7 +309,8 @@ class APIService {
     
     func completeDonation(
         donationId: String,
-        squarePaymentId: String,
+        squarePaymentId: String? = nil,
+        stripePaymentIntentId: String? = nil,
         status: String,
         donorName: String? = nil,
         donorPhone: String? = nil,
@@ -317,7 +318,8 @@ class APIService {
         donorAddress: String? = nil
     ) async throws -> Donation {
         struct Request: Codable {
-            let squarePaymentId: String
+            let squarePaymentId: String?
+            let stripePaymentIntentId: String?
             let status: String
             let donorName: String?
             let donorPhone: String?
@@ -327,6 +329,7 @@ class APIService {
         
         let body = Request(
             squarePaymentId: squarePaymentId,
+            stripePaymentIntentId: stripePaymentIntentId,
             status: status,
             donorName: donorName,
             donorPhone: donorPhone,
@@ -336,6 +339,46 @@ class APIService {
         
         return try await request(
             endpoint: "/donations/\(donationId)/complete",
+            method: "POST",
+            body: try encodeToDict(body),
+            requiresAuth: true
+        )
+    }
+    
+    func createPaymentIntent(donationId: String, amount: Double, currency: String = "usd") async throws -> PaymentIntentResponse {
+        struct Request: Codable {
+            let donationId: String
+            let amount: Double
+            let currency: String
+        }
+        
+        let body = Request(
+            donationId: donationId,
+            amount: amount,
+            currency: currency
+        )
+        
+        return try await request(
+            endpoint: "/donations/create-payment-intent",
+            method: "POST",
+            body: try encodeToDict(body),
+            requiresAuth: true
+        )
+    }
+    
+    func confirmPaymentIntent(donationId: String, paymentIntentId: String) async throws -> ConfirmPaymentIntentResponse {
+        struct Request: Codable {
+            let donationId: String
+            let paymentIntentId: String
+        }
+        
+        let body = Request(
+            donationId: donationId,
+            paymentIntentId: paymentIntentId
+        )
+        
+        return try await request(
+            endpoint: "/donations/confirm-payment-intent",
             method: "POST",
             body: try encodeToDict(body),
             requiresAuth: true
@@ -686,6 +729,18 @@ extension APIService {
         )
     }
     
+    func getStripeCredentials() async throws -> StripeCredentials {
+        // Stripe credentials request - use default timeout (30s) and fewer retries
+        return try await request(
+            endpoint: "/devices/stripe-credentials",
+            method: "GET",
+            body: nil,
+            requiresAuth: true,
+            maxRetries: 1,
+            timeout: 30.0
+        )
+    }
+    
     func lookupDonor(phone: String) async throws -> DonorLookupResponse {
         let encodedPhone = phone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? phone
         return try await request(
@@ -728,6 +783,11 @@ struct SquareCredentials: Codable {
     let locationId: String
 }
 
+struct StripeCredentials: Codable {
+    let connectionToken: String
+    let locationId: String
+}
+
 struct DonorLookupResponse: Codable {
     let found: Bool
     let donor: DonorInfo?
@@ -767,5 +827,21 @@ struct AddressComponent: Codable {
     let long_name: String
     let short_name: String
     let types: [String]
+}
+
+struct PaymentIntentResponse: Codable {
+    let clientSecret: String
+    let paymentIntentId: String
+}
+
+struct ConfirmPaymentIntentResponse: Codable {
+    let success: Bool
+    let paymentIntentId: String
+    let status: String
+}
+
+struct StripeCredentials: Codable {
+    let connectionToken: String
+    let locationId: String
 }
 

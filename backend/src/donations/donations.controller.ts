@@ -17,6 +17,7 @@ import { ProcessPaymentDto } from './dto/process-payment.dto';
 import { CreatePledgeDto } from './dto/create-pledge.dto';
 import { PayPledgeDto } from './dto/pay-pledge.dto';
 import { SquareService } from '../square/square.service';
+import { StripeService } from '../stripe/stripe.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -29,6 +30,7 @@ export class DonationsController {
   constructor(
     private readonly donationsService: DonationsService,
     private readonly squareService: SquareService,
+    private readonly stripeService: StripeService,
   ) {}
 
   @Post('initiate')
@@ -42,7 +44,7 @@ export class DonationsController {
   @Post('process-payment')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Process Square payment with card nonce from Mobile Payments SDK (device endpoint)' })
+  @ApiOperation({ summary: 'Process Square payment with card nonce from Mobile Payments SDK (device endpoint - legacy)' })
   async processPayment(
     @Body() processPaymentDto: ProcessPaymentDto,
     @CurrentUser() user: any,
@@ -72,6 +74,63 @@ export class DonationsController {
     return {
       success: result.status === 'COMPLETED',
       paymentId: result.paymentId,
+      status: result.status,
+    };
+  }
+
+  @Post('create-payment-intent')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create Stripe PaymentIntent for Terminal payment (device endpoint)' })
+  async createPaymentIntent(
+    @Body() body: { donationId: string; amount: number; currency?: string },
+    @CurrentUser() user: any,
+  ) {
+    const donation = await this.donationsService.findOne(body.donationId);
+    
+    // Create PaymentIntent for Stripe Terminal
+    const result = await this.stripeService.createPaymentIntent(
+      donation.templeId,
+      body.donationId,
+      body.amount,
+      body.currency || 'usd',
+    );
+
+    return {
+      clientSecret: result.clientSecret,
+      paymentIntentId: result.paymentIntentId,
+    };
+  }
+
+  @Post('confirm-payment-intent')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Confirm Stripe PaymentIntent after collection on device (device endpoint)' })
+  async confirmPaymentIntent(
+    @Body() body: { donationId: string; paymentIntentId: string },
+    @CurrentUser() user: any,
+  ) {
+    const donation = await this.donationsService.findOne(body.donationId);
+    
+    // Confirm PaymentIntent
+    const result = await this.stripeService.confirmPaymentIntent(
+      donation.templeId,
+      body.paymentIntentId,
+    );
+
+    // Update donation with payment result
+    await this.donationsService.complete(body.donationId, {
+      stripePaymentIntentId: result.paymentIntentId,
+      status: result.status === 'succeeded' ? DonationStatus.SUCCEEDED : DonationStatus.FAILED,
+      netAmount: result.netAmount,
+      stripeFee: result.fee,
+      cardLast4: result.cardLast4 || undefined,
+      cardType: result.cardBrand || undefined,
+    });
+
+    return {
+      success: result.status === 'succeeded',
+      paymentIntentId: result.paymentIntentId,
       status: result.status,
     };
   }
@@ -345,30 +404,50 @@ export class DonationsController {
       throw new ForbiddenException('Unauthorized');
     }
 
-    if (!donation.squarePaymentId) {
-      throw new BadRequestException('Donation does not have a Square payment ID');
-    }
-
     if (donation.status !== DonationStatus.SUCCEEDED) {
       throw new BadRequestException('Can only refund successful donations');
     }
 
-    // Process refund through Square
-    const refundResult = await this.squareService.refundPayment(
-      donation.templeId,
-      donation.squarePaymentId,
-      refundDto.amount || donation.amount,
-      refundDto.reason,
-    );
+    // Process refund through Stripe if Stripe payment
+    if (donation.stripePaymentIntentId) {
+      const refundResult = await this.stripeService.refundPayment(
+        donation.templeId,
+        donation.stripePaymentIntentId,
+        refundDto.amount,
+        refundDto.reason,
+      );
 
-    // Update donation status
-    await this.donationsService.updateStatus(donation.id, DonationStatus.REFUNDED);
+      // Update donation status
+      await this.donationsService.updateStatus(donation.id, DonationStatus.REFUNDED);
 
-    return {
-      message: 'Refund processed successfully',
-      refundId: refundResult.refundId,
-      refundAmount: refundResult.amount,
-    };
+      return {
+        message: 'Refund processed successfully',
+        refundId: refundResult.refundId,
+        refundAmount: refundResult.amount,
+        provider: 'stripe',
+      };
+    }
+    // Process refund through Square if Square payment (legacy)
+    else if (donation.squarePaymentId) {
+      const refundResult = await this.squareService.refundPayment(
+        donation.templeId,
+        donation.squarePaymentId,
+        refundDto.amount || donation.amount,
+        refundDto.reason,
+      );
+
+      // Update donation status
+      await this.donationsService.updateStatus(donation.id, DonationStatus.REFUNDED);
+
+      return {
+        message: 'Refund processed successfully',
+        refundId: refundResult.refundId,
+        refundAmount: refundResult.amount,
+        provider: 'square',
+      };
+    } else {
+      throw new BadRequestException('Donation does not have a payment ID');
+    }
   }
 
   @Get(':id/payment-details')

@@ -7,6 +7,7 @@ import api from '@/lib/api'
 import DevicesTab from './DevicesTab'
 import CategoriesTab from './CategoriesTab'
 import SquareTab from './SquareTab'
+import StripeTab from './StripeTab'
 import KioskHomeTab from './KioskHomeTab'
 
 interface TempleEditViewProps {
@@ -15,7 +16,7 @@ interface TempleEditViewProps {
 }
 
 export default function TempleEditView({ templeId, onBack }: TempleEditViewProps) {
-  const [activeTab, setActiveTab] = useState<'info' | 'devices' | 'categories' | 'square' | 'events' | 'kiosk'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'devices' | 'categories' | 'square' | 'stripe' | 'events' | 'kiosk'>('info')
   const [isEditing, setIsEditing] = useState(false)
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
@@ -109,6 +110,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
     { id: 'devices', label: 'Devices' },
     { id: 'categories', label: 'Categories' },
     { id: 'square', label: 'Square' },
+    { id: 'stripe', label: 'Stripe' },
     { id: 'kiosk', label: 'Kiosk Home' },
   ]
 
@@ -328,6 +330,7 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
               {activeTab === 'devices' && <DevicesTab templeId={templeId} />}
               {activeTab === 'categories' && <CategoriesTab templeId={templeId} />}
               {activeTab === 'square' && <SquareTab templeId={templeId} />}
+              {activeTab === 'stripe' && <StripeTab templeId={templeId} />}
               {activeTab === 'kiosk' && <KioskHomeTab templeId={templeId} />}
       </div>
     </div>

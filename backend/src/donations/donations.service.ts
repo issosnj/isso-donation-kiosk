@@ -7,6 +7,7 @@ import { CompleteDonationDto } from './dto/complete-donation.dto';
 import { TemplesService } from '../temples/temples.service';
 import { GmailService } from '../gmail/gmail.service';
 import { SquareService } from '../square/square.service';
+import { StripeService } from '../stripe/stripe.service';
 import { ReceiptPdfService } from './receipt-pdf.service';
 import { ReceiptGeneratorService } from './receipt-generator.service';
 import { DonorsService } from '../donors/donors.service';
@@ -48,7 +49,13 @@ export class DonationsService {
       throw new NotFoundException(`Donation with ID ${donationId} not found`);
     }
 
-    donation.squarePaymentId = completeDonationDto.squarePaymentId;
+    // Support both Square (legacy) and Stripe payment IDs
+    if (completeDonationDto.squarePaymentId) {
+      donation.squarePaymentId = completeDonationDto.squarePaymentId;
+    }
+    if (completeDonationDto.stripePaymentIntentId) {
+      donation.stripePaymentIntentId = completeDonationDto.stripePaymentIntentId;
+    }
     donation.status = completeDonationDto.status;
     if (completeDonationDto.donorName) {
       donation.donorName = completeDonationDto.donorName;
@@ -63,58 +70,95 @@ export class DonationsService {
       donation.donorAddress = completeDonationDto.donorAddress;
     }
     
-    // Automatically fetch Square fee and card information from Square API
+    // Automatically fetch payment details from payment provider API
     // Always fetch for SUCCEEDED donations with payment ID to ensure fees are always populated
-    // Only fetch for SUCCEEDED donations - cancelled/failed donations shouldn't have fees
-    if (completeDonationDto.status === DonationStatus.SUCCEEDED && completeDonationDto.squarePaymentId) {
-      // Always fetch payment details from Square to ensure fees are up-to-date
-      // This is critical - fees must be fetched from Square API, not trusted from client
-      // Always fetch when we have a payment ID to ensure fees are always populated
-      try {
-        console.log('[DonationsService] Automatically fetching payment details from Square for payment:', completeDonationDto.squarePaymentId);
-        const paymentDetails = await this.squareService.getPaymentDetails(
-          donation.templeId,
-          completeDonationDto.squarePaymentId,
-        );
-        
-        // Always use fetched data from Square (most accurate source)
-        // Only fall back to provided values if fetch fails
-        donation.netAmount = paymentDetails.netAmount;
-        donation.squareFee = paymentDetails.squareFee;
-        donation.cardLast4 = paymentDetails.cardLast4;
-        donation.cardType = paymentDetails.cardType;
-        
-        console.log('[DonationsService] Successfully fetched payment details from Square:', {
-          netAmount: donation.netAmount,
-          squareFee: donation.squareFee,
-          cardLast4: donation.cardLast4,
-          cardType: donation.cardType,
-        });
-      } catch (error) {
-        console.error('[DonationsService] Failed to automatically fetch payment details from Square:', error);
-        console.error('[DonationsService] Error details:', JSON.stringify(error, null, 2));
-        // Fall back to provided values if fetch fails
-        if (completeDonationDto.netAmount !== undefined) {
-          donation.netAmount = completeDonationDto.netAmount;
-        }
-        if (completeDonationDto.squareFee !== undefined) {
-          donation.squareFee = completeDonationDto.squareFee;
-        }
-        if (completeDonationDto.cardLast4) {
-          donation.cardLast4 = completeDonationDto.cardLast4;
-        }
-        if (completeDonationDto.cardType) {
-          donation.cardType = completeDonationDto.cardType;
+    if (completeDonationDto.status === DonationStatus.SUCCEEDED) {
+      // Handle Stripe payments
+      if (completeDonationDto.stripePaymentIntentId) {
+        try {
+          console.log('[DonationsService] Automatically fetching payment details from Stripe for payment intent:', completeDonationDto.stripePaymentIntentId);
+          const paymentDetails = await this.stripeService.getPaymentIntentDetails(
+            donation.templeId,
+            completeDonationDto.stripePaymentIntentId,
+          );
+          
+          // Always use fetched data from Stripe (most accurate source)
+          donation.netAmount = paymentDetails.netAmount;
+          donation.stripeFee = paymentDetails.fee;
+          donation.cardLast4 = paymentDetails.cardLast4 || null;
+          donation.cardType = paymentDetails.cardBrand || null;
+          
+          console.log('[DonationsService] Successfully fetched payment details from Stripe:', {
+            netAmount: donation.netAmount,
+            stripeFee: donation.stripeFee,
+            cardLast4: donation.cardLast4,
+            cardType: donation.cardType,
+          });
+        } catch (error) {
+          console.error('[DonationsService] Failed to automatically fetch payment details from Stripe:', error);
+          // Fall back to provided values if fetch fails
+          if (completeDonationDto.netAmount !== undefined) {
+            donation.netAmount = completeDonationDto.netAmount;
+          }
+          if (completeDonationDto.stripeFee !== undefined) {
+            donation.stripeFee = completeDonationDto.stripeFee;
+          }
+          if (completeDonationDto.cardLast4) {
+            donation.cardLast4 = completeDonationDto.cardLast4;
+          }
+          if (completeDonationDto.cardType) {
+            donation.cardType = completeDonationDto.cardType;
+          }
         }
       }
-    } else {
-      // Use provided values - only set fees for SUCCEEDED donations
-      if (completeDonationDto.status === DonationStatus.SUCCEEDED) {
+      // Handle Square payments (legacy)
+      else if (completeDonationDto.squarePaymentId) {
+        try {
+          console.log('[DonationsService] Automatically fetching payment details from Square for payment:', completeDonationDto.squarePaymentId);
+          const paymentDetails = await this.squareService.getPaymentDetails(
+            donation.templeId,
+            completeDonationDto.squarePaymentId,
+          );
+          
+          // Always use fetched data from Square (most accurate source)
+          donation.netAmount = paymentDetails.netAmount;
+          donation.squareFee = paymentDetails.squareFee;
+          donation.cardLast4 = paymentDetails.cardLast4;
+          donation.cardType = paymentDetails.cardType;
+          
+          console.log('[DonationsService] Successfully fetched payment details from Square:', {
+            netAmount: donation.netAmount,
+            squareFee: donation.squareFee,
+            cardLast4: donation.cardLast4,
+            cardType: donation.cardType,
+          });
+        } catch (error) {
+          console.error('[DonationsService] Failed to automatically fetch payment details from Square:', error);
+          // Fall back to provided values if fetch fails
+          if (completeDonationDto.netAmount !== undefined) {
+            donation.netAmount = completeDonationDto.netAmount;
+          }
+          if (completeDonationDto.squareFee !== undefined) {
+            donation.squareFee = completeDonationDto.squareFee;
+          }
+          if (completeDonationDto.cardLast4) {
+            donation.cardLast4 = completeDonationDto.cardLast4;
+          }
+          if (completeDonationDto.cardType) {
+            donation.cardType = completeDonationDto.cardType;
+          }
+        }
+      }
+      // Use provided values if no payment ID
+      else {
         if (completeDonationDto.netAmount !== undefined) {
           donation.netAmount = completeDonationDto.netAmount;
         }
         if (completeDonationDto.squareFee !== undefined) {
           donation.squareFee = completeDonationDto.squareFee;
+        }
+        if (completeDonationDto.stripeFee !== undefined) {
+          donation.stripeFee = completeDonationDto.stripeFee;
         }
         if (completeDonationDto.cardLast4) {
           donation.cardLast4 = completeDonationDto.cardLast4;
@@ -129,6 +173,7 @@ export class DonationsService {
     if (completeDonationDto.status !== DonationStatus.SUCCEEDED) {
       donation.netAmount = null;
       donation.squareFee = null;
+      donation.stripeFee = null;
       donation.cardLast4 = null;
       donation.cardType = null;
     }

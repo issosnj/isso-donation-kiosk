@@ -9,6 +9,7 @@ import { ActivateDeviceDto } from './dto/activate-device.dto';
 import { CreateDeviceTelemetryDto } from './dto/create-device-telemetry.dto';
 import { TemplesService } from '../temples/temples.service';
 import { DonationCategoriesService } from '../donations/donation-categories.service';
+import { StripeService } from '../stripe/stripe.service';
 
 @Injectable()
 export class DevicesService {
@@ -21,6 +22,8 @@ export class DevicesService {
     private templesService: TemplesService,
     @Inject(forwardRef(() => DonationCategoriesService))
     private donationCategoriesService: DonationCategoriesService,
+    @Inject(forwardRef(() => StripeService))
+    private stripeService: StripeService,
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
@@ -175,6 +178,40 @@ export class DevicesService {
       };
     } catch (error: any) {
       console.error('[Devices Service] Error getting Square credentials:', error);
+      console.error('[Devices Service] Error stack:', error.stack);
+      throw error;
+    }
+  }
+
+  async getStripeCredentials(deviceId: string): Promise<{
+    connectionToken: string;
+  }> {
+    try {
+      console.log('[Devices Service] Getting Stripe credentials for device:', deviceId);
+      const device = await this.findOne(deviceId);
+      console.log('[Devices Service] Device found, templeId:', device.templeId);
+      
+      const temple = await this.templesService.findOne(device.templeId);
+      console.log('[Devices Service] Temple found:', temple.name);
+      console.log('[Devices Service] Stripe fields:', {
+        stripeAccountId: temple.stripeAccountId ? 'present' : 'null/empty',
+        stripePublishableKey: temple.stripePublishableKey ? 'present' : 'null/empty',
+      });
+
+      if (!temple.stripeAccountId && !temple.stripePublishableKey) {
+        console.log('[Devices Service] Stripe not connected - no account ID or publishable key');
+        throw new Error('Stripe not connected for this temple. Please connect Stripe in the admin portal.');
+      }
+
+      const credentials = await this.stripeService.createConnectionToken(device.templeId);
+      
+      console.log('[Devices Service] Returning Stripe credentials (connection token + location ID)');
+      return {
+        connectionToken: credentials.secret,
+        locationId: credentials.locationId,
+      };
+    } catch (error: any) {
+      console.error('[Devices Service] Error getting Stripe credentials:', error);
       console.error('[Devices Service] Error stack:', error.stack);
       throw error;
     }

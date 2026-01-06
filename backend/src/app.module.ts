@@ -9,6 +9,7 @@ import { DevicesModule } from './devices/devices.module';
 import { DonationsModule } from './donations/donations.module';
 import { DonorsModule } from './donors/donors.module';
 import { SquareModule } from './square/square.module';
+import { StripeModule } from './stripe/stripe.module';
 import { GmailModule } from './gmail/gmail.module';
 import { PlacesModule } from './places/places.module';
 import { ReligiousEventsModule } from './religious-events/religious-events.module';
@@ -32,6 +33,7 @@ import { typeOrmConfig } from './config/typeorm.config';
     DonationsModule,
     DonorsModule,
     SquareModule,
+    StripeModule,
     GmailModule,
     PlacesModule,
     ReligiousEventsModule,

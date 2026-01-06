@@ -23,5 +23,20 @@ export class UpdateTempleDto extends PartialType(CreateTempleDto) {
   @IsOptional()
   @IsBoolean()
   yajmanOpportunitiesEnabled?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  stripeAccountId?: string | null;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  stripePublishableKey?: string | null;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  stripeLocationId?: string | null;
 }
 

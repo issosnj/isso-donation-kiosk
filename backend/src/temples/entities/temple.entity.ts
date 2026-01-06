@@ -39,6 +39,15 @@ export class Temple {
   @Column({ nullable: true })
   squareLocationId: string;
 
+  @Column({ nullable: true })
+  stripeAccountId: string; // Stripe account ID (for Connect) or null if using direct account
+
+  @Column({ type: 'text', nullable: true })
+  stripePublishableKey: string; // Stripe publishable key
+
+  @Column({ nullable: true })
+  stripeLocationId: string; // Stripe Terminal location ID (required for reader registration)
+
   @Column({ type: 'text', nullable: true })
   gmailAccessToken: string; // Encrypted Gmail OAuth access token
 

@@ -3,9 +3,15 @@ import { ApiProperty } from '@nestjs/swagger';
 import { DonationStatus } from '../entities/donation.entity';
 
 export class CompleteDonationDto {
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  squarePaymentId: string;
+  squarePaymentId?: string; // Legacy Square payment ID
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  stripePaymentIntentId?: string; // Stripe PaymentIntent ID
 
   @ApiProperty({ enum: DonationStatus })
   @IsEnum(DonationStatus)
@@ -39,7 +45,12 @@ export class CompleteDonationDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsNumber()
-  squareFee?: number;
+  squareFee?: number; // Legacy Square fee
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  stripeFee?: number; // Stripe processing fee
 
   @ApiProperty({ required: false })
   @IsOptional()

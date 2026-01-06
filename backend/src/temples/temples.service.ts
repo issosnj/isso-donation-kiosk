@@ -166,6 +166,10 @@ export class TemplesService {
                             updateDto.squareAccessToken === null || 
                             updateDto.squareRefreshToken === null;
     
+    // Handle Stripe disconnection - explicitly set to null if any Stripe field is null
+    const isDisconnectingStripe = updateDto.stripeAccountId === null || 
+                                   updateDto.stripePublishableKey === null;
+    
     // Handle Gmail fields explicitly
     if (updateDto.gmailAccessToken !== undefined) {
       console.log('[Temples Service] Updating Gmail access token');
@@ -180,6 +184,7 @@ export class TemplesService {
       temple.gmailEmail = updateDto.gmailEmail;
     }
     
+    // Handle Square disconnection
     if (isDisconnecting) {
       console.log('[Temples Service] Disconnecting Square for temple:', id);
       console.log('[Temples Service] Before update - Square fields:', {
@@ -192,8 +197,29 @@ export class TemplesService {
       temple.squareAccessToken = null;
       temple.squareRefreshToken = null;
       temple.squareLocationId = null;
-      
-      // Still update other fields if provided
+    }
+    
+    // Handle Stripe disconnection
+    if (isDisconnectingStripe) {
+      console.log('[Temples Service] Disconnecting Stripe for temple:', id);
+      temple.stripeAccountId = null;
+      temple.stripePublishableKey = null;
+      temple.stripeLocationId = null;
+    } else if (updateDto.stripeAccountId !== undefined || updateDto.stripePublishableKey !== undefined || updateDto.stripeLocationId !== undefined) {
+      // Update Stripe fields if provided
+      if (updateDto.stripeAccountId !== undefined) {
+        temple.stripeAccountId = updateDto.stripeAccountId;
+      }
+      if (updateDto.stripePublishableKey !== undefined) {
+        temple.stripePublishableKey = updateDto.stripePublishableKey;
+      }
+      if (updateDto.stripeLocationId !== undefined) {
+        temple.stripeLocationId = updateDto.stripeLocationId;
+      }
+    }
+    
+    // Still update other fields if provided (when disconnecting)
+    if (isDisconnecting || isDisconnectingStripe) {
       if (updateDto.name !== undefined) temple.name = updateDto.name;
       if (updateDto.address !== undefined) temple.address = updateDto.address;
       if (updateDto.timezone !== undefined) temple.timezone = updateDto.timezone;
@@ -208,14 +234,21 @@ export class TemplesService {
     }
     
     // Use update() method to ensure null values are saved
-    if (isDisconnecting) {
+    if (isDisconnecting || isDisconnectingStripe) {
       console.log('[Temples Service] Executing update() with null values...');
-      const updateResult = await this.templesRepository.update(id, {
-        squareMerchantId: null,
-        squareAccessToken: null,
-        squareRefreshToken: null,
-        squareLocationId: null,
-      });
+      const updateData: any = {};
+      if (isDisconnecting) {
+        updateData.squareMerchantId = null;
+        updateData.squareAccessToken = null;
+        updateData.squareRefreshToken = null;
+        updateData.squareLocationId = null;
+      }
+      if (isDisconnectingStripe) {
+        updateData.stripeAccountId = null;
+        updateData.stripePublishableKey = null;
+        updateData.stripeLocationId = null;
+      }
+      const updateResult = await this.templesRepository.update(id, updateData);
       console.log('[Temples Service] Update result:', updateResult);
       
       // Use query builder to get fresh data (bypass any cache)
@@ -233,13 +266,20 @@ export class TemplesService {
         squareAccessToken: saved.squareAccessToken ? 'present' : 'null',
         squareLocationId: saved.squareLocationId ? 'present' : 'null',
       });
+      console.log('[Temples Service] After save - Stripe fields:', {
+        stripeAccountId: saved.stripeAccountId ? 'present' : 'null',
+        stripePublishableKey: saved.stripePublishableKey ? 'present' : 'null',
+        stripeLocationId: saved.stripeLocationId ? 'present' : 'null',
+      });
       console.log('[Temples Service] Temple updated, Square connected:', !!saved.squareAccessToken);
+      console.log('[Temples Service] Temple updated, Stripe connected:', !!saved.stripeAccountId);
       return saved;
     } else {
       console.log('[Temples Service] Saving temple with all updates...');
       const saved = await this.templesRepository.save(temple);
       console.log('[Temples Service] Temple saved, Gmail email:', saved.gmailEmail);
       console.log('[Temples Service] Gmail connected:', !!saved.gmailAccessToken);
+      console.log('[Temples Service] Stripe connected:', !!saved.stripeAccountId);
       return saved;
     }
   }
@@ -272,6 +312,30 @@ export class TemplesService {
     
     const savedTemple = await this.templesRepository.save(temple);
     console.log('[Temples Service] Square credentials saved, merchant ID:', savedTemple.squareMerchantId);
+    return savedTemple;
+  }
+
+  async updateStripeCredentials(
+    id: string,
+    stripeAccountId: string,
+    stripePublishableKey: string,
+    stripeLocationId?: string,
+  ): Promise<Temple> {
+    console.log('[Temples Service] updateStripeCredentials called for temple:', id);
+    console.log('[Temples Service] Account ID:', stripeAccountId);
+    console.log('[Temples Service] Location ID:', stripeLocationId || 'not provided');
+    
+    const temple = await this.findOne(id);
+    console.log('[Temples Service] Temple found:', temple.name);
+    
+    temple.stripeAccountId = stripeAccountId;
+    temple.stripePublishableKey = stripePublishableKey;
+    if (stripeLocationId) {
+      temple.stripeLocationId = stripeLocationId;
+    }
+    
+    const savedTemple = await this.templesRepository.save(temple);
+    console.log('[Temples Service] Stripe credentials saved, account ID:', savedTemple.stripeAccountId);
     return savedTemple;
   }
 }

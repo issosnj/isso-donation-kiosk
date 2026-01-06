@@ -65,13 +65,19 @@ export class Donation {
   donorAddress: string; // Mailing address
 
   @Column({ nullable: true })
-  squarePaymentId: string;
+  squarePaymentId: string; // Legacy Square payment ID
+
+  @Column({ nullable: true })
+  stripePaymentIntentId: string; // Stripe PaymentIntent ID
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  netAmount: number; // Amount after Square fees
+  netAmount: number; // Amount after processing fees
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  squareFee: number; // Square processing fee
+  squareFee: number; // Square processing fee (legacy)
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  stripeFee: number; // Stripe processing fee
 
   @Column({ nullable: true })
   cardLast4: string; // Last 4 digits of card

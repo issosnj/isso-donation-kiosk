@@ -11,6 +11,7 @@ import { DonationCategoriesController } from './donation-categories.controller';
 import { TemplesModule } from '../temples/temples.module';
 import { DevicesModule } from '../devices/devices.module';
 import { SquareModule } from '../square/square.module';
+import { StripeModule } from '../stripe/stripe.module';
 import { GmailModule } from '../gmail/gmail.module';
 import { ReceiptPdfService } from './receipt-pdf.service';
 import { ReceiptGeneratorService } from './receipt-generator.service';
@@ -22,6 +23,7 @@ import { DonorsModule } from '../donors/donors.module';
     TemplesModule,
     forwardRef(() => DevicesModule),
     forwardRef(() => SquareModule),
+    forwardRef(() => StripeModule),
     GmailModule,
     forwardRef(() => DonorsModule),
     JwtModule.registerAsync({
