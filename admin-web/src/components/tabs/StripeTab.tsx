@@ -210,7 +210,7 @@ export default function StripeTab({ templeId }: StripeTabProps) {
                     type="text"
                     value={publishableKey}
                     onChange={(e) => setPublishableKey(e.target.value)}
-                    placeholder="pk_test_... or pk_live_..."
+                    placeholder="pk_live_..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono text-sm"
                   />
                 </div>
@@ -264,11 +264,11 @@ export default function StripeTab({ templeId }: StripeTabProps) {
                     type="text"
                     value={publishableKey}
                     onChange={(e) => setPublishableKey(e.target.value)}
-                    placeholder="pk_test_... or pk_live_..."
+                    placeholder="pk_live_..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono text-sm"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Get this from <a href="https://dashboard.stripe.com/test/apikeys" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Stripe Dashboard</a>
+                    Get this from <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Stripe Dashboard (Live Mode)</a>
                   </p>
                 </div>
                 <div>
@@ -303,8 +303,8 @@ export default function StripeTab({ templeId }: StripeTabProps) {
               <h3 className="font-semibold text-gray-900 mb-3">Setup Instructions</h3>
               <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
                 <li>Create a Stripe account at <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">dashboard.stripe.com</a></li>
-                <li>Go to <a href="https://dashboard.stripe.com/test/apikeys" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">API Keys</a> in Stripe Dashboard</li>
-                <li>Copy your <strong>Publishable key</strong> (starts with <code className="bg-white px-1 py-0.5 rounded text-xs">pk_test_</code> or <code className="bg-white px-1 py-0.5 rounded text-xs">pk_live_</code>)</li>
+                <li>Go to <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">API Keys</a> in Stripe Dashboard (Live Mode)</li>
+                <li>Copy your <strong>Publishable key</strong> (starts with <code className="bg-white px-1 py-0.5 rounded text-xs">pk_live_</code>)</li>
                 <li>Add your <strong>Secret key</strong> to backend environment: <code className="bg-white px-1 py-0.5 rounded text-xs">STRIPE_SECRET_KEY</code></li>
                 <li>Paste the Publishable key above and click "Save Configuration"</li>
                 <li>Register your M2 reader in Stripe Dashboard → Terminal → Readers</li>
@@ -320,8 +320,8 @@ export default function StripeTab({ templeId }: StripeTabProps) {
                 <span>Important Notes</span>
               </h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-yellow-800 mt-2">
-                <li>Use <code className="bg-yellow-100 px-1 py-0.5 rounded text-xs">pk_test_</code> keys for testing</li>
-                <li>Use <code className="bg-yellow-100 px-1 py-0.5 rounded text-xs">pk_live_</code> keys for production</li>
+                <li>Use <code className="bg-yellow-100 px-1 py-0.5 rounded text-xs">pk_live_</code> keys (live mode)</li>
+                <li>All payments are real and will charge actual cards</li>
                 <li>M2 readers register automatically when connected via iOS app</li>
                 <li>No manual registration needed in Dashboard (reader has no screen)</li>
                 <li>Backend automatically creates Terminal locations for each temple</li>

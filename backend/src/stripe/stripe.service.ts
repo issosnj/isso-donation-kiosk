@@ -25,7 +25,7 @@ export class StripeService {
     console.log(`[Stripe Service] Initializing in ${isTestMode ? 'TEST' : 'LIVE'} mode`);
     
     this.stripe = new Stripe(secretKey, {
-      apiVersion: '2024-11-20.acacia',
+      apiVersion: '2023-10-16',
     });
   }
 
@@ -69,7 +69,6 @@ export class StripeService {
   /**
    * Create a connection token for Stripe Terminal SDK
    * This is used by the iOS app to connect to the M2 reader
-   * In test mode, this allows connecting to simulated readers
    */
   async createConnectionToken(templeId: string): Promise<{ secret: string; locationId: string }> {
     const temple = await this.templesService.findOne(templeId);
@@ -87,13 +86,11 @@ export class StripeService {
     const locationId = await this.getOrCreateLocation(templeId);
 
     // Create connection token for Terminal SDK
-    // In test mode, this will allow simulated readers
     const connectionToken = await this.stripe.terminal.connectionTokens.create({
       // Connection tokens are account-level
-      // In test mode, you can use simulated readers without a physical M2
     });
 
-    console.log('[Stripe Service] Connection token created (test mode:', isTestMode, ', locationId:', locationId, ')');
+    console.log('[Stripe Service] Connection token created (mode:', isTestMode ? 'TEST' : 'LIVE', ', locationId:', locationId, ')');
     return { 
       secret: connectionToken.secret,
       locationId: locationId,
@@ -345,8 +342,6 @@ export class StripeService {
 
     if (type === 'payment_intent.succeeded') {
       const paymentIntent = data.object as Stripe.PaymentIntent;
-      const donationId = paymentIntent.metadata?.donationId;
-
       const donationId = paymentIntent.metadata?.donationId;
 
       if (donationId) {

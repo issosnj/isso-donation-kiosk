@@ -1,199 +1,153 @@
-# Stripe Terminal Setup Guide
+# Stripe Terminal Setup Guide (Live Mode)
 
-This guide explains how to set up Stripe Terminal with the M2 reader for the ISSO Donation Kiosk.
+This guide explains how to set up Stripe Terminal with the M2 reader for the ISSO Donation Kiosk in **Live Mode**.
 
-## Test Mode (Sandbox) Setup
+## Prerequisites
 
-### 1. Create Stripe Test Account
+- Stripe account (fully activated and verified)
+- Physical Stripe M2 reader
+- iOS device (iPad) with Bluetooth enabled
 
-1. Go to [Stripe Dashboard](https://dashboard.stripe.com/test/apikeys)
-2. Sign up or log in to your Stripe account
-3. Make sure you're in **Test mode** (toggle in top right should show "Test mode")
+## 1. Get Live API Keys
 
-### 2. Get Test API Keys
+1. Go to [Stripe Dashboard](https://dashboard.stripe.com/apikeys)
+2. Make sure you're in **Live mode** (toggle in top right should show "Live mode")
+3. Go to **Developers** → **API keys**
+4. Copy your **Publishable key** (starts with `pk_live_`)
+5. Copy your **Secret key** (starts with `sk_live_`)
+6. Click "Reveal live key" if needed
 
-1. In Stripe Dashboard, go to **Developers** → **API keys**
-2. Copy your **Publishable key** (starts with `pk_test_`)
-3. Copy your **Secret key** (starts with `sk_test_`)
-4. Click "Reveal test key" if needed
+## 2. Configure Backend Environment
 
-### 3. Configure Backend Environment
-
-Add these to your `.env` file:
+Add these to your `backend/.env` file:
 
 ```bash
-# Stripe Configuration (Test Mode)
-STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx
+# Stripe Configuration (Live Mode)
+STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxx
 # STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxx  # Optional - not required for Terminal payments
 ```
 
 **Note:** `STRIPE_WEBHOOK_SECRET` is **optional**. Terminal payments are synchronous, so webhooks aren't required for basic functionality. You only need webhooks if you want async payment status updates.
 
-**Note:** The backend automatically detects test mode when using `sk_test_` keys.
+## 3. Configure Temple in Admin Portal
 
-### 4. Configure iOS App for Test Mode
+1. Log in to the admin portal
+2. Go to your temple's **Stripe** tab
+3. Enter your Stripe Publishable Key (`pk_live_...`)
+4. The system will automatically use live mode
+5. Click "Save Configuration"
 
-In `StripeTerminalService.swift`, you can enable test mode by:
+## 4. Register M2 Reader
 
-1. **Option 1: Use simulated readers (recommended for testing)**
-   - Set `useSimulatedReader = true` in the service
-   - This allows testing without a physical M2 reader
+### Automatic Registration (Recommended)
 
-2. **Option 2: Use real M2 reader in test mode**
-   - Keep `useSimulatedReader = false`
-   - Use a physical M2 reader with test account
+1. Connect your M2 reader via the iOS app
+2. The reader will automatically register when first connected
+3. Verify in Stripe Dashboard → Terminal → Readers (Live Mode)
+4. Reader should appear with status "Ready" or "Online"
 
-### 5. Testing with Simulated Readers
+### Manual Registration (If Needed)
 
-When using simulated readers in test mode:
+1. Go to [Stripe Dashboard - Terminal → Readers](https://dashboard.stripe.com/terminal/readers) (Live Mode)
+2. Click **"Register reader"** or **"Add reader"**
+3. Select **"Serial number"** as the registration method
+4. Enter your M2 reader's serial number (found on the back of the reader)
+5. Click **"Next"**
 
-1. The iOS app will discover a "Simulated Reader" instead of a real M2
-2. You can test the full payment flow without hardware
-3. Use Stripe test cards:
-   - Success: `4242 4242 4242 4242`
-   - Decline: `4000 0000 0000 0002`
-   - Any future expiry date and any CVC
-
-### 6. Connect Stripe in Admin Portal
-
-1. Go to the admin portal
-2. Navigate to Temple Settings → Stripe (or Payment Settings)
-3. Enter your Stripe Publishable Key (`pk_test_...`)
-4. The system will automatically use test mode
-
-## Production Mode Setup
-
-### 1. Switch to Live Mode
-
-1. In Stripe Dashboard, toggle to **Live mode**
-2. Get your live API keys:
-   - **Publishable key** (starts with `pk_live_`)
-   - **Secret key** (starts with `sk_live_`)
-
-### 2. Update Environment Variables
-
-```bash
-# Stripe Configuration (Live Mode)
-STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxx
-```
-
-### 3. Configure iOS App
-
-- Set `useSimulatedReader = false` in `StripeTerminalService.swift`
-- The app will discover real M2 readers via Bluetooth
-
-### 4. Register M2 Reader
-
-1. In Stripe Dashboard, go to **Terminal** → **Readers**
-2. Register your M2 reader
-3. The reader will appear in the iOS app when scanning
-
-## Stripe Terminal SDK Installation
-
-### iOS (Swift Package Manager)
-
-Add to your `Package.swift` or Xcode:
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/stripe/stripe-terminal-ios", from: "3.0.0")
-]
-```
-
-Or in Xcode:
-1. File → Add Packages...
-2. Enter: `https://github.com/stripe/stripe-terminal-ios`
-3. Select version: `3.0.0` or latest
-
-### Required Permissions
-
-Add to `Info.plist`:
-
-```xml
-<key>NSBluetoothAlwaysUsageDescription</key>
-<string>We need Bluetooth to connect to the Stripe M2 card reader</string>
-<key>NSBluetoothPeripheralUsageDescription</key>
-<string>We need Bluetooth to connect to the Stripe M2 card reader</string>
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>We need location to comply with payment regulations</string>
-```
-
-## Testing Payment Flow
-
-### Test Cards
-
-Use these test cards in sandbox mode:
-
-- **Success:** `4242 4242 4242 4242`
-- **Decline:** `4000 0000 0000 0002`
-- **Insufficient Funds:** `4000 0000 0000 9995`
-- **Expired Card:** `4000 0000 0000 0069`
-
-### Test Flow
+## 5. Connect Reader in iOS App
 
 1. Start the iOS app
-2. Connect to reader (simulated or real M2)
-3. Initiate a donation
-4. Use test card `4242 4242 4242 4242`
-5. Enter any future expiry date and any CVC
-6. Payment should process successfully
+2. Initiate a donation (this triggers reader discovery)
+3. The app will:
+   - Scan for Bluetooth readers
+   - Discover your registered M2 reader
+   - Connect automatically
+   - Show "Reader connected" in logs
+
+## 6. Process Payments
+
+1. Customer taps or inserts their card on M2 reader
+2. Payment processes in live mode
+3. Funds are transferred to your Stripe account
+4. Receipt is automatically sent to customer email
+
+## Important Notes
+
+⚠️ **Live Mode Warnings:**
+- All payments are **REAL** and will charge actual cards
+- Make sure your Stripe account is fully activated and verified
+- Test thoroughly before deploying to production
+- Monitor transactions in Stripe Dashboard
 
 ## Troubleshooting
 
 ### Reader Not Discovered
 
-- **Test Mode:** Make sure `useSimulatedReader = true`
-- **Live Mode:** 
-  - Check Bluetooth is enabled
-  - Ensure M2 reader is powered on
-  - Verify reader is registered in Stripe Dashboard
+**Check:**
+1. ✅ M2 reader is powered on (blue LED)
+2. ✅ Reader is registered in Stripe Dashboard (Live Mode)
+3. ✅ Using live mode Stripe account
+4. ✅ Bluetooth is enabled on iPad
+5. ✅ Reader is within range (within 10 feet)
+6. ✅ No other device is connected to the reader
 
-### Connection Token Errors
+**Try:**
+- Restart the M2 reader (hold power button 10 seconds)
+- Restart Bluetooth on iPad
+- Move reader closer to iPad
+- Check Stripe Dashboard → Terminal → Readers (Live Mode) to verify registration
 
-- Verify `STRIPE_SECRET_KEY` is set correctly
-- Check if using test key (`sk_test_`) for test mode
-- Ensure temple has Stripe configured in admin portal
+### Connection Fails
+
+**Error: "Reader registration required"**
+- Register the reader in Stripe Dashboard (Live Mode) first
+- Make sure you're using the live account
+
+**Error: "Bluetooth connection failed"**
+- Ensure Bluetooth is enabled
+- Check reader is powered on
+- Try restarting both devices
+
+**Error: "Connection token invalid"**
+- Verify `STRIPE_SECRET_KEY` is correct (starts with `sk_live_`)
+- Ensure backend is running and accessible
+- Check that you're using live mode keys
 
 ### Payment Fails
 
-- In test mode, use test cards only
-- Check Stripe Dashboard → Logs for error details
+**Check:**
+- Ensure reader is connected before starting payment
+- Check card is inserted/tapped correctly
 - Verify PaymentIntent is created before collection
+- Check Stripe Dashboard → Logs for error details
 
-## Webhook Setup (Optional)
+## Reader Status Indicators
 
-Webhooks are **not required** for Terminal payments since the flow is synchronous. However, you can set them up for async payment status updates:
+### LED Colors:
+- **Blue (solid):** Ready to connect
+- **Green (solid):** Connected and ready
+- **Green (blinking):** Processing payment
+- **Red (solid):** Error - check connection
+- **Red (blinking):** Low battery or needs attention
 
-### For Testing Webhooks Locally:
+### In App Logs:
+- `🔍 Discovering physical M2 readers via Bluetooth...`
+- `🔌 Connecting to M2 reader: [serial]`
+- `✅ M2 Reader connected successfully!`
+- `💓 Keep-alive: Reader connection active`
 
-1. Install Stripe CLI: `brew install stripe/stripe-cli/stripe`
-2. Login: `stripe login`
-3. Forward webhooks: `stripe listen --forward-to localhost:3000/api/stripe/webhook`
-4. Copy the webhook secret to `.env` as `STRIPE_WEBHOOK_SECRET`
+## Best Practices
 
-### For Production Webhooks:
-
-1. In Stripe Dashboard → Developers → Webhooks
-2. Add endpoint: `https://your-domain.com/api/stripe/webhook`
-3. Select events: `payment_intent.succeeded`, `payment_intent.payment_failed`
-4. Copy the webhook signing secret to `.env`
-
-**Note:** If `STRIPE_WEBHOOK_SECRET` is not set, webhooks will still work but without signature verification (useful for testing).
-
-## Migration from Square
-
-When migrating from Square to Stripe:
-
-1. Keep Square integration active during transition
-2. Test Stripe thoroughly in sandbox mode
-3. Update iOS app to use Stripe Terminal SDK
-4. Update payment flow to use PaymentIntents
-5. Switch to live mode when ready
+1. **Keep reader charged** - Low battery can cause connection issues
+2. **Stay within range** - Keep reader within 10 feet of iPad
+3. **One connection at a time** - Don't connect multiple devices
+4. **Register before use** - Always register in Stripe Dashboard first
+5. **Monitor transactions** - Regularly check Stripe Dashboard for payments
+6. **Keep keys secure** - Never commit API keys to version control
 
 ## Support
 
 - [Stripe Terminal Documentation](https://stripe.com/docs/terminal)
-- [Stripe Terminal iOS SDK](https://github.com/stripe/stripe-terminal-ios)
-- [Stripe Test Cards](https://stripe.com/docs/testing)
-
+- [M2 Reader Setup Guide](https://stripe.com/docs/terminal/readers/bbpos-chipper2xbt)
+- [Stripe Support](https://support.stripe.com/)
+- [Stripe Dashboard (Live Mode)](https://dashboard.stripe.com/)

@@ -1,11 +1,11 @@
 # Setting Up Physical Stripe M2 Reader
 
-This guide explains how to set up and use your physical Stripe M2 reader for testing and production.
+This guide explains how to set up and use your physical Stripe M2 reader in live mode.
 
 ## Prerequisites
 
 - Physical Stripe M2 reader
-- Stripe account (test or live)
+- Stripe account (live mode)
 - iOS device (iPad) with Bluetooth enabled
 - Stripe Terminal SDK installed in iOS app
 
@@ -18,7 +18,7 @@ This guide explains how to set up and use your physical Stripe M2 reader for tes
 **The M2 reader registers automatically when you connect it through the iOS app:**
 
 1. **First, ensure your backend is configured:**
-   - Add `STRIPE_SECRET_KEY=sk_test_...` to `backend/.env`
+   - Add `STRIPE_SECRET_KEY=sk_live_...` to `backend/.env`
    - Start your backend server
 
 2. **In your iOS app:**
@@ -27,7 +27,7 @@ This guide explains how to set up and use your physical Stripe M2 reader for tes
    - The reader will appear in your Stripe Dashboard automatically
 
 3. **Verify in Stripe Dashboard:**
-   - Go to [Stripe Dashboard - Test Mode](https://dashboard.stripe.com/test/terminal/readers)
+   - Go to [Stripe Dashboard - Live Mode](https://dashboard.stripe.com/terminal/readers)
    - The reader should appear in your readers list after first connection
    - Status should show "Ready" or "Online"
 
@@ -35,7 +35,7 @@ This guide explains how to set up and use your physical Stripe M2 reader for tes
 
 **If automatic registration doesn't work, you can try manual registration:**
 
-1. Go to [Stripe Dashboard - Test Mode](https://dashboard.stripe.com/test/terminal/readers)
+1. Go to [Stripe Dashboard - Live Mode](https://dashboard.stripe.com/terminal/readers)
 2. Click **"Register reader"** or **"Add reader"**
 3. Select **"Serial number"** as the registration method
 4. Enter your M2 reader's serial number (found on the back of the reader)
@@ -47,11 +47,6 @@ This guide explains how to set up and use your physical Stripe M2 reader for tes
 - **Solution:** Register via the iOS app instead (automatic method above)
 - Or contact Stripe support to manually associate the reader with your account
 
-### For Live Mode:
-
-1. Switch to **Live mode** in Stripe Dashboard
-2. Go to **Terminal** → **Readers**
-3. Follow the same steps as above (prefer pairing code method)
 
 ## Step 2: Power On and Prepare M2 Reader
 
@@ -73,10 +68,7 @@ This guide explains how to set up and use your physical Stripe M2 reader for tes
 Add to `backend/.env`:
 
 ```bash
-# For Test Mode
-STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx
-
-# For Live Mode (when ready)
+# Live Mode
 STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxx
 ```
 
@@ -103,21 +95,12 @@ let config = DiscoveryConfiguration(
    - Connect automatically
    - Show "Reader connected" in logs
 
-## Step 6: Test Payment
+## Step 6: Process Payment
 
-### In Test Mode:
-
-1. Use test card: `4242 4242 4242 4242`
-2. Any future expiry date (e.g., 12/25)
-3. Any CVC (e.g., 123)
-4. Tap or insert card on M2 reader
-5. Payment processes in test mode
-
-### Test Cards:
-
-- **Success:** `4242 4242 4242 4242`
-- **Decline:** `4000 0000 0000 0002`
-- **Insufficient Funds:** `4000 0000 0000 9995`
+1. Customer taps or inserts their card on M2 reader
+2. Payment processes in live mode
+3. Funds are transferred to your Stripe account
+4. Receipt is automatically sent to customer email
 
 ## Troubleshooting
 
@@ -167,11 +150,7 @@ If reader still falls asleep:
 
 ### Payment Fails
 
-**In Test Mode:**
-- Use test cards only (`4242 4242 4242 4242`)
-- Check Stripe Dashboard → Logs for error details
-
-**General:**
+**Check:**
 - Ensure reader is connected before starting payment
 - Check card is inserted/tapped correctly
 - Verify PaymentIntent is created before collection
@@ -199,23 +178,12 @@ If reader still falls asleep:
 4. **Register before use** - Always register in Stripe Dashboard first
 5. **Test in test mode first** - Verify everything works before going live
 
-## Switching Between Test and Live Mode
+## Important Notes
 
-### Test Mode → Live Mode:
-
-1. Register M2 reader in **Live mode** Stripe Dashboard
-2. Update `STRIPE_SECRET_KEY` to `sk_live_...`
-3. Restart backend
-4. Reconnect reader in app
-
-### Live Mode → Test Mode:
-
-1. Register M2 reader in **Test mode** Stripe Dashboard  
-2. Update `STRIPE_SECRET_KEY` to `sk_test_...`
-3. Restart backend
-4. Reconnect reader in app
-
-**Note:** You can register the same physical reader in both test and live accounts.
+- This setup is configured for **Live Mode** only
+- All payments are real and will charge actual cards
+- Make sure your Stripe account is fully activated and verified
+- Test thoroughly before deploying to production
 
 ## Support
 

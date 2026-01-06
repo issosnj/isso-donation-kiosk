@@ -69,7 +69,7 @@ final class StripeTerminalService: NSObject {
     // MARK: - Connection Management
     
     /// Initialize Stripe Terminal SDK with connection token and location ID
-    /// Works with both test and live mode - uses physical M2 reader
+    /// Uses physical M2 reader in live mode
     /// Location ID is required for reader registration per Stripe docs
     func initialize(connectionToken: String, locationId: String, completion: @escaping (Error?) -> Void) {
         self.connectionToken = connectionToken
@@ -81,7 +81,7 @@ final class StripeTerminalService: NSObject {
         // Note: Connection token provider is set automatically by the SDK
         // when we call methods that require it. We'll provide tokens via the API.
         
-        // Detect test mode from connection token (test tokens work with test account)
+        // Detect mode from connection token for logging
         let isTestMode = connectionToken.contains("test") || connectionToken.count < 50
         if isTestMode {
             log("✅ Stripe Terminal initialized (TEST MODE - using physical M2 reader)")

@@ -310,7 +310,6 @@ class APIService {
     func completeDonation(
         donationId: String,
         stripePaymentIntentId: String? = nil,
-        stripePaymentIntentId: String? = nil,
         status: String,
         donorName: String? = nil,
         donorPhone: String? = nil,
@@ -318,7 +317,6 @@ class APIService {
         donorAddress: String? = nil
     ) async throws -> Donation {
         struct Request: Codable {
-            let stripePaymentIntentId: String?
             let stripePaymentIntentId: String?
             let status: String
             let donorName: String?
@@ -328,7 +326,6 @@ class APIService {
         }
         
         let body = Request(
-            stripePaymentIntentId: stripePaymentIntentId,
             stripePaymentIntentId: stripePaymentIntentId,
             status: status,
             donorName: donorName,

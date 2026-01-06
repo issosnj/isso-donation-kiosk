@@ -26,7 +26,6 @@ class AppState: ObservableObject {
         themeRefreshTimer?.invalidate()
         categoryRefreshTimer?.invalidate()
         religiousEventsRefreshTimer?.invalidate()
-        squareConnectionCheckTimer?.invalidate()
     }
     
     func activate(deviceCode: String) async throws {
@@ -50,11 +49,7 @@ class AppState: ObservableObject {
             startCategoryRefreshTimer()
         }
         
-        // Initialize Stripe Terminal SDK after activation (non-blocking background task)
-        Task.detached(priority: .utility) { [weak self] in
-            guard let self = self else { return }
-            // Stripe Terminal will be initialized when payment is needed
-        }
+        // Stripe Terminal will be initialized when payment is needed
         
         // Send initial telemetry immediately after activation
         Task.detached(priority: .utility) { [weak self] in

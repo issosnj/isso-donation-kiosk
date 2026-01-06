@@ -20,6 +20,8 @@ export class DonationsService {
     private donationsRepository: Repository<Donation>,
     private templesService: TemplesService,
     private gmailService: GmailService,
+    @Inject(forwardRef(() => StripeService))
+    private stripeService: StripeService,
     private configService: ConfigService,
     private receiptPdfService: ReceiptPdfService,
     private receiptGeneratorService: ReceiptGeneratorService,
@@ -108,42 +110,21 @@ export class DonationsService {
           }
         }
       }
-      // Handle Square payments (legacy)
+      // Handle Square payments (legacy - no longer supported)
       else if (completeDonationDto.squarePaymentId) {
-        try {
-          console.log('[DonationsService] Automatically fetching payment details from Square for payment:', completeDonationDto.squarePaymentId);
-          const paymentDetails = await this.squareService.getPaymentDetails(
-            donation.templeId,
-            completeDonationDto.squarePaymentId,
-          );
-          
-          // Always use fetched data from Square (most accurate source)
-          donation.netAmount = paymentDetails.netAmount;
-          donation.squareFee = paymentDetails.squareFee;
-          donation.cardLast4 = paymentDetails.cardLast4;
-          donation.cardType = paymentDetails.cardType;
-          
-          console.log('[DonationsService] Successfully fetched payment details from Square:', {
-            netAmount: donation.netAmount,
-            squareFee: donation.squareFee,
-            cardLast4: donation.cardLast4,
-            cardType: donation.cardType,
-          });
-        } catch (error) {
-          console.error('[DonationsService] Failed to automatically fetch payment details from Square:', error);
-          // Fall back to provided values if fetch fails
-          if (completeDonationDto.netAmount !== undefined) {
-            donation.netAmount = completeDonationDto.netAmount;
-          }
-          if (completeDonationDto.squareFee !== undefined) {
-            donation.squareFee = completeDonationDto.squareFee;
-          }
-          if (completeDonationDto.cardLast4) {
-            donation.cardLast4 = completeDonationDto.cardLast4;
-          }
-          if (completeDonationDto.cardType) {
-            donation.cardType = completeDonationDto.cardType;
-          }
+        console.warn('[DonationsService] Square payment detected but Square integration has been removed. Using provided values.');
+        // Use provided values since Square service is no longer available
+        if (completeDonationDto.netAmount !== undefined) {
+          donation.netAmount = completeDonationDto.netAmount;
+        }
+        if (completeDonationDto.squareFee !== undefined) {
+          donation.squareFee = completeDonationDto.squareFee;
+        }
+        if (completeDonationDto.cardLast4) {
+          donation.cardLast4 = completeDonationDto.cardLast4;
+        }
+        if (completeDonationDto.cardType) {
+          donation.cardType = completeDonationDto.cardType;
         }
       }
       // Use provided values if no payment ID
@@ -319,25 +300,9 @@ export class DonationsService {
         continue;
       }
 
-      try {
-        console.log(`[DonationsService] Backfilling fees for donation ${donation.id}, payment ${donation.squarePaymentId}`);
-        const paymentDetails = await this.squareService.getPaymentDetails(
-          donation.templeId,
-          donation.squarePaymentId,
-        );
-
-        donation.netAmount = paymentDetails.netAmount;
-        donation.squareFee = paymentDetails.squareFee;
-        donation.cardLast4 = paymentDetails.cardLast4;
-        donation.cardType = paymentDetails.cardType;
-
-        await this.donationsRepository.save(donation);
-        updated++;
-        console.log(`[DonationsService] ✅ Successfully backfilled fees for donation ${donation.id}`);
-      } catch (error) {
-        console.error(`[DonationsService] ❌ Failed to backfill fees for donation ${donation.id}:`, error);
-        failed++;
-      }
+      // Square service no longer available - skip backfilling
+      console.warn(`[DonationsService] Skipping backfill for donation ${donation.id} - Square integration removed`);
+      failed++;
     }
 
     return { updated, failed };
@@ -593,6 +558,15 @@ export class DonationsService {
   ): Promise<Donation | null> {
     return this.donationsRepository.findOne({
       where: { squarePaymentId },
+      relations: ['temple', 'device', 'category'],
+    });
+  }
+
+  async findByStripePaymentIntentId(
+    stripePaymentIntentId: string,
+  ): Promise<Donation | null> {
+    return this.donationsRepository.findOne({
+      where: { stripePaymentIntentId },
       relations: ['temple', 'device', 'category'],
     });
   }

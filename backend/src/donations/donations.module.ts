@@ -22,7 +22,6 @@ import { DonorsModule } from '../donors/donors.module';
     TypeOrmModule.forFeature([Donation, DonationCategory]),
     TemplesModule,
     forwardRef(() => DevicesModule),
-    forwardRef(() => SquareModule),
     forwardRef(() => StripeModule),
     GmailModule,
     forwardRef(() => DonorsModule),

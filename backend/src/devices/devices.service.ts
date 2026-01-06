@@ -185,6 +185,7 @@ export class DevicesService {
 
   async getStripeCredentials(deviceId: string): Promise<{
     connectionToken: string;
+    locationId: string;
   }> {
     try {
       console.log('[Devices Service] Getting Stripe credentials for device:', deviceId);

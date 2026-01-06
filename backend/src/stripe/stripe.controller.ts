@@ -1,10 +1,10 @@
 import { Controller, Post, Get, Body, Param, Headers, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { StripeService } from './stripe.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { Roles } from '../auth/roles.decorator';
-import { Role } from '../users/entities/user.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('stripe')
 @Controller('stripe')
@@ -61,7 +61,7 @@ export class StripeController {
 
   @Post('refund')
   @UseGuards(JwtAuthGuard)
-  @Roles(Role.MASTER_ADMIN, Role.TEMPLE_ADMIN)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Refund a payment' })
   async refundPayment(
