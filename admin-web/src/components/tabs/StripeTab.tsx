@@ -13,6 +13,7 @@ export default function StripeTab({ templeId }: StripeTabProps) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [publishableKey, setPublishableKey] = useState('')
+  const [locationId, setLocationId] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   const { data: temple, isLoading } = useQuery({
@@ -29,12 +30,15 @@ export default function StripeTab({ templeId }: StripeTabProps) {
       if (templeData?.stripePublishableKey) {
         setPublishableKey(templeData.stripePublishableKey)
       }
+      if (templeData?.stripeLocationId) {
+        setLocationId(templeData.stripeLocationId)
+      }
       return templeData
     },
   })
 
   const saveStripeMutation = useMutation({
-    mutationFn: async (data: { stripePublishableKey: string }) => {
+    mutationFn: async (data: { stripePublishableKey: string; stripeLocationId?: string }) => {
       const response = await api.patch(`/temples/${templeId}`, data)
       return response.data
     },
@@ -63,6 +67,7 @@ export default function StripeTab({ templeId }: StripeTabProps) {
       queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
       queryClient.invalidateQueries({ queryKey: ['temples'] })
       setPublishableKey('')
+      setLocationId('')
       setSuccessMessage('Stripe disconnected successfully')
       setTimeout(() => setSuccessMessage(null), 5000)
     },
@@ -81,7 +86,10 @@ export default function StripeTab({ templeId }: StripeTabProps) {
 
     setIsSaving(true)
     try {
-      await saveStripeMutation.mutateAsync({ stripePublishableKey: publishableKey.trim() })
+      await saveStripeMutation.mutateAsync({ 
+        stripePublishableKey: publishableKey.trim(),
+        stripeLocationId: locationId.trim() || undefined
+      })
     } finally {
       setIsSaving(false)
     }
@@ -206,6 +214,21 @@ export default function StripeTab({ templeId }: StripeTabProps) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono text-sm"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Terminal Location ID <span className="text-gray-500">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={locationId}
+                    onChange={(e) => setLocationId(e.target.value)}
+                    placeholder="tml_..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Location ID from Stripe Dashboard → Terminal → Locations. If not set, one will be created automatically.
+                  </p>
+                </div>
                 <button
                   onClick={handleSave}
                   disabled={isSaving || !publishableKey.trim()}
@@ -246,6 +269,21 @@ export default function StripeTab({ templeId }: StripeTabProps) {
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Get this from <a href="https://dashboard.stripe.com/test/apikeys" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Stripe Dashboard</a>
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Terminal Location ID <span className="text-gray-500">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={locationId}
+                    onChange={(e) => setLocationId(e.target.value)}
+                    placeholder="tml_..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Location ID from Stripe Dashboard → Terminal → Locations. If not set, one will be created automatically.
                   </p>
                 </div>
                 <button

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		B9EC68A62EF5E1F500F9F2A4 /* MockReaderUI in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC68A52EF5E1F500F9F2A4 /* MockReaderUI */; };
 		B9EC68A82EF5E1F500F9F2A4 /* SquareMobilePaymentsSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC68A72EF5E1F500F9F2A4 /* SquareMobilePaymentsSDK */; };
+		B9EC68AA2EF5E1F600F9F2A4 /* StripeTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC68A92EF5E1F600F9F2A4 /* StripeTerminal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +44,7 @@
 			files = (
 				B9EC68A62EF5E1F500F9F2A4 /* MockReaderUI in Frameworks */,
 				B9EC68A82EF5E1F500F9F2A4 /* SquareMobilePaymentsSDK in Frameworks */,
+				B9EC68AA2EF5E1F600F9F2A4 /* StripeTerminal in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -96,6 +98,7 @@
 			packageProductDependencies = (
 				B9EC68A52EF5E1F500F9F2A4 /* MockReaderUI */,
 				B9EC68A72EF5E1F500F9F2A4 /* SquareMobilePaymentsSDK */,
+				B9EC68A92EF5E1F600F9F2A4 /* StripeTerminal */,
 			);
 			productName = ISSOKiosk;
 			productReference = B94A27FD2EF4DEAD005A3BBE /* ISSOKiosk.app */;
@@ -127,6 +130,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				B9EC68A42EF5E1F500F9F2A4 /* XCRemoteSwiftPackageReference "mobile-payments-sdk-ios" */,
+				B9EC68AB2EF5E1F600F9F2A4 /* XCRemoteSwiftPackageReference "stripe-terminal-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B94A27FE2EF4DEAD005A3BBE /* Products */;
@@ -412,6 +416,14 @@
 				version = 2.0.1;
 			};
 		};
+		B9EC68AB2EF5E1F600F9F2A4 /* XCRemoteSwiftPackageReference "stripe-terminal-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stripe/stripe-terminal-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -424,6 +436,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B9EC68A42EF5E1F500F9F2A4 /* XCRemoteSwiftPackageReference "mobile-payments-sdk-ios" */;
 			productName = SquareMobilePaymentsSDK;
+		};
+		B9EC68A92EF5E1F600F9F2A4 /* StripeTerminal */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B9EC68AB2EF5E1F600F9F2A4 /* XCRemoteSwiftPackageReference "stripe-terminal-ios" */;
+			productName = StripeTerminal;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
