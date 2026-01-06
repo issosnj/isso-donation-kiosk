@@ -10,7 +10,6 @@ import { DonationCategoriesService } from './donation-categories.service';
 import { DonationCategoriesController } from './donation-categories.controller';
 import { TemplesModule } from '../temples/temples.module';
 import { DevicesModule } from '../devices/devices.module';
-import { SquareModule } from '../square/square.module';
 import { StripeModule } from '../stripe/stripe.module';
 import { GmailModule } from '../gmail/gmail.module';
 import { ReceiptPdfService } from './receipt-pdf.service';

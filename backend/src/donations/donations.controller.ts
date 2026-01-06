@@ -110,36 +110,13 @@ export class DonationsController {
   @Get('checkout-status/:checkoutId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Check status of Terminal checkout (device endpoint)' })
+  @ApiOperation({ summary: 'Check status of checkout (deprecated - Square removed)' })
   async getCheckoutStatus(
     @Param('checkoutId') checkoutId: string,
     @Query('donationId') donationId: string,
     @CurrentUser() user: any,
   ) {
-    // Get donation to find temple
-    const donation = await this.donationsService.findOne(donationId);
-    
-    const result = await this.squareService.getCheckoutStatus(donation.templeId, checkoutId);
-
-    // If checkout is completed, update donation
-    if (result.completed && result.paymentId) {
-      // Fetch full payment details to get fee and card info
-      const paymentDetails = await this.squareService.getPaymentDetails(donation.templeId, result.paymentId);
-      await this.donationsService.complete(donationId, {
-        squarePaymentId: result.paymentId,
-        status: result.status === 'COMPLETED' ? DonationStatus.SUCCEEDED : DonationStatus.FAILED,
-        netAmount: paymentDetails.netAmount,
-        squareFee: paymentDetails.squareFee,
-        cardLast4: paymentDetails.cardLast4,
-        cardType: paymentDetails.cardType,
-      });
-    }
-
-    return {
-      completed: result.completed,
-      paymentId: result.paymentId,
-      status: result.status,
-    };
+    throw new BadRequestException('This endpoint is deprecated. Square integration has been removed.');
   }
 
   @Post(':id/complete')
