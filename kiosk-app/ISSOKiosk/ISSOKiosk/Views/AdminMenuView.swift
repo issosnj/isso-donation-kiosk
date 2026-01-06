@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AdminMenuView: View {
     @SwiftUI.Environment(\.dismiss) var dismiss: DismissAction
@@ -9,6 +10,12 @@ struct AdminMenuView: View {
     @State private var isLoadingLogs = false
     @State private var showingReconnectAlert = false
     @State private var reconnectStatus = ""
+    @State private var isConnectingReader = false
+    @State private var isDisconnectingReader = false
+    @State private var connectionStatus = ""
+    @State private var connectionError: String? = nil
+    @State private var readerInfo: (connected: Bool, model: String?) = (false, nil)
+    @State private var refreshTimer: Timer? = nil
     
     var body: some View {
         NavigationView {
@@ -16,11 +23,10 @@ struct AdminMenuView: View {
                 Section(header: Text("Stripe Terminal")) {
                     // Reader Status
                     HStack {
-                        Image(systemName: "info.circle")
+                        Image(systemName: "creditcard")
                             .foregroundColor(.blue)
                         Text("Reader Status")
                         Spacer()
-                        let readerInfo = StripeTerminalService.shared.getReaderInfo()
                         VStack(alignment: .trailing, spacing: 4) {
                             Text(readerInfo.connected ? "Connected" : "Disconnected")
                                 .font(.caption)
@@ -31,6 +37,63 @@ struct AdminMenuView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
+                    }
+                    
+                    // Connection Status Message
+                    if !connectionStatus.isEmpty {
+                        HStack {
+                            Image(systemName: connectionStatus.contains("✅") ? "checkmark.circle.fill" : "info.circle.fill")
+                                .foregroundColor(connectionStatus.contains("✅") ? .green : .blue)
+                            Text(connectionStatus)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    // Error Message
+                    if let error = connectionError {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.red)
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    }
+                    
+                    // Connect/Disconnect Buttons
+                    if readerInfo.connected {
+                        Button(action: {
+                            disconnectReader()
+                        }) {
+                            HStack {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.red)
+                                Text("Disconnect Reader")
+                                Spacer()
+                                if isDisconnectingReader {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                }
+                            }
+                        }
+                        .disabled(isDisconnectingReader)
+                    } else {
+                        Button(action: {
+                            connectReader()
+                        }) {
+                            HStack {
+                                Image(systemName: "link.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Connect Reader")
+                                Spacer()
+                                if isConnectingReader {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                }
+                            }
+                        }
+                        .disabled(isConnectingReader)
                     }
                 }
                 
@@ -68,7 +131,6 @@ struct AdminMenuView: View {
                             .foregroundColor(.blue)
                         Text("Stripe Terminal")
                         Spacer()
-                        let readerInfo = StripeTerminalService.shared.getReaderInfo()
                         Text(readerInfo.connected ? "✅ Connected" : "❌ Disconnected")
                             .font(.caption)
                             .foregroundColor(readerInfo.connected ? .green : .red)
@@ -96,6 +158,28 @@ struct AdminMenuView: View {
                             Text(log)
                                 .font(.system(size: 10, design: .monospaced))
                                 .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                Section(header: Text("Stripe SDK Settings")) {
+                    Button(action: {
+                        initializeStripeSDK()
+                    }) {
+                        HStack {
+                            Image(systemName: "gear.circle.fill")
+                                .foregroundColor(.blue)
+                            Text("Initialize Stripe SDK")
+                        }
+                    }
+                    
+                    Button(action: {
+                        refreshReaderStatus()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.clockwise.circle.fill")
+                                .foregroundColor(.blue)
+                            Text("Refresh Reader Status")
                         }
                     }
                 }
@@ -131,6 +215,173 @@ struct AdminMenuView: View {
                     }
                 }
             }
+            .onAppear {
+                refreshReaderStatus()
+                // Start timer to refresh reader status every 2 seconds
+                refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+                    refreshReaderStatus()
+                }
+            }
+            .onDisappear {
+                refreshTimer?.invalidate()
+                refreshTimer = nil
+            }
+        }
+    }
+    
+    private func refreshReaderStatus() {
+        readerInfo = StripeTerminalService.shared.getReaderInfo()
+    }
+    
+    private func initializeStripeSDK() {
+        guard let deviceId = appState.deviceId else {
+            connectionError = "Device ID not available"
+            return
+        }
+        
+        connectionStatus = "Initializing Stripe SDK..."
+        connectionError = nil
+        
+        Task {
+            do {
+                let credentials = try await APIService.shared.getStripeCredentials()
+                
+                await MainActor.run {
+                    StripeTerminalService.shared.initialize(
+                        connectionToken: credentials.connectionToken,
+                        locationId: credentials.locationId
+                    ) { error in
+                        if let error = error {
+                            connectionError = "Initialization failed: \(error.localizedDescription)"
+                            connectionStatus = ""
+                        } else {
+                            connectionStatus = "✅ Stripe SDK initialized successfully"
+                            refreshReaderStatus()
+                        }
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    // Extract more detailed error message
+                    let errorMessage: String
+                    if let apiError = error as? APIError {
+                        errorMessage = apiError.localizedDescription
+                    } else {
+                        errorMessage = error.localizedDescription
+                    }
+                    connectionError = "Failed to get credentials: \(errorMessage)"
+                    connectionStatus = ""
+                }
+            }
+        }
+    }
+    
+    private func connectReader() {
+        guard let deviceId = appState.deviceId else {
+            connectionError = "Device ID not available"
+            return
+        }
+        
+        isConnectingReader = true
+        connectionStatus = "Getting credentials and connecting to reader..."
+        connectionError = nil
+        
+        // First ensure SDK is initialized
+        Task {
+            do {
+                let credentials = try await APIService.shared.getStripeCredentials()
+                
+                await MainActor.run {
+                    // Initialize SDK (will skip if already initialized)
+                    StripeTerminalService.shared.initialize(
+                        connectionToken: credentials.connectionToken,
+                        locationId: credentials.locationId
+                    ) { initError in
+                        if let initError = initError {
+                            isConnectingReader = false
+                            connectionError = "Initialization failed: \(initError.localizedDescription)"
+                            connectionStatus = ""
+                            return
+                        }
+                        
+                        connectionStatus = "Discovering readers..."
+                        
+                        // Now connect to reader - need to get the current view controller
+                        // Try to get the view controller from the navigation controller
+                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                           let window = windowScene.windows.first,
+                           let rootViewController = window.rootViewController {
+                            
+                            // Find the topmost view controller
+                            var topViewController = rootViewController
+                            while let presented = topViewController.presentedViewController {
+                                topViewController = presented
+                            }
+                            
+                            // If it's a navigation controller, get the top view controller
+                            if let navController = topViewController as? UINavigationController {
+                                topViewController = navController.topViewController ?? topViewController
+                            }
+                            
+                            StripeTerminalService.shared.connectToReader(from: topViewController) { connectError in
+                                isConnectingReader = false
+                                
+                                if let connectError = connectError {
+                                    connectionError = "Connection failed: \(connectError.localizedDescription)"
+                                    connectionStatus = ""
+                                } else {
+                                    connectionStatus = "✅ Reader connected successfully"
+                                    connectionError = nil
+                                    refreshReaderStatus()
+                                    
+                                    // Clear status message after 3 seconds
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                        if connectionStatus.contains("✅") {
+                                            connectionStatus = ""
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            isConnectingReader = false
+                            connectionError = "Could not find view controller"
+                            connectionStatus = ""
+                        }
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isConnectingReader = false
+                    // Extract more detailed error message
+                    let errorMessage: String
+                    if let apiError = error as? APIError {
+                        errorMessage = apiError.localizedDescription
+                    } else {
+                        errorMessage = error.localizedDescription
+                    }
+                    connectionError = "Failed to get credentials: \(errorMessage)"
+                    connectionStatus = ""
+                }
+            }
+        }
+    }
+    
+    private func disconnectReader() {
+        isDisconnectingReader = true
+        connectionStatus = "Disconnecting reader..."
+        connectionError = nil
+        
+        StripeTerminalService.shared.disconnectReader {
+            isDisconnectingReader = false
+            connectionStatus = "✅ Reader disconnected"
+            refreshReaderStatus()
+            
+            // Clear status message after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                if connectionStatus.contains("✅") {
+                    connectionStatus = ""
+                }
+            }
         }
     }
     
@@ -140,7 +391,7 @@ struct AdminMenuView: View {
         appLog("🔧 Admin: Loading system info", category: "AdminMenu")
         
         // Get system information
-        let readerInfo = StripeTerminalService.shared.getReaderInfo()
+        let currentReaderInfo = StripeTerminalService.shared.getReaderInfo()
         let deviceId = appState.deviceId ?? "Unknown"
         let templeName = appState.temple?.name ?? "Unknown"
         
@@ -151,8 +402,8 @@ struct AdminMenuView: View {
                 "Temple: \(templeName)",
                 "",
                 "=== Stripe Terminal Status ===",
-                "Reader Connected: \(readerInfo.connected ? "Yes" : "No")",
-                "Reader Model: \(readerInfo.model ?? "Unknown")",
+                "Reader Connected: \(currentReaderInfo.connected ? "Yes" : "No")",
+                "Reader Model: \(currentReaderInfo.model ?? "Unknown")",
                 "",
                 "=== Network Status ===",
                 "Connected: \(networkMonitor.isConnected ? "Yes" : "No")",

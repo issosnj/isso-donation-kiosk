@@ -199,9 +199,13 @@ export class DevicesService {
         stripePublishableKey: temple.stripePublishableKey ? 'present' : 'null/empty',
       });
 
-      if (!temple.stripeAccountId && !temple.stripePublishableKey) {
-        console.log('[Devices Service] Stripe not connected - no account ID or publishable key');
-        throw new Error('Stripe not connected for this temple. Please connect Stripe in the admin portal.');
+      // Check if Stripe is configured
+      // For direct accounts: stripePublishableKey is sufficient
+      // For Connect accounts: stripeAccountId is also needed
+      // Backend STRIPE_SECRET_KEY is required in environment
+      if (!temple.stripePublishableKey) {
+        console.log('[Devices Service] Stripe not connected - no publishable key');
+        throw new Error('Stripe not connected for this temple. Please connect Stripe in the admin portal by adding your Stripe Publishable Key.');
       }
 
       const credentials = await this.stripeService.createConnectionToken(device.templeId);

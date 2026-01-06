@@ -9,6 +9,8 @@ import {
   Delete,
   Query,
   UnauthorizedException,
+  InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DevicesService } from './devices.service';
@@ -89,11 +91,24 @@ export class DevicesController {
         throw new Error('Device ID not found in token');
       }
       const credentials = await this.devicesService.getStripeCredentials(deviceId);
-      console.log('[Devices Controller] Returning Stripe credentials');
+      console.log('[Devices Controller] Returning Stripe credentials (connection token length:', credentials.connectionToken.length, ', locationId:', credentials.locationId, ')');
       return credentials;
     } catch (error: any) {
       console.error('[Devices Controller] Error in getStripeCredentials:', error);
-      throw error;
+      console.error('[Devices Controller] Error message:', error.message);
+      console.error('[Devices Controller] Error stack:', error.stack);
+      
+      // Return proper HTTP error with user-friendly message
+      const errorMessage = error.message || 'Failed to get Stripe credentials. Please check backend logs for details.';
+      
+      // Check if it's a validation/configuration error (400) or server error (500)
+      if (errorMessage.includes('not configured') || 
+          errorMessage.includes('not connected') ||
+          errorMessage.includes('not found')) {
+        throw new BadRequestException(errorMessage);
+      } else {
+        throw new InternalServerErrorException(errorMessage);
+      }
     }
   }
 

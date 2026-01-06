@@ -48,22 +48,45 @@ export class StripeService {
       }
     }
     
-    // Create a new location for this temple
-    const location = await this.stripe.terminal.locations.create({
-      display_name: temple.name || 'Temple Location',
-      address: temple.address ? {
-        line1: temple.address,
-        country: 'US', // Default to US, can be made configurable
-      } : undefined,
-    });
-    
-    // Save location ID to temple
-    await this.templesService.update(templeId, {
-      stripeLocationId: location.id,
-    } as any);
-    
-    console.log('[Stripe Service] Created/retrieved location:', location.id);
-    return location.id;
+    try {
+      // Create a new location for this temple
+      const location = await this.stripe.terminal.locations.create({
+        display_name: temple.name || 'Temple Location',
+        address: temple.address ? {
+          line1: temple.address,
+          country: 'US', // Default to US, can be made configurable
+        } : undefined,
+      });
+      
+      // Save location ID to temple
+      await this.templesService.update(templeId, {
+        stripeLocationId: location.id,
+      } as any);
+      
+      console.log('[Stripe Service] Created/retrieved location:', location.id);
+      return location.id;
+    } catch (error: any) {
+      console.error('[Stripe Service] Error creating/retrieving location:', error);
+      console.error('[Stripe Service] Error type:', error.constructor.name);
+      console.error('[Stripe Service] Error message:', error.message);
+      if (error.type) {
+        console.error('[Stripe Service] Stripe error type:', error.type);
+      }
+      if (error.code) {
+        console.error('[Stripe Service] Stripe error code:', error.code);
+      }
+      
+      // Provide more helpful error messages
+      if (error.type === 'StripeAuthenticationError') {
+        throw new Error('Invalid Stripe secret key. Please check STRIPE_SECRET_KEY in backend environment.');
+      } else if (error.type === 'StripeAPIError') {
+        throw new Error(`Stripe API error while creating location: ${error.message || 'Unknown error'}`);
+      } else if (error.message) {
+        throw new Error(`Failed to create location: ${error.message}`);
+      } else {
+        throw new Error('Failed to create Stripe location. Please check backend logs.');
+      }
+    }
   }
 
   /**
@@ -73,28 +96,58 @@ export class StripeService {
   async createConnectionToken(templeId: string): Promise<{ secret: string; locationId: string }> {
     const temple = await this.templesService.findOne(templeId);
     
-    // In test mode, we don't require stripeAccountId (can use direct account)
-    // In live mode, stripeAccountId is required for Connect accounts
+    // Check if Stripe is configured
+    // For direct accounts: only need STRIPE_SECRET_KEY in environment (stripeAccountId is optional)
+    // For Connect accounts: need stripeAccountId
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not configured in the backend environment.');
+    }
+    
+    // In live mode with Connect, stripeAccountId is required
+    // For direct accounts (no Connect), stripeAccountId is optional
     const isTestMode = secretKey?.startsWith('sk_test_') ?? false;
     
-    if (!isTestMode && !temple.stripeAccountId) {
-      throw new Error('Stripe not connected for this temple. Please connect Stripe in the admin portal.');
+    // Only require stripeAccountId if we're in live mode AND using Connect
+    // For direct accounts, we can proceed without stripeAccountId
+    // The check in devices.service.ts already ensures stripePublishableKey is set
+
+    try {
+      // Get or create a location for this temple (required for reader registration)
+      const locationId = await this.getOrCreateLocation(templeId);
+
+      // Create connection token for Terminal SDK
+      const connectionToken = await this.stripe.terminal.connectionTokens.create({
+        // Connection tokens are account-level
+      });
+
+      console.log('[Stripe Service] Connection token created (mode:', isTestMode ? 'TEST' : 'LIVE', ', locationId:', locationId, ')');
+      return { 
+        secret: connectionToken.secret,
+        locationId: locationId,
+      };
+    } catch (error: any) {
+      console.error('[Stripe Service] Error creating connection token:', error);
+      console.error('[Stripe Service] Error type:', error.constructor.name);
+      console.error('[Stripe Service] Error message:', error.message);
+      if (error.type) {
+        console.error('[Stripe Service] Stripe error type:', error.type);
+      }
+      if (error.code) {
+        console.error('[Stripe Service] Stripe error code:', error.code);
+      }
+      
+      // Provide more helpful error messages
+      if (error.type === 'StripeAuthenticationError') {
+        throw new Error('Invalid Stripe secret key. Please check STRIPE_SECRET_KEY in backend environment.');
+      } else if (error.type === 'StripeAPIError') {
+        throw new Error(`Stripe API error: ${error.message || 'Unknown error'}`);
+      } else if (error.message) {
+        throw new Error(`Failed to create connection token: ${error.message}`);
+      } else {
+        throw new Error('Failed to create Stripe connection token. Please check backend logs.');
+      }
     }
-
-    // Get or create a location for this temple (required for reader registration)
-    const locationId = await this.getOrCreateLocation(templeId);
-
-    // Create connection token for Terminal SDK
-    const connectionToken = await this.stripe.terminal.connectionTokens.create({
-      // Connection tokens are account-level
-    });
-
-    console.log('[Stripe Service] Connection token created (mode:', isTestMode ? 'TEST' : 'LIVE', ', locationId:', locationId, ')');
-    return { 
-      secret: connectionToken.secret,
-      locationId: locationId,
-    };
   }
 
   /**
