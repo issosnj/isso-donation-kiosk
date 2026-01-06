@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import PermissionsPolicy from '@/components/PermissionsPolicy'
+import InactivityHandler from '@/components/InactivityHandler'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -23,7 +24,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <PermissionsPolicy />
-        <Providers>{children}</Providers>
+        <Providers>
+          <InactivityHandler />
+          {children}
+        </Providers>
       </body>
     </html>
   )

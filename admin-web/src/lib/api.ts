@@ -39,6 +39,18 @@ api.interceptors.response.use(
       localStorage.removeItem('authToken')
       // Clear persisted auth store state to prevent redirect loop
       localStorage.removeItem('auth-storage')
+      
+      // Clear all cookies for security
+      if (typeof document !== 'undefined') {
+        document.cookie.split(';').forEach((cookie) => {
+          const eqPos = cookie.indexOf('=')
+          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim()
+          // Clear cookie by setting it to expire in the past
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`
+        })
+      }
+      
       // Dispatch custom event to notify auth store
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('auth:logout'))

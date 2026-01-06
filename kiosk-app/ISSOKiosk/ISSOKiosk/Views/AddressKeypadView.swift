@@ -20,41 +20,41 @@ struct AddressKeypadView: View {
                 }
             
             // Single smooth popup - wider and more appealing
-            VStack(spacing: 0) {
-                // Header with Cancel button
-                HStack {
-                    Button(action: {
-                        onDismiss()
-                    }) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Header with Cancel button
+                    HStack {
+                        Button(action: {
+                            onDismiss()
+                        }) {
+                            Text("Cancel")
+                                .font(.custom("Inter-Medium", size: 16))
+                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                        }
+                        
+                    Spacer()
+                    
+                    Text("Mailing Address")
+                        .font(.custom("Inter-SemiBold", size: 24))
+                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                    
+                    Spacer()
+                        
+                        // Invisible spacer to balance Cancel button
                         Text("Cancel")
                             .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                            .foregroundColor(.clear)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                     }
-                    
-                Spacer()
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
                 
-                Text("Mailing Address")
-                    .font(.custom("Inter-SemiBold", size: 24))
-                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                
-                Spacer()
-                    
-                    // Invisible spacer to balance Cancel button
-                    Text("Cancel")
-                        .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(.clear)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                }
-            .padding(.horizontal, 24)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
-            
-            // Address input display with suggestions overlay
-            ZStack(alignment: .topLeading) {
-                VStack(alignment: .leading, spacing: 0) {
+                // Address input display with suggestions
+                VStack(alignment: .leading, spacing: 12) {
                     // Address input display
                     Text(enteredAddress.isEmpty ? "Enter your mailing address" : enteredAddress)
                         .font(.custom("Inter-SemiBold", size: 28))
@@ -67,11 +67,9 @@ struct AddressKeypadView: View {
                         .cornerRadius(16)
                         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                         .padding(.horizontal, 32)
-                }
-                
-                // Address suggestions overlay - positioned absolutely to prevent layout shifts
-                if showAddressSuggestions && !addressSuggestions.isEmpty {
-                    ScrollView {
+                    
+                    // Address suggestions - shown below input field
+                    if showAddressSuggestions && !addressSuggestions.isEmpty {
                         VStack(spacing: 0) {
                             ForEach(addressSuggestions.prefix(5)) { suggestion in
                                 Button(action: {
@@ -101,6 +99,7 @@ struct AddressKeypadView: View {
                                     }
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                                     .background(Color.white)
                                 }
                                 .buttonStyle(PlainButtonStyle())
@@ -111,142 +110,140 @@ struct AddressKeypadView: View {
                                 }
                             }
                         }
+                        .frame(maxHeight: 300)
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.2), radius: 12, x: 0, y: 6)
+                        .padding(.horizontal, 32)
                     }
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
-                    .frame(maxWidth: .infinity)
-                    .frame(maxHeight: 300)
-                    .padding(.horizontal, 32)
-                    .padding(.top, 90) // Position below the input field
                 }
-            }
-            .padding(.bottom, 16)
-            
-            // Text keypad with numbers
-            VStack(spacing: 12) {
-                // Numbers row
-                HStack(spacing: 12) {
-                    TextKeypadButton(character: "1", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "2", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "3", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "4", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "5", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "6", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "7", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "8", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "9", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "0", enteredText: $enteredAddress)
-                }
+                .padding(.bottom, 16)
                 
-                HStack(spacing: 12) {
-                    TextKeypadButton(character: "Q", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "W", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "E", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "R", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "T", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "Y", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "U", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "I", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "O", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "P", enteredText: $enteredAddress)
-                }
-                HStack(spacing: 12) {
-                    TextKeypadButton(character: "A", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "S", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "D", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "F", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "G", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "H", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "J", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "K", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "L", enteredText: $enteredAddress)
-                }
-                HStack(spacing: 12) {
-                    TextKeypadButton(character: "Z", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "X", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "C", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "V", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "B", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "N", enteredText: $enteredAddress)
-                    TextKeypadButton(character: "M", enteredText: $enteredAddress)
-                    TextKeypadButton(character: ".", enteredText: $enteredAddress)
-                    TextKeypadButton(character: ",", enteredText: $enteredAddress)
-                }
-                HStack(spacing: 12) {
-                    // Space button
-                    Button(action: {
-                        enteredAddress += " "
-                    }) {
-                                Text("Space")
-                                    .font(.custom("Inter-Medium", size: 16))
-                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 60)
-                                    .background(Color(red: 0.98, green: 0.97, blue: 0.95))
-                                    .cornerRadius(12)
-                                    .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
+                // Text keypad with numbers
+                VStack(spacing: 12) {
+                    // Numbers row
+                    HStack(spacing: 12) {
+                        TextKeypadButton(character: "1", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "2", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "3", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "4", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "5", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "6", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "7", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "8", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "9", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "0", enteredText: $enteredAddress)
                     }
-                    .frame(maxWidth: .infinity)
                     
-                    // Backspace button
-                    Button(action: {
-                        if !enteredAddress.isEmpty {
-                            enteredAddress.removeLast()
+                    HStack(spacing: 12) {
+                        TextKeypadButton(character: "Q", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "W", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "E", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "R", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "T", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "Y", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "U", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "I", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "O", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "P", enteredText: $enteredAddress)
+                    }
+                    HStack(spacing: 12) {
+                        TextKeypadButton(character: "A", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "S", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "D", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "F", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "G", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "H", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "J", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "K", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "L", enteredText: $enteredAddress)
+                    }
+                    HStack(spacing: 12) {
+                        TextKeypadButton(character: "Z", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "X", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "C", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "V", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "B", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "N", enteredText: $enteredAddress)
+                        TextKeypadButton(character: "M", enteredText: $enteredAddress)
+                        TextKeypadButton(character: ".", enteredText: $enteredAddress)
+                        TextKeypadButton(character: ",", enteredText: $enteredAddress)
+                    }
+                    HStack(spacing: 12) {
+                        // Space button
+                        Button(action: {
+                            enteredAddress += " "
+                        }) {
+                                    Text("Space")
+                                        .font(.custom("Inter-Medium", size: 16))
+                                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 60)
+                                        .background(Color(red: 0.98, green: 0.97, blue: 0.95))
+                                        .cornerRadius(12)
+                                        .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
                         }
-                    }) {
-                                Image(systemName: "delete.left.fill")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 60)
-                                    .background(Color(red: 0.98, green: 0.97, blue: 0.95))
-                                    .cornerRadius(12)
-                                    .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
+                        .frame(maxWidth: .infinity)
+                        
+                        // Backspace button
+                        Button(action: {
+                            if !enteredAddress.isEmpty {
+                                enteredAddress.removeLast()
+                            }
+                        }) {
+                                    Image(systemName: "delete.left.fill")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 60)
+                                        .background(Color(red: 0.98, green: 0.97, blue: 0.95))
+                                        .cornerRadius(12)
+                                        .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 16)
+                
+                // Continue button
+                Button(action: {
+                    address = enteredAddress
+                    onDismiss()
+                }) {
+                    HStack(spacing: 12) {
+                        Text("Continue")
+                            .font(.custom("Inter-Medium", size: 20))
+                            .foregroundColor(.white)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
                     }
                     .frame(maxWidth: .infinity)
-                }
-            }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 16)
-            
-            // Continue button
-            Button(action: {
-                address = enteredAddress
-                onDismiss()
-            }) {
-                HStack(spacing: 12) {
-                    Text("Continue")
-                        .font(.custom("Inter-Medium", size: 20))
-                        .foregroundColor(.white)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(
-                    Group {
-                        let buttonColor = colorFromHex(
-                            appState.temple?.kioskTheme?.colors?.continueButtonColor,
-                            defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
-                        )
-                        if appState.temple?.kioskTheme?.colors?.continueButtonGradient == true {
-                            gradientFromColor(buttonColor)
-                        } else {
-                            buttonColor
+                    .padding(.vertical, 18)
+                    .background(
+                        Group {
+                            let buttonColor = colorFromHex(
+                                appState.temple?.kioskTheme?.colors?.continueButtonColor,
+                                defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
+                            )
+                            if appState.temple?.kioskTheme?.colors?.continueButtonGradient == true {
+                                gradientFromColor(buttonColor)
+                            } else {
+                                buttonColor
+                            }
                         }
-                    }
-                )
-                .cornerRadius(12)
-                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    )
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 16)
+            .frame(maxWidth: 900) // Wider popup
+            .padding(.vertical, 16)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, 40)
-        .padding(.vertical, 20)
+        .frame(maxWidth: 900)
         .background(Color.white)
         .cornerRadius(24)
         .shadow(color: Color.black.opacity(0.25), radius: 30, x: 0, y: 15)

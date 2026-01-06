@@ -28,7 +28,23 @@ const store = create<AuthState>()(
         set({ isAuthenticated: true, user, token })
       },
       logout: () => {
-        localStorage.removeItem('authToken')
+        // Clear localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('auth-storage')
+        }
+        
+        // Clear all cookies for security
+        if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+          document.cookie.split(';').forEach((cookie) => {
+            const eqPos = cookie.indexOf('=')
+            const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim()
+            // Clear cookie by setting it to expire in the past
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`
+          })
+        }
+        
         set({ isAuthenticated: false, user: null, token: null })
       },
     }),
