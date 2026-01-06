@@ -234,7 +234,7 @@ struct AdminMenuView: View {
     }
     
     private func initializeStripeSDK() {
-        guard let deviceId = appState.deviceId else {
+        guard appState.deviceId != nil else {
             connectionError = "Device ID not available"
             return
         }
@@ -277,7 +277,7 @@ struct AdminMenuView: View {
     }
     
     private func connectReader() {
-        guard let deviceId = appState.deviceId else {
+        guard appState.deviceId != nil else {
             connectionError = "Device ID not available"
             return
         }

@@ -14,7 +14,7 @@ import StripeTerminal
 // - Use keep-alive to prevent reader from sleeping
 // - Handle connection token refresh automatically
 
-final class StripeTerminalService: NSObject {
+final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     static let shared = StripeTerminalService()
     
     // MARK: - State
@@ -24,6 +24,7 @@ final class StripeTerminalService: NSObject {
     private var currentReader: Reader?
     private var isConnecting = false
     private var paymentInProgress = false
+    private var isInitialized = false // Track if SDK has been initialized
     
     private var currentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private weak var currentPaymentViewController: UIViewController?
@@ -50,6 +51,10 @@ final class StripeTerminalService: NSObject {
     
     private override init() {
         super.init()
+        // Set connection token provider immediately in init
+        // This must be done before any Terminal.shared access
+        // We'll provide tokens via fetchConnectionToken when needed
+        Terminal.setTokenProvider(self)
     }
     
     deinit {
@@ -75,11 +80,9 @@ final class StripeTerminalService: NSObject {
         self.connectionToken = connectionToken
         self.locationId = locationId
         
-        // Set Terminal delegate
+        // Token provider is already set in init() - now we can safely set the delegate
         Terminal.shared.delegate = self
-        
-        // Note: Connection token provider is set automatically by the SDK
-        // when we call methods that require it. We'll provide tokens via the API.
+        isInitialized = true
         
         // Detect mode from connection token for logging
         let isTestMode = connectionToken.contains("test") || connectionToken.count < 50
@@ -90,6 +93,35 @@ final class StripeTerminalService: NSObject {
         }
         log("📍 Location ID: \(locationId)")
         completion(nil)
+    }
+    
+    // MARK: - ConnectionTokenProvider
+    
+    func fetchConnectionToken(_ completion: @escaping ConnectionTokenCompletionBlock) {
+        // If we have a cached token, use it
+        if let token = connectionToken {
+            log("📝 Using cached connection token", verbose: true)
+            completion(token, nil)
+            return
+        }
+        
+        // Otherwise, fetch a new one from the backend
+        log("📡 Fetching new connection token from backend...")
+        Task {
+            do {
+                let credentials = try await APIService.shared.getStripeCredentials()
+                await MainActor.run {
+                    self.connectionToken = credentials.connectionToken
+                    self.log("✅ Connection token fetched successfully", verbose: true)
+                    completion(credentials.connectionToken, nil)
+                }
+            } catch {
+                await MainActor.run {
+                    self.log("❌ Failed to fetch connection token: \(error.localizedDescription)")
+                    completion(nil, error)
+                }
+            }
+        }
     }
     
     /// Connect to a reader (M2)

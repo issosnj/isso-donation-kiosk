@@ -23,15 +23,15 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Square uses Bluetooth to connect and communicate with Square readers and compatible accessories.</string>
+	<string>Stripe Terminal uses Bluetooth to connect and communicate with Stripe M2 card readers.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera access is required to scan device code QR codes for activation.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Square needs to know where transactions take place to reduce risk and minimize payment disputes.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Some Square readers use the microphone to communicate payment card data to your device.</string>
-	<key>SQUARE_APPLICATION_ID</key>
-	<string>sq0idp-Xtwux6dvJ58KrKW0amhoMQ</string>
+	<string>Stripe needs to know where transactions take place to reduce risk and minimize payment disputes.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -47,13 +47,6 @@
 	</array>
 	<key>UIStatusBarHidden</key>
 	<true/>
-	<key>UISupportedExternalAccessoryProtocols</key>
-	<array>
-		<string>com.squareup.s020</string>
-		<string>com.squareup.s025</string>
-		<string>com.squareup.s089</string>
-		<string>com.squareup.protocol.stand</string>
-	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
