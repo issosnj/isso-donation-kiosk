@@ -549,17 +549,24 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 </td>
                 <td className="px-6 py-4">
                   {donation.donorPhone || donation.donorId ? (
-                    <button
-                      onClick={() => setViewingDonorInfo({
-                        phone: donation.donorPhone,
-                        name: donation.donorName,
-                        email: donation.donorEmail,
-                        address: donation.donorAddress,
-                      })}
-                      className="text-sm text-purple-600 hover:text-purple-800 hover:underline font-medium"
-                    >
-                      View Info
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => setViewingDonorInfo({
+                          phone: donation.donorPhone,
+                          name: donation.donorName,
+                          email: donation.donorEmail,
+                          address: donation.donorAddress,
+                        })}
+                        className="text-sm text-purple-600 hover:text-purple-800 hover:underline font-medium text-left"
+                      >
+                        View Info
+                      </button>
+                      {donation.assignedAt && (
+                        <div className="text-xs text-gray-500">
+                          Assigned {format(new Date(donation.assignedAt), 'MMM dd, yyyy')}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="flex flex-col gap-1">
                       <span className="text-sm text-gray-400">Anonymous</span>
@@ -729,17 +736,55 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
               )}
             </div>
             <div className="p-6 flex-1 overflow-y-auto">
-              <div className="mb-4">
-                <input
-                  type="text"
-                  placeholder="Search by name, phone, or email..."
-                  value={donorSearch}
-                  onChange={(e) => setDonorSearch(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+              {/* Toggle between search and create */}
+              <div className="mb-4 flex gap-2">
+                <button
+                  onClick={() => setShowCreateDonor(false)}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    !showCreateDonor
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Search Existing Donor
+                </button>
+                <button
+                  onClick={() => setShowCreateDonor(true)}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    showCreateDonor
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Create New Donor
+                </button>
               </div>
-              {!showCreateDonor && (
+
+              {!showCreateDonor ? (
                 <>
+                  <div className="mb-4">
+                    <input
+                      type="text"
+                      placeholder="Search by name, phone, or email..."
+                      value={donorSearch}
+                      onChange={(e) => setDonorSearch(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  {/* Send receipt email checkbox */}
+                  <div className="mb-4 pb-4 border-b border-gray-200">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={sendReceiptEmail}
+                        onChange={(e) => setSendReceiptEmail(e.target.checked)}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        Send receipt email after assignment (if donor has email)
+                      </span>
+                    </label>
+                  </div>
                   {donorsData?.donors && donorsData.donors.length > 0 ? (
                     <div className="space-y-2">
                       {donorsData.donors.map((donor: any) => (
@@ -775,6 +820,79 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                     </div>
                   )}
                 </>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={newDonorForm.phone}
+                      onChange={(e) => setNewDonorForm({ ...newDonorForm, phone: e.target.value })}
+                      placeholder="Enter phone number"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newDonorForm.name}
+                      onChange={(e) => setNewDonorForm({ ...newDonorForm, name: e.target.value })}
+                      placeholder="Enter donor name"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={newDonorForm.email}
+                      onChange={(e) => setNewDonorForm({ ...newDonorForm, email: e.target.value })}
+                      placeholder="Enter email address"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Address
+                    </label>
+                    <textarea
+                      value={newDonorForm.address}
+                      onChange={(e) => setNewDonorForm({ ...newDonorForm, address: e.target.value })}
+                      placeholder="Enter mailing address"
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  {/* Send receipt email checkbox for new donor */}
+                  <div className="pb-4 border-b border-gray-200">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={sendReceiptEmail}
+                        onChange={(e) => setSendReceiptEmail(e.target.checked)}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        Send receipt email after assignment (if email provided)
+                      </span>
+                    </label>
+                  </div>
+                  <button
+                    onClick={handleCreateDonor}
+                    disabled={!newDonorForm.phone || createDonorMutation.isPending}
+                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  >
+                    {createDonorMutation.isPending ? 'Creating...' : 'Create Donor & Assign Donation'}
+                  </button>
+                </div>
               )}
             </div>
           </div>
