@@ -882,6 +882,11 @@ struct DonationHomeView: View {
             HStack(spacing: 16) {
                 // Home button - uses returnToHomeButtonColor from theme
                 Button(action: {
+                    // Clear donor details when returning to home
+                    donorName = nil
+                    donorPhone = nil
+                    donorEmail = nil
+                    donorAddress = nil
                     onDismiss()
                 }) {
                     HStack(spacing: 8) {
