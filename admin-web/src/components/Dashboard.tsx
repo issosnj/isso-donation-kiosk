@@ -31,14 +31,20 @@ export default function Dashboard({ user }: DashboardProps) {
   const [squareMessage, setSquareMessage] = useState<{ type: 'success' | 'error'; message: string; templeId?: string } | null>(null)
   
   // Check if token exists in localStorage - if not, clear auth state to prevent redirect loop
+  // Only check once on mount to avoid race conditions
   useEffect(() => {
-    const token = localStorage.getItem('authToken')
-    if (!token && isAuthenticated) {
-      // Token is missing but store thinks we're authenticated - clear state
-      logout()
-      router.push('/')
-    }
-  }, [isAuthenticated, logout, router])
+    // Use a small delay to ensure localStorage is ready
+    const checkAuth = setTimeout(() => {
+      const token = localStorage.getItem('authToken')
+      if (!token && isAuthenticated) {
+        // Token is missing but store thinks we're authenticated - clear state
+        logout()
+        router.push('/')
+      }
+    }, 100)
+    
+    return () => clearTimeout(checkAuth)
+  }, []) // Only run once on mount
   
   // Redirect old deviceId query param to new page structure
   useEffect(() => {
