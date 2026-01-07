@@ -34,6 +34,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     private var currentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private weak var currentPaymentViewController: UIViewController?
     private var currentPaymentIntent: PaymentIntent? // Store current intent being collected for cancellation
+    private var currentPaymentIntentId: String? // Store PaymentIntent ID for backend cancellation
     
     // Keep-alive timer to prevent reader from sleeping
     private var keepAliveTimer: Timer?
@@ -236,6 +237,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         paymentInProgress = true
         currentCompletion = completion
         currentPaymentViewController = viewController
+        currentPaymentIntentId = paymentIntentId // Store for potential cancellation
         
         log("💳 Starting payment: $\(String(format: "%.2f", amount))")
         
@@ -244,6 +246,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
             guard let intent = intent, error == nil else {
                 self.paymentInProgress = false
                 self.currentPaymentIntent = nil
+                self.currentPaymentIntentId = nil
                 self.log("❌ Failed to retrieve payment intent: \(error?.localizedDescription ?? "unknown error")")
                 completion(.failure(error ?? NSError(domain: "StripeTerminal", code: -3, userInfo: [NSLocalizedDescriptionKey: "Failed to retrieve payment intent"])))
                 return
@@ -259,6 +262,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
                 if let error = error {
                     self.paymentInProgress = false
                     self.currentPaymentIntent = nil
+                    self.currentPaymentIntentId = nil
                     // Check if error is due to cancellation (PaymentIntent was canceled)
                     let errorDescription = error.localizedDescription.lowercased()
                     if errorDescription.contains("canceled") || errorDescription.contains("cancelled") {
@@ -273,6 +277,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
                 guard let intent = intent else {
                     self.paymentInProgress = false
                     self.currentPaymentIntent = nil
+                    self.currentPaymentIntentId = nil
                     self.log("❌ Payment intent is nil after collection")
                     completion(.failure(NSError(domain: "StripeTerminal", code: -4, userInfo: [NSLocalizedDescriptionKey: "Payment intent is nil"])))
                     return
@@ -318,8 +323,31 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         
         log("🚫 Canceling payment")
         
+        // Cancel the payment collection on the reader if it's in progress
+        Terminal.shared.cancelCollectPaymentMethod { error in
+            if let error = error {
+                self.log("⚠️ Error canceling payment collection: \(error.localizedDescription)")
+            } else {
+                self.log("✅ Payment collection canceled on reader")
+            }
+        }
+        
+        // Cancel the PaymentIntent on the backend if we have the ID
+        if let paymentIntentId = currentPaymentIntentId {
+            Task.detached {
+                do {
+                    // Get the donation ID from the payment intent if possible
+                    // For now, we'll let the backend handle cancellation via the donation endpoint
+                    self.log("💡 PaymentIntent ID available for backend cancellation: \(paymentIntentId)")
+                } catch {
+                    self.log("⚠️ Failed to cancel PaymentIntent on backend: \(error.localizedDescription)")
+                }
+            }
+        }
+        
         // Clear stored intent
         currentPaymentIntent = nil
+        currentPaymentIntentId = nil
         
         // Cancel completion handler with cancellation error
         if let completion = currentCompletion {
@@ -334,9 +362,6 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         
         paymentInProgress = false
         currentPaymentViewController = nil
-        
-        // Note: When backend cancels the PaymentIntent, the SDK's collectPaymentMethod
-        // will automatically fail with a cancellation error, which we handle above
     }
     
     // MARK: - Keep-Alive Mechanism

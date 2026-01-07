@@ -173,7 +173,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     ? donations?.find((d: any) => d.id === assigningDonationId)
     : null
   const assignTempleId = assigningDonation 
-    ? assigningDonation.templeId 
+    ? (assigningDonation.templeId || (isMasterAdmin && selectedTempleId !== 'all' ? selectedTempleId : templeId))
     : (isMasterAdmin && selectedTempleId !== 'all' ? selectedTempleId : templeId)
 
   // Fetch donors for assignment
@@ -216,7 +216,10 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
       queryClient.invalidateQueries({ queryKey: ['donors'] })
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || 'Failed to create donor')
+      const errorMessage = error.response?.data?.message || 'Failed to create donor'
+      alert(errorMessage)
+      // Reset form state on error to allow retry
+      setNewDonorForm({ name: '', phone: '', email: '', address: '' })
     },
   })
 
@@ -269,7 +272,11 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
       return
     }
     if (!assignTempleId) {
-      alert('Temple ID is required')
+      alert('Unable to determine temple. Please ensure the donation has a valid temple ID.')
+      return
+    }
+    if (!assigningDonationId) {
+      alert('No donation selected for assignment')
       return
     }
     createDonorMutation.mutate({

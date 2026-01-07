@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -125,11 +126,11 @@ export class DonorsController {
       : req.user.templeId;
     
     if (!templeId) {
-      throw new ForbiddenException('Temple ID is required');
+      throw new BadRequestException('Temple ID is required');
     }
 
     if (!body.phone || !body.phone.trim()) {
-      throw new ForbiddenException('Phone number is required');
+      throw new BadRequestException('Phone number is required');
     }
 
     return this.donorsService.findOrCreateDonor(
