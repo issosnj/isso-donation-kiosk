@@ -412,23 +412,31 @@ struct ModernPaymentView: View {
                                 // Error during payment completion - if payment succeeded on Stripe, still show success
                                 if let result = paymentResult {
                                     if result.success, let paymentIntentId = result.paymentIntentId, !paymentIntentId.isEmpty {
-                                        // Retry completion with payment intent ID
-                                        do {
-                                            _ = try await APIService.shared.completeDonation(
-                                                donationId: donation.id,
-                                                stripePaymentIntentId: paymentIntentId,
-                                                status: "SUCCEEDED",
-                                                donorName: donorName,
-                                                donorPhone: donorPhone,
-                                                donorEmail: donorEmail,
-                                                donorAddress: donorAddress
-                                            )
-                                        } catch {}
+                                        // Payment succeeded on device - mark as succeeded even if confirmation failed
+                                        // Set paymentStatus FIRST so onDisappear doesn't try to cancel
                                         await MainActor.run {
                                             isProcessing = false
                                             paymentStatus = .success
                                             // Record successful donation time for idle detection
                                             appState.recordSuccessfulDonation()
+                                        }
+                                        
+                                        // Then try to complete donation on backend (non-blocking)
+                                        Task {
+                                            do {
+                                                _ = try await APIService.shared.completeDonation(
+                                                    donationId: donation.id,
+                                                    stripePaymentIntentId: paymentIntentId,
+                                                    status: "SUCCEEDED",
+                                                    donorName: donorName,
+                                                    donorPhone: donorPhone,
+                                                    donorEmail: donorEmail,
+                                                    donorAddress: donorAddress
+                                                )
+                                            } catch {
+                                                // Backend completion failed, but payment already succeeded on device
+                                                appLog("⚠️ Payment succeeded on device but backend completion failed: \(error.localizedDescription)", category: "PaymentView")
+                                            }
                                         }
                                     } else {
                                         // Payment failed - mark as FAILED

@@ -265,8 +265,9 @@ export class StripeService {
   }> {
     const temple = await this.templesService.findOne(templeId);
     
-    if (!temple.stripeAccountId) {
-      throw new Error('Stripe not connected for this temple.');
+    // Check if Stripe is configured (either stripeAccountId for Connect or stripePublishableKey for direct)
+    if (!temple.stripeAccountId && !temple.stripePublishableKey) {
+      throw new Error('Stripe not connected for this temple. Please configure Stripe in the admin portal.');
     }
 
     // Retrieve the PaymentIntent
