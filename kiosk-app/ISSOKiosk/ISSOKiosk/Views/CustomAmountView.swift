@@ -100,8 +100,24 @@ struct CustomAmountView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 40)
-                    .disabled(enteredAmount.isEmpty || Double(enteredAmount) == nil || Double(enteredAmount)! <= 0)
-                    .opacity((enteredAmount.isEmpty || Double(enteredAmount) == nil || Double(enteredAmount)! <= 0) ? 0.5 : 1.0)
+                    .disabled({
+                        if enteredAmount.isEmpty {
+                            return true
+                        }
+                        guard let amount = Double(enteredAmount) else {
+                            return true
+                        }
+                        return amount <= 0
+                    }())
+                    .opacity({
+                        if enteredAmount.isEmpty {
+                            return 0.5
+                        }
+                        guard let amount = Double(enteredAmount), amount > 0 else {
+                            return 0.5
+                        }
+                        return 1.0
+                    }())
                 }
             }
             .navigationTitle("Custom Amount")
