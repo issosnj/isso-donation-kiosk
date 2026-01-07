@@ -41,7 +41,14 @@ struct ModernPaymentView: View {
                         amount: amount,
                         onDismiss: {
                             paymentStatus = nil
-                            onComplete()
+                            // For success, go back to home (onComplete)
+                            // For failure, go back to review donation screen (dismiss)
+                            if case .success = status {
+                                onComplete()
+                            } else {
+                                // Failure - dismiss payment view to return to review donation screen
+                                dismiss()
+                            }
                         }
                     )
                 } else if isProcessing || hasStartedPayment {
