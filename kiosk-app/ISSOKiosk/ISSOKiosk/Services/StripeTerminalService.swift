@@ -323,24 +323,19 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         
         log("🚫 Canceling payment")
         
-        // Cancel the payment collection on the reader if it's in progress
-        Terminal.shared.cancelCollectPaymentMethod { error in
-            if let error = error {
-                self.log("⚠️ Error canceling payment collection: \(error.localizedDescription)")
-            } else {
-                self.log("✅ Payment collection canceled on reader")
-            }
-        }
+        // Note: Stripe Terminal SDK doesn't have a direct method to cancel payment collection.
+        // When the PaymentIntent is canceled on the backend, the collectPaymentMethod call
+        // will automatically fail with a cancellation error, which we handle in the completion.
         
         // Cancel the PaymentIntent on the backend if we have the ID
+        // This will cause collectPaymentMethod to fail with a cancellation error
         if let paymentIntentId = currentPaymentIntentId {
-            Task.detached {
-                do {
-                    // Get the donation ID from the payment intent if possible
-                    // For now, we'll let the backend handle cancellation via the donation endpoint
-                    self.log("💡 PaymentIntent ID available for backend cancellation: \(paymentIntentId)")
-                } catch {
-                    self.log("⚠️ Failed to cancel PaymentIntent on backend: \(error.localizedDescription)")
+            Task.detached { [weak self] in
+                guard let self = self else { return }
+                // The backend cancellation is handled by the PaymentView's cancelPayment method
+                // which calls APIService.shared.cancelDonation, which cancels the PaymentIntent
+                await MainActor.run {
+                    self.log("💡 PaymentIntent ID available for backend cancellation: \(paymentIntentId)", verbose: true)
                 }
             }
         }
