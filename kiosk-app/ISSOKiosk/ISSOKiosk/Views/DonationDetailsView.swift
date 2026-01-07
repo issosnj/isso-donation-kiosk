@@ -4,6 +4,10 @@ import UIKit
 struct ModernDonationDetailsView: View {
     let amount: Double
     let category: DonationCategory?
+    let initialDonorName: String?
+    let initialDonorPhone: String?
+    let initialDonorEmail: String?
+    let initialDonorAddress: String?
     let onConfirm: (String?, String?, String?, String?) -> Void // name, phone, email, address
     let onCancel: (() -> Void)? // Optional callback to return to home
     @ObservedObject private var languageManager = LanguageManager.shared
@@ -681,6 +685,21 @@ struct ModernDonationDetailsView: View {
             }
         }
         .onAppear {
+            // Initialize fields with saved donor details if available
+            // Always restore from initial values when view appears (preserves data when returning from payment)
+            if let initialName = initialDonorName, !initialName.isEmpty {
+                donorName = initialName
+            }
+            if let initialPhone = initialDonorPhone, !initialPhone.isEmpty {
+                donorPhone = initialPhone
+            }
+            if let initialEmail = initialDonorEmail, !initialEmail.isEmpty {
+                donorEmail = initialEmail
+            }
+            if let initialAddress = initialDonorAddress, !initialAddress.isEmpty {
+                donorAddress = initialAddress
+            }
+            
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
                 appearAnimation = true
             }

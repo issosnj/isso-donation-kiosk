@@ -301,6 +301,10 @@ struct DonationHomeView: View {
             ModernDonationDetailsView(
                     amount: currentAmount,
                     category: selectedCategory,
+                    initialDonorName: donorName,
+                    initialDonorPhone: donorPhone,
+                    initialDonorEmail: donorEmail,
+                    initialDonorAddress: donorAddress,
                     onConfirm: { name, phone, email, address in
                         showingDetails = false
                         // Show pledge option ONLY if selected category has yajman opportunities (sponsor tiers)
