@@ -112,6 +112,35 @@ export class DonorsController {
     return result;
   }
 
+  @Post()
+  @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
+  @ApiOperation({ summary: 'Create a new donor' })
+  async createDonor(
+    @Request() req,
+    @Body() body: { name?: string; phone: string; email?: string; address?: string; templeId?: string },
+  ) {
+    // Determine temple ID
+    const templeId = req.user.role === UserRole.MASTER_ADMIN 
+      ? (body.templeId || req.user.templeId)
+      : req.user.templeId;
+    
+    if (!templeId) {
+      throw new ForbiddenException('Temple ID is required');
+    }
+
+    if (!body.phone || !body.phone.trim()) {
+      throw new ForbiddenException('Phone number is required');
+    }
+
+    return this.donorsService.findOrCreateDonor(
+      templeId,
+      body.phone,
+      body.name,
+      body.email,
+      body.address,
+    );
+  }
+
   @Put(':id')
   @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
   @ApiOperation({ summary: 'Update donor information' })

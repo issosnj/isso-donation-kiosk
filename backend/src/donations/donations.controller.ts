@@ -484,10 +484,15 @@ export class DonationsController {
   @ApiOperation({ summary: 'Assign an anonymous donation to a donor' })
   async assignDonationToDonor(
     @Param('id') id: string,
-    @Body() body: { donorId: string },
+    @Body() body: { donorId: string; sendReceiptEmail?: boolean },
     @CurrentUser() user: any,
   ) {
-    return this.donationsService.assignDonationToDonor(id, body.donorId);
+    return this.donationsService.assignDonationToDonor(
+      id,
+      body.donorId,
+      user.id,
+      body.sendReceiptEmail || false,
+    );
   }
 }
 

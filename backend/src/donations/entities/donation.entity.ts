@@ -112,6 +112,12 @@ export class Donation {
   @Column({ nullable: true })
   pledgePaymentLink: string; // Link to pay later (QR code or URL)
 
+  @Column({ nullable: true })
+  assignedBy: string; // User ID who assigned this donation to a donor
+
+  @Column({ type: 'timestamp', nullable: true })
+  assignedAt: Date; // When the donation was assigned to a donor
+
   @CreateDateColumn()
   createdAt: Date;
 

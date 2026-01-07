@@ -1028,6 +1028,8 @@ export class DonationsService {
   async assignDonationToDonor(
     donationId: string,
     donorId: string,
+    assignedByUserId?: string,
+    sendReceiptEmail: boolean = false,
   ): Promise<Donation> {
     const donation = await this.donationsRepository.findOne({
       where: { id: donationId },
@@ -1071,6 +1073,12 @@ export class DonationsService {
     donation.donorPhone = donor.phone || donation.donorPhone;
     donation.donorEmail = donor.email || donation.donorEmail;
     donation.donorAddress = donor.address || donation.donorAddress;
+    
+    // Track assignment history
+    if (assignedByUserId) {
+      donation.assignedBy = assignedByUserId;
+      donation.assignedAt = new Date();
+    }
 
     const savedDonation = await this.donationsRepository.save(donation);
 
@@ -1084,7 +1092,17 @@ export class DonationsService {
       donation.createdAt,
     );
 
-    console.log(`[DonationsService] ✅ Assigned donation ${donationId} to donor ${donorId}`);
+    console.log(`[DonationsService] ✅ Assigned donation ${donationId} to donor ${donorId} by user ${assignedByUserId || 'unknown'}`);
+
+    // Send receipt email if requested
+    if (sendReceiptEmail && savedDonation.donorEmail) {
+      console.log(`[DonationsService] 📧 Sending receipt email after assignment for donation ${donationId}`);
+      // Don't await - send email asynchronously
+      this.sendReceiptEmail(savedDonation).catch((error) => {
+        console.error('[DonationsService] ❌ Failed to send receipt email after assignment:', error);
+        // Don't fail the assignment if email fails
+      });
+    }
 
     return savedDonation;
   }

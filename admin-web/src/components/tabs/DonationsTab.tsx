@@ -30,6 +30,9 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   const [assigningDonationId, setAssigningDonationId] = useState<string | null>(null)
   const [donorSearch, setDonorSearch] = useState<string>('')
   const [assigningDonorId, setAssigningDonorId] = useState<string | null>(null)
+  const [showCreateDonor, setShowCreateDonor] = useState(false)
+  const [newDonorForm, setNewDonorForm] = useState({ name: '', phone: '', email: '', address: '' })
+  const [sendReceiptEmail, setSendReceiptEmail] = useState(false)
 
   // Fetch temples for master admin filter
   const { data: temples } = useQuery({
@@ -194,16 +197,48 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     enabled: !!assigningDonationId && !!assignTempleId,
   })
 
+  const createDonorMutation = useMutation({
+    mutationFn: async (donorData: { name?: string; phone: string; email?: string; address?: string; templeId?: string }) => {
+      const response = await api.post('/donors', donorData)
+      return response.data
+    },
+    onSuccess: (newDonor) => {
+      // After creating donor, automatically assign the donation
+      if (assigningDonationId) {
+        assignDonationMutation.mutate({
+          donationId: assigningDonationId,
+          donorId: newDonor.id,
+          sendReceiptEmail,
+        })
+      }
+      setShowCreateDonor(false)
+      setNewDonorForm({ name: '', phone: '', email: '', address: '' })
+      queryClient.invalidateQueries({ queryKey: ['donors'] })
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to create donor')
+    },
+  })
+
   const assignDonationMutation = useMutation({
-    mutationFn: async ({ donationId, donorId }: { donationId: string; donorId: string }) => {
-      const response = await api.post(`/donations/${donationId}/assign-donor`, { donorId })
+    mutationFn: async ({ donationId, donorId, sendReceiptEmail }: { donationId: string; donorId: string; sendReceiptEmail?: boolean }) => {
+      const response = await api.post(`/donations/${donationId}/assign-donor`, { 
+        donorId,
+        sendReceiptEmail: sendReceiptEmail || false,
+      })
       return response.data
     },
     onSuccess: () => {
-      alert('Donation successfully assigned to donor!')
+      const message = sendReceiptEmail 
+        ? 'Donation successfully assigned to donor! Receipt email will be sent if donor has an email address.'
+        : 'Donation successfully assigned to donor!'
+      alert(message)
       setAssigningDonationId(null)
       setDonorSearch('')
       setAssigningDonorId(null)
+      setShowCreateDonor(false)
+      setSendReceiptEmail(false)
+      setNewDonorForm({ name: '', phone: '', email: '', address: '' })
       queryClient.invalidateQueries({ queryKey: ['donations'] })
       queryClient.invalidateQueries({ queryKey: ['donors'] })
     },
@@ -215,10 +250,32 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
 
   const handleAssignDonor = (donorId: string) => {
     if (!assigningDonationId) return
-    if (confirm('Are you sure you want to assign this donation to this donor? This will update the donor\'s statistics.')) {
+    const confirmMessage = sendReceiptEmail
+      ? 'Are you sure you want to assign this donation to this donor? This will update the donor\'s statistics and send a receipt email if the donor has an email address.'
+      : 'Are you sure you want to assign this donation to this donor? This will update the donor\'s statistics.'
+    if (confirm(confirmMessage)) {
       setAssigningDonorId(donorId)
-      assignDonationMutation.mutate({ donationId: assigningDonationId, donorId })
+      assignDonationMutation.mutate({ 
+        donationId: assigningDonationId, 
+        donorId,
+        sendReceiptEmail,
+      })
     }
+  }
+
+  const handleCreateDonor = () => {
+    if (!newDonorForm.phone || !newDonorForm.phone.trim()) {
+      alert('Phone number is required')
+      return
+    }
+    if (!assignTempleId) {
+      alert('Temple ID is required')
+      return
+    }
+    createDonorMutation.mutate({
+      ...newDonorForm,
+      templeId: assignTempleId,
+    })
   }
 
   const handleGenerateReceiptNumbers = () => {
@@ -681,39 +738,43 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
-              {donorsData?.donors && donorsData.donors.length > 0 ? (
-                <div className="space-y-2">
-                  {donorsData.donors.map((donor: any) => (
-                    <div
-                      key={donor.id}
-                      className="p-4 border border-gray-200 rounded-lg hover:bg-purple-50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900">{donor.name || 'No name'}</div>
-                          <div className="text-sm text-gray-600 mt-1">
-                            {donor.phone && <span>Phone: {donor.phone}</span>}
-                            {donor.email && <span className="ml-4">Email: {donor.email}</span>}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Total Donations: {donor.totalDonations || 0} | Total Amount: ${Number(donor.totalAmount || 0).toFixed(2)}
+              {!showCreateDonor && (
+                <>
+                  {donorsData?.donors && donorsData.donors.length > 0 ? (
+                    <div className="space-y-2">
+                      {donorsData.donors.map((donor: any) => (
+                        <div
+                          key={donor.id}
+                          className="p-4 border border-gray-200 rounded-lg hover:bg-purple-50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">{donor.name || 'No name'}</div>
+                              <div className="text-sm text-gray-600 mt-1">
+                                {donor.phone && <span>Phone: {donor.phone}</span>}
+                                {donor.email && <span className="ml-4">Email: {donor.email}</span>}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                Total Donations: {donor.totalDonations || 0} | Total Amount: ${Number(donor.totalAmount || 0).toFixed(2)}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleAssignDonor(donor.id)}
+                              disabled={assigningDonorId === donor.id || assignDonationMutation.isPending}
+                              className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                            >
+                              {assigningDonorId === donor.id ? 'Assigning...' : 'Assign'}
+                            </button>
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleAssignDonor(donor.id)}
-                          disabled={assigningDonorId === donor.id || assignDonationMutation.isPending}
-                          className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                        >
-                          {assigningDonorId === donor.id ? 'Assigning...' : 'Assign'}
-                        </button>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  {donorSearch ? 'No donors found matching your search.' : 'Start typing to search for donors...'}
-                </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      {donorSearch ? 'No donors found matching your search.' : 'Start typing to search for donors...'}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
