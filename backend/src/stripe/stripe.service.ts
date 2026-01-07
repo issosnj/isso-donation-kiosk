@@ -336,8 +336,8 @@ export class StripeService {
       }
     } catch (error) {
       console.warn('[Stripe Service] Failed to get actual fee from balance transaction, using approximation:', error);
-      // Fallback to approximation
-      fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+      // Fallback to Terminal approximation: 2.6% + $0.10
+      fee = Math.round((totalAmount * 0.026 + 0.10) * 100) / 100;
       feeSource = 'approximation';
     }
     
@@ -467,8 +467,8 @@ export class StripeService {
       }
     } catch (error) {
       console.warn('[Stripe Service] Failed to get actual fee from balance transaction, using approximation:', error);
-      // Fallback to approximation
-      fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+      // Fallback to Terminal approximation: 2.6% + $0.10
+      fee = Math.round((totalAmount * 0.026 + 0.10) * 100) / 100;
       feeSource = 'approximation';
     }
     
