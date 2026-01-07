@@ -29,11 +29,54 @@ export class DonationsService {
   ) {}
 
   async initiate(initiateDonationDto: InitiateDonationDto): Promise<Donation> {
-    const donation = this.donationsRepository.create({
-      ...initiateDonationDto,
-      status: DonationStatus.PENDING,
-    });
-    return this.donationsRepository.save(donation);
+    try {
+      console.log('[DonationsService] Initiating donation with DTO:', {
+        templeId: initiateDonationDto.templeId,
+        deviceId: initiateDonationDto.deviceId,
+        categoryId: initiateDonationDto.categoryId,
+        amount: initiateDonationDto.amount,
+        currency: initiateDonationDto.currency,
+      });
+      
+      // Validate temple exists
+      const temple = await this.templesService.findOne(initiateDonationDto.templeId);
+      if (!temple) {
+        throw new NotFoundException(`Temple with ID ${initiateDonationDto.templeId} not found`);
+      }
+      
+      console.log('[DonationsService] Temple found:', temple.name);
+      
+      // Create donation entity
+      const donation = this.donationsRepository.create({
+        ...initiateDonationDto,
+        status: DonationStatus.PENDING,
+      });
+      
+      console.log('[DonationsService] Created donation entity, saving to database...');
+      
+      // Save to database
+      const savedDonation = await this.donationsRepository.save(donation);
+      
+      console.log('[DonationsService] Donation saved successfully:', savedDonation.id);
+      return savedDonation;
+    } catch (error) {
+      console.error('[DonationsService] Error in initiate:', error);
+      console.error('[DonationsService] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+      
+      // Re-throw known exceptions
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      // Wrap unknown errors
+      throw new BadRequestException(
+        `Failed to initiate donation: ${error.message || 'Database error'}`
+      );
+    }
   }
 
   async complete(

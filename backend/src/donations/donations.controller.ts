@@ -36,8 +36,36 @@ export class DonationsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Initiate a donation (device endpoint)' })
-  initiate(@Body() initiateDonationDto: InitiateDonationDto) {
-    return this.donationsService.initiate(initiateDonationDto);
+  async initiate(@Body() initiateDonationDto: InitiateDonationDto) {
+    try {
+      console.log('[DonationsController] Initiating donation:', {
+        templeId: initiateDonationDto.templeId,
+        deviceId: initiateDonationDto.deviceId,
+        categoryId: initiateDonationDto.categoryId,
+        amount: initiateDonationDto.amount,
+        currency: initiateDonationDto.currency,
+      });
+      
+      const donation = await this.donationsService.initiate(initiateDonationDto);
+      
+      console.log('[DonationsController] Donation initiated successfully:', donation.id);
+      return donation;
+    } catch (error) {
+      console.error('[DonationsController] Error initiating donation:', error);
+      console.error('[DonationsController] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+      
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      throw new InternalServerErrorException(
+        `Failed to initiate donation: ${error.message || 'Unknown error'}`
+      );
+    }
   }
 
   @Post('process-payment')
