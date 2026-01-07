@@ -174,7 +174,6 @@ class AppState: ObservableObject {
         }
         
         isRefreshingCategories = true
-        print("[AppState] 📡 Refreshing categories for templeId: \(templeId)")
         
         defer {
             Task { @MainActor in
@@ -183,36 +182,16 @@ class AppState: ObservableObject {
         }
         
         do {
-            // Fetch fresh categories from kiosk endpoint (filtered by date/time)
-            print("[AppState] 🔄 Starting category fetch...")
             let categories = try await APIService.shared.getKioskCategories(templeId: templeId)
-            print("[AppState] 📦 Received \(categories.count) categories from API")
             
             await MainActor.run {
-                print("[AppState] 🎯 Updating categories array on main thread...")
-                print("[AppState] 📊 Current categories count before update: \(self.categories.count)")
                 self.categories = categories
-                print("[AppState] ✅ Categories array updated: \(self.categories.count) categories")
-                
-                if categories.isEmpty {
-                    print("[AppState] ⚠️ No categories returned - check if categories are:")
-                    print("[AppState]   1. Active (isActive = true)")
-                    print("[AppState]   2. Show on kiosk (showOnKiosk = true)")
-                    print("[AppState]   3. Within date range (if date range is set)")
-                } else {
-                    print("[AppState] 📋 Categories list:")
-                    for (index, category) in categories.enumerated() {
-                        print("[AppState]   \(index + 1). \(category.name) (ID: \(category.id))")
-                    }
+                if !categories.isEmpty {
+                    print("[AppState] ✅ Loaded \(categories.count) categories")
                 }
             }
         } catch {
             print("[AppState] ❌ Failed to refresh categories: \(error.localizedDescription)")
-            if let apiError = error as? APIError {
-                print("[AppState] ❌ API Error: \(apiError)")
-                print("[AppState] ❌ API Error description: \(apiError.localizedDescription)")
-            }
-            // Clear categories on error to show empty state
             await MainActor.run {
                 self.categories = []
             }
@@ -220,7 +199,6 @@ class AppState: ObservableObject {
     }
     
     func refreshReligiousEvents() async {
-        print("[AppState] 📡 Refreshing religious events")
         
         do {
             let events = try await APIService.shared.getReligiousEvents()
@@ -247,17 +225,10 @@ class AppState: ObservableObject {
             
             await MainActor.run {
                 self.religiousEvents = upcomingEvents
-                print("[AppState] ✅ Religious events updated: \(upcomingEvents.count) upcoming events (filtered from \(events.count) total)")
                 if upcomingEvents.isEmpty {
-                    print("[AppState] ⚠️ No upcoming religious events found. Make sure:")
-                    print("[AppState]   1. Religious events are created in the admin portal")
-                    print("[AppState]   2. Events are marked as active (isActive = true)")
-                    print("[AppState]   3. Events have dates on or after today")
+                    print("[AppState] ⚠️ No upcoming religious events")
                 } else {
-                    print("[AppState] 📋 Upcoming events list:")
-                    for (index, event) in upcomingEvents.enumerated() {
-                        print("[AppState]   \(index + 1). \(event.name) - Date: \(event.date), Active: \(event.isActive ?? false)")
-                    }
+                    print("[AppState] ✅ Loaded \(upcomingEvents.count) upcoming events")
                 }
             }
         } catch {
@@ -274,6 +245,7 @@ class AppState: ObservableObject {
     private var isLoadingTempleConfig = false // Guard to prevent multiple simultaneous loads
     private var isRefreshingTempleConfig = false // Guard to prevent duplicate refresh calls
     private var isRefreshingCategories = false // Guard to prevent duplicate category refresh calls
+    private var hasAttemptedStripeConnection = false // Guard to prevent multiple connection attempts on startup
     
     private func loadTempleConfig() async {
         // Prevent multiple simultaneous temple config loads
@@ -307,27 +279,18 @@ class AppState: ObservableObject {
             }
         }
         
-        appLog("📡 Fetching temple config for templeId: \(templeId)", category: "AppState")
-        appLog("📡 API Base URL: \(Config.apiBaseURL)", category: "AppState")
-        
         // Optimized for faster startup - only 1 retry (2 total attempts) with shorter timeout
         let maxRetries = 1
         
         for attempt in 0..<maxRetries {
             if attempt > 0 {
                 // Short backoff: 1s between retries
-                await MainActor.run {
-                    appLog("🔄 Retry attempt \(attempt + 1)/\(maxRetries) after 1s delay...", category: "AppState")
-                }
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
             }
             
             do {
                 // Use 8s timeout for all attempts (faster than 30s default, but not too aggressive)
                 let timeout = 8.0
-                await MainActor.run {
-                    appLog("📡 Starting temple fetch request (attempt \(attempt + 1), timeout: \(timeout)s)...", category: "AppState")
-                }
                 let temple = try await APIService.shared.getTemple(templeId: templeId, timeout: timeout)
                 
                 await MainActor.run {
@@ -339,7 +302,6 @@ class AppState: ObservableObject {
                         appLog("✅ Temple config loaded - activating UI", category: "AppState")
                     }
                     appLog("✅ Temple config loaded: \(temple.name)", category: "AppState")
-                    appLog("✅ Temple ID: \(temple.id)", category: "AppState")
                     
                     // Start automatic theme refresh timer if not already started
                     if themeRefreshTimer == nil {
@@ -363,6 +325,13 @@ class AppState: ObservableObject {
                     guard let self = self else { return }
                     await self.refreshCategories()
                     await self.refreshReligiousEvents()
+                }
+                
+                // Automatically connect Stripe reader in background after temple config loads
+                // This ensures reader is ready when user wants to make a payment
+                Task.detached(priority: .utility) { [weak self] in
+                    guard let self = self else { return }
+                    await self.connectStripeReaderOnStartup()
                 }
                 
                 // Success! Exit retry loop
@@ -441,6 +410,78 @@ class AppState: ObservableObject {
     /// Stripe Terminal will be initialized when payment is needed
     func ensureStripeConnectionReady() async {
         appLog("🔄 Stripe Terminal will be initialized when payment starts", category: "AppState")
+    }
+    
+    /// Automatically connect Stripe reader on app startup
+    /// This runs in the background after temple config loads
+    private func connectStripeReaderOnStartup() async {
+        // Only connect once on startup, not on every refresh
+        if hasAttemptedStripeConnection {
+            appLog("ℹ️ Stripe reader connection already attempted on startup", category: "AppState")
+            return
+        }
+        
+        // Check if reader is already connected
+        let readerInfo = StripeTerminalService.shared.getReaderInfo()
+        if readerInfo.connected {
+            appLog("✅ Stripe reader already connected", category: "AppState")
+            hasAttemptedStripeConnection = true
+            return
+        }
+        
+        hasAttemptedStripeConnection = true
+        appLog("🔌 Auto-connecting Stripe reader on startup...", category: "AppState")
+        
+        do {
+            // Get Stripe credentials
+            let credentials = try await APIService.shared.getStripeCredentials()
+            
+            await MainActor.run {
+                // Initialize Stripe Terminal SDK
+                StripeTerminalService.shared.initialize(
+                    connectionToken: credentials.connectionToken,
+                    locationId: credentials.locationId
+                ) { error in
+                    if let error = error {
+                        appLog("⚠️ Failed to initialize Stripe SDK on startup: \(error.localizedDescription)", category: "AppState")
+                        return
+                    }
+                    
+                    appLog("✅ Stripe SDK initialized on startup", category: "AppState")
+                    
+                    // Get view controller for connection
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let window = windowScene.windows.first,
+                       let rootViewController = window.rootViewController {
+                        
+                        var topViewController = rootViewController
+                        while let presented = topViewController.presentedViewController {
+                            topViewController = presented
+                        }
+                        
+                        if let navController = topViewController as? UINavigationController {
+                            topViewController = navController.topViewController ?? topViewController
+                        }
+                        
+                        // Connect to reader in background (non-blocking)
+                        StripeTerminalService.shared.connectToReader(from: topViewController) { connectError in
+                            if let connectError = connectError {
+                                appLog("⚠️ Failed to auto-connect reader on startup: \(connectError.localizedDescription)", category: "AppState")
+                                appLog("💡 Reader will connect automatically when payment starts", category: "AppState")
+                            } else {
+                                appLog("✅ Stripe reader auto-connected on startup", category: "AppState")
+                            }
+                        }
+                    } else {
+                        appLog("⚠️ Could not find view controller for auto-connection", category: "AppState")
+                        appLog("💡 Reader will connect automatically when payment starts", category: "AppState")
+                    }
+                }
+            }
+        } catch {
+            appLog("⚠️ Failed to get Stripe credentials on startup: \(error.localizedDescription)", category: "AppState")
+            appLog("💡 Reader will connect automatically when payment starts", category: "AppState")
+        }
     }
     
     // Extract device ID from JWT token payload

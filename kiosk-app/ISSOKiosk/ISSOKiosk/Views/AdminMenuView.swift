@@ -16,6 +16,7 @@ struct AdminMenuView: View {
     @State private var connectionError: String? = nil
     @State private var readerInfo: (connected: Bool, model: String?, error: String?) = (false, nil, nil)
     @State private var refreshTimer: Timer? = nil
+    @State private var isCheckingUpdate = false
     
     var body: some View {
         NavigationView {
@@ -208,6 +209,72 @@ struct AdminMenuView: View {
                             Text("Refresh Reader Status")
                         }
                     }
+                    
+                    // Software Update Section
+                    let updateInfo = StripeTerminalService.shared.getUpdateStatus()
+                    if updateInfo.hasUpdate || updateInfo.status != nil {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "arrow.down.circle.fill")
+                                    .foregroundColor(.orange)
+                                Text("Software Update")
+                                    .font(.headline)
+                            }
+                            if let status = updateInfo.status {
+                                Text(status)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            if let progress = updateInfo.progress {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("Progress: \(progress)%")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                    }
+                                    // Progress bar
+                                    GeometryReader { geometry in
+                                        ZStack(alignment: .leading) {
+                                            // Background
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Color.gray.opacity(0.2))
+                                                .frame(height: 8)
+                                            
+                                            // Progress
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Color.orange)
+                                                .frame(width: geometry.size.width * CGFloat(progress) / 100, height: 8)
+                                        }
+                                    }
+                                    .frame(height: 8)
+                                }
+                                .padding(.top, 4)
+                            }
+                            if let version = updateInfo.version {
+                                Text("Version: \(version)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    
+                    Button(action: {
+                        triggerSoftwareUpdate()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .foregroundColor(.orange)
+                            Text("Check for Software Update")
+                            Spacer()
+                            if isCheckingUpdate {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                        }
+                    }
+                    .disabled(isCheckingUpdate || !readerInfo.connected)
                 }
                 
                 Section(header: Text("Actions")) {
@@ -458,6 +525,55 @@ struct AdminMenuView: View {
             await appState.refreshCategories()
         }
     }
+    
+    private func triggerSoftwareUpdate() {
+        guard readerInfo.connected else {
+            connectionError = "Reader must be connected to check for updates"
+            return
+        }
+        
+        isCheckingUpdate = true
+        connectionStatus = "Checking for software updates..."
+        connectionError = nil
+        
+        // Get the current view controller
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let rootViewController = window.rootViewController {
+            
+            var topViewController = rootViewController
+            while let presented = topViewController.presentedViewController {
+                topViewController = presented
+            }
+            
+            if let navController = topViewController as? UINavigationController {
+                topViewController = navController.topViewController ?? topViewController
+            }
+            
+            StripeTerminalService.shared.triggerSoftwareUpdate(from: topViewController) { error in
+                isCheckingUpdate = false
+                
+                if let error = error {
+                    connectionError = "Update check failed: \(error.localizedDescription)"
+                    connectionStatus = ""
+                } else {
+                    connectionStatus = "✅ Update check initiated - updates will install automatically during connection"
+                    refreshReaderStatus()
+                    
+                    // Clear status after 5 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        if connectionStatus.contains("✅") {
+                            connectionStatus = ""
+                        }
+                    }
+                }
+            }
+        } else {
+            isCheckingUpdate = false
+            connectionError = "Could not find view controller"
+            connectionStatus = ""
+        }
+    }
 }
 
 struct AdminPasswordView: View {
@@ -642,8 +758,9 @@ struct AdminPasswordView: View {
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: errorMessage.isEmpty)
         .onAppear {
-            // Auto-focus password field when view appears
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            // Auto-focus password field immediately when view appears
+            // Use a very short delay to ensure the view is fully laid out
+            DispatchQueue.main.async {
                 isPasswordFocused = true
             }
         }

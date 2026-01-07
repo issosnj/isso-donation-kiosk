@@ -26,6 +26,9 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     private var paymentInProgress = false
     private var isInitialized = false // Track if SDK has been initialized
     private var lastConnectionError: String? // Store last connection error for UI display
+    private var availableUpdate: ReaderSoftwareUpdate?
+    private var updateStatus: String? = nil
+    private var updateProgress: Float? = nil // Store update progress percentage (0.0 to 1.0)
     
     private var currentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private weak var currentPaymentViewController: UIViewController?
@@ -37,6 +40,10 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     // Connection refresh timer
     private var connectionRefreshTimer: Timer?
     private let connectionRefreshInterval: TimeInterval = 5 * 60 // 5 minutes
+    
+    // Connection status check timer (for detecting connection during slow updates)
+    private var connectionStatusCheckTimer: Timer?
+    private let connectionStatusCheckInterval: TimeInterval = 2.0 // Check every 2 seconds while connecting
     
     struct PaymentResult {
         let success: Bool
@@ -67,7 +74,6 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     
     private func log(_ message: String, verbose: Bool = false) {
         if !verbose {
-            print("[StripeTerminal] \(message)")
             appLog(message, category: "StripeTerminal")
         }
     }
@@ -143,7 +149,6 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         
         isConnecting = true
         log("🔌 Discovering M2 readers...")
-        log("💡 Note: M2 readers register automatically when connected (no screen needed)")
         
         // Discover readers using BluetoothScanDiscoveryConfiguration (SDK 3.0)
         // Per Stripe docs: https://docs.stripe.com/terminal/payments/connect-reader
@@ -211,10 +216,19 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
             return
         }
         
-        guard currentReader != nil else {
+        // Check both our cached reader and Terminal.shared.connectedReader
+        let connectedReader = Terminal.shared.connectedReader ?? currentReader
+        
+        guard connectedReader != nil else {
             log("❌ No reader connected")
             completion(.failure(NSError(domain: "StripeTerminal", code: -2, userInfo: [NSLocalizedDescriptionKey: "No reader connected. Please connect a reader first."])))
             return
+        }
+        
+        // Update our cached reader if Terminal.shared has one but we don't
+        if currentReader == nil, let terminalReader = Terminal.shared.connectedReader {
+            currentReader = terminalReader
+            log("📱 Synced connected reader from Terminal.shared for payment", verbose: true)
         }
         
         paymentInProgress = true
@@ -359,6 +373,42 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         }
     }
     
+    /// Start periodic check to detect if reader becomes connected during slow software updates
+    private func startConnectionStatusCheck() {
+        stopConnectionStatusCheck()
+        
+            // Connection status check started (verbose)
+        
+        connectionStatusCheckTimer = Timer.scheduledTimer(withTimeInterval: connectionStatusCheckInterval, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            
+            // Check if reader is connected via Terminal.shared
+            if let connectedReader = Terminal.shared.connectedReader {
+                // Reader is connected but we haven't updated our state yet
+                if self.currentReader == nil {
+                    self.currentReader = connectedReader
+                    self.isConnecting = false
+                    self.lastConnectionError = nil
+                    self.log("✅ Reader connection detected via status check - Serial: \(connectedReader.serialNumber)")
+                    self.log("💡 Connection completed (software update may still be in progress)")
+                    self.startKeepAlive()
+                    self.startConnectionRefresh()
+                    // Don't stop the timer yet - let it continue until connection callback fires
+                } else if self.isConnecting {
+                    // We have a reader but still marked as connecting - update state
+                    self.isConnecting = false
+                    self.lastConnectionError = nil
+                    self.log("✅ Connection state updated - reader is ready")
+                }
+            }
+        }
+    }
+    
+    private func stopConnectionStatusCheck() {
+        connectionStatusCheckTimer?.invalidate()
+        connectionStatusCheckTimer = nil
+    }
+    
     // MARK: - Helper Methods
     
     func checkHardwareConnection() -> Bool {
@@ -370,8 +420,18 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     }
     
     func getReaderInfo() -> (connected: Bool, model: String?, error: String?) {
-        guard let reader = currentReader else {
+        // First check Terminal.shared for the connected reader (most reliable)
+        // Then fall back to our cached currentReader
+        let connectedReader = Terminal.shared.connectedReader ?? currentReader
+        
+        guard let reader = connectedReader else {
             return (connected: false, model: nil, error: lastConnectionError)
+        }
+        
+        // Update our cached reader if Terminal.shared has one but we don't
+        if currentReader == nil && Terminal.shared.connectedReader != nil {
+            currentReader = Terminal.shared.connectedReader
+            log("📱 Synced connected reader from Terminal.shared", verbose: true)
         }
         
         // Use string description for device type to avoid compilation issues
@@ -380,17 +440,107 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         return (connected: true, model: modelName, error: nil)
     }
     
+    /// Get software update status
+    func getUpdateStatus() -> (hasUpdate: Bool, status: String?, version: String?, progress: Int?) {
+        let versionString: String?
+        if let update = availableUpdate {
+            // ReaderSoftwareUpdate doesn't have a direct version property
+            // Use string description to extract version info
+            let updateDescription = String(describing: update)
+            // Try to extract version from description (format may vary)
+            versionString = updateDescription.contains("version") ? updateDescription : nil
+        } else {
+            versionString = nil
+        }
+        
+        let progressPercent: Int?
+        if let progress = updateProgress {
+            progressPercent = Int(progress * 100)
+        } else {
+            progressPercent = nil
+        }
+        
+        return (
+            hasUpdate: availableUpdate != nil,
+            status: updateStatus,
+            version: versionString,
+            progress: progressPercent
+        )
+    }
+    
+    /// Trigger software update check by reconnecting the reader
+    /// This will cause the SDK to check for and install any available updates
+    func triggerSoftwareUpdate(from viewController: UIViewController, completion: @escaping (Error?) -> Void) {
+        guard (currentReader ?? Terminal.shared.connectedReader) != nil else {
+            completion(NSError(domain: "StripeTerminal", code: -1, userInfo: [NSLocalizedDescriptionKey: "No reader connected. Please connect a reader first."]))
+            return
+        }
+        
+        log("🔄 Triggering software update check by reconnecting reader...")
+        updateStatus = "Checking for updates..."
+        updateProgress = nil // Reset progress
+        
+        // Disconnect first
+        disconnectReader {
+            // Fetch a fresh connection token before reconnecting
+            // Connection tokens can only be used once, so we need a new one
+            Task {
+                do {
+                    let credentials = try await APIService.shared.getStripeCredentials()
+                    
+                    await MainActor.run {
+                        // Update connection token and location ID
+                        self.connectionToken = credentials.connectionToken
+                        self.locationId = credentials.locationId
+                        
+                        // Reinitialize SDK with new token
+                        self.initialize(
+                            connectionToken: credentials.connectionToken,
+                            locationId: credentials.locationId
+                        ) { initError in
+                            if let initError = initError {
+                                self.updateStatus = "Initialization failed: \(initError.localizedDescription)"
+                                completion(initError)
+                                return
+                            }
+                            
+                            // Small delay before reconnecting
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                self.connectToReader(from: viewController) { connectError in
+                                    if let connectError = connectError {
+                                        self.updateStatus = "Update check failed: \(connectError.localizedDescription)"
+                                        completion(connectError)
+                                    } else {
+                                        // Update check will happen during connection
+                                        // Status will be updated via delegate methods
+                                        self.updateStatus = "Reconnecting to check for updates..."
+                                        completion(nil)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.updateStatus = "Failed to get credentials: \(error.localizedDescription)"
+                        completion(error)
+                    }
+                }
+            }
+        }
+    }
+    
     /// Get user-friendly error message from Stripe Terminal error
     fileprivate func getUserFriendlyError(_ error: Error) -> String {
         let errorDescription = error.localizedDescription.lowercased()
         
         // Check for common error patterns and provide user-friendly messages
         if errorDescription.contains("battery") && errorDescription.contains("low") {
-            return "Reader battery is too low. Please charge the reader and try again."
+            return "Reader battery is too low. The reader needs to charge to at least 50% before connecting. Please wait 10-15 minutes while charging, then try again. Check the LED lights on the reader - you need at least 2 solid green lights (50% charge)."
         }
         
         if errorDescription.contains("software update") && errorDescription.contains("battery") {
-            return "Reader battery is too low to install software update. Please charge the reader and try again."
+            return "Reader battery is too low to install software update. The reader needs to charge to at least 50% before updating. Please wait 10-15 minutes while charging, then try again. Check the LED lights - you need at least 2 solid green lights (50% charge)."
         }
         
         if errorDescription.contains("bluetooth") && errorDescription.contains("not available") {
@@ -470,6 +620,13 @@ extension StripeTerminalService: DiscoveryDelegate {
                 
                 guard let reader = reader else {
                     self.log("❌ Reader is nil after connection")
+                    // Even if reader is nil, check Terminal.shared.connectedReader as fallback
+                    if let connectedReader = Terminal.shared.connectedReader {
+                        self.currentReader = connectedReader
+                        self.log("✅ Reader found via Terminal.shared.connectedReader - Serial: \(connectedReader.serialNumber)")
+                        self.startKeepAlive()
+                        self.startConnectionRefresh()
+                    }
                     return
                 }
                 
@@ -485,7 +642,14 @@ extension StripeTerminalService: DiscoveryDelegate {
                 self.log("💡 Reader is now registered in your Stripe account")
                 self.startKeepAlive()
                 self.startConnectionRefresh()
+                // Stop connection status check since callback fired
+                self.stopConnectionStatusCheck()
             }
+            
+            // Start a periodic check to see if reader becomes connected even if callback hasn't fired
+            // This helps when software update is taking a long time
+            // Connection status check started (verbose)
+            startConnectionStatusCheck()
         } catch {
             self.isConnecting = false
             self.log("❌ Failed to create connection configuration: \(error.localizedDescription)")
@@ -507,27 +671,78 @@ extension StripeTerminalService: BluetoothReaderDelegate {
     // MARK: - Software Update Methods (required by BluetoothReaderDelegate)
     
     @objc func reader(_ reader: Reader, didReportAvailableUpdate update: ReaderSoftwareUpdate) {
-        log("📱 Reader software update available: \(String(describing: update))")
+        availableUpdate = update
+        let updateDescription = String(describing: update)
+        updateStatus = "Update available: \(updateDescription)"
+        log("📱 Reader software update available: \(updateDescription)")
     }
     
     @objc func reader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
-        log("📱 Installing reader software update: \(String(describing: update))")
+        let updateDescription = String(describing: update)
+        updateStatus = "Installing update: 0% complete"
+        updateProgress = 0.0 // Reset progress when starting
+        log("📱 Installing reader software update: \(updateDescription)")
+        log("💡 Update may take several minutes - connection will complete when update finishes")
     }
     
     @objc func reader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
-        log("📱 Reader software update progress: \(Int(progress * 100))%", verbose: true)
+        updateProgress = progress
+        let percent = Int(progress * 100)
+        updateStatus = "Installing update: \(percent)% complete"
+        
+        // Log every 10% to track progress better, especially when stuck at 0%
+        if percent % 10 == 0 || percent == 100 {
+            log("📱 Reader software update: \(percent)% complete")
+        }
+        
+        // If we're at 0% for a while, check if reader is actually connected
+        // Sometimes the connection completes even if update progress is stuck
+        if percent == 0 {
+            // Check if reader is connected despite update progress being 0
+            if let connectedReader = Terminal.shared.connectedReader, currentReader == nil {
+                currentReader = connectedReader
+                log("📱 Reader connected detected during update (progress: 0%) - Serial: \(connectedReader.serialNumber)")
+                startKeepAlive()
+                startConnectionRefresh()
+            }
+        }
     }
     
     @objc func reader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
         if let error = error {
             let userFriendlyError = self.getUserFriendlyError(error)
             lastConnectionError = userFriendlyError
+            updateStatus = "Update failed: \(userFriendlyError)"
             log("❌ Reader software update failed: \(error.localizedDescription)")
             log("📱 User-friendly error: \(userFriendlyError)")
+            // Update connection state even if update failed - reader might still be connected
+            if let connectedReader = Terminal.shared.connectedReader {
+                currentReader = connectedReader
+                log("📱 Reader is connected despite update error")
+            }
         } else {
+            updateStatus = "Update completed successfully"
+            updateProgress = 1.0 // 100%
+            availableUpdate = nil
             log("✅ Reader software update completed successfully")
             // Clear error on successful update
             lastConnectionError = nil
+            
+            // After update completes, check if reader is connected and sync state
+            if let connectedReader = Terminal.shared.connectedReader {
+                currentReader = connectedReader
+                log("✅ Reader connected after software update - Serial: \(connectedReader.serialNumber)")
+                startKeepAlive()
+                startConnectionRefresh()
+            } else {
+                log("⚠️ Reader update completed but reader not yet connected - connection callback should fire soon")
+            }
+            
+            // Clear update status and progress after 5 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                self.updateStatus = nil
+                self.updateProgress = nil
+            }
         }
     }
 }

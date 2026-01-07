@@ -44,15 +44,13 @@ struct ModernPaymentView: View {
                             onComplete()
                         }
                     )
-                } else if isProcessing {
-                    // While processing, show nothing - Stripe SDK will show its own UI
+                } else if isProcessing || hasStartedPayment {
+                    // While processing, show loading UI - Stripe SDK will show its own UI when ready
                     // The SDK UI will overlay on top of this view
-                    Color.black.opacity(0.01)
-                        .ignoresSafeArea()
+                    ModernProcessingView(amount: amount)
                 } else {
-                    // Initial state - start payment immediately
-                    Color.black.opacity(0.01)
-                        .ignoresSafeArea()
+                    // Initial state - show loading while starting payment
+                    ModernProcessingView(amount: amount)
                 }
             }
             
@@ -225,6 +223,9 @@ struct ModernPaymentView: View {
             paymentStatus = .failure("Device not properly activated - missing device")
             return
         }
+        
+        // Show loading state immediately
+        isProcessing = true
         
         Task {
             var currentDonationId: String? = nil
