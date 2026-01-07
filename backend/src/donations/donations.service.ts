@@ -1020,5 +1020,73 @@ export class DonationsService {
       // Don't throw - email failure shouldn't break donation completion
     }
   }
+
+  /**
+   * Assign an anonymous donation to a donor
+   * Updates the donation with donor information and updates donor statistics
+   */
+  async assignDonationToDonor(
+    donationId: string,
+    donorId: string,
+  ): Promise<Donation> {
+    const donation = await this.donationsRepository.findOne({
+      where: { id: donationId },
+      relations: ['donor'],
+    });
+
+    if (!donation) {
+      throw new NotFoundException(`Donation with ID ${donationId} not found`);
+    }
+
+    // Get the donor
+    const donor = await this.donorsService.getDonorById(donorId);
+
+    if (!donor) {
+      throw new NotFoundException(`Donor with ID ${donorId} not found`);
+    }
+
+    // Verify the donor belongs to the same temple
+    if (donor.templeId !== donation.templeId) {
+      throw new BadRequestException('Donor and donation must belong to the same temple');
+    }
+
+    // Only allow assigning succeeded donations
+    if (donation.status !== DonationStatus.SUCCEEDED) {
+      throw new BadRequestException('Can only assign succeeded donations to donors');
+    }
+
+    // Check if donation is already assigned to a different donor
+    if (donation.donorId && donation.donorId !== donorId) {
+      throw new BadRequestException('Donation is already assigned to a different donor');
+    }
+
+    // If already assigned to this donor, return early
+    if (donation.donorId === donorId) {
+      return donation;
+    }
+
+    // Update donation with donor information
+    donation.donorId = donorId;
+    donation.donorName = donor.name || donation.donorName;
+    donation.donorPhone = donor.phone || donation.donorPhone;
+    donation.donorEmail = donor.email || donation.donorEmail;
+    donation.donorAddress = donor.address || donation.donorAddress;
+
+    const savedDonation = await this.donationsRepository.save(donation);
+
+    // Update donor statistics if not already updated
+    // Check if this donation was already counted in donor stats
+    // We'll update stats to ensure accuracy
+    await this.donorsService.updateDonorStats(
+      donation.templeId,
+      donor.phone,
+      Number(donation.amount),
+      donation.createdAt,
+    );
+
+    console.log(`[DonationsService] ✅ Assigned donation ${donationId} to donor ${donorId}`);
+
+    return savedDonation;
+  }
 }
 

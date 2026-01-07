@@ -477,5 +477,17 @@ export class DonationsController {
 
     return paymentDetails;
   }
+
+  @Post(':id/assign-donor')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Assign an anonymous donation to a donor' })
+  async assignDonationToDonor(
+    @Param('id') id: string,
+    @Body() body: { donorId: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.donationsService.assignDonationToDonor(id, body.donorId);
+  }
 }
 

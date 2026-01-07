@@ -98,6 +98,15 @@ export class DonorsService {
   }
 
   /**
+   * Get donor by ID
+   */
+  async getDonorById(donorId: string): Promise<Donor | null> {
+    return this.donorsRepository.findOne({
+      where: { id: donorId },
+    });
+  }
+
+  /**
    * Get all donors for a temple
    */
   async getDonorsByTemple(

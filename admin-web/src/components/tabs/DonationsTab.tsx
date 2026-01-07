@@ -27,6 +27,9 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     email?: string | null
     address?: string | null
   } | null>(null)
+  const [assigningDonationId, setAssigningDonationId] = useState<string | null>(null)
+  const [donorSearch, setDonorSearch] = useState<string>('')
+  const [assigningDonorId, setAssigningDonorId] = useState<string | null>(null)
 
   // Fetch temples for master admin filter
   const { data: temples } = useQuery({
@@ -160,6 +163,62 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     setViewingPaymentDetailsId(donationId)
     setPaymentDetails(null)
     fetchPaymentDetailsMutation.mutate(donationId)
+  }
+
+  // Get the temple ID for the donation being assigned
+  const assigningDonation = assigningDonationId 
+    ? donations?.find((d: any) => d.id === assigningDonationId)
+    : null
+  const assignTempleId = assigningDonation 
+    ? assigningDonation.templeId 
+    : (isMasterAdmin && selectedTempleId !== 'all' ? selectedTempleId : templeId)
+
+  // Fetch donors for assignment
+  const { data: donorsData } = useQuery({
+    queryKey: ['donors', assignTempleId, donorSearch],
+    queryFn: async () => {
+      if (!assignTempleId) return { donors: [], total: 0 }
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '50',
+      })
+      if (donorSearch) {
+        params.append('search', donorSearch)
+      }
+      const endpoint = isMasterAdmin && assignTempleId
+        ? `/donors/temple/${assignTempleId}`
+        : '/donors/my-temple'
+      const response = await api.get(`${endpoint}?${params.toString()}`)
+      return response.data
+    },
+    enabled: !!assigningDonationId && !!assignTempleId,
+  })
+
+  const assignDonationMutation = useMutation({
+    mutationFn: async ({ donationId, donorId }: { donationId: string; donorId: string }) => {
+      const response = await api.post(`/donations/${donationId}/assign-donor`, { donorId })
+      return response.data
+    },
+    onSuccess: () => {
+      alert('Donation successfully assigned to donor!')
+      setAssigningDonationId(null)
+      setDonorSearch('')
+      setAssigningDonorId(null)
+      queryClient.invalidateQueries({ queryKey: ['donations'] })
+      queryClient.invalidateQueries({ queryKey: ['donors'] })
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to assign donation to donor')
+      setAssigningDonorId(null)
+    },
+  })
+
+  const handleAssignDonor = (donorId: string) => {
+    if (!assigningDonationId) return
+    if (confirm('Are you sure you want to assign this donation to this donor? This will update the donor\'s statistics.')) {
+      setAssigningDonorId(donorId)
+      assignDonationMutation.mutate({ donationId: assigningDonationId, donorId })
+    }
   }
 
   const handleGenerateReceiptNumbers = () => {
@@ -569,6 +628,86 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
           isMasterAdmin={isMasterAdmin}
           onClose={() => setViewingDonorInfo(null)}
         />
+      )}
+
+      {/* Assign Donation to Donor Modal */}
+      {assigningDonationId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Assign Donation to Donor</h2>
+                <button
+                  onClick={() => {
+                    setAssigningDonationId(null)
+                    setDonorSearch('')
+                    setAssigningDonorId(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Search for a donor to assign this donation. The donation will be linked to the donor and their statistics will be updated.
+              </p>
+              {assigningDonation && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    <strong>Donation:</strong> ${Number(assigningDonation.amount).toFixed(2)} on {format(new Date(assigningDonation.createdAt), 'MMM dd, yyyy')}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="p-6 flex-1 overflow-y-auto">
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search by name, phone, or email..."
+                  value={donorSearch}
+                  onChange={(e) => setDonorSearch(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              {donorsData?.donors && donorsData.donors.length > 0 ? (
+                <div className="space-y-2">
+                  {donorsData.donors.map((donor: any) => (
+                    <div
+                      key={donor.id}
+                      className="p-4 border border-gray-200 rounded-lg hover:bg-purple-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{donor.name || 'No name'}</div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            {donor.phone && <span>Phone: {donor.phone}</span>}
+                            {donor.email && <span className="ml-4">Email: {donor.email}</span>}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Total Donations: {donor.totalDonations || 0} | Total Amount: ${Number(donor.totalAmount || 0).toFixed(2)}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleAssignDonor(donor.id)}
+                          disabled={assigningDonorId === donor.id || assignDonationMutation.isPending}
+                          className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                        >
+                          {assigningDonorId === donor.id ? 'Assigning...' : 'Assign'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  {donorSearch ? 'No donors found matching your search.' : 'Start typing to search for donors...'}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

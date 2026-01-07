@@ -10,6 +10,7 @@ import {
 import { Temple } from '../../temples/entities/temple.entity';
 import { Device } from '../../devices/entities/device.entity';
 import { DonationCategory } from './donation-category.entity';
+import { Donor } from '../../donors/entities/donor.entity';
 
 export enum DonationStatus {
   PENDING = 'PENDING',
@@ -63,6 +64,13 @@ export class Donation {
 
   @Column({ type: 'text', nullable: true })
   donorAddress: string; // Mailing address
+
+  @Column({ nullable: true })
+  donorId: string; // Link to Donor entity (for assigning anonymous donations)
+
+  @ManyToOne(() => Donor, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'donorId' })
+  donor: Donor;
 
   @Column({ nullable: true })
   squarePaymentId: string; // Legacy Square payment ID
