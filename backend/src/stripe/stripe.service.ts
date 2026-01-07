@@ -284,7 +284,10 @@ export class StripeService {
     const totalAmount = confirmed.amount / 100; // Convert from cents
     
     // Get actual fee from Stripe's Balance Transaction API
+    // This pulls the exact fee from Stripe's account, matching what you see in Stripe Dashboard
     let fee = 0;
+    let feeSource = 'approximation'; // Track whether we used actual or approximated fee
+    
     try {
       // Get the latest charge for this payment intent
       if (confirmed.latest_charge && typeof confirmed.latest_charge === 'string') {
@@ -295,19 +298,47 @@ export class StripeService {
         if (charge.balance_transaction && typeof charge.balance_transaction === 'object') {
           const balanceTransaction = charge.balance_transaction;
           // Fee is in cents, convert to dollars
-          fee = Math.round((balanceTransaction.fee || 0) / 100 * 100) / 100;
+          const feeInCents = balanceTransaction.fee || 0;
+          fee = Math.round((feeInCents / 100) * 100) / 100;
+          
+          if (fee > 0) {
+            feeSource = 'stripe_balance_transaction';
+            console.log('[Stripe Service] ✅ Using actual fee from Stripe Balance Transaction:', fee);
+          }
+        }
+      }
+      
+      // If fee is still 0, try retrieving balance transaction directly (sometimes it's not expanded)
+      if (fee === 0 && confirmed.latest_charge && typeof confirmed.latest_charge === 'string') {
+        try {
+          const charge = await this.stripe.charges.retrieve(confirmed.latest_charge);
+          if (charge.balance_transaction && typeof charge.balance_transaction === 'string') {
+            const balanceTransaction = await this.stripe.balanceTransactions.retrieve(charge.balance_transaction);
+            const feeInCents = balanceTransaction.fee || 0;
+            fee = Math.round((feeInCents / 100) * 100) / 100;
+            
+            if (fee > 0) {
+              feeSource = 'stripe_balance_transaction';
+              console.log('[Stripe Service] ✅ Using actual fee from Stripe Balance Transaction (direct retrieve):', fee);
+            }
+          }
+        } catch (retryError) {
+          console.warn('[Stripe Service] Failed to retrieve balance transaction directly:', retryError);
         }
       }
       
       // Fallback to approximation if balance transaction not available
       if (fee === 0) {
         fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
-        console.log('[Stripe Service] Using fee approximation (balance transaction not available)');
+        console.warn('[Stripe Service] ⚠️ Using fee approximation (balance transaction not available yet). Fee may not match Stripe Dashboard exactly.');
+        console.warn('[Stripe Service] ⚠️ Approximation: 2.9% + $0.30 = $' + fee.toFixed(2));
+        console.warn('[Stripe Service] 💡 Tip: Use "Backfill Stripe Fees" button in admin portal to update with actual fees later.');
       }
     } catch (error) {
       console.warn('[Stripe Service] Failed to get actual fee from balance transaction, using approximation:', error);
       // Fallback to approximation
       fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+      feeSource = 'approximation';
     }
     
     const netAmount = totalAmount - fee;
@@ -373,7 +404,10 @@ export class StripeService {
     const totalAmount = paymentIntent.amount / 100;
     
     // Get actual fee from Stripe's Balance Transaction API
+    // This pulls the exact fee from Stripe's account, matching what you see in Stripe Dashboard
     let fee = 0;
+    let feeSource = 'approximation'; // Track whether we used actual or approximated fee
+    
     try {
       // Get the latest charge for this payment intent
       if (paymentIntent.latest_charge && typeof paymentIntent.latest_charge === 'string') {
@@ -384,19 +418,47 @@ export class StripeService {
         if (charge.balance_transaction && typeof charge.balance_transaction === 'object') {
           const balanceTransaction = charge.balance_transaction;
           // Fee is in cents, convert to dollars
-          fee = Math.round((balanceTransaction.fee || 0) / 100 * 100) / 100;
+          const feeInCents = balanceTransaction.fee || 0;
+          fee = Math.round((feeInCents / 100) * 100) / 100;
+          
+          if (fee > 0) {
+            feeSource = 'stripe_balance_transaction';
+            console.log('[Stripe Service] ✅ Using actual fee from Stripe Balance Transaction:', fee);
+          }
+        }
+      }
+      
+      // If fee is still 0, try retrieving balance transaction directly (sometimes it's not expanded)
+      if (fee === 0 && paymentIntent.latest_charge && typeof paymentIntent.latest_charge === 'string') {
+        try {
+          const charge = await this.stripe.charges.retrieve(paymentIntent.latest_charge);
+          if (charge.balance_transaction && typeof charge.balance_transaction === 'string') {
+            const balanceTransaction = await this.stripe.balanceTransactions.retrieve(charge.balance_transaction);
+            const feeInCents = balanceTransaction.fee || 0;
+            fee = Math.round((feeInCents / 100) * 100) / 100;
+            
+            if (fee > 0) {
+              feeSource = 'stripe_balance_transaction';
+              console.log('[Stripe Service] ✅ Using actual fee from Stripe Balance Transaction (direct retrieve):', fee);
+            }
+          }
+        } catch (retryError) {
+          console.warn('[Stripe Service] Failed to retrieve balance transaction directly:', retryError);
         }
       }
       
       // Fallback to approximation if balance transaction not available
       if (fee === 0) {
         fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
-        console.log('[Stripe Service] Using fee approximation (balance transaction not available)');
+        console.warn('[Stripe Service] ⚠️ Using fee approximation (balance transaction not available yet). Fee may not match Stripe Dashboard exactly.');
+        console.warn('[Stripe Service] ⚠️ Approximation: 2.9% + $0.30 = $' + fee.toFixed(2));
+        console.warn('[Stripe Service] 💡 Tip: Use "Backfill Stripe Fees" button in admin portal to update with actual fees later.');
       }
     } catch (error) {
       console.warn('[Stripe Service] Failed to get actual fee from balance transaction, using approximation:', error);
       // Fallback to approximation
       fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+      feeSource = 'approximation';
     }
     
     const netAmount = totalAmount - fee;

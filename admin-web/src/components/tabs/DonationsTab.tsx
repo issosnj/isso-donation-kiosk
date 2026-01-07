@@ -94,17 +94,17 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     },
   })
 
-  const backfillSquareFeesMutation = useMutation({
+  const backfillStripeFeesMutation = useMutation({
     mutationFn: async () => {
-      const response = await api.post('/donations/cleanup/backfill-square-fees')
+      const response = await api.post('/donations/cleanup/backfill-stripe-fees')
       return response.data
     },
     onSuccess: (data) => {
-      alert(`Successfully backfilled Square fees for ${data.updated} donations!${data.failed > 0 ? ` ${data.failed} failed.` : ''}`)
+      alert(`Successfully backfilled Stripe fees for ${data.updated} donations!${data.failed > 0 ? ` ${data.failed} failed.` : ''}`)
       queryClient.invalidateQueries({ queryKey: ['donations'] })
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || 'Failed to backfill Square fees')
+      alert(error.response?.data?.message || 'Failed to backfill Stripe fees')
     },
   })
 
@@ -168,9 +168,9 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     }
   }
 
-  const handleBackfillSquareFees = () => {
-    if (confirm('Backfill Square fees for all donations that are missing fee information? This will fetch fees from Square for each donation.')) {
-      backfillSquareFeesMutation.mutate()
+  const handleBackfillStripeFees = () => {
+    if (confirm('Backfill Stripe fees for all donations that are missing fee information? This will fetch actual fees from Stripe for each donation.')) {
+      backfillStripeFeesMutation.mutate()
     }
   }
 
@@ -325,11 +325,11 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   {generateReceiptNumbersMutation.isPending ? 'Generating...' : 'Generate Receipt Numbers'}
                 </button>
                 <button
-                  onClick={handleBackfillSquareFees}
-                  disabled={backfillSquareFeesMutation.isPending}
+                  onClick={handleBackfillStripeFees}
+                  disabled={backfillStripeFeesMutation.isPending}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {backfillSquareFeesMutation.isPending ? 'Backfilling...' : 'Backfill Square Fees'}
+                  {backfillStripeFeesMutation.isPending ? 'Backfilling...' : 'Backfill Stripe Fees'}
                 </button>
               </div>
               )}
@@ -347,7 +347,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
               )}
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Receipt #</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Gross Amount</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Square Fee</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stripe Fee</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Net Amount</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
@@ -401,7 +401,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-red-600">
-                    {donation.status === 'SUCCEEDED' && donation.squareFee ? `-$${Number(donation.squareFee).toFixed(2)}` : '-'}
+                    {donation.status === 'SUCCEEDED' && (donation.stripeFee || donation.squareFee) ? `-$${Number(donation.stripeFee || donation.squareFee).toFixed(2)}` : '-'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -523,11 +523,11 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Gross Amount</p>
-                  <p className="font-medium">${(paymentDetails.netAmount + paymentDetails.squareFee).toFixed(2)}</p>
+                  <p className="font-medium">${(paymentDetails.netAmount + (paymentDetails.stripeFee || paymentDetails.squareFee || 0)).toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Square Fee</p>
-                  <p className="font-medium text-red-600">-${paymentDetails.squareFee.toFixed(2)}</p>
+                  <p className="text-sm text-gray-600">Stripe Fee</p>
+                  <p className="font-medium text-red-600">-${(paymentDetails.stripeFee || paymentDetails.squareFee || 0).toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Net Amount</p>
