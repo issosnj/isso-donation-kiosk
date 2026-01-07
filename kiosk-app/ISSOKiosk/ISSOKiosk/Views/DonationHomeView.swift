@@ -377,9 +377,11 @@ struct DonationHomeView: View {
                 },
                     onCancel: {
                     // When payment is canceled, go back to review donation screen
-                    withAnimation {
+                    // Set showingDetails first to prevent showing donation selection screen
+                    showingDetails = true
+                    // Then dismiss payment view - use a small delay to ensure smooth transition
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         showingPayment = false
-                        showingDetails = true
                     }
                 }
             )
