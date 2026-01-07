@@ -48,13 +48,14 @@ class StripePaymentService {
                                 do {
                                     let paymentIntent = try await APIService.shared.createPaymentIntent(
                                         donationId: donationId,
-                                        amount: amount
+                                        amount: amount  // Backend expects dollars (Double)
                                     )
                                     
                                     await MainActor.run {
                                         // Take payment using Stripe Terminal
+                                        // Note: amount is only used for logging; actual amount comes from PaymentIntent
                                         StripeTerminalService.shared.takePayment(
-                                            amount: amount,
+                                            amount: amount,  // Keep as Double for logging
                                             paymentIntentId: paymentIntent.paymentIntentId,
                                             from: viewController
                                         ) { result in

@@ -47,10 +47,20 @@ struct ModernPaymentView: View {
                 } else if isProcessing || hasStartedPayment {
                     // While processing, show loading UI - Stripe SDK will show its own UI when ready
                     // The SDK UI will overlay on top of this view
-                    ModernProcessingView(amount: amount)
+                    ModernProcessingView(
+                        amount: amount,
+                        onCancel: {
+                            cancelPayment()
+                        }
+                    )
                 } else {
                     // Initial state - show loading while starting payment
-                    ModernProcessingView(amount: amount)
+                    ModernProcessingView(
+                        amount: amount,
+                        onCancel: {
+                            cancelPayment()
+                        }
+                    )
                 }
             }
             
@@ -188,6 +198,37 @@ struct ModernPaymentView: View {
             }
         }
         .detectTouches() // Detect all user interactions to reset idle timer
+    }
+    
+    private func cancelPayment() {
+        appLog("🚫 User cancelled payment", category: "PaymentView")
+        
+        // Cancel Stripe payment if in progress
+        if StripePaymentService.shared.isPaymentInProgress() {
+            StripePaymentService.shared.cancelCurrentPayment()
+        }
+        
+        // Cancel donation if it was created
+        if let donationId = donationId {
+            Task {
+                do {
+                    _ = try await APIService.shared.cancelDonation(donationId: donationId)
+                    appLog("✅ Donation cancelled successfully", category: "PaymentView")
+                } catch {
+                    appLog("⚠️ Failed to cancel donation: \(error.localizedDescription)", category: "PaymentView")
+                }
+            }
+        }
+        
+        // Reset state
+        isProcessing = false
+        hasStartedPayment = false
+        isStartingPayment = false
+        donationId = nil
+        paymentStatus = nil
+        
+        // Go back to payment entering screen
+        onComplete()
     }
     
     private func processPayment() {
@@ -696,40 +737,106 @@ struct ModernPaymentProcessingView: View {
 // Modern processing view
 struct ModernProcessingView: View {
     let amount: Double
+    let onCancel: () -> Void
+    @EnvironmentObject var appState: AppState
     @State private var rotationAngle: Double = 0
+    @State private var appearAnimation = false
+    
+    // Helper to convert hex string to Color
+    private func colorFromHex(_ hex: String?, defaultColor: Color = Color(red: 0.26, green: 0.20, blue: 0.20)) -> Color {
+        guard let hex = hex, !hex.isEmpty else {
+            return defaultColor
+        }
+        
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        
+        if hexSanitized.count == 3 {
+            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
+        }
+        
+        guard hexSanitized.count == 6,
+              let rgb = UInt32(hexSanitized, radix: 16) else {
+            return defaultColor
+        }
+        
+        let red = Double((rgb >> 16) & 0xFF) / 255.0
+        let green = Double((rgb >> 8) & 0xFF) / 255.0
+        let blue = Double(rgb & 0xFF) / 255.0
+        
+        return Color(red: red, green: green, blue: blue)
+    }
+    
+    // Background view matching theme
+    @ViewBuilder
+    private func backgroundView(geometry: GeometryProxy) -> some View {
+        // First try to use asset (local, no network needed)
+        if UIImage(named: "KioskBackground") != nil {
+            Image("KioskBackground")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+        } else {
+            // Final fallback to default gradient
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.white,
+                    Color(red: 0.95, green: 0.97, blue: 1.0)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+    }
+    
+    // Theme colors
+    private var headingColor: Color {
+        if let theme = appState.temple?.kioskTheme,
+           let hex = theme.colors?.headingColor {
+            return colorFromHex(hex)
+        }
+        return Color(red: 0.26, green: 0.20, blue: 0.20) // #423232
+    }
+    
+    private var bodyTextColor: Color {
+        Color(red: 0.5, green: 0.5, blue: 0.6)
+    }
+    
+    private var buttonColor: Color {
+        Color(red: 1.0, green: 0.58, blue: 0.0) // Orange matching theme
+    }
     
     var body: some View {
         ZStack {
-            // Modern gradient background
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.92, green: 0.96, blue: 1.0),
-                    Color(red: 0.88, green: 0.94, blue: 1.0)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            GeometryReader { geometry in
+                backgroundView(geometry: geometry)
+            }
+            .ignoresSafeArea(.all, edges: .all)
             
             VStack(spacing: 50) {
+                Spacer()
+                
                 // Animated progress indicator
                 ZStack {
-                    // Outer ring
+                    // Outer ring with theme colors
                     Circle()
                         .stroke(
-                            Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.2),
+                            headingColor.opacity(0.2),
                             lineWidth: 12
                         )
                         .frame(width: 150, height: 150)
                     
-                    // Animated progress ring
+                    // Animated progress ring with theme colors
                     Circle()
                         .trim(from: 0, to: 0.7)
                         .stroke(
                             LinearGradient(
                                 gradient: Gradient(colors: [
-                                    Color(red: 0.2, green: 0.4, blue: 0.8),
-                                    Color(red: 0.3, green: 0.5, blue: 0.9)
+                                    buttonColor,
+                                    buttonColor.opacity(0.7)
                                 ]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -739,38 +846,75 @@ struct ModernProcessingView: View {
                         .frame(width: 150, height: 150)
                         .rotationEffect(.degrees(rotationAngle))
                     
-                    // Center icon
+                    // Center icon with theme color
                     Image(systemName: "creditcard.fill")
                         .font(.system(size: 50))
-                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                        .foregroundColor(buttonColor)
                 }
+                .scaleEffect(appearAnimation ? 1.0 : 0.8)
+                .opacity(appearAnimation ? 1.0 : 0.0)
                 
                 VStack(spacing: 15) {
-            Text("processingPayment".localized)
+                    Text("processingPayment".localized)
                         .font(.custom("Inter-SemiBold", size: 32))
-                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5))
-            
-            Text("$\(String(format: "%.2f", amount))")
+                        .foregroundColor(headingColor)
+                        .opacity(appearAnimation ? 1.0 : 0.0)
+                        .offset(y: appearAnimation ? 0 : 20)
+                    
+                    Text("$\(String(format: "%.2f", amount))")
                         .font(.custom("Inter-SemiBold", size: 56))
-                        .foregroundStyle(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.2, green: 0.4, blue: 0.8),
-                                    Color(red: 0.3, green: 0.5, blue: 0.9)
-                                ]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-            
-            Text("Please wait")
+                        .foregroundColor(buttonColor)
+                        .opacity(appearAnimation ? 1.0 : 0.0)
+                        .offset(y: appearAnimation ? 0 : 20)
+                    
+                    Text("Please wait")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.gray)
+                        .foregroundColor(bodyTextColor)
+                        .opacity(appearAnimation ? 1.0 : 0.0)
+                        .offset(y: appearAnimation ? 0 : 20)
                 }
+                
+                // Cancel button - matching theme
+                Button(action: onCancel) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 22))
+                        Text("Tap to Cancel")
+                            .font(.custom("Inter-Medium", size: 20))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(buttonColor)
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 20)
+                .scaleEffect(appearAnimation ? 1.0 : 0.9)
+                .opacity(appearAnimation ? 1.0 : 0.0)
+                .offset(y: appearAnimation ? 0 : 30)
+                
+                Spacer()
             }
             .padding(40)
+            
+            // Time and Network Status in top right
+            VStack {
+                HStack {
+                    Spacer()
+                    TimeAndNetworkStatusView()
+                        .padding(.trailing, 20)
+                        .padding(.top, 7)
+                }
+                Spacer()
+            }
         }
         .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+                appearAnimation = true
+            }
+            
             withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
                 rotationAngle = 360
             }
@@ -1021,9 +1165,10 @@ struct PaymentProcessingView: View {
 
 struct ProcessingView: View {
     let amount: Double
+    let onCancel: () -> Void
     
     var body: some View {
-        ModernProcessingView(amount: amount)
+        ModernProcessingView(amount: amount, onCancel: onCancel)
     }
 }
 
