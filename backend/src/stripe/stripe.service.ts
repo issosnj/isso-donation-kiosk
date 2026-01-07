@@ -329,9 +329,9 @@ export class StripeService {
       
       // Fallback to approximation if balance transaction not available
       if (fee === 0) {
-        fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+        fee = Math.round((totalAmount * 0.026 + 0.10) * 100) / 100;
         console.warn('[Stripe Service] ⚠️ Using fee approximation (balance transaction not available yet). Fee may not match Stripe Dashboard exactly.');
-        console.warn('[Stripe Service] ⚠️ Approximation: 2.9% + $0.30 = $' + fee.toFixed(2));
+        console.warn('[Stripe Service] ⚠️ Approximation (Terminal rates): 2.6% + $0.10 = $' + fee.toFixed(2));
         console.warn('[Stripe Service] 💡 Tip: Use "Backfill Stripe Fees" button in admin portal to update with actual fees later.');
       }
     } catch (error) {
@@ -342,6 +342,17 @@ export class StripeService {
     }
     
     const netAmount = totalAmount - fee;
+    
+    // Log fee details for debugging and verification
+    console.log(`[Stripe Service] Fee details for PaymentIntent ${confirmed.id}:`, {
+      amount: `$${totalAmount.toFixed(2)}`,
+      fee: `$${fee.toFixed(2)}`,
+      feeSource: feeSource,
+      netAmount: `$${netAmount.toFixed(2)}`,
+      note: feeSource === 'stripe_balance_transaction' 
+        ? '✅ Using actual fee from Stripe (matches Stripe Dashboard)' 
+        : '⚠️ Using approximation - may not match Stripe Dashboard exactly'
+    });
 
     // Extract card information
     const paymentMethod = confirmed.payment_method;
@@ -449,9 +460,9 @@ export class StripeService {
       
       // Fallback to approximation if balance transaction not available
       if (fee === 0) {
-        fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+        fee = Math.round((totalAmount * 0.026 + 0.10) * 100) / 100;
         console.warn('[Stripe Service] ⚠️ Using fee approximation (balance transaction not available yet). Fee may not match Stripe Dashboard exactly.');
-        console.warn('[Stripe Service] ⚠️ Approximation: 2.9% + $0.30 = $' + fee.toFixed(2));
+        console.warn('[Stripe Service] ⚠️ Approximation (Terminal rates): 2.6% + $0.10 = $' + fee.toFixed(2));
         console.warn('[Stripe Service] 💡 Tip: Use "Backfill Stripe Fees" button in admin portal to update with actual fees later.');
       }
     } catch (error) {
@@ -462,6 +473,17 @@ export class StripeService {
     }
     
     const netAmount = totalAmount - fee;
+    
+    // Log fee details for debugging and verification
+    console.log(`[Stripe Service] Fee details for PaymentIntent ${paymentIntent.id}:`, {
+      amount: `$${totalAmount.toFixed(2)}`,
+      fee: `$${fee.toFixed(2)}`,
+      feeSource: feeSource,
+      netAmount: `$${netAmount.toFixed(2)}`,
+      note: feeSource === 'stripe_balance_transaction' 
+        ? '✅ Using actual fee from Stripe (matches Stripe Dashboard)' 
+        : '⚠️ Using approximation - may not match Stripe Dashboard exactly'
+    });
 
     let cardLast4: string | null = null;
     let cardBrand: string | null = null;
