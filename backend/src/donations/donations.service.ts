@@ -465,6 +465,7 @@ export class DonationsService {
   async cancel(donationId: string): Promise<Donation> {
     const donation = await this.donationsRepository.findOne({
       where: { id: donationId },
+      relations: ['temple'],
     });
     if (!donation) {
       throw new NotFoundException(`Donation with ID ${donationId} not found`);
@@ -478,6 +479,22 @@ export class DonationsService {
     // If already canceled, just return it
     if (donation.status === DonationStatus.CANCELED) {
       return donation;
+    }
+
+    // Cancel PaymentIntent in Stripe if it exists and hasn't been confirmed
+    if (donation.stripePaymentIntentId) {
+      try {
+        console.log(`[DonationsService] Canceling Stripe PaymentIntent: ${donation.stripePaymentIntentId}`);
+        await this.stripeService.cancelPaymentIntent(
+          donation.templeId,
+          donation.stripePaymentIntentId,
+        );
+        console.log(`[DonationsService] Successfully canceled PaymentIntent in Stripe`);
+      } catch (error) {
+        // Log error but don't fail donation cancellation if PaymentIntent cancellation fails
+        // (PaymentIntent might already be confirmed or canceled)
+        console.warn(`[DonationsService] Failed to cancel PaymentIntent (may already be processed): ${error.message}`);
+      }
     }
 
     donation.status = DonationStatus.CANCELED;

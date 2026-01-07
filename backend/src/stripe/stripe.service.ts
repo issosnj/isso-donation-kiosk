@@ -424,6 +424,55 @@ export class StripeService {
   }
 
   /**
+   * Cancel a PaymentIntent (if it hasn't been confirmed)
+   */
+  async cancelPaymentIntent(
+    templeId: string,
+    paymentIntentId: string,
+  ): Promise<void> {
+    const temple = await this.templesService.findOne(templeId);
+    
+    // Check if Stripe is configured (either stripeAccountId for Connect or stripePublishableKey for direct)
+    if (!temple.stripeAccountId && !temple.stripePublishableKey) {
+      throw new Error('Stripe not connected for this temple. Please configure Stripe in the admin portal.');
+    }
+
+    try {
+      // Retrieve the PaymentIntent to check its status
+      const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      // Only cancel if it's in a cancelable state (requires_payment_method, requires_confirmation, requires_action)
+      if (paymentIntent.status === 'requires_payment_method' || 
+          paymentIntent.status === 'requires_confirmation' || 
+          paymentIntent.status === 'requires_action') {
+        // Cancel the PaymentIntent
+        await this.stripe.paymentIntents.cancel(paymentIntentId);
+        console.log(`[Stripe Service] Successfully canceled PaymentIntent: ${paymentIntentId}`);
+      } else if (paymentIntent.status === 'succeeded') {
+        console.log(`[Stripe Service] PaymentIntent ${paymentIntentId} already succeeded, cannot cancel`);
+        // Don't throw error - payment already succeeded, cancellation not needed
+      } else if (paymentIntent.status === 'canceled') {
+        console.log(`[Stripe Service] PaymentIntent ${paymentIntentId} already canceled`);
+        // Don't throw error - already canceled
+      } else {
+        console.log(`[Stripe Service] PaymentIntent ${paymentIntentId} in status ${paymentIntent.status}, attempting to cancel anyway`);
+        // Try to cancel anyway
+        try {
+          await this.stripe.paymentIntents.cancel(paymentIntentId);
+          console.log(`[Stripe Service] Successfully canceled PaymentIntent: ${paymentIntentId}`);
+        } catch (cancelError) {
+          console.warn(`[Stripe Service] Could not cancel PaymentIntent ${paymentIntentId}: ${cancelError.message}`);
+          // Don't throw - PaymentIntent may be in a state that doesn't allow cancellation
+        }
+      }
+    } catch (error) {
+      console.error(`[Stripe Service] Error canceling PaymentIntent ${paymentIntentId}:`, error);
+      // Don't throw - allow donation cancellation to proceed even if PaymentIntent cancellation fails
+      // (PaymentIntent might not exist or might already be processed)
+    }
+  }
+
+  /**
    * Refund a payment
    */
   async refundPayment(
