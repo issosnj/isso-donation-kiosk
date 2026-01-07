@@ -716,6 +716,9 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                     setAssigningDonationId(null)
                     setDonorSearch('')
                     setAssigningDonorId(null)
+                    setShowCreateDonor(false)
+                    setSendReceiptEmail(false)
+                    setNewDonorForm({ name: '', phone: '', email: '', address: '' })
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
