@@ -370,6 +370,13 @@ struct DonationHomeView: View {
                     }
                     // Also dismiss the donation flow to go back to home screen
                     onDismiss()
+                },
+                    onCancel: {
+                    // When payment is canceled, go back to review donation screen
+                    withAnimation {
+                        showingPayment = false
+                        showingDetails = true
+                    }
                 }
             )
         }

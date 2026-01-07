@@ -18,6 +18,7 @@ struct ModernPaymentView: View {
     let donorEmail: String?
     let donorAddress: String?
     let onComplete: () -> Void
+    let onCancel: (() -> Void)? // Optional callback for cancel action
     @ObservedObject private var languageManager = LanguageManager.shared
     
     @EnvironmentObject var appState: AppState
@@ -234,10 +235,13 @@ struct ModernPaymentView: View {
         donationId = nil
         paymentStatus = nil
         
-        // Dismiss payment view to go back to review donation screen
-        // Use dismiss() instead of onComplete() to only close the payment view,
-        // not the entire donation flow
-        dismiss()
+        // Dismiss payment view and return to review donation screen
+        // If onCancel callback is provided, use it; otherwise use dismiss()
+        if let onCancel = onCancel {
+            onCancel()
+        } else {
+            dismiss()
+        }
     }
     
     private func processPayment() {
@@ -1100,6 +1104,7 @@ struct PaymentView: View {
     let donorEmail: String?
     let donorAddress: String?
     let onComplete: () -> Void
+    let onCancel: (() -> Void)? = nil
     
     var body: some View {
         ModernPaymentView(
@@ -1109,7 +1114,8 @@ struct PaymentView: View {
             donorPhone: donorPhone,
             donorEmail: donorEmail,
             donorAddress: donorAddress,
-            onComplete: onComplete
+            onComplete: onComplete,
+            onCancel: onCancel
         )
     }
 }
