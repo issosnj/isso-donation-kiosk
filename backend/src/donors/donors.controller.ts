@@ -171,7 +171,7 @@ export class DonorsController {
     const targetTempleId = req.user.role === UserRole.TEMPLE_ADMIN ? req.user.templeId : templeId;
     
     if (!targetTempleId && req.user.role === UserRole.TEMPLE_ADMIN) {
-      throw new ForbiddenException('Temple ID required');
+      throw new BadRequestException('Temple ID required');
     }
 
     const result = await this.donorsService.backfillDonorsFromDonations(
