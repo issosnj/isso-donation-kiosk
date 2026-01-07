@@ -9,6 +9,7 @@ import { DonationCategory } from './entities/donation-category.entity';
 import { DonationCategoriesService } from './donation-categories.service';
 import { DonationCategoriesController } from './donation-categories.controller';
 import { TemplesModule } from '../temples/temples.module';
+import { Temple } from '../temples/entities/temple.entity';
 import { DevicesModule } from '../devices/devices.module';
 import { StripeModule } from '../stripe/stripe.module';
 import { GmailModule } from '../gmail/gmail.module';
@@ -18,7 +19,7 @@ import { DonorsModule } from '../donors/donors.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Donation, DonationCategory]),
+    TypeOrmModule.forFeature([Donation, DonationCategory, Temple]),
     TemplesModule,
     forwardRef(() => DevicesModule),
     forwardRef(() => StripeModule),

@@ -5,6 +5,7 @@ import { Donation, DonationStatus } from './entities/donation.entity';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
 import { TemplesService } from '../temples/temples.service';
+import { Temple } from '../temples/entities/temple.entity';
 import { GmailService } from '../gmail/gmail.service';
 import { StripeService } from '../stripe/stripe.service';
 import { ReceiptPdfService } from './receipt-pdf.service';
@@ -18,6 +19,8 @@ export class DonationsService {
   constructor(
     @InjectRepository(Donation)
     private donationsRepository: Repository<Donation>,
+    @InjectRepository(Temple)
+    private templesRepository: Repository<Temple>,
     private templesService: TemplesService,
     private gmailService: GmailService,
     @Inject(forwardRef(() => StripeService))
@@ -38,13 +41,34 @@ export class DonationsService {
         currency: initiateDonationDto.currency,
       });
       
-      // Validate temple exists
-      const temple = await this.templesService.findOne(initiateDonationDto.templeId);
-      if (!temple) {
+      // Validate temple exists - use a simple query without relations for speed
+      const templeLookupStart = Date.now();
+      let templeExists = false;
+      try {
+        // Use a simple count query instead of loading full temple with relations
+        const templeCount = await Promise.race([
+          this.templesRepository.count({ where: { id: initiateDonationDto.templeId } }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Temple lookup timeout after 3 seconds')), 3000)
+          )
+        ]) as number;
+        
+        templeExists = templeCount > 0;
+        const templeLookupTime = Date.now() - templeLookupStart;
+        console.log(`[DonationsService] Temple validation completed in ${templeLookupTime}ms (exists: ${templeExists})`);
+      } catch (lookupError) {
+        console.error('[DonationsService] Temple validation failed:', lookupError);
+        if (lookupError.message?.includes('timeout')) {
+          throw new BadRequestException('Temple validation timed out. Please try again.');
+        }
+        throw lookupError;
+      }
+      
+      if (!templeExists) {
         throw new NotFoundException(`Temple with ID ${initiateDonationDto.templeId} not found`);
       }
       
-      console.log('[DonationsService] Temple found:', temple.name);
+      console.log('[DonationsService] Temple validated successfully');
       
       // Create donation entity
       const donation = this.donationsRepository.create({
@@ -54,8 +78,25 @@ export class DonationsService {
       
       console.log('[DonationsService] Created donation entity, saving to database...');
       
-      // Save to database
-      const savedDonation = await this.donationsRepository.save(donation);
+      // Save to database with timeout
+      const saveStart = Date.now();
+      let savedDonation;
+      try {
+        savedDonation = await Promise.race([
+          this.donationsRepository.save(donation),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Database save timeout after 5 seconds')), 5000)
+          )
+        ]) as any;
+        const saveTime = Date.now() - saveStart;
+        console.log(`[DonationsService] Database save completed in ${saveTime}ms`);
+      } catch (saveError) {
+        console.error('[DonationsService] Database save failed:', saveError);
+        if (saveError.message?.includes('timeout')) {
+          throw new BadRequestException('Database save timed out. Please try again.');
+        }
+        throw saveError;
+      }
       
       console.log('[DonationsService] Donation saved successfully:', savedDonation.id);
       return savedDonation;
