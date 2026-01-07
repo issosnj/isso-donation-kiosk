@@ -133,7 +133,7 @@ struct QuickAmountButton: View {
         Button(action: {
             enteredAmount = String(format: "%.2f", amount)
         }) {
-            Text("$\(Int(amount))")
+            Text(amount.formattedCurrencyWhole())
                 .font(.custom("Inter-Medium", size: 16))
                 .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                 .frame(maxWidth: .infinity)

@@ -28,7 +28,7 @@ struct YajmanOpportunitiesView: View {
                                 .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                             
                             if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                                Text("$\(Int(defaultAmount))")
+                                Text(defaultAmount.formattedCurrencyWhole())
                                     .font(.custom("Inter-SemiBold", size: 48))
                                     .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                             }

@@ -1061,7 +1061,7 @@ struct CleanAmountButton: View {
     
     var body: some View {
         Button(action: action) {
-                Text("$\(Int(amount))")
+                Text(amount.formattedCurrencyWhole())
                 .font(.custom("Inter-Medium", size: 20))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -1198,7 +1198,7 @@ struct CleanCategoryButton: View {
                             .lineLimit(1)
                         
                         if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                            Text("$\(Int(defaultAmount))")
+                            Text(defaultAmount.formattedCurrencyWhole())
                                 .font(.custom("Inter-Bold", size: 18))
                                 .foregroundColor(.white)
                         }
