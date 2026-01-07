@@ -486,6 +486,33 @@ export class StripeService {
   }
 
   /**
+   * Update PaymentIntent metadata (e.g., to add receipt number)
+   */
+  async updatePaymentIntentMetadata(
+    templeId: string,
+    paymentIntentId: string,
+    metadata: Record<string, string>,
+  ): Promise<void> {
+    const temple = await this.templesService.findOne(templeId);
+    
+    // Check if Stripe is configured (either stripeAccountId for Connect or stripePublishableKey for direct)
+    if (!temple.stripeAccountId && !temple.stripePublishableKey) {
+      throw new Error('Stripe not connected for this temple. Please configure Stripe in the admin portal.');
+    }
+
+    try {
+      // Update PaymentIntent metadata
+      await this.stripe.paymentIntents.update(paymentIntentId, {
+        metadata: metadata,
+      });
+      console.log(`[Stripe Service] Successfully updated PaymentIntent ${paymentIntentId} metadata:`, metadata);
+    } catch (error) {
+      console.error(`[Stripe Service] Error updating PaymentIntent ${paymentIntentId} metadata:`, error);
+      // Don't throw - metadata update failure shouldn't break donation completion
+    }
+  }
+
+  /**
    * Cancel a PaymentIntent (if it hasn't been confirmed)
    */
   async cancelPaymentIntent(

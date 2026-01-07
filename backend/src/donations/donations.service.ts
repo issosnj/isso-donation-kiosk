@@ -225,6 +225,27 @@ export class DonationsService {
     }
 
     const savedDonation = await this.donationsRepository.save(donation);
+    
+    // Update Stripe PaymentIntent metadata with receipt number if available
+    if (savedDonation.status === DonationStatus.SUCCEEDED && 
+        savedDonation.stripePaymentIntentId && 
+        savedDonation.receiptNumber) {
+      try {
+        await this.stripeService.updatePaymentIntentMetadata(
+          savedDonation.templeId,
+          savedDonation.stripePaymentIntentId,
+          {
+            donationId: savedDonation.id,
+            templeId: savedDonation.templeId,
+            receiptNumber: savedDonation.receiptNumber,
+          }
+        );
+        console.log(`[DonationsService] Added receipt number ${savedDonation.receiptNumber} to Stripe PaymentIntent ${savedDonation.stripePaymentIntentId}`);
+      } catch (error) {
+        console.warn(`[DonationsService] Failed to update PaymentIntent metadata with receipt number: ${error.message}`);
+        // Don't fail donation completion if metadata update fails
+      }
+    }
 
     // Save/update donor information in Donor table if phone is provided (for both succeeded and other statuses to track all donors)
     if (completeDonationDto.donorPhone) {
