@@ -783,15 +783,19 @@ struct DonationHomeView: View {
                     }
                     
                     // Total display - liquid glass styling
-                    VStack(spacing: 6) {
+                    HStack {
                         Text("total".localized)
                             .font(.custom(bodyFont, size: bodySize))
                             .foregroundColor(subtitleColor)
+                            .frame(minWidth: 60, alignment: .leading)
+                        
+                        Spacer()
                         
                         Text("$\(String(format: "%.2f", defaultAmount * Double(quantity)))")
                             .font(.custom(headingFont, size: 32))
                             .foregroundColor(quantityTotalColor)
                             .fontWeight(.semibold)
+                            .monospacedDigit()
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -822,15 +826,19 @@ struct DonationHomeView: View {
                 // Show total only when amount is selected (no quantity) - liquid glass styling
                 HStack {
                     Spacer()
-                    VStack(spacing: 6) {
+                    HStack {
                         Text("total".localized)
                             .font(.custom(bodyFont, size: bodySize))
                             .foregroundColor(subtitleColor)
+                            .frame(minWidth: 60, alignment: .leading)
+                        
+                        Spacer()
                         
                         Text("$\(String(format: "%.2f", currentAmount))")
                             .font(.custom(headingFont, size: 32))
                             .foregroundColor(quantityTotalColor)
                             .fontWeight(.semibold)
+                            .monospacedDigit()
                     }
                     .padding(.vertical, 12)
                     .padding(.horizontal, 28)
