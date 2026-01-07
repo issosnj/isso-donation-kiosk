@@ -43,12 +43,16 @@ struct ModernPaymentView: View {
                         onDismiss: {
                             paymentStatus = nil
                             // For success, go back to home (onComplete)
-                            // For failure, go back to review donation screen (dismiss)
+                            // For failure, go back to review donation screen (onCancel)
                             if case .success = status {
                                 onComplete()
                             } else {
-                                // Failure - dismiss payment view to return to review donation screen
-                                dismiss()
+                                // Failure - use onCancel to return to review donation screen with details preserved
+                                if let onCancel = onCancel {
+                                    onCancel()
+                                } else {
+                                    dismiss()
+                                }
                             }
                         }
                     )
