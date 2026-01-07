@@ -491,7 +491,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  {donation.donorPhone ? (
+                  {donation.donorPhone || donation.donorId ? (
                     <button
                       onClick={() => setViewingDonorInfo({
                         phone: donation.donorPhone,
@@ -504,7 +504,17 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                       View Info
                     </button>
                   ) : (
-                    <span className="text-sm text-gray-400">Anonymous</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-400">Anonymous</span>
+                      {donation.status === 'SUCCEEDED' && (
+                        <button
+                          onClick={() => setAssigningDonationId(donation.id)}
+                          className="text-xs text-purple-600 hover:text-purple-800 hover:underline font-medium px-2 py-1 border border-purple-300 rounded hover:bg-purple-50"
+                        >
+                          Assign to Donor
+                        </button>
+                      )}
+                    </div>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
