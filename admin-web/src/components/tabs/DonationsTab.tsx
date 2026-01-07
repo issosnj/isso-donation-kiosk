@@ -504,12 +504,12 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                       View Info
                     </button>
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-1">
                       <span className="text-sm text-gray-400">Anonymous</span>
                       {donation.status === 'SUCCEEDED' && (
                         <button
                           onClick={() => setAssigningDonationId(donation.id)}
-                          className="text-xs text-purple-600 hover:text-purple-800 hover:underline font-medium px-2 py-1 border border-purple-300 rounded hover:bg-purple-50"
+                          className="text-xs text-purple-600 hover:text-purple-800 hover:underline font-medium px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 w-fit"
                         >
                           Assign to Donor
                         </button>
