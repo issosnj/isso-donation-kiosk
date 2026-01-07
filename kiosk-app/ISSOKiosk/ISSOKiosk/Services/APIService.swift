@@ -22,6 +22,7 @@ class APIService {
         timeout: TimeInterval = 30.0
     ) async throws -> T {
         let fullURL = "\(baseURL)\(endpoint)"
+        print("[APIService] 🌐 \(method) \(endpoint)")
         
         guard let url = URL(string: fullURL) else {
             print("[APIService] ❌ Invalid URL: \(fullURL)")
@@ -60,11 +61,21 @@ class APIService {
                 }
                 
                 guard (200...299).contains(httpResponse.statusCode) else {
+                    // Log the error details
+                    print("[APIService] ❌ HTTP \(httpResponse.statusCode) for \(method) \(endpoint)")
+                    
                     // Try to parse error message from response body
                     if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let message = errorData["message"] as? String {
+                        print("[APIService] ❌ Server error message: \(message)")
                         throw APIError.serverError(message)
                     }
+                    
+                    // Log response body for debugging
+                    if let responseString = String(data: data, encoding: .utf8), !responseString.isEmpty {
+                        print("[APIService] ❌ Response body: \(responseString.prefix(500))")
+                    }
+                    
                     throw APIError.httpError(httpResponse.statusCode)
                 }
                 

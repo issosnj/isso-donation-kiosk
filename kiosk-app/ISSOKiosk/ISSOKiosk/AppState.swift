@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 class AppState: ObservableObject {
     @Published var isActivated = false

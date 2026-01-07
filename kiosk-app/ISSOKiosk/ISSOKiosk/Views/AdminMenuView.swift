@@ -210,20 +210,20 @@ struct AdminMenuView: View {
                         }
                     }
                     
-                    // Software Update Section
+                    // Software Update Section - Always show if there's a status or update
                     let updateInfo = StripeTerminalService.shared.getUpdateStatus()
                     if updateInfo.hasUpdate || updateInfo.status != nil {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Image(systemName: "arrow.down.circle.fill")
-                                    .foregroundColor(.orange)
+                                Image(systemName: updateInfo.status?.contains("✅") ?? false ? "checkmark.circle.fill" : "arrow.down.circle.fill")
+                                    .foregroundColor(updateInfo.status?.contains("✅") ?? false ? .green : .orange)
                                 Text("Software Update")
                                     .font(.headline)
                             }
                             if let status = updateInfo.status {
                                 Text(status)
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(status.contains("✅") ? .green : .secondary)
                             }
                             if let progress = updateInfo.progress {
                                 VStack(alignment: .leading, spacing: 4) {

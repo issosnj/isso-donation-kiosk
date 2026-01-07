@@ -308,6 +308,12 @@ struct ModernPaymentView: View {
                                         return
                                     }
                                     
+                                    // Check if this is a payment setup error (createPaymentIntent failed)
+                                    let isSetupError = errorDescription.contains("Payment setup failed") ||
+                                                      errorDescription.contains("Internal server error") ||
+                                                      errorDescription.contains("500") ||
+                                                      errorDescription.contains("Stripe configuration")
+                                    
                                     // Payment failed - mark donation as FAILED
                                     do {
                                         _ = try await APIService.shared.completeDonation(
@@ -323,7 +329,11 @@ struct ModernPaymentView: View {
                                     await MainActor.run {
                                         isProcessing = false
                                         hasStartedPayment = false
-                                        paymentStatus = .failure(errorDescription)
+                                        // Show more user-friendly error for setup issues
+                                        let userMessage = isSetupError 
+                                            ? "Payment setup failed. Please check Stripe configuration in the admin portal."
+                                            : errorDescription
+                                        paymentStatus = .failure(userMessage)
                                     }
                                     return
                                 }

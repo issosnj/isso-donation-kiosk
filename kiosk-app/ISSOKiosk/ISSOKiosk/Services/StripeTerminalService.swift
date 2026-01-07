@@ -29,6 +29,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     private var availableUpdate: ReaderSoftwareUpdate?
     private var updateStatus: String? = nil
     private var updateProgress: Float? = nil // Store update progress percentage (0.0 to 1.0)
+    private var updateCheckTimer: Timer? = nil // Timer to detect when no update is available after check
     
     private var currentCompletion: ((Result<PaymentResult, Error>) -> Void)?
     private weak var currentPaymentViewController: UIViewController?
@@ -479,6 +480,25 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         log("🔄 Triggering software update check by reconnecting reader...")
         updateStatus = "Checking for updates..."
         updateProgress = nil // Reset progress
+        availableUpdate = nil // Clear previous update info
+        
+        // Set a timer to detect when no update is available (after 10 seconds of connection)
+        updateCheckTimer?.invalidate()
+        updateCheckTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            // If we're still showing "Checking for updates..." and no update was reported, reader is up to date
+            if self.updateStatus == "Checking for updates..." && self.availableUpdate == nil {
+                self.updateStatus = "✅ Reader is up to date - no updates available"
+                self.log("✅ No software update available - reader is up to date")
+                
+                // Clear the status after 5 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    if self.updateStatus == "✅ Reader is up to date - no updates available" {
+                        self.updateStatus = nil
+                    }
+                }
+            }
+        }
         
         // Disconnect first
         disconnectReader {
@@ -508,12 +528,15 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                                 self.connectToReader(from: viewController) { connectError in
                                     if let connectError = connectError {
+                                        self.updateCheckTimer?.invalidate()
+                                        self.updateCheckTimer = nil
                                         self.updateStatus = "Update check failed: \(connectError.localizedDescription)"
                                         completion(connectError)
                                     } else {
                                         // Update check will happen during connection
                                         // Status will be updated via delegate methods
                                         self.updateStatus = "Reconnecting to check for updates..."
+                                        // Timer will detect if no update is available after 10 seconds
                                         completion(nil)
                                     }
                                 }
@@ -671,9 +694,13 @@ extension StripeTerminalService: BluetoothReaderDelegate {
     // MARK: - Software Update Methods (required by BluetoothReaderDelegate)
     
     @objc func reader(_ reader: Reader, didReportAvailableUpdate update: ReaderSoftwareUpdate) {
+        // Cancel the "no update" timer since we found an update
+        updateCheckTimer?.invalidate()
+        updateCheckTimer = nil
+        
         availableUpdate = update
         let updateDescription = String(describing: update)
-        updateStatus = "Update available: \(updateDescription)"
+        updateStatus = "📱 Update available: \(updateDescription)"
         log("📱 Reader software update available: \(updateDescription)")
     }
     

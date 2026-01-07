@@ -163,40 +163,89 @@ export class StripeService {
     clientSecret: string;
     paymentIntentId: string;
   }> {
-    const temple = await this.templesService.findOne(templeId);
-    
-    if (!temple.stripeAccountId) {
-      throw new Error('Stripe not connected for this temple. Please connect Stripe in the admin portal.');
+    try {
+      console.log('[Stripe Service] Creating PaymentIntent:', { templeId, donationId, amount, currency });
+      
+      const temple = await this.templesService.findOne(templeId);
+      
+      if (!temple) {
+        throw new Error(`Temple ${templeId} not found`);
+      }
+
+      // Check if Stripe is configured (either stripeAccountId for Connect or stripePublishableKey for direct)
+      if (!temple.stripeAccountId && !temple.stripePublishableKey) {
+        throw new Error('Stripe not configured for this temple. Please configure Stripe in the admin portal.');
+      }
+
+      // Convert amount to cents
+      const amountInCents = Math.round(amount * 100);
+      
+      if (amountInCents <= 0) {
+        throw new Error(`Invalid amount: ${amount} (must be greater than 0)`);
+      }
+
+      console.log('[Stripe Service] Creating PaymentIntent with amount:', amountInCents, 'cents');
+      console.log('[Stripe Service] Temple Stripe config:', {
+        hasStripeAccountId: !!temple.stripeAccountId,
+        hasStripePublishableKey: !!temple.stripePublishableKey,
+        stripeAccountId: temple.stripeAccountId,
+      });
+
+      // Create PaymentIntent
+      let paymentIntent;
+      try {
+        paymentIntent = await this.stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: currency,
+          payment_method_types: ['card_present'],
+          capture_method: 'automatic',
+          metadata: {
+            donationId: donationId,
+            templeId: templeId,
+          },
+          // Use connected account if using Stripe Connect
+          // stripeAccount: temple.stripeAccountId,
+        });
+      } catch (stripeError) {
+        console.error('[Stripe Service] Stripe API error creating PaymentIntent:', {
+          type: stripeError.type,
+          code: stripeError.code,
+          message: stripeError.message,
+          statusCode: stripeError.statusCode,
+        });
+        throw new Error(`Stripe API error: ${stripeError.message || 'Failed to create payment intent'}`);
+      }
+
+      console.log('[Stripe Service] PaymentIntent created:', {
+        paymentIntentId: paymentIntent.id,
+        amount: amountInCents,
+        currency,
+        donationId,
+      });
+
+      return {
+        clientSecret: paymentIntent.client_secret!,
+        paymentIntentId: paymentIntent.id,
+      };
+    } catch (error) {
+      console.error('[Stripe Service] Error creating PaymentIntent:', error);
+      console.error('[Stripe Service] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        type: error.constructor.name,
+        code: error.code,
+        statusCode: error.statusCode,
+      });
+      
+      // If it's a Stripe API error, extract the message
+      if (error.type && error.type.startsWith('Stripe')) {
+        const stripeMessage = error.message || 'Stripe API error occurred';
+        console.error('[Stripe Service] Stripe API error:', stripeMessage);
+        throw new Error(`Stripe error: ${stripeMessage}`);
+      }
+      
+      throw error;
     }
-
-    // Convert amount to cents
-    const amountInCents = Math.round(amount * 100);
-
-    // Create PaymentIntent
-    const paymentIntent = await this.stripe.paymentIntents.create({
-      amount: amountInCents,
-      currency: currency,
-      payment_method_types: ['card_present'],
-      capture_method: 'automatic',
-      metadata: {
-        donationId: donationId,
-        templeId: templeId,
-      },
-      // Use connected account if using Stripe Connect
-      // stripeAccount: temple.stripeAccountId,
-    });
-
-    console.log('[Stripe Service] PaymentIntent created:', {
-      paymentIntentId: paymentIntent.id,
-      amount: amountInCents,
-      currency,
-      donationId,
-    });
-
-    return {
-      clientSecret: paymentIntent.client_secret!,
-      paymentIntentId: paymentIntent.id,
-    };
   }
 
   /**

@@ -8,6 +8,7 @@ import {
   UseGuards,
   BadRequestException,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DonationsService } from './donations.service';
@@ -58,20 +59,57 @@ export class DonationsController {
     @Body() body: { donationId: string; amount: number; currency?: string },
     @CurrentUser() user: any,
   ) {
-    const donation = await this.donationsService.findOne(body.donationId);
-    
-    // Create PaymentIntent for Stripe Terminal
-    const result = await this.stripeService.createPaymentIntent(
-      donation.templeId,
-      body.donationId,
-      body.amount,
-      body.currency || 'usd',
-    );
+    try {
+      console.log('[DonationsController] Creating PaymentIntent for donation:', body.donationId);
+      const donation = await this.donationsService.findOne(body.donationId);
+      
+      if (!donation) {
+        throw new BadRequestException(`Donation ${body.donationId} not found`);
+      }
+      
+      console.log('[DonationsController] Donation found, templeId:', donation.templeId);
+      
+      // Create PaymentIntent for Stripe Terminal
+      const result = await this.stripeService.createPaymentIntent(
+        donation.templeId,
+        body.donationId,
+        body.amount,
+        body.currency || 'usd',
+      );
 
-    return {
-      clientSecret: result.clientSecret,
-      paymentIntentId: result.paymentIntentId,
-    };
+      console.log('[DonationsController] PaymentIntent created successfully:', result.paymentIntentId);
+      return {
+        clientSecret: result.clientSecret,
+        paymentIntentId: result.paymentIntentId,
+      };
+    } catch (error) {
+      console.error('[DonationsController] Error creating PaymentIntent:', error);
+      console.error('[DonationsController] Error message:', error.message);
+      console.error('[DonationsController] Error stack:', error.stack);
+      console.error('[DonationsController] Error type:', error.constructor.name);
+      
+      // If it's already a NestJS exception, re-throw it
+      if (error instanceof BadRequestException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      
+      // Check if it's a Stripe configuration error (should be 400)
+      const errorMessage = error.message || 'Failed to create payment intent. Please check Stripe configuration.';
+      const isConfigError = errorMessage.includes('Stripe not configured') || 
+                           errorMessage.includes('not found') ||
+                           errorMessage.includes('Invalid amount');
+      
+      if (isConfigError) {
+        console.error('[DonationsController] Throwing BadRequestException (config error):', errorMessage);
+        throw new BadRequestException(errorMessage);
+      } else {
+        // For other errors (Stripe API errors, etc.), use 500 but with clear message
+        console.error('[DonationsController] Throwing InternalServerErrorException:', errorMessage);
+        throw new InternalServerErrorException(
+          `Payment setup failed: ${errorMessage}. Please check Stripe configuration in the admin portal.`
+        );
+      }
+    }
   }
 
   @Post('confirm-payment-intent')

@@ -89,7 +89,16 @@ class StripePaymentService {
                                     }
                                 } catch {
                                     await MainActor.run {
-                                        completion(.failure(error))
+                                        // Provide more specific error message
+                                        let errorMessage: String
+                                        if let apiError = error as? APIError {
+                                            errorMessage = apiError.localizedDescription
+                                        } else if error.localizedDescription.contains("Internal server error") || error.localizedDescription.contains("500") {
+                                            errorMessage = "Payment setup failed. Please check Stripe configuration in the admin portal."
+                                        } else {
+                                            errorMessage = error.localizedDescription
+                                        }
+                                        completion(.failure(NSError(domain: "StripePayment", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
                                     }
                                 }
                             }
