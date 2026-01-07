@@ -45,12 +45,7 @@ export class CompleteDonationDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsNumber()
-  squareFee?: number; // Legacy Square fee
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsNumber()
-  stripeFee?: number; // Stripe processing fee
+  stripeFee?: number; // Stripe processing fee (automatically calculated from Stripe API)
 
   @ApiProperty({ required: false })
   @IsOptional()

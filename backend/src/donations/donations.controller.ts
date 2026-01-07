@@ -355,15 +355,15 @@ export class DonationsController {
     return this.donationsService.generateReceiptNumbersForSuccessfulDonations();
   }
 
-  @Post('cleanup/backfill-square-fees')
+  @Post('cleanup/backfill-stripe-fees')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Backfill Square fees for donations missing fee information (Master Admin only)' })
-  async backfillSquareFees(@CurrentUser() user: any) {
+  @ApiOperation({ summary: 'Backfill Stripe fees for donations missing fee information (Master Admin only)' })
+  async backfillStripeFees(@CurrentUser() user: any) {
     if (user.role !== 'MASTER_ADMIN') {
       throw new ForbiddenException('Only master admins can perform this action');
     }
-    return this.donationsService.backfillSquareFees();
+    return this.donationsService.backfillStripeFees();
   }
 
   @Get('by-donor/:phone')

@@ -281,9 +281,35 @@ export class StripeService {
     // Get the confirmed PaymentIntent
     const confirmed = await this.stripe.paymentIntents.retrieve(paymentIntentId);
 
-    // Calculate fees (Stripe charges ~2.9% + $0.30)
     const totalAmount = confirmed.amount / 100; // Convert from cents
-    const fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100; // Approximate fee
+    
+    // Get actual fee from Stripe's Balance Transaction API
+    let fee = 0;
+    try {
+      // Get the latest charge for this payment intent
+      if (confirmed.latest_charge && typeof confirmed.latest_charge === 'string') {
+        const charge = await this.stripe.charges.retrieve(confirmed.latest_charge, {
+          expand: ['balance_transaction'],
+        });
+        
+        if (charge.balance_transaction && typeof charge.balance_transaction === 'object') {
+          const balanceTransaction = charge.balance_transaction;
+          // Fee is in cents, convert to dollars
+          fee = Math.round((balanceTransaction.fee || 0) / 100 * 100) / 100;
+        }
+      }
+      
+      // Fallback to approximation if balance transaction not available
+      if (fee === 0) {
+        fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+        console.log('[Stripe Service] Using fee approximation (balance transaction not available)');
+      }
+    } catch (error) {
+      console.warn('[Stripe Service] Failed to get actual fee from balance transaction, using approximation:', error);
+      // Fallback to approximation
+      fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+    }
+    
     const netAmount = totalAmount - fee;
 
     // Extract card information
@@ -345,7 +371,34 @@ export class StripeService {
     const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
 
     const totalAmount = paymentIntent.amount / 100;
-    const fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+    
+    // Get actual fee from Stripe's Balance Transaction API
+    let fee = 0;
+    try {
+      // Get the latest charge for this payment intent
+      if (paymentIntent.latest_charge && typeof paymentIntent.latest_charge === 'string') {
+        const charge = await this.stripe.charges.retrieve(paymentIntent.latest_charge, {
+          expand: ['balance_transaction'],
+        });
+        
+        if (charge.balance_transaction && typeof charge.balance_transaction === 'object') {
+          const balanceTransaction = charge.balance_transaction;
+          // Fee is in cents, convert to dollars
+          fee = Math.round((balanceTransaction.fee || 0) / 100 * 100) / 100;
+        }
+      }
+      
+      // Fallback to approximation if balance transaction not available
+      if (fee === 0) {
+        fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+        console.log('[Stripe Service] Using fee approximation (balance transaction not available)');
+      }
+    } catch (error) {
+      console.warn('[Stripe Service] Failed to get actual fee from balance transaction, using approximation:', error);
+      // Fallback to approximation
+      fee = Math.round((totalAmount * 0.029 + 0.30) * 100) / 100;
+    }
+    
     const netAmount = totalAmount - fee;
 
     let cardLast4: string | null = null;
