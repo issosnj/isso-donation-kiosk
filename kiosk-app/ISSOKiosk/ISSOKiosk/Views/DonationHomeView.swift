@@ -377,12 +377,12 @@ struct DonationHomeView: View {
                 },
                     onCancel: {
                     // When payment is canceled, go back to review donation screen
-                    // Set showingDetails first (synchronously) to prevent showing donation selection screen
-                    // This ensures the review screen appears immediately without flashing the selection screen
-                    showingDetails = true
-                    // Then dismiss payment view on next run loop to ensure proper view hierarchy
-                    DispatchQueue.main.async {
-                        showingPayment = false
+                    // First dismiss payment view, then show details view after a brief delay
+                    // This prevents SwiftUI sheet conflict warning
+                    showingPayment = false
+                    // Wait for payment view to fully dismiss before showing details view
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showingDetails = true
                     }
                 }
             )
