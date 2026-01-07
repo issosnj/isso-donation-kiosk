@@ -1,12 +1,12 @@
 # ISSO Donation Kiosk System
 
-A modern, multi-tenant donation kiosk system for temples with Square payment integration. Features a NestJS backend, Next.js admin portal, and native iOS kiosk app.
+A modern, multi-tenant donation kiosk system for temples with Stripe Terminal payment integration. Features a NestJS backend, Next.js admin portal, and native iOS kiosk app.
 
 ## 🏗️ Architecture
 
 - **Backend**: NestJS REST API with PostgreSQL (deployed on Railway)
 - **Admin Web**: Next.js web portal for temple and master admins (deployed on Netlify)
-- **Kiosk App**: Native iOS app (Swift/SwiftUI) with Square Mobile Payments SDK
+- **Kiosk App**: Native iOS app (Swift/SwiftUI) with Stripe Terminal SDK
 
 ## 📁 Project Structure
 
@@ -25,13 +25,15 @@ isso-donation-kiosk/
 
 ## ✨ Features
 
-- **Multi-tenant Architecture**: Each temple has separate Square account and data isolation
+- **Multi-tenant Architecture**: Each temple has separate Stripe account and data isolation
 - **Role-Based Access Control**: Master Admin (system-wide) and Temple Admin (temple-specific)
-- **Square Integration**: OAuth per temple, Mobile Payments SDK for kiosks, webhook handling
+- **Stripe Terminal Integration**: Stripe M2 reader support via Bluetooth, connection tokens, webhook handling
 - **Device Management**: Activation codes, device tracking, and status monitoring
-- **Donation Processing**: Real-time payment processing via Square Mobile Payments SDK
+- **Donation Processing**: Real-time payment processing via Stripe Terminal SDK
 - **Admin Dashboards**: Comprehensive CRM-style interface with statistics and reporting
 - **Donation Categories**: Customizable categories per temple
+- **Receipt Generation**: Automated receipt generation with PDF attachments
+- **Fee Tracking**: Automatic Stripe fee calculation from Balance Transaction API
 - **Audit Logging**: Complete audit trail of all actions
 
 ## 🚀 Quick Start
@@ -41,7 +43,7 @@ isso-donation-kiosk/
 - Node.js 18+ and npm
 - PostgreSQL 14+ (or use Railway's managed PostgreSQL)
 - Xcode 15+ (for iOS app development)
-- Square Developer Account
+- Stripe Account (with Terminal enabled)
 - Railway account (for backend hosting)
 - Netlify account (for frontend hosting)
 
@@ -61,11 +63,9 @@ DATABASE_URL=postgresql://user:password@localhost:5432/isso_donation_kiosk
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-change-this
 
-# Square (get from Square Developer Dashboard)
-SQUARE_APPLICATION_ID=your-square-app-id
-SQUARE_APPLICATION_SECRET=your-square-app-secret
-SQUARE_REDIRECT_URI=http://localhost:3000/api/square/callback
-SQUARE_ENVIRONMENT=sandbox  # or 'production'
+# Stripe (get from Stripe Dashboard)
+STRIPE_SECRET_KEY=sk_live_your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
 
 # CORS
 ADMIN_WEB_URL=http://localhost:3000
@@ -148,11 +148,10 @@ You'll be prompted for email, password, name, and role.
      DATABASE_PUBLIC_URL=${{Postgres.DATABASE_PUBLIC_URL}}
      # Note: DATABASE_PUBLIC_URL is preferred over DATABASE_URL for Railway
      JWT_SECRET=your-super-secret-jwt-key
-     SQUARE_APPLICATION_ID=your-square-app-id
-     SQUARE_APPLICATION_SECRET=your-square-app-secret
-     SQUARE_ENVIRONMENT=sandbox
-     CORS_ORIGIN=https://your-app.netlify.app
-     ADMIN_WEB_URL=https://your-app.netlify.app
+     STRIPE_SECRET_KEY=sk_live_your-stripe-secret-key
+     STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
+     CORS_ORIGIN=https://kiosk.issousa.org
+     ADMIN_WEB_URL=https://kiosk.issousa.org
      NODE_ENV=production
      PORT=3000
      ```
@@ -167,6 +166,12 @@ You'll be prompted for email, password, name, and role.
      ```bash
      DATABASE_URL="your-railway-db-url" npm run seed:admin
      ```
+
+6. **Configure Stripe Webhook**
+   - In Stripe Dashboard → Developers → Webhooks
+   - Add endpoint: `https://kiosk-backend.issousa.org/api/stripe/webhook`
+   - Select events: `payment_intent.succeeded`, `payment_intent.payment_failed`
+   - Copy webhook secret to `STRIPE_WEBHOOK_SECRET` environment variable
 
 ### Admin Web (Netlify)
 
@@ -199,7 +204,6 @@ You'll be prompted for email, password, name, and role.
      ADMIN_WEB_URL=https://kiosk.issousa.org
      ```
    - The backend automatically allows all `*.netlify.app` URLs for CORS
-   - Setting `ADMIN_WEB_URL` ensures proper redirects for Square OAuth
 
 ### iOS App (TestFlight/MDM)
 
@@ -213,7 +217,8 @@ You'll be prompted for email, password, name, and role.
    - Or distribute via MDM for kiosk devices
 
 3. **Configure API Endpoint**
-   - Update `Config.swift` with your Railway backend URL
+   - The app automatically uses the backend URL from device activation
+   - Stripe Terminal SDK is configured per temple via admin portal
 
 ## 🔐 Authentication & Roles
 
@@ -223,13 +228,15 @@ You'll be prompted for email, password, name, and role.
 - Can create/manage all users
 - View all donations across all temples
 - System-wide statistics
+- Can backfill Stripe fees for all donations
 
 ### Temple Admin
 - Temple-specific access
 - Manage their temple's devices
 - View/manage their temple's donations
 - Configure donation categories
-- Connect Square account
+- Connect Stripe account (direct or Connect)
+- Configure Stripe Terminal settings
 - Temple-specific statistics
 
 ## 📊 API Endpoints
@@ -253,22 +260,28 @@ You'll be prompted for email, password, name, and role.
 - `POST /api/devices` - Create device
 - `POST /api/devices/activate` - Activate device with code (public endpoint)
 - `GET /api/devices/:id` - Get device details
+- `GET /api/devices/stripe-credentials` - Get Stripe connection token (device auth)
 
 ### Donations
 - `POST /api/donations/initiate` - Initiate donation (device auth)
-- `POST /api/donations/:id/complete` - Complete donation with Square payment
+- `POST /api/donations/create-payment-intent` - Create Stripe PaymentIntent
+- `POST /api/donations/confirm-payment-intent` - Confirm payment and get fee details
+- `POST /api/donations/:id/complete` - Complete donation with donor info
 - `GET /api/donations` - List donations (filtered by temple/date/status)
 - `GET /api/donations/stats` - Get donation statistics
+- `POST /api/donations/:id/cancel` - Cancel donation
+- `POST /api/donations/:id/refund` - Refund donation
+- `POST /api/donations/cleanup/backfill-stripe-fees` - Backfill fees from Stripe (Master Admin only)
 
 ### Donation Categories
 - `GET /api/donation-categories` - List categories (filtered by temple)
+- `GET /api/donation-categories/kiosk/:templeId` - Get categories for kiosk display
 - `POST /api/donation-categories` - Create category
 - `PATCH /api/donation-categories/:id` - Update category
 
-### Square Integration
-- `GET /api/square/connect?templeId=xxx` - Get Square OAuth URL
-- `GET /api/square/callback` - OAuth callback handler
-- `POST /api/square/webhook` - Webhook handler for Square events
+### Stripe Integration
+- `GET /api/stripe/credentials` - Get Stripe publishable key and location ID
+- `POST /api/stripe/webhook` - Webhook handler for Stripe events
 
 **Full API Documentation**: Visit `/api/docs` when backend is running (Swagger UI)
 
@@ -333,11 +346,10 @@ npm run lint
 |----------|-------------|----------|
 | `DATABASE_URL` or `DATABASE_PUBLIC_URL` | PostgreSQL connection string (prefer `DATABASE_PUBLIC_URL` on Railway) | Yes |
 | `JWT_SECRET` | Secret for JWT token signing | Yes |
-| `SQUARE_APPLICATION_ID` | Square application ID | Yes |
-| `SQUARE_APPLICATION_SECRET` | Square application secret | Yes |
-| `SQUARE_ENVIRONMENT` | `sandbox` or `production` | Yes |
+| `STRIPE_SECRET_KEY` | Stripe secret key (starts with `sk_live_` for production) | Yes |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (starts with `whsec_`) | Yes |
 | `CORS_ORIGIN` | Frontend URL for CORS (e.g., `https://kiosk.issousa.org`) | Yes |
-| `ADMIN_WEB_URL` | Frontend URL for Square OAuth redirects | Yes |
+| `ADMIN_WEB_URL` | Frontend URL for redirects | Yes |
 | `PORT` | Server port (default: 3000) | No |
 | `NODE_ENV` | `development` or `production` | No |
 
@@ -349,39 +361,61 @@ npm run lint
 
 ## 📱 iOS App Configuration
 
-Update `kiosk-app/ISSOKiosk/Config.swift`:
-
-```swift
-struct Config {
-    static let apiBaseURL = "https://kiosk-backend.issousa.org/api"
-    static let squareApplicationId = "your-square-app-id"
-    static let squareLocationId = "your-square-location-id" // Set after OAuth
-}
-```
+The iOS app is configured automatically through device activation:
+- Device activation code links device to a temple
+- Stripe Terminal SDK is initialized with connection tokens from backend
+- Stripe M2 reader connects via Bluetooth
+- All configuration is managed through the admin portal
 
 ## 🗄️ Database Schema
 
 Key entities:
 - **Users**: Master Admin and Temple Admin users
-- **Temples**: Temple information and Square credentials
-- **Devices**: Kiosk devices with activation codes
-- **Donations**: Donation records with Square payment IDs
+- **Temples**: Temple information and Stripe credentials (publishable key, account ID, location ID)
+- **Devices**: Kiosk devices with activation codes and device tokens
+- **Donations**: Donation records with Stripe PaymentIntent IDs, fees, and net amounts
 - **DonationCategories**: Customizable categories per temple
+- **Donors**: Donor information and statistics
 - **AuditLogs**: System audit trail
 
 See TypeORM entities in `backend/src/*/entities/` for full schema.
 
 **Note**: TypeORM `synchronize` is disabled in production. The database schema is managed through migrations or manual setup. For Railway deployments, tables are created automatically on first connection.
 
+## 💳 Stripe Terminal Setup
+
+### For Each Temple:
+
+1. **Stripe Account Setup**
+   - Each temple needs a Stripe account (direct or Connect)
+   - In admin portal, go to temple settings → Stripe tab
+   - Enter Stripe Publishable Key (`pk_live_...`)
+   - For Connect accounts, also enter Stripe Account ID
+
+2. **Stripe Location**
+   - System automatically creates/retrieves Stripe Location for each temple
+   - Location ID is stored and used for Terminal reader registration
+
+3. **Reader Registration**
+   - Stripe M2 readers auto-register when connected via iOS app
+   - Reader appears in Stripe Dashboard → Terminal → Readers
+   - Reader status is visible in admin portal
+
+4. **Fee Tracking**
+   - Fees are automatically fetched from Stripe Balance Transaction API
+   - Fees match exactly what you see in Stripe Dashboard
+   - Use "Backfill Stripe Fees" button to sync existing donations
+
 ## 🔒 Security
 
 - JWT-based authentication for web admin
 - Device token authentication for kiosks
 - Role-based access control (RBAC)
-- Encrypted Square credentials storage
+- Encrypted Stripe credentials storage
 - CORS protection with Express-level OPTIONS handling
 - Input validation and sanitization
 - Railway proxy compatibility (handles preflight requests correctly)
+- Stripe webhook signature verification
 
 ## 🔧 Troubleshooting
 
@@ -402,11 +436,12 @@ See TypeORM entities in `backend/src/*/entities/` for full schema.
 - Use `DATABASE_PUBLIC_URL` (not `DATABASE_URL`) for Railway deployments
 - Check Railway PostgreSQL service is running
 
-**Square Integration Issues:**
-- See [kiosk-app/SQUARE_READER_2ND_GEN_SETUP.md](./kiosk-app/SQUARE_READER_2ND_GEN_SETUP.md) for Square Reader setup
-- See [kiosk-app/SQUARE_STAND_SETUP.md](./kiosk-app/SQUARE_STAND_SETUP.md) for Square Stand setup
-- See [kiosk-app/MOBILE_PAYMENTS_SDK.md](./kiosk-app/MOBILE_PAYMENTS_SDK.md) for SDK integration
-- Verify redirect URI matches exactly (no trailing slash, HTTPS only)
+**Stripe Integration Issues:**
+- Verify Stripe secret key is correct and has Terminal permissions
+- Check Stripe webhook is configured correctly
+- Ensure temple has Stripe publishable key configured
+- Verify Stripe location exists for the temple
+- Check iOS app logs for connection errors
 
 ### Testing Endpoints
 
