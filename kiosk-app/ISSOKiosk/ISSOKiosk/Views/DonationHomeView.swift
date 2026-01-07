@@ -805,7 +805,7 @@ struct DonationHomeView: View {
                         
                         Spacer()
                         
-                        Text("$\(String(format: "%.2f", defaultAmount * Double(quantity)))")
+                        Text((defaultAmount * Double(quantity)).formattedCurrency())
                             .font(.custom(headingFont, size: 32))
                             .foregroundColor(quantityTotalColor)
                             .fontWeight(.semibold)
@@ -848,7 +848,7 @@ struct DonationHomeView: View {
                         
                         Spacer()
                         
-                        Text("$\(String(format: "%.2f", currentAmount))")
+                        Text(currentAmount.formattedCurrency())
                             .font(.custom(headingFont, size: 32))
                             .foregroundColor(quantityTotalColor)
                             .fontWeight(.semibold)

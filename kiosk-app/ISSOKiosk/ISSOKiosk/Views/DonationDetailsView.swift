@@ -227,7 +227,7 @@ struct ModernDonationDetailsView: View {
                             .padding(.bottom, 24)
                         
                         // Large amount display
-                        Text("$\(String(format: "%.2f", amount))")
+                        Text(amount.formattedCurrency())
                             .font(.custom("Inter-SemiBold", size: detailsAmountFontSize))
                             .foregroundColor(detailsAmountColor)
                             .padding(.bottom, 32)
@@ -241,7 +241,7 @@ struct ModernDonationDetailsView: View {
                                         .font(.custom("Inter-Regular", size: detailsLabelFontSize))
                                         .foregroundColor(detailsTextColor)
                                     Spacer()
-                                    Text("$\(String(format: "%.2f", amount))")
+                                    Text(amount.formattedCurrency())
                                         .font(.custom("Inter-Regular", size: detailsLabelFontSize))
                                         .foregroundColor(detailsTextColor)
                                 }
@@ -253,7 +253,7 @@ struct ModernDonationDetailsView: View {
                                     .font(.custom("Inter-Regular", size: detailsLabelFontSize))
                                     .foregroundColor(detailsTextColor)
                                 Spacer()
-                                Text("$\(String(format: "%.2f", amount))")
+                                Text(amount.formattedCurrency())
                                     .font(.custom("Inter-Regular", size: detailsLabelFontSize))
                                     .foregroundColor(detailsTextColor)
                             }
@@ -269,7 +269,7 @@ struct ModernDonationDetailsView: View {
                                     .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
                                     .foregroundColor(detailsTextColor)
                                 Spacer()
-                                Text("$\(String(format: "%.2f", amount))")
+                                Text(amount.formattedCurrency())
                                     .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
                                     .foregroundColor(detailsTextColor)
                             }

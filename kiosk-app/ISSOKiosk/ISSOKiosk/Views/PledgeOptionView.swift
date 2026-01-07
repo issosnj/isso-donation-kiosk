@@ -53,7 +53,7 @@ struct PledgeOptionView: View {
                                     .font(.custom("Inter-SemiBold", size: 28))
                                     .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                                 
-                                Text("$\(String(format: "%.2f", amount))")
+                                Text(amount.formattedCurrency())
                                     .font(.custom("Inter-SemiBold", size: 36))
                                     .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                             }
@@ -125,7 +125,7 @@ struct PledgeOptionView: View {
                         
                         // Amount display
                         VStack(spacing: 8) {
-                            Text("$\(String(format: "%.2f", amount))")
+                            Text(amount.formattedCurrency())
                                 .font(.custom("Inter-SemiBold", size: 64))
                                 .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                             

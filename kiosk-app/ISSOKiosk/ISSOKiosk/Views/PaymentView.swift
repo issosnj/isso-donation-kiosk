@@ -506,7 +506,7 @@ struct ModernPaymentReadyView: View {
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
                     
-                    Text("$\(String(format: "%.2f", amount))")
+                    Text(amount.formattedCurrency())
                         .font(.custom("Inter-SemiBold", size: 72))
                         .foregroundColor(.white)
                         .opacity(appearAnimation ? 1.0 : 0.0)
@@ -636,7 +636,7 @@ struct ModernPaymentProcessingView: View {
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
             
-            Text("$\(String(format: "%.2f", amount))")
+            Text(amount.formattedCurrency())
                         .font(.custom("Inter-SemiBold", size: 72))
                         .foregroundStyle(
                             LinearGradient(
@@ -829,7 +829,7 @@ struct ModernProcessingView: View {
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
                     
-                    Text("$\(String(format: "%.2f", amount))")
+                    Text(amount.formattedCurrency())
                         .font(.custom("Inter-SemiBold", size: 56))
                         .foregroundColor(buttonColor)
                         .opacity(appearAnimation ? 1.0 : 0.0)
@@ -1022,7 +1022,7 @@ struct ModernPaymentResultView: View {
                                 .foregroundColor(bodyTextColor)
                                 .multilineTextAlignment(.center)
                             
-                            Text("Donation amount: $\(String(format: "%.2f", amount))")
+                            Text("Donation amount: \(amount.formattedCurrency())")
                                 .font(.custom("Inter-Medium", size: 18))
                                 .foregroundColor(bodyTextColor.opacity(0.8))
                                 .multilineTextAlignment(.center)
