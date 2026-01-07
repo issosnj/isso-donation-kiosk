@@ -474,6 +474,25 @@ export class DonationsService {
         donation.receiptNumber = receiptNumber;
         await this.donationsRepository.save(donation);
         console.log(`[DonationsService] Generated receipt number ${receiptNumber} for donation ${donation.id}`);
+        
+        // Update Stripe PaymentIntent metadata with receipt number if available
+        if (donation.stripePaymentIntentId) {
+          try {
+            await this.stripeService.updatePaymentIntentMetadata(
+              donation.templeId,
+              donation.stripePaymentIntentId,
+              {
+                donationId: donation.id,
+                templeId: donation.templeId,
+                receiptNumber: receiptNumber,
+              }
+            );
+            console.log(`[DonationsService] Added receipt number ${receiptNumber} to Stripe PaymentIntent ${donation.stripePaymentIntentId}`);
+          } catch (error) {
+            console.warn(`[DonationsService] Failed to update PaymentIntent metadata with receipt number: ${error.message}`);
+            // Don't fail receipt generation if metadata update fails
+          }
+        }
         nextNumber++;
         totalUpdated++;
       }
