@@ -227,8 +227,10 @@ struct ModernPaymentView: View {
         donationId = nil
         paymentStatus = nil
         
-        // Go back to payment entering screen
-        onComplete()
+        // Dismiss payment view to go back to review donation screen
+        // Use dismiss() instead of onComplete() to only close the payment view,
+        // not the entire donation flow
+        dismiss()
     }
     
     private func processPayment() {
