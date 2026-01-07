@@ -373,16 +373,9 @@ export class DonationsService {
         continue;
       }
 
-      // Backfill if fee information is missing OR if fee is 0 (might be incorrect)
-      const hasFeeInfo = donation.stripeFee !== null && 
-                        donation.stripeFee !== undefined && 
-                        donation.netAmount !== null && 
-                        donation.netAmount !== undefined &&
-                        donation.stripeFee > 0;
-      
-      if (hasFeeInfo) {
-        continue;
-      }
+      // Always backfill from Stripe to ensure accuracy
+      // This ensures fees match what you see in Stripe Dashboard
+      // Even if fee exists, refresh it from Stripe to catch any updates
 
       try {
         console.log(`[DonationsService] Backfilling Stripe fee for donation ${donation.id}`);
