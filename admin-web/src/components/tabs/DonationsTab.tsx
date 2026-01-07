@@ -573,7 +573,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                       {donation.status === 'SUCCEEDED' && (
                         <button
                           onClick={() => setAssigningDonationId(donation.id)}
-                          className="text-xs text-purple-600 hover:text-purple-800 hover:underline font-medium px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 w-fit"
+                          className="px-3 py-1 text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline w-fit"
                         >
                           Assign to Donor
                         </button>
