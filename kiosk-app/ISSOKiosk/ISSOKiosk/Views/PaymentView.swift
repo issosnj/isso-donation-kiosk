@@ -387,24 +387,35 @@ struct ModernPaymentView: View {
                                     return
                                 }
                                 
-                                // Complete donation
-                                _ = try await APIService.shared.completeDonation(
-                                    donationId: donation.id,
-                                    stripePaymentIntentId: result.paymentIntentId,
-                                    status: result.success ? "SUCCEEDED" : "FAILED",
-                                    donorName: donorName,
-                                    donorPhone: donorPhone,
-                                    donorEmail: donorEmail,
-                                    donorAddress: donorAddress
-                                )
-                                
-                                await MainActor.run {
-                                    isProcessing = false
-                                    if result.success {
+                                // Set paymentStatus immediately if payment succeeded on device
+                                // This prevents onDisappear from trying to cancel a succeeded payment
+                                if result.success {
+                                    await MainActor.run {
                                         paymentStatus = .success
                                         // Record successful donation time for idle detection
                                         appState.recordSuccessfulDonation()
-                                    } else {
+                                    }
+                                }
+                                
+                                // Complete donation on backend (non-blocking after status is set)
+                                do {
+                                    _ = try await APIService.shared.completeDonation(
+                                        donationId: donation.id,
+                                        stripePaymentIntentId: result.paymentIntentId,
+                                        status: result.success ? "SUCCEEDED" : "FAILED",
+                                        donorName: donorName,
+                                        donorPhone: donorPhone,
+                                        donorEmail: donorEmail,
+                                        donorAddress: donorAddress
+                                    )
+                                } catch {
+                                    // Backend completion failed, but payment already succeeded on device
+                                    appLog("⚠️ Payment succeeded on device but backend completion failed: \(error.localizedDescription)", category: "PaymentView")
+                                }
+                                
+                                await MainActor.run {
+                                    isProcessing = false
+                                    if !result.success {
                                         paymentStatus = .failure(result.error ?? "Payment failed")
                                     }
                                 }
