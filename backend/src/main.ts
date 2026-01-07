@@ -4,11 +4,12 @@ import * as crypto from 'crypto';
 (globalThis as any).crypto = crypto;
 
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false });
@@ -154,7 +155,13 @@ async function bootstrap() {
   // Add request logging middleware BEFORE CORS
   app.use((req: any, res: any, next: any) => {
     console.log(`[REQUEST] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
-    next();
+    // Add error handler to catch any middleware errors
+    try {
+      next();
+    } catch (error) {
+      console.error('[Middleware] Error in request middleware:', error);
+      next(error);
+    }
   });
   
   // Enable CORS using NestJS's built-in CORS (works better with Railway's proxy)
@@ -185,11 +192,22 @@ async function bootstrap() {
     maxAge: 86400, // 24 hours
   });
 
-  // Global validation pipe
+  // Global validation pipe with error handling
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
+      forbidNonWhitelisted: false,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      exceptionFactory: (errors) => {
+        console.error('[ValidationPipe] Validation failed:', JSON.stringify(errors, null, 2));
+        return new BadRequestException({
+          message: 'Validation failed',
+          errors: errors,
+        });
+      },
     }),
   );
 
@@ -227,6 +245,9 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
+
+  // Add global exception filter to catch all unhandled errors
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
