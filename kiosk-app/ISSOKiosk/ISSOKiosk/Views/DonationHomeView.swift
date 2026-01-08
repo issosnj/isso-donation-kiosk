@@ -275,6 +275,17 @@ struct DonationHomeView: View {
             .ignoresSafeArea(.all, edges: .all)
             
             mainContent
+            // Reader Battery Status in top left
+            VStack {
+                HStack {
+                    ReaderBatteryStatusView()
+                        .padding(.leading, 20)
+                        .padding(.top, 7)
+                    Spacer()
+                }
+                Spacer()
+            }
+            
             // Time and Network Status in top right
             VStack {
                 HStack {

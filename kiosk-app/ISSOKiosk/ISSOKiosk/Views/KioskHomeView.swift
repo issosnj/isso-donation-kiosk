@@ -169,6 +169,11 @@ struct KioskHomeView: View {
                         }
                     }
                     
+                    // Reader Battery Status in top left
+                    ReaderBatteryStatusView()
+                        .padding(.leading, 20)
+                        .padding(.top, 7)
+                    
                     // Time and Network Status in top right
                     if appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusVisible != false {
                         TimeAndNetworkStatusView()
@@ -771,6 +776,90 @@ struct KioskHomeView: View {
 }
 
 // Reusable Time and Network Status View Component
+struct ReaderBatteryStatusView: View {
+    @State private var batteryLevel: Int? = nil
+    @State private var timer: Timer?
+    
+    var body: some View {
+        VStack {
+            HStack {
+                if let level = batteryLevel {
+                    HStack(spacing: 8) {
+                        // Battery icon
+                        Image(systemName: batteryIconName(for: level))
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(batteryColor(for: level))
+                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        
+                        // Battery percentage
+                        Text("\(level)%")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(.white)
+                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    }
+                } else {
+                    // Reader not connected
+                    HStack(spacing: 8) {
+                        Image(systemName: "battery.slash")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.gray)
+                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        
+                        Text("--")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(.gray)
+                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    }
+                }
+                Spacer()
+            }
+            Spacer()
+        }
+        .onAppear {
+            updateBatteryLevel()
+            // Update battery level every 30 seconds
+            timer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+                updateBatteryLevel()
+            }
+            if let timer = timer {
+                RunLoop.current.add(timer, forMode: .common)
+            }
+        }
+        .onDisappear {
+            timer?.invalidate()
+            timer = nil
+        }
+    }
+    
+    private func updateBatteryLevel() {
+        batteryLevel = StripeTerminalService.shared.getReaderBatteryLevel()
+    }
+    
+    private func batteryIconName(for level: Int) -> String {
+        if level > 75 {
+            return "battery.100"
+        } else if level > 50 {
+            return "battery.75"
+        } else if level > 25 {
+            return "battery.50"
+        } else if level > 10 {
+            return "battery.25"
+        } else {
+            return "battery.0"
+        }
+    }
+    
+    private func batteryColor(for level: Int) -> Color {
+        if level > 50 {
+            return .green
+        } else if level > 20 {
+            return .yellow
+        } else {
+            return .red
+        }
+    }
+}
+
 struct TimeAndNetworkStatusView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject private var networkMonitor = NetworkMonitor.shared

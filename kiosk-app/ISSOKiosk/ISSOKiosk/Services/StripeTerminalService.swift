@@ -495,6 +495,29 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         return (connected: true, model: modelName, error: nil)
     }
     
+    /// Get reader battery level (0-100, or nil if not available)
+    func getReaderBatteryLevel() -> Int? {
+        let connectedReader = Terminal.shared.connectedReader ?? currentReader
+        
+        guard let reader = connectedReader else {
+            return nil
+        }
+        
+        // Update our cached reader if Terminal.shared has one but we don't
+        if currentReader == nil && Terminal.shared.connectedReader != nil {
+            currentReader = Terminal.shared.connectedReader
+        }
+        
+        // Stripe Terminal SDK Reader has batteryLevel property (0.0 to 1.0 for M2 readers)
+        // Use key-value coding to safely access the property
+        if let batteryLevel = reader.value(forKeyPath: "batteryLevel") as? NSNumber {
+            let percentage = Int(batteryLevel.doubleValue * 100)
+            return percentage
+        }
+        
+        return nil
+    }
+    
     /// Get software update status
     func getUpdateStatus() -> (hasUpdate: Bool, status: String?, version: String?, progress: Int?) {
         let versionString: String?

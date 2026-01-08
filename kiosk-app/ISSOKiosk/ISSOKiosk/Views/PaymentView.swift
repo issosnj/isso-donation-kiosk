@@ -77,6 +77,18 @@ struct ModernPaymentView: View {
             }
             
             // Time and Network Status in top right
+            // Reader Battery Status in top left
+            VStack {
+                HStack {
+                    ReaderBatteryStatusView()
+                        .padding(.leading, 20)
+                        .padding(.top, 7)
+                    Spacer()
+                }
+                Spacer()
+            }
+            
+            // Time and Network Status in top right
             VStack {
                 HStack {
                     Spacer()
@@ -868,6 +880,18 @@ struct ModernProcessingView: View {
             .padding(40)
             
             // Time and Network Status in top right
+            // Reader Battery Status in top left
+            VStack {
+                HStack {
+                    ReaderBatteryStatusView()
+                        .padding(.leading, 20)
+                        .padding(.top, 7)
+                    Spacer()
+                }
+                Spacer()
+            }
+            
+            // Time and Network Status in top right
             VStack {
                 HStack {
                     Spacer()
@@ -1069,6 +1093,18 @@ struct ModernPaymentResultView: View {
                 Spacer()
             }
             .padding(40)
+            
+            // Time and Network Status in top right
+            // Reader Battery Status in top left
+            VStack {
+                HStack {
+                    ReaderBatteryStatusView()
+                        .padding(.leading, 20)
+                        .padding(.top, 7)
+                    Spacer()
+                }
+                Spacer()
+            }
             
             // Time and Network Status in top right
             VStack {
