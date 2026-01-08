@@ -537,27 +537,19 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 </td>
                 <td className="px-2 py-4 whitespace-nowrap text-center">
                   <div className="relative group inline-flex items-center justify-center">
-                    {donation.status === 'SUCCEEDED' ? (
-                      <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    ) : donation.status === 'PENDING' ? (
-                      <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                      </svg>
-                    ) : donation.status === 'FAILED' ? (
-                      <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    ) : donation.status === 'CANCELED' ? (
-                      <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    )}
+                    <div
+                      className={`w-3 h-3 rounded-full shadow-sm ${
+                        donation.status === 'SUCCEEDED'
+                          ? 'bg-green-500 shadow-green-500/50'
+                          : donation.status === 'PENDING'
+                          ? 'bg-yellow-500 shadow-yellow-500/50'
+                          : donation.status === 'FAILED'
+                          ? 'bg-red-500 shadow-red-500/50'
+                          : donation.status === 'CANCELED'
+                          ? 'bg-gray-500 shadow-gray-500/50'
+                          : 'bg-red-500 shadow-red-500/50'
+                      }`}
+                    />
                     {/* Tooltip on hover */}
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-10">
                       {donation.status === 'CANCELED' 
