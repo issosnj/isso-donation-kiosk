@@ -1085,7 +1085,7 @@ struct CleanAmountButton: View {
     }
 }
 
-// Clean custom amount field
+// Clean custom amount field with liquid glass styling
 struct CleanCustomAmountField: View {
     @Binding var text: String
     let isActive: Bool
@@ -1093,88 +1093,71 @@ struct CleanCustomAmountField: View {
     @Binding var showingKeypad: Bool
     let onTap: () -> Void
     
+    // Theme values (matching the total amount box)
+    private let bodyFont = "Inter-Regular"
+    private let bodySize: CGFloat = 14
+    private let subtitleColor = Color(red: 0.5, green: 0.5, blue: 0.6)
+    private let headingColor = Color(red: 0.26, green: 0.20, blue: 0.20)
+    private let cornerRadius: CGFloat = 12
+    
     var body: some View {
         HStack(spacing: 12) {
             Text("$")
                 .font(.system(size: 22, weight: .medium))
-                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
+                .foregroundColor(subtitleColor)
                 .frame(width: 24, alignment: .leading)
             
-            if isActive {
-                // Display field that shows amount or placeholder - styled like the image
-                HStack {
-                    if text.isEmpty {
-                        Text("customAmount".localized)
-                            .font(.custom("Inter-Regular", size: 20))
-                            .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.65))
-                    } else {
-                        Text(text)
-                            .font(.custom("Inter-Regular", size: 20))
-                            .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
-                    }
-                    Spacer()
+            HStack {
+                if text.isEmpty {
+                    Text("customAmount".localized)
+                        .font(.custom(bodyFont, size: 20))
+                        .foregroundColor(subtitleColor)
+                } else {
+                    Text(text)
+                        .font(.custom("Inter-Regular", size: 20))
+                        .foregroundColor(headingColor)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .frame(height: 60)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(red: 0.98, green: 0.97, blue: 0.95)) // Cream/white interior
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color(red: 0.85, green: 0.75, blue: 0.55), lineWidth: 2) // Light gold border
-                        )
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    onTap()
-                }
-                .onChange(of: isFocused) { focused in
-                    if focused {
-                        // Show custom keypad when field is focused
-                        showingKeypad = true
-                        // Hide system keyboard by resigning focus immediately
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            isFocused = false
-                        }
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .frame(height: 60)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white.opacity(0.6),
+                                        Color.white.opacity(0.1)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+                    .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onTap()
+            }
+            .onChange(of: isFocused) { focused in
+                if focused {
+                    // Show custom keypad when field is focused
+                    showingKeypad = true
+                    // Hide system keyboard by resigning focus immediately
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isFocused = false
                     }
-                }
-            } else {
-                Button(action: onTap) {
-                    HStack {
-                        if !text.isEmpty, let amount = Double(text), amount > 0 {
-                            Text("$\(text)")
-                                .font(.custom("Inter-Regular", size: 20))
-                                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.3))
-                        } else {
-                            Text("customAmount".localized)
-                                .font(.custom("Inter-Regular", size: 20))
-                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14))
-                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .frame(height: 60)
-        .background(Color.white)
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                .stroke(
-                    isActive 
-                        ? Color(red: 0.2, green: 0.4, blue: 0.8).opacity(0.5)
-                        : Color.gray.opacity(0.2),
-                    lineWidth: isActive ? 2 : 1
-                )
-        )
-        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+        .padding(.horizontal, 0)
         .scaleEffect(isActive ? 1.01 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: isActive)
     }
