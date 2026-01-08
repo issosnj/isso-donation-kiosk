@@ -508,13 +508,34 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
             currentReader = Terminal.shared.connectedReader
         }
         
-        // Stripe Terminal SDK Reader has batteryLevel property (0.0 to 1.0 for M2 readers)
-        // Use key-value coding to safely access the property
+        // Try different ways to access battery level from Stripe Terminal Reader
+        // M2 readers expose battery level as a property (0.0 to 1.0)
+        
+        // Method 1: Try direct KVC access
         if let batteryLevel = reader.value(forKeyPath: "batteryLevel") as? NSNumber {
             let percentage = Int(batteryLevel.doubleValue * 100)
+            log("🔋 Battery level: \(percentage)%", verbose: true)
             return percentage
         }
         
+        // Method 2: Try using responds(to:) to check if property exists
+        if reader.responds(to: Selector(("batteryLevel"))) {
+            if let result = reader.perform(Selector(("batteryLevel"))) {
+                if let batteryLevel = result.takeUnretainedValue() as? NSNumber {
+                    let percentage = Int(batteryLevel.doubleValue * 100)
+                    log("🔋 Battery level: \(percentage)%", verbose: true)
+                    return percentage
+                }
+            }
+        }
+        
+        // Method 3: Try accessing via string description parsing (fallback)
+        let readerDescription = String(describing: reader)
+        if readerDescription.contains("batteryLevel") {
+            log("⚠️ Battery level property exists but cannot be accessed directly", verbose: true)
+        }
+        
+        log("⚠️ Battery level not available for reader: \(reader.serialNumber ?? "unknown")", verbose: true)
         return nil
     }
     

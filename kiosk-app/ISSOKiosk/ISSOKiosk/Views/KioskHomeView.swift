@@ -775,45 +775,37 @@ struct KioskHomeView: View {
     }
 }
 
-// Reusable Time and Network Status View Component
+// Reader Battery Status View Component
 struct ReaderBatteryStatusView: View {
     @State private var batteryLevel: Int? = nil
     @State private var timer: Timer?
     
     var body: some View {
-        VStack {
-            HStack {
-                if let level = batteryLevel {
-                    HStack(spacing: 8) {
-                        // Battery icon
-                        Image(systemName: batteryIconName(for: level))
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(batteryColor(for: level))
-                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                        
-                        // Battery percentage
-                        Text("\(level)%")
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(.white)
-                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                    }
-                } else {
-                    // Reader not connected
-                    HStack(spacing: 8) {
-                        Image(systemName: "battery.slash")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.gray)
-                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                        
-                        Text("--")
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(.gray)
-                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                    }
-                }
-                Spacer()
+        HStack(spacing: 8) {
+            if let level = batteryLevel {
+                // Battery icon
+                Image(systemName: batteryIconName(for: level))
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(batteryColor(for: level))
+                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                
+                // Battery percentage
+                Text("\(level)%")
+                    .font(.custom("Inter-Medium", size: 16))
+                    .foregroundColor(.white)
+                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+            } else {
+                // Reader not connected - show gray battery icon
+                Image(systemName: "battery.0")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.gray)
+                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                
+                Text("--")
+                    .font(.custom("Inter-Medium", size: 16))
+                    .foregroundColor(.gray)
+                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
             }
-            Spacer()
         }
         .onAppear {
             updateBatteryLevel()
