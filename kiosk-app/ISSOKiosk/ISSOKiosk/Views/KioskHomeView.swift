@@ -104,6 +104,27 @@ struct KioskHomeView: View {
                     defaultLayout
                 }
             }
+            
+            // Top-level overlay for status indicators (battery, time, network)
+            // These need to be on top of everything else
+            VStack {
+                HStack {
+                    // Reader Battery Status in top left
+                    ReaderBatteryStatusView()
+                        .padding(.leading, 20)
+                        .padding(.top, 7)
+                    
+                    Spacer()
+                    
+                    // Time and Network Status in top right
+                    if appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusVisible != false {
+                        TimeAndNetworkStatusView()
+                            .padding(.trailing, 20)
+                            .padding(.top, 7)
+                    }
+                }
+                Spacer()
+            }
         }
     }
     
@@ -167,18 +188,6 @@ struct KioskHomeView: View {
                                     .frame(height: 16)
                             }
                         }
-                    }
-                    
-                    // Reader Battery Status in top left
-                    ReaderBatteryStatusView()
-                        .padding(.leading, 20)
-                        .padding(.top, 7)
-                    
-                    // Time and Network Status in top right
-                    if appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusVisible != false {
-                        TimeAndNetworkStatusView()
-                            .padding(.trailing, 20)
-                            .padding(.top, 7)
                     }
                     
                     // Language Selector (top left) - Horizontal layout with separators
