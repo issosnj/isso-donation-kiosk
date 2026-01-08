@@ -15,7 +15,7 @@ interface TempleEditViewProps {
 }
 
 export default function TempleEditView({ templeId, onBack }: TempleEditViewProps) {
-  const [activeTab, setActiveTab] = useState<'info' | 'devices' | 'categories' | 'square' | 'stripe' | 'events' | 'kiosk'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'devices' | 'categories' | 'stripe' | 'events' | 'kiosk'>('info')
   const [isEditing, setIsEditing] = useState(false)
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
@@ -108,7 +108,6 @@ export default function TempleEditView({ templeId, onBack }: TempleEditViewProps
     { id: 'info', label: 'Basic Info' },
     { id: 'devices', label: 'Devices' },
     { id: 'categories', label: 'Categories' },
-    { id: 'square', label: 'Square' },
     { id: 'stripe', label: 'Stripe' },
     { id: 'kiosk', label: 'Kiosk Home' },
   ]
