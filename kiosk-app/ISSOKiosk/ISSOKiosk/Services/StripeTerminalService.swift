@@ -535,7 +535,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
             log("⚠️ Battery level property exists but cannot be accessed directly", verbose: true)
         }
         
-        log("⚠️ Battery level not available for reader: \(reader.serialNumber ?? "unknown")", verbose: true)
+        log("⚠️ Battery level not available for reader: \(reader.serialNumber)", verbose: true)
         return nil
     }
     
