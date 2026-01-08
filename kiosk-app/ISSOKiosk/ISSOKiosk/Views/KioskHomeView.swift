@@ -106,9 +106,9 @@ struct KioskHomeView: View {
             }
             
             // Top-level overlay for status indicators (battery, time, network)
-            // These need to be on top of everything else
+            // These need to be on top of everything else, aligned at the top
             VStack {
-                HStack {
+                HStack(alignment: .top) {
                     // Reader Battery Status in top left
                     ReaderBatteryStatusView()
                         .padding(.leading, 20)
