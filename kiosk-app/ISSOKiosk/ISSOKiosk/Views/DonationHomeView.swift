@@ -1102,62 +1102,56 @@ struct CleanCustomAmountField: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            Text("$")
-                .font(.system(size: 22, weight: .medium))
-                .foregroundColor(subtitleColor)
-                .frame(width: 24, alignment: .leading)
-            
-            HStack {
-                if text.isEmpty {
-                    Text("customAmount".localized)
-                        .font(.custom(bodyFont, size: 20))
-                        .foregroundColor(subtitleColor)
-                } else {
-                    Text(text)
-                        .font(.custom("Inter-Regular", size: 20))
-                        .foregroundColor(headingColor)
-                }
-                Spacer()
+            if text.isEmpty {
+                Text("customAmount".localized)
+                    .font(.custom(bodyFont, size: 20))
+                    .foregroundColor(subtitleColor)
+            } else {
+                Text("$")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundColor(headingColor)
+                Text(text)
+                    .font(.custom("Inter-Regular", size: 20))
+                    .foregroundColor(headingColor)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .frame(height: 60)
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .stroke(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color.white.opacity(0.6),
-                                        Color.white.opacity(0.1)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-                    .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
-            )
-            .contentShape(Rectangle())
-            .onTapGesture {
-                onTap()
-            }
-            .onChange(of: isFocused) { focused in
-                if focused {
-                    // Show custom keypad when field is focused
-                    showingKeypad = true
-                    // Hide system keyboard by resigning focus immediately
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        isFocused = false
-                    }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 20)
+        .background(
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white.opacity(0.6),
+                                    Color.white.opacity(0.1)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap()
+        }
+        .onChange(of: isFocused) { focused in
+            if focused {
+                // Show custom keypad when field is focused
+                showingKeypad = true
+                // Hide system keyboard by resigning focus immediately
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isFocused = false
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 0)
         .scaleEffect(isActive ? 1.01 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: isActive)
     }
