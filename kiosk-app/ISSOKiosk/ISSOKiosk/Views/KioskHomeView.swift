@@ -784,43 +784,83 @@ struct KioskHomeView: View {
     }
 }
 
-// Reader Battery Status View Component
+// Reader Battery Status View Component (shows iPad battery and Stripe reader battery)
 struct ReaderBatteryStatusView: View {
-    @State private var batteryLevel: Int? = nil
+    @State private var readerBatteryLevel: Int? = nil
+    @State private var deviceBatteryLevel: Int? = nil
     @State private var timer: Timer?
     
     var body: some View {
-        HStack(spacing: 8) {
-            if let level = batteryLevel {
-                // Battery icon
-                Image(systemName: batteryIconName(for: level))
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(batteryColor(for: level))
-                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                
-                // Battery percentage
-                Text("\(level)%")
-                    .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(.white)
-                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-            } else {
-                // Reader not connected - show gray battery icon
-                Image(systemName: "battery.0")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.gray)
-                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                
-                Text("--")
-                    .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(.gray)
-                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+        HStack(spacing: 16) {
+            // iPad Battery (left side)
+            HStack(spacing: 8) {
+                if let level = deviceBatteryLevel {
+                    // Battery icon
+                    Image(systemName: batteryIconName(for: level))
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(batteryColor(for: level))
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    
+                    // Battery percentage
+                    Text("\(level)%")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(.white)
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                } else {
+                    // Battery level not available
+                    Image(systemName: "battery.0")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.gray)
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    
+                    Text("--")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(.gray)
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                }
+            }
+            
+            // Separator (optional visual separator)
+            Text("|")
+                .font(.custom("Inter-Medium", size: 16))
+                .foregroundColor(.white.opacity(0.5))
+                .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+            
+            // Stripe Reader Battery (right side)
+            HStack(spacing: 8) {
+                if let level = readerBatteryLevel {
+                    // Battery icon
+                    Image(systemName: batteryIconName(for: level))
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(batteryColor(for: level))
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    
+                    // Battery percentage
+                    Text("\(level)%")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(.white)
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                } else {
+                    // Reader not connected - show gray battery icon
+                    Image(systemName: "battery.0")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.gray)
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    
+                    Text("--")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(.gray)
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                }
             }
         }
         .onAppear {
-            updateBatteryLevel()
-            // Update battery level every 30 seconds
+            // Enable battery monitoring for device battery
+            UIDevice.current.isBatteryMonitoringEnabled = true
+            updateBatteryLevels()
+            // Update battery levels every 30 seconds
             timer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
-                updateBatteryLevel()
+                updateBatteryLevels()
             }
             if let timer = timer {
                 RunLoop.current.add(timer, forMode: .common)
@@ -832,8 +872,18 @@ struct ReaderBatteryStatusView: View {
         }
     }
     
-    private func updateBatteryLevel() {
-        batteryLevel = StripeTerminalService.shared.getReaderBatteryLevel()
+    private func updateBatteryLevels() {
+        // Update reader battery level
+        readerBatteryLevel = StripeTerminalService.shared.getReaderBatteryLevel()
+        
+        // Update iPad/device battery level
+        let batteryLevel = UIDevice.current.batteryLevel
+        if batteryLevel >= 0 {
+            // batteryLevel is 0.0 to 1.0, convert to percentage
+            deviceBatteryLevel = Int(batteryLevel * 100)
+        } else {
+            deviceBatteryLevel = nil
+        }
     }
     
     private func batteryIconName(for level: Int) -> String {
