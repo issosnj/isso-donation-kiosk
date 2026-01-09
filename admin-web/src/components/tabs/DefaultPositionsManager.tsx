@@ -50,12 +50,8 @@ const ELEMENT_TYPES = {
   home: [
     { value: 'welcomeText', label: 'Welcome Text' },
     { value: 'header1', label: 'Header 1' },
-    { value: 'underGadiText', label: 'Under Gadi Text' },
-    { value: 'address', label: 'Address' },
     { value: 'timeStatus', label: 'Time & Status' },
     { value: 'tapToDonate', label: 'Tap to Donate' },
-    { value: 'quickActions', label: 'Quick Actions' },
-    { value: 'customMessage', label: 'Custom Message' },
     { value: 'whatsAppButtons', label: 'WhatsApp Buttons' },
     { value: 'languageSelector', label: 'Language Selector' },
   ],
