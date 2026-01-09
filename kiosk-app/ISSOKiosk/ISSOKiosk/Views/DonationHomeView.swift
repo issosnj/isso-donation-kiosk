@@ -226,29 +226,6 @@ struct DonationHomeView: View {
         CGFloat(theme?.layout?.donationSelectionPageRightPadding ?? 40)
     }
     
-    var customAmountKeypadX: CGFloat {
-        CGFloat(theme?.layout?.customAmountKeypadX ?? 0)
-    }
-    
-    var customAmountKeypadY: CGFloat {
-        CGFloat(theme?.layout?.customAmountKeypadY ?? 0)
-    }
-    
-    var donationSelectionCategorySectionX: CGFloat {
-        CGFloat(theme?.layout?.donationSelectionCategorySectionX ?? 0)
-    }
-    
-    var donationSelectionCategorySectionY: CGFloat {
-        CGFloat(theme?.layout?.donationSelectionCategorySectionY ?? 0)
-    }
-    
-    var donationSelectionAmountSectionX: CGFloat {
-        CGFloat(theme?.layout?.donationSelectionAmountSectionX ?? 0)
-    }
-    
-    var donationSelectionAmountSectionY: CGFloat {
-        CGFloat(theme?.layout?.donationSelectionAmountSectionY ?? 0)
-    }
     
     var keypadTheme: KeypadTheme {
         let layout = theme?.layout
@@ -481,68 +458,35 @@ struct DonationHomeView: View {
             HStack(spacing: showingCustomAmountKeypad ? geometry.scale(20) : geometry.scale(categoryAmountSectionSpacing)) {
                 // Show keypad in place of category section when active
                 if showingCustomAmountKeypad {
-                    // If X and Y are both 0, use default positioning (aligned with category buttons)
-                    // Otherwise, use absolute positioning
-                    if customAmountKeypadX == 0 && customAmountKeypadY == 0 {
-                        VStack(spacing: 0) {
-                            // Match the same top padding as category section header
-                            Spacer()
-                                .frame(height: categoryHeaderTopPadding)
-                            
-                            // Match the header height and bottom padding exactly
-                            // Heading size + body size + spacing 6pt + bottom padding 12pt
-                            Spacer()
-                                .frame(height: headingSize + bodySize + 6 + 12)
-                            
-                            // Keypad aligned to start where category buttons start
-                            // Match the exact padding used by category buttons (16pt)
-                            HStack {
-                                CustomNumericKeypad(
-                                    amount: $customAmount,
-                                    onDismiss: {
-                                        showingCustomAmountKeypad = false
-                                        customAmountFocused = false
-                                    },
-                                    theme: keypadTheme
-                                )
-                                Spacer()
-                            }
-                            .padding(.horizontal, geometry.scale(16))
-                            
+                    // Always use VStack layout for keypad (no absolute positioning)
+                    VStack(spacing: 0) {
+                        // Match the same top padding as category section header
+                        Spacer()
+                            .frame(height: categoryHeaderTopPadding)
+                        
+                        // Match the header height and bottom padding exactly
+                        // Heading size + body size + spacing 6pt + bottom padding 12pt
+                        Spacer()
+                            .frame(height: headingSize + bodySize + 6 + 12)
+                        
+                        // Keypad aligned to start where category buttons start
+                        // Match the exact padding used by category buttons (16pt)
+                        HStack {
+                            CustomNumericKeypad(
+                                amount: $customAmount,
+                                onDismiss: {
+                                    showingCustomAmountKeypad = false
+                                    customAmountFocused = false
+                                },
+                                theme: keypadTheme
+                            )
                             Spacer()
                         }
-                        .frame(maxWidth: .infinity)
-                    } else {
-                        // Always use VStack layout for keypad (no absolute positioning)
-                        VStack(spacing: 0) {
-                            // Match the same top padding as category section header
-                            Spacer()
-                                .frame(height: categoryHeaderTopPadding)
-                            
-                            // Match the header height and bottom padding exactly
-                            // Heading size + body size + spacing 6pt + bottom padding 12pt
-                            Spacer()
-                                .frame(height: headingSize + bodySize + 6 + 12)
-                            
-                            // Keypad aligned to start where category buttons start
-                            // Match the exact padding used by category buttons (16pt)
-                            HStack {
-                                CustomNumericKeypad(
-                                    amount: $customAmount,
-                                    onDismiss: {
-                                        showingCustomAmountKeypad = false
-                                        customAmountFocused = false
-                                    },
-                                    theme: keypadTheme
-                                )
-                                Spacer()
-                            }
-                            .padding(.horizontal, geometry.scale(16))
-                            
-                            Spacer()
-                        }
-                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, geometry.scale(16))
+                        
+                        Spacer()
                     }
+                    .frame(maxWidth: .infinity)
                 } else {
                     // Always use VStack layout for category section (no absolute positioning)
                     categorySection(geometry: geometry)
