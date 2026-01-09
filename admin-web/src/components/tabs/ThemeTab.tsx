@@ -190,12 +190,12 @@ export default function ThemeTab() {
           homeScreenBottomButtonsPadding: globalSettings.kioskTheme.layout?.homeScreenBottomButtonsPadding || 50,
           homeScreenBottomButtonsLeftPadding: globalSettings.kioskTheme.layout?.homeScreenBottomButtonsLeftPadding || 20,
           // Home Screen Element Visibility
-                      homeScreenWelcomeTextVisible: globalSettings.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
-                      homeScreenHeader1Visible: globalSettings.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
-                      homeScreenTimeStatusVisible: globalSettings.kioskTheme.layout?.homeScreenTimeStatusVisible ?? true,
-                      homeScreenTapToDonateVisible: globalSettings.kioskTheme.layout?.homeScreenTapToDonateVisible ?? true,
-                      homeScreenWhatsAppButtonsVisible: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
-                      homeScreenLanguageSelectorVisible: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
+          homeScreenWelcomeTextVisible: globalSettings.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
+          homeScreenHeader1Visible: globalSettings.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
+          homeScreenTimeStatusVisible: globalSettings.kioskTheme.layout?.homeScreenTimeStatusVisible ?? true,
+          homeScreenTapToDonateVisible: globalSettings.kioskTheme.layout?.homeScreenTapToDonateVisible ?? true,
+          homeScreenWhatsAppButtonsVisible: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
+          homeScreenLanguageSelectorVisible: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: globalSettings.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
           detailsPageSidePadding: globalSettings.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -2022,7 +2022,6 @@ export default function ThemeTab() {
             </div>
           </div>
         </div>
-      )}
         </>
       )}
     </div>
