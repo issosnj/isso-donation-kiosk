@@ -728,6 +728,11 @@ struct ThemeLayout: Codable, Equatable {
     let sectionSpacing: Double?
     let categoryAmountSectionSpacing: Double?
     let buttonSpacing: Double?
+    // Donation Selection Page Column Positioning (X/Y Coordinates)
+    let donationSelectionCategorySectionX: Double?
+    let donationSelectionCategorySectionY: Double?
+    let donationSelectionAmountSectionX: Double?
+    let donationSelectionAmountSectionY: Double?
     let cornerRadius: Double?
     let quantityTotalSpacing: Double?
     let donationSelectionPageLeftPadding: Double?

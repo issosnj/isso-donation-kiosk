@@ -234,6 +234,22 @@ struct DonationHomeView: View {
         CGFloat(theme?.layout?.customAmountKeypadY ?? 0)
     }
     
+    var donationSelectionCategorySectionX: CGFloat {
+        CGFloat(theme?.layout?.donationSelectionCategorySectionX ?? 0)
+    }
+    
+    var donationSelectionCategorySectionY: CGFloat {
+        CGFloat(theme?.layout?.donationSelectionCategorySectionY ?? 0)
+    }
+    
+    var donationSelectionAmountSectionX: CGFloat {
+        CGFloat(theme?.layout?.donationSelectionAmountSectionX ?? 0)
+    }
+    
+    var donationSelectionAmountSectionY: CGFloat {
+        CGFloat(theme?.layout?.donationSelectionAmountSectionY ?? 0)
+    }
+    
     var keypadTheme: KeypadTheme {
         let layout = theme?.layout
         return KeypadTheme(
@@ -717,7 +733,8 @@ struct DonationHomeView: View {
                     // Show custom keypad instead of system keyboard
                     showingCustomAmountKeypad = true
                     customAmountFocused = true
-                }
+                },
+                headingColor: headingColor // Pass headingColor to match title
             )
             .padding(.horizontal, 16)
         }
@@ -1092,33 +1109,25 @@ struct CleanCustomAmountField: View {
     @FocusState.Binding var isFocused: Bool
     @Binding var showingKeypad: Bool
     let onTap: () -> Void
+    let headingColor: Color // Pass headingColor from parent
     
     // Theme values (matching the total amount box)
     private let bodyFont = "Inter-Regular"
     private let bodySize: CGFloat = 14
     private let subtitleColor = Color(red: 0.5, green: 0.5, blue: 0.6)
-    private let headingColor = Color(red: 0.26, green: 0.20, blue: 0.20)
     private let cornerRadius: CGFloat = 12
     
     var body: some View {
         HStack(spacing: 12) {
-            if text.isEmpty {
-                Text("customAmount".localized)
-                    .font(.custom(bodyFont, size: 20))
-                    .foregroundColor(subtitleColor)
-            } else {
-                Text("$")
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundColor(headingColor)
-                Text(text)
-                    .font(.custom("Inter-Regular", size: 20))
-                    .foregroundColor(headingColor)
-            }
+            // Always show placeholder when text is empty, or when text has value (don't show the amount here)
+            Text("customAmount".localized)
+                .font(.custom(bodyFont, size: 20))
+                .foregroundColor(headingColor) // Use headingColor to match title
             Spacer()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 12)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 28) // Increased from 20 to 28 to make it wider, matching total amount box
         .background(
             RoundedRectangle(cornerRadius: cornerRadius)
                 .fill(.ultraThinMaterial)
