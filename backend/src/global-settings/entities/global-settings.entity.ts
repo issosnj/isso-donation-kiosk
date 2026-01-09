@@ -63,8 +63,6 @@ export class GlobalSettings {
       quantityTotalSpacing?: number;
       donationSelectionPageLeftPadding?: number;
       donationSelectionPageRightPadding?: number;
-      customAmountKeypadX?: number;
-      customAmountKeypadY?: number;
       customAmountKeypadWidth?: number;
       customAmountKeypadHeight?: number;
       customAmountKeypadButtonHeight?: number;
@@ -87,18 +85,6 @@ export class GlobalSettings {
       homeScreenContentSpacing?: number;
       homeScreenBottomButtonsPadding?: number;
       homeScreenBottomButtonsLeftPadding?: number;
-      homeScreenWelcomeTextX?: number;
-      homeScreenWelcomeTextY?: number;
-      homeScreenHeader1X?: number;
-      homeScreenHeader1Y?: number;
-      homeScreenTimeStatusX?: number;
-      homeScreenTimeStatusY?: number;
-      homeScreenTapToDonateX?: number;
-      homeScreenTapToDonateY?: number;
-      homeScreenWhatsAppButtonsX?: number;
-      homeScreenWhatsAppButtonsY?: number;
-      homeScreenLanguageSelectorX?: number;
-      homeScreenLanguageSelectorY?: number;
       homeScreenWelcomeTextVisible?: boolean;
       homeScreenHeader1Visible?: boolean;
       homeScreenTimeStatusVisible?: boolean;

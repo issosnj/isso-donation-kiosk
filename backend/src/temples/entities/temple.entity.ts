@@ -151,8 +151,6 @@ export class Temple {
       quantityTotalSpacing?: number; // Spacing between quantity and total when category selected (e.g., 24)
       donationSelectionPageLeftPadding?: number; // Left padding for donation selection page (e.g., 40)
       donationSelectionPageRightPadding?: number; // Right padding for donation selection page (e.g., 40)
-      customAmountKeypadX?: number; // X position of custom amount keypad (e.g., 0)
-      customAmountKeypadY?: number; // Y position of custom amount keypad (e.g., 0)
       customAmountKeypadWidth?: number; // Width of custom amount keypad (e.g., 320)
       customAmountKeypadHeight?: number; // Height of custom amount keypad (auto-calculated if not set)
       customAmountKeypadButtonHeight?: number; // Height of keypad buttons (e.g., 70)
@@ -176,21 +174,6 @@ export class Temple {
       homeScreenContentSpacing?: number; // Spacing between home screen content elements (e.g., 20)
       homeScreenBottomButtonsPadding?: number; // Bottom padding for WhatsApp/Observances buttons (e.g., 50)
       homeScreenBottomButtonsLeftPadding?: number; // Left padding for bottom buttons (e.g., 20)
-      // Home Screen Element Positioning (X/Y Coordinates)
-      // X and Y coordinates are in points (pixels) relative to screen top-left (0,0)
-      // If not set, elements use default layout positioning
-      homeScreenWelcomeTextX?: number; // X coordinate for "Welcome to..." text
-      homeScreenWelcomeTextY?: number; // Y coordinate for "Welcome to..." text
-      homeScreenHeader1X?: number; // X coordinate for header 1 (ISSO text)
-      homeScreenHeader1Y?: number; // Y coordinate for header 1
-      homeScreenTimeStatusX?: number; // X coordinate for time/network status (top right)
-      homeScreenTimeStatusY?: number; // Y coordinate for time/network status
-      homeScreenTapToDonateX?: number; // X coordinate for "Tap to Donate" button center
-      homeScreenTapToDonateY?: number; // Y coordinate for "Tap to Donate" button center
-      homeScreenWhatsAppButtonsX?: number; // X coordinate for WhatsApp/Observances buttons
-      homeScreenWhatsAppButtonsY?: number; // Y coordinate for WhatsApp/Observances buttons
-      homeScreenLanguageSelectorX?: number; // X coordinate for language selector (top left)
-      homeScreenLanguageSelectorY?: number; // Y coordinate for language selector
       // Home Screen Element Visibility (hide/unhide)
       homeScreenWelcomeTextVisible?: boolean; // Whether to show "Welcome to..." text (default: true)
       homeScreenHeader1Visible?: boolean; // Whether to show header 1 (ISSO text) (default: true)
