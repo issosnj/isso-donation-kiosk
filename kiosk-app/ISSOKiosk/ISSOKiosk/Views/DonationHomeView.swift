@@ -809,72 +809,73 @@ struct DonationHomeView: View {
         )
     }
     
-    private var continueButton: some View {
-        VStack(spacing: 16) {
+    @ViewBuilder
+    private func continueButton(geometry: GeometryProxy) -> some View {
+        VStack(spacing: geometry.scale(16)) {
             // Show quantity and total side by side when category with quantity is selected
             if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                HStack(spacing: quantityTotalSpacing) {
+                HStack(spacing: geometry.scale(quantityTotalSpacing)) {
                     // Quantity selector
-                    VStack(spacing: 8) {
+                    VStack(spacing: geometry.scale(8)) {
                         Text("quantity".localized)
-                            .font(.custom(bodyFont, size: bodySize))
+                            .font(.custom(bodyFont, size: geometry.scale(bodySize)))
                             .foregroundColor(subtitleColor)
                         
-                        HStack(spacing: 12) {
+                        HStack(spacing: geometry.scale(12)) {
                             Button(action: {
                                 if quantity > 1 {
                                     quantity -= 1
                                 }
                             }) {
                                 Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 24))
+                                    .font(.system(size: geometry.scale(24)))
                                     .foregroundColor(quantity > 1 ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray)
                             }
                             .disabled(quantity <= 1)
                             
                             Text("\(quantity)")
-                                .font(.custom(headingFont, size: 24))
+                                .font(.custom(headingFont, size: geometry.scale(24)))
                                 .foregroundColor(quantityTotalColor)
-                                .frame(minWidth: 40)
+                                .frame(minWidth: geometry.scale(40))
                             
                             Button(action: {
                                 quantity += 1
                             }) {
                                 Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 24))
+                                    .font(.system(size: geometry.scale(24)))
                                     .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                             }
                         }
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 24)
+                        .padding(.vertical, geometry.scale(10))
+                        .padding(.horizontal, geometry.scale(24))
                         .background(Color.white)
-                        .cornerRadius(cornerRadius)
-                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                        .cornerRadius(geometry.scale(cornerRadius))
+                        .shadow(color: Color.black.opacity(0.1), radius: geometry.scale(4), x: 0, y: geometry.scale(2))
                     }
                     
                     // Total display - liquid glass styling
                     HStack {
                         Text("total".localized)
-                            .font(.custom(bodyFont, size: bodySize))
+                            .font(.custom(bodyFont, size: geometry.scale(bodySize)))
                             .foregroundColor(subtitleColor)
-                            .frame(minWidth: 60, alignment: .leading)
+                            .frame(minWidth: geometry.scale(60), alignment: .leading)
                         
                         Spacer()
                         
                         Text((defaultAmount * Double(quantity)).formattedCurrency())
-                            .font(.custom(headingFont, size: 32))
+                            .font(.custom(headingFont, size: geometry.scale(32)))
                             .foregroundColor(quantityTotalColor)
                             .fontWeight(.semibold)
                             .monospacedDigit()
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 20)
+                    .padding(.vertical, geometry.scale(12))
+                    .padding(.horizontal, geometry.scale(20))
                     .background(
-                        RoundedRectangle(cornerRadius: cornerRadius)
+                        RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
                             .fill(.ultraThinMaterial)
                             .overlay(
-                                RoundedRectangle(cornerRadius: cornerRadius)
+                                RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
                                     .stroke(
                                         LinearGradient(
                                             gradient: Gradient(colors: [
@@ -884,13 +885,13 @@ struct DonationHomeView: View {
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         ),
-                                        lineWidth: 1
+                                        lineWidth: geometry.scale(1)
                                     )
                             )
-                            .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                            .shadow(color: Color.black.opacity(0.15), radius: geometry.scale(8), x: 0, y: geometry.scale(4))
                     )
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, geometry.scale(8))
                 .transition(.scale.combined(with: .opacity))
             } else if hasValidAmount {
                 // Show total only when amount is selected (no quantity) - liquid glass styling
@@ -898,25 +899,25 @@ struct DonationHomeView: View {
                     Spacer()
                     HStack {
                         Text("total".localized)
-                            .font(.custom(bodyFont, size: bodySize))
+                            .font(.custom(bodyFont, size: geometry.scale(bodySize)))
                             .foregroundColor(subtitleColor)
-                            .frame(minWidth: 60, alignment: .leading)
+                            .frame(minWidth: geometry.scale(60), alignment: .leading)
                         
                         Spacer()
                         
                         Text(currentAmount.formattedCurrency())
-                            .font(.custom(headingFont, size: 32))
+                            .font(.custom(headingFont, size: geometry.scale(32)))
                             .foregroundColor(quantityTotalColor)
                             .fontWeight(.semibold)
                             .monospacedDigit()
                     }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 28)
+                    .padding(.vertical, geometry.scale(12))
+                    .padding(.horizontal, geometry.scale(28))
                     .background(
-                        RoundedRectangle(cornerRadius: cornerRadius)
+                        RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
                             .fill(.ultraThinMaterial)
                             .overlay(
-                                RoundedRectangle(cornerRadius: cornerRadius)
+                                RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
                                     .stroke(
                                         LinearGradient(
                                             gradient: Gradient(colors: [
@@ -926,19 +927,19 @@ struct DonationHomeView: View {
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         ),
-                                        lineWidth: 1
+                                        lineWidth: geometry.scale(1)
                                     )
                             )
-                            .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                            .shadow(color: Color.black.opacity(0.15), radius: geometry.scale(8), x: 0, y: geometry.scale(4))
                     )
                     Spacer()
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, geometry.scale(8))
                 .transition(.scale.combined(with: .opacity))
             }
             
             // Buttons side by side: Home and Continue
-            HStack(spacing: 16) {
+            HStack(spacing: geometry.scale(16)) {
                 // Home button - uses returnToHomeButtonColor from theme
                 Button(action: {
                     // Clear donor details when returning to home
@@ -948,14 +949,14 @@ struct DonationHomeView: View {
                     donorAddress = nil
                     onDismiss()
                 }) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: geometry.scale(8)) {
                         Image(systemName: "house.fill")
                         Text("returnToHome".localized)
                     }
-                    .font(.custom("Inter-Medium", size: 18))
+                    .font(.custom("Inter-Medium", size: geometry.scale(18)))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
+                    .padding(.vertical, geometry.scale(18))
                     .background(
                         Group {
                             let buttonColor = colorFromHex(
@@ -969,7 +970,7 @@ struct DonationHomeView: View {
                             }
                         }
                     )
-                    .cornerRadius(12)
+                    .cornerRadius(geometry.scale(12))
                 }
                 
                 // Continue button - uses proceedToPaymentButtonColor from theme
@@ -977,10 +978,10 @@ struct DonationHomeView: View {
                     showingDetails = true
                 }) {
                     Text("Review Donation")
-                        .font(.custom("Inter-Medium", size: 18))
+                        .font(.custom("Inter-Medium", size: geometry.scale(18)))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
+                        .padding(.vertical, geometry.scale(18))
                         .background(
                             Group {
                                 if hasValidAmount {
@@ -998,12 +999,12 @@ struct DonationHomeView: View {
                                 }
                             }
                         )
-                        .cornerRadius(12)
+                        .cornerRadius(geometry.scale(12))
                 }
                 .disabled(!hasValidAmount)
             }
             .frame(maxWidth: .infinity)
-            .padding(.bottom, 30)
+            .padding(.bottom, geometry.scale(30))
         }
         .frame(maxWidth: .infinity)
     }
