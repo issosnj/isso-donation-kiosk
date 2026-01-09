@@ -102,7 +102,7 @@ struct KioskHomeView: View {
                     positionedElements(geometry: geometry)
                 } else {
                     // Use default VStack layout
-                    defaultLayout
+                    defaultLayout(geometry: geometry)
                 }
             }
             
@@ -112,16 +112,16 @@ struct KioskHomeView: View {
                 HStack(alignment: .top) {
                     // Reader Battery Status in top left
                     ReaderBatteryStatusView()
-                        .padding(.leading, 20)
-                        .padding(.top, 7)
+                        .padding(.leading, geometry.scale(20))
+                        .padding(.top, geometry.scale(7))
                     
                     Spacer()
                     
                     // Time and Network Status in top right
                     if appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusVisible != false {
                         TimeAndNetworkStatusView()
-                            .padding(.trailing, 20)
-                            .padding(.top, 7)
+                            .padding(.trailing, geometry.scale(20))
+                            .padding(.top, geometry.scale(7))
                     }
                 }
                 Spacer()
@@ -130,7 +130,8 @@ struct KioskHomeView: View {
     }
     
     // Default layout (VStack-based, used when no X/Y coordinates are set)
-    private var defaultLayout: some View {
+    @ViewBuilder
+    private func defaultLayout(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             // Header at top, transparent background
                 ZStack {
@@ -138,55 +139,55 @@ struct KioskHomeView: View {
                         // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller) - Bold
                         if appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextVisible != false {
                             Text("Welcome to Shree Swaminarayan Hindu Temple")
-                                .font(.system(size: 42, weight: .bold, design: .default))
+                                .font(.system(size: geometry.scale(42), weight: .bold, design: .default))
                                 .foregroundColor(colorFromHex("423232"))
                                 .multilineTextAlignment(.center)
                                 .lineLimit(nil)
                                 .minimumScaleFactor(0.5)
                                 .frame(maxWidth: .infinity)
-                                .padding(.horizontal, 20)
-                                .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60))
-                                .padding(.bottom, 4)
+                                .padding(.horizontal, geometry.scale(20))
+                                .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60)))
+                                .padding(.bottom, geometry.scale(4))
                         }
                         
                         // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
                         if appState.temple?.kioskTheme?.layout?.homeScreenHeader1Visible != false {
                             Text(header1Text)
-                                .font(.custom("Inter-SemiBold", size: 32))
+                                .font(.custom("Inter-SemiBold", size: geometry.scale(32)))
                                 .foregroundColor(colorFromHex("423232"))
                                 .multilineTextAlignment(.center)
                                 .lineLimit(nil)
                                 .minimumScaleFactor(0.5)
                                 .frame(maxWidth: .infinity)
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 4)
+                                .padding(.horizontal, geometry.scale(20))
+                                .padding(.bottom, geometry.scale(4))
                         }
                         
                         // Under Shree NarNarayan Dev Gadi - Italic
                         if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
                             Text("underGadi".localized)
-                                .font(.system(size: 20, weight: .regular, design: .default))
+                                .font(.system(size: geometry.scale(20), weight: .regular, design: .default))
                                 .italic()
                                 .foregroundColor(colorFromHex("423232"))
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity)
-                                .padding(.bottom, 4)
+                                .padding(.bottom, geometry.scale(4))
                         }
                         
                         // Temple Address
                         if appState.temple?.kioskTheme?.layout?.homeScreenAddressVisible != false {
                             if let temple = appState.temple, let address = temple.address, !address.isEmpty {
                                 Text(address)
-                                    .font(.custom("Inter-Regular", size: 18))
+                                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
                                     .foregroundColor(colorFromHex("423232"))
                                     .multilineTextAlignment(.center)
                                     .lineLimit(2)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.bottom, 16)
+                                    .padding(.bottom, geometry.scale(16))
                             } else {
                                 // Add padding if no address
                                 Spacer()
-                                    .frame(height: 16)
+                                    .frame(height: geometry.scale(16))
                             }
                         }
                     }
@@ -197,15 +198,15 @@ struct KioskHomeView: View {
                            let y = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorY {
                             // Positioned using X/Y coordinates
                             LanguageSelectorView(languageManager: languageManager)
-                                .position(x: CGFloat(x), y: CGFloat(y))
+                                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
                         } else {
                             // Default position (top left)
                             VStack {
                                 LanguageSelectorView(languageManager: languageManager)
                                 Spacer()
                             }
-                            .padding(.leading, 20)
-                            .padding(.top, 7)
+                            .padding(.leading, geometry.scale(20))
+                            .padding(.top, geometry.scale(7))
                         }
                     }
                 }
@@ -214,7 +215,7 @@ struct KioskHomeView: View {
                 .frame(maxHeight: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenSpacerMaxHeight ?? 100))
             
             // Centered content
-            VStack(spacing: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenContentSpacing ?? 20)) {
+            VStack(spacing: geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenContentSpacing ?? 20))) {
                 
                 // Main: Tap To Donate Button - Gold-Accented Design (centered vertically)
                 if appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateVisible != false {
@@ -240,8 +241,8 @@ struct KioskHomeView: View {
                                 }
                             }
                         })
-                        .padding(.horizontal, 20) // Add padding to prevent clipping during animation
-                        .padding(.vertical, 10) // Add vertical padding for zoom animation
+                        .padding(.horizontal, geometry.scale(20)) // Add padding to prevent clipping during animation
+                        .padding(.vertical, geometry.scale(10)) // Add vertical padding for zoom animation
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)
@@ -249,7 +250,7 @@ struct KioskHomeView: View {
                 
                 // Bottom: Action Buttons (only show active ones)
                 if appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsVisible != false {
-                    VStack(spacing: 20) {
+                    VStack(spacing: geometry.scale(20)) {
                         // Quick Actions Section (Events only)
                         let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
                         let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
@@ -257,12 +258,12 @@ struct KioskHomeView: View {
                         let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
                         
                             if hasEvents {
-                                VStack(spacing: 12) {
+                                VStack(spacing: geometry.scale(12)) {
                                     Text("quickActions".localized)
-                                        .font(.custom("Inter-SemiBold", size: 20))
+                                        .font(.custom("Inter-SemiBold", size: geometry.scale(20)))
                                         .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                                     
-                                    HStack(spacing: 16) {
+                                    HStack(spacing: geometry.scale(16)) {
                                         // Upcoming Events - only show if configured
                                         ModernQuickActionButton(
                                             icon: "calendar",
@@ -273,26 +274,26 @@ struct KioskHomeView: View {
                                             showEvents = true
                                         }
                                     }
-                                    .padding(.horizontal, 20)
+                                    .padding(.horizontal, geometry.scale(20))
                                 }
                             }
                     }
-                    .padding(.horizontal, 40)
-                    .padding(.top, 20)
+                    .padding(.horizontal, geometry.scale(40))
+                    .padding(.top, geometry.scale(20))
                 }
                 
                     // Custom Message at Bottom (if configured)
                     if appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageVisible != false,
                        let customMessage = appState.temple?.homeScreenConfig?.customMessage, !customMessage.isEmpty {
                         Text(customMessage)
-                            .font(.custom("Inter-Regular", size: 18))
+                            .font(.custom("Inter-Regular", size: geometry.scale(18)))
                             .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                            .padding(.top, 20)
+                            .padding(.horizontal, geometry.scale(40))
+                            .padding(.top, geometry.scale(20))
                     }
             }
-            .frame(maxWidth: 800) // Limit width for better centering
+            .frame(maxWidth: geometry.scale(800)) // Limit width for better centering
             
             Spacer()
         }
@@ -300,14 +301,14 @@ struct KioskHomeView: View {
             // WhatsApp and Observances buttons in bottom left corner (horizontal layout)
             if appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsVisible != false {
                 whatsAppButtonsView
-                    .padding(.leading, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20))
-                    .padding(.bottom, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50))
+                    .padding(.leading, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20)))
+                    .padding(.bottom, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50)))
             }
         }
     }
     
-    // Positioned elements (using X/Y coordinates)
-    // Elements with X/Y coordinates are positioned absolutely, others use default positions
+    // Positioned elements (using X/Y coordinates with responsive scaling)
+    // All absolute coordinates are scaled proportionally based on screen size
     @ViewBuilder
     private func positionedElements(geometry: GeometryProxy) -> some View {
         // Welcome Text
@@ -315,25 +316,25 @@ struct KioskHomeView: View {
             if let x = appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextX,
                let y = appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextY {
             Text("Welcome to Shree Swaminarayan Hindu Temple")
-                .font(.system(size: 42, weight: .bold, design: .default))
+                .font(.system(size: geometry.scale(42), weight: .bold, design: .default))
                 .foregroundColor(colorFromHex("423232"))
                 .multilineTextAlignment(.center)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.5)
                 .frame(maxWidth: geometry.size.width * 0.9)
-                .position(x: CGFloat(x), y: CGFloat(y))
+                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
         } else {
             // Default position if not set
             Text("Welcome to Shree Swaminarayan Hindu Temple")
-                .font(.system(size: 42, weight: .bold, design: .default))
+                .font(.system(size: geometry.scale(42), weight: .bold, design: .default))
                 .foregroundColor(colorFromHex("423232"))
                 .multilineTextAlignment(.center)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.5)
                 .frame(maxWidth: .infinity)
-                .padding(.horizontal, 20)
-                .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60))
-                .padding(.bottom, 4)
+                .padding(.horizontal, geometry.scale(20))
+                .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60)))
+                .padding(.bottom, geometry.scale(4))
         }
         }
         
@@ -342,25 +343,25 @@ struct KioskHomeView: View {
             if let x = appState.temple?.kioskTheme?.layout?.homeScreenHeader1X,
                let y = appState.temple?.kioskTheme?.layout?.homeScreenHeader1Y {
             Text(header1Text)
-                .font(.custom("Inter-SemiBold", size: 32))
+                .font(.custom("Inter-SemiBold", size: geometry.scale(32)))
                 .foregroundColor(colorFromHex("423232"))
                 .multilineTextAlignment(.center)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.5)
                 .frame(maxWidth: geometry.size.width * 0.9)
-                .position(x: CGFloat(x), y: CGFloat(y))
+                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
         } else {
             // Default position if not set
             Text(header1Text)
-                .font(.custom("Inter-SemiBold", size: 32))
+                .font(.custom("Inter-SemiBold", size: geometry.scale(32)))
                 .foregroundColor(colorFromHex("423232"))
                 .multilineTextAlignment(.center)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.5)
                 .frame(maxWidth: .infinity)
-                .padding(.horizontal, 20)
-                .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 60)
-                .padding(.bottom, 4)
+                .padding(.horizontal, geometry.scale(20))
+                .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 60))
+                .padding(.bottom, geometry.scale(4))
         }
         }
         
@@ -369,22 +370,22 @@ struct KioskHomeView: View {
             if let x = appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextX,
                let y = appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextY {
             Text("underGadi".localized)
-                .font(.system(size: 20, weight: .regular, design: .default))
+                .font(.system(size: geometry.scale(20), weight: .regular, design: .default))
                 .italic()
                 .foregroundColor(colorFromHex("423232"))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: geometry.size.width * 0.9)
-                .position(x: CGFloat(x), y: CGFloat(y))
+                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
         } else {
             // Default position if not set
             Text("underGadi".localized)
-                .font(.system(size: 20, weight: .regular, design: .default))
+                .font(.system(size: geometry.scale(20), weight: .regular, design: .default))
                 .italic()
                 .foregroundColor(colorFromHex("423232"))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
-                .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 120)
-                .padding(.bottom, 4)
+                .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 120))
+                .padding(.bottom, geometry.scale(4))
         }
         }
         
@@ -394,22 +395,22 @@ struct KioskHomeView: View {
             if let x = appState.temple?.kioskTheme?.layout?.homeScreenAddressX,
                let y = appState.temple?.kioskTheme?.layout?.homeScreenAddressY {
                 Text(address)
-                    .font(.custom("Inter-Regular", size: 18))
+                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
                     .foregroundColor(colorFromHex("423232"))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .frame(maxWidth: geometry.size.width * 0.9)
-                    .position(x: CGFloat(x), y: CGFloat(y))
+                    .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
             } else {
                 // Default position if not set
                 Text(address)
-                    .font(.custom("Inter-Regular", size: 18))
+                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
                     .foregroundColor(colorFromHex("423232"))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity)
-                    .padding(.top, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 160)
-                    .padding(.bottom, 16)
+                    .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 160))
+                    .padding(.bottom, geometry.scale(16))
             }
         }
         
@@ -418,12 +419,12 @@ struct KioskHomeView: View {
             if let x = appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusX,
                let y = appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusY {
             TimeAndNetworkStatusView()
-                .position(x: CGFloat(x), y: CGFloat(y))
+                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
         } else {
             // Default position (top right)
             TimeAndNetworkStatusView()
-                .padding(.trailing, 20)
-                .padding(.top, 7)
+                .padding(.trailing, geometry.scale(20))
+                .padding(.top, geometry.scale(7))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
         }
@@ -493,12 +494,12 @@ struct KioskHomeView: View {
             if hasEvents {
                 if let x = appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsX,
                    let y = appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsY {
-                VStack(spacing: 12) {
+                VStack(spacing: geometry.scale(12)) {
                     Text("quickActions".localized)
-                        .font(.custom("Inter-SemiBold", size: 20))
+                        .font(.custom("Inter-SemiBold", size: geometry.scale(20)))
                         .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                     
-                    HStack(spacing: 16) {
+                    HStack(spacing: geometry.scale(16)) {
                         ModernQuickActionButton(
                             icon: "calendar",
                             title: "events".localized,
@@ -508,17 +509,17 @@ struct KioskHomeView: View {
                             showEvents = true
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, geometry.scale(20))
                 }
-                .position(x: CGFloat(x), y: CGFloat(y))
+                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
             } else {
                 // Default position
-                VStack(spacing: 12) {
+                VStack(spacing: geometry.scale(12)) {
                     Text("quickActions".localized)
-                        .font(.custom("Inter-SemiBold", size: 20))
+                        .font(.custom("Inter-SemiBold", size: geometry.scale(20)))
                         .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                     
-                    HStack(spacing: 16) {
+                    HStack(spacing: geometry.scale(16)) {
                         ModernQuickActionButton(
                             icon: "calendar",
                             title: "events".localized,
@@ -528,13 +529,13 @@ struct KioskHomeView: View {
                             showEvents = true
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, geometry.scale(20))
                 }
-                .padding(.horizontal, 40)
-                .padding(.top, 20)
-                .frame(maxWidth: 800)
+                .padding(.horizontal, geometry.scale(40))
+                .padding(.top, geometry.scale(20))
+                .frame(maxWidth: geometry.scale(800))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .offset(y: 200) // Position below Tap to Donate button
+                .offset(y: geometry.scale(200)) // Position below Tap to Donate button
             }
             }
         }
@@ -545,22 +546,22 @@ struct KioskHomeView: View {
             if let x = appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageX,
                let y = appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageY {
                 Text(customMessage)
-                    .font(.custom("Inter-Regular", size: 18))
+                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
                     .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: geometry.size.width * 0.9)
-                    .position(x: CGFloat(x), y: CGFloat(y))
+                    .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
             } else {
                 // Default position
                 Text(customMessage)
-                    .font(.custom("Inter-Regular", size: 18))
+                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
                     .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-                    .padding(.top, 20)
-                    .frame(maxWidth: 800)
+                    .padding(.horizontal, geometry.scale(40))
+                    .padding(.top, geometry.scale(20))
+                    .frame(maxWidth: geometry.scale(800))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .offset(y: 300) // Position below Quick Actions
+                    .offset(y: geometry.scale(300)) // Position below Quick Actions
             }
         }
         
@@ -569,12 +570,12 @@ struct KioskHomeView: View {
             if let x = appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsX,
                let y = appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsY {
                 whatsAppButtonsView
-                    .position(x: CGFloat(x), y: CGFloat(y))
+                    .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
             } else {
                 // Default position (bottom left)
                 whatsAppButtonsView
-                    .padding(.leading, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20))
-                    .padding(.bottom, CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50))
+                    .padding(.leading, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20)))
+                    .padding(.bottom, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50)))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             }
         }
@@ -585,7 +586,7 @@ struct KioskHomeView: View {
                let y = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorY {
                 // Positioned using X/Y coordinates
                 LanguageSelectorView(languageManager: languageManager)
-                    .position(x: CGFloat(x), y: CGFloat(y))
+                    .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
             } else {
                 // Default position (top left)
                 VStack {

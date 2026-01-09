@@ -284,35 +284,36 @@ struct DonationHomeView: View {
     }
     
     var body: some View {
-        ZStack {
-            GeometryReader { geometry in
+        GeometryReader { geometry in
+            ZStack {
                 backgroundView(geometry: geometry)
-            }
-            .ignoresSafeArea(.all, edges: .all)
-            
-            mainContent
-            // Reader Battery Status in top left
-            VStack {
-                HStack {
-                    ReaderBatteryStatusView()
-                        .padding(.leading, 20)
-                        .padding(.top, 7)
+                
+                mainContent(geometry: geometry)
+                
+                // Reader Battery Status in top left
+                VStack {
+                    HStack {
+                        ReaderBatteryStatusView()
+                            .padding(.leading, geometry.scale(20))
+                            .padding(.top, geometry.scale(7))
+                        Spacer()
+                    }
                     Spacer()
                 }
-                Spacer()
-            }
-            
-            // Time and Network Status in top right
-            VStack {
-                HStack {
+                
+                // Time and Network Status in top right
+                VStack {
+                    HStack {
+                        Spacer()
+                        TimeAndNetworkStatusView()
+                            .padding(.trailing, geometry.scale(20))
+                            .padding(.top, geometry.scale(7))
+                    }
                     Spacer()
-                    TimeAndNetworkStatusView()
-                        .padding(.trailing, 20)
-                        .padding(.top, 7)
                 }
-                Spacer()
             }
         }
+        .ignoresSafeArea(.all, edges: .all)
         .sheet(isPresented: $showingYajmanOpportunities) {
             if let category = selectedCategory, let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
                 YajmanOpportunitiesView(
@@ -473,10 +474,11 @@ struct DonationHomeView: View {
         .ignoresSafeArea(.all, edges: .all)
     }
     
-    private var mainContent: some View {
+    @ViewBuilder
+    private func mainContent(geometry: GeometryProxy) -> some View {
         ZStack {
             // Use reduced spacing when keypad is showing
-            HStack(spacing: showingCustomAmountKeypad ? 20 : categoryAmountSectionSpacing) {
+            HStack(spacing: showingCustomAmountKeypad ? geometry.scale(20) : geometry.scale(categoryAmountSectionSpacing)) {
                 // Show keypad in place of category section when active
                 if showingCustomAmountKeypad {
                     // If X and Y are both 0, use default positioning (aligned with category buttons)
@@ -505,7 +507,7 @@ struct DonationHomeView: View {
                                 )
                                 Spacer()
                             }
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, geometry.scale(16))
                             
                             Spacer()
                         }
@@ -522,8 +524,8 @@ struct DonationHomeView: View {
                                 theme: keypadTheme
                             )
                             .position(
-                                x: customAmountKeypadX > 0 ? customAmountKeypadX : geometry.size.width / 2,
-                                y: customAmountKeypadY > 0 ? customAmountKeypadY : geometry.size.height / 2
+                                x: customAmountKeypadX > 0 ? geometry.scaleX(customAmountKeypadX) : geometry.size.width / 2,
+                                y: customAmountKeypadY > 0 ? geometry.scaleY(customAmountKeypadY) : geometry.size.height / 2
                             )
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -531,37 +533,37 @@ struct DonationHomeView: View {
                 } else {
                     // Check if category section has X/Y positioning
                     if donationSelectionCategorySectionX > 0 || donationSelectionCategorySectionY > 0 {
-                        GeometryReader { geometry in
-                            categorySection
+                        GeometryReader { sectionGeometry in
+                            categorySection(geometry: sectionGeometry)
                                 .position(
-                                    x: donationSelectionCategorySectionX > 0 ? donationSelectionCategorySectionX : geometry.size.width / 2,
-                                    y: donationSelectionCategorySectionY > 0 ? donationSelectionCategorySectionY : geometry.size.height / 2
+                                    x: donationSelectionCategorySectionX > 0 ? sectionGeometry.scaleX(donationSelectionCategorySectionX) : sectionGeometry.size.width / 2,
+                                    y: donationSelectionCategorySectionY > 0 ? sectionGeometry.scaleY(donationSelectionCategorySectionY) : sectionGeometry.size.height / 2
                                 )
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        categorySection
+                        categorySection(geometry: geometry)
                             .frame(maxWidth: .infinity)
                     }
                 }
                 
                 // Check if amount section has X/Y positioning
                 if donationSelectionAmountSectionX > 0 || donationSelectionAmountSectionY > 0 {
-                    GeometryReader { geometry in
-                        amountSection
+                    GeometryReader { sectionGeometry in
+                        amountSection(geometry: sectionGeometry)
                             .position(
-                                x: donationSelectionAmountSectionX > 0 ? donationSelectionAmountSectionX : geometry.size.width / 2,
-                                y: donationSelectionAmountSectionY > 0 ? donationSelectionAmountSectionY : geometry.size.height / 2
+                                x: donationSelectionAmountSectionX > 0 ? sectionGeometry.scaleX(donationSelectionAmountSectionX) : sectionGeometry.size.width / 2,
+                                y: donationSelectionAmountSectionY > 0 ? sectionGeometry.scaleY(donationSelectionAmountSectionY) : sectionGeometry.size.height / 2
                             )
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    amountSection
+                    amountSection(geometry: geometry)
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.leading, (donationSelectionCategorySectionX == 0 && donationSelectionAmountSectionX == 0) ? donationSelectionPageLeftPadding : 0)
-            .padding(.trailing, (donationSelectionCategorySectionX == 0 && donationSelectionAmountSectionX == 0) ? donationSelectionPageRightPadding : 0)
+            .padding(.leading, (donationSelectionCategorySectionX == 0 && donationSelectionAmountSectionX == 0) ? geometry.scale(donationSelectionPageLeftPadding) : 0)
+            .padding(.trailing, (donationSelectionCategorySectionX == 0 && donationSelectionAmountSectionX == 0) ? geometry.scale(donationSelectionPageRightPadding) : 0)
             
             // Overlay to detect taps outside keypad
             // Only close when tapping on the amount section, not on the keypad itself
@@ -594,34 +596,35 @@ struct DonationHomeView: View {
         }
     }
     
-    private var categorySection: some View {
+    @ViewBuilder
+    private func categorySection(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: 6) {
+            VStack(spacing: geometry.scale(6)) {
                 Text("selectCategory".localized)
-                    .font(.custom(headingFont, size: headingSize))
+                    .font(.custom(headingFont, size: geometry.scale(headingSize)))
                     .foregroundColor(headingColor)
                 
                 if hasSponsorshipTiers {
-                    HStack(spacing: 6) {
+                    HStack(spacing: geometry.scale(6)) {
                         Image(systemName: "star.fill")
-                            .font(.system(size: 12))
+                            .font(.system(size: geometry.scale(12)))
                             .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
                         Text("Yajman Opportunities Available")
-                            .font(.custom(bodyFont, size: bodySize - 2))
+                            .font(.custom(bodyFont, size: geometry.scale(bodySize - 2)))
                             .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                     }
-                    .padding(.top, 4)
+                    .padding(.top, geometry.scale(4))
                 } else {
                     Text("Choose your donation category")
-                        .font(.custom(bodyFont, size: bodySize))
+                        .font(.custom(bodyFont, size: geometry.scale(bodySize)))
                         .foregroundColor(subtitleColor)
                 }
             }
-            .padding(.top, categoryHeaderTopPadding)
-            .padding(.bottom, 12)
+            .padding(.top, geometry.scale(categoryHeaderTopPadding))
+            .padding(.bottom, geometry.scale(12))
             
-            categoryContent
+            categoryContent(geometry: geometry)
                 .frame(maxWidth: .infinity)
             
             Spacer()
@@ -629,11 +632,12 @@ struct DonationHomeView: View {
         .frame(maxWidth: .infinity)
     }
     
-    private var categoryContent: some View {
-        VStack(spacing: 12) {
+    @ViewBuilder
+    private func categoryContent(geometry: GeometryProxy) -> some View {
+        VStack(spacing: geometry.scale(12)) {
             if !appState.categories.isEmpty {
                 ScrollView {
-                    VStack(spacing: 12) {
+                    VStack(spacing: geometry.scale(12)) {
                         ForEach(appState.categories) { category in
                             CleanCategoryButton(
                                 category: category,
@@ -662,32 +666,33 @@ struct DonationHomeView: View {
                                     }
                                 }
                             )
-                            .frame(maxWidth: categoryBoxMaxWidth) // Use theme width
+                            .frame(maxWidth: geometry.scale(categoryBoxMaxWidth)) // Use theme width
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, geometry.scale(16))
                     .frame(maxWidth: .infinity)
                     .frame(alignment: .center)
                 }
             } else {
-                emptyCategoriesView
+                emptyCategoriesView(geometry: geometry)
             }
         }
         .frame(maxWidth: .infinity)
     }
     
-    private var emptyCategoriesView: some View {
-        VStack(spacing: 16) {
+    @ViewBuilder
+    private func emptyCategoriesView(geometry: GeometryProxy) -> some View {
+        VStack(spacing: geometry.scale(16)) {
             Image(systemName: "folder.fill")
-                .font(.system(size: 48))
+                .font(.system(size: geometry.scale(48)))
                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
             
             Text("No categories available")
-                .font(.custom("Inter-SemiBold", size: 18))
+                .font(.custom("Inter-SemiBold", size: geometry.scale(18)))
                 .foregroundColor(colorFromHex("423232"))
             
             Text("Categories can be added in the admin portal")
-                .font(.custom("Inter-Regular", size: 14))
+                .font(.custom("Inter-Regular", size: geometry.scale(14)))
                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
                 .multilineTextAlignment(.center)
             
@@ -700,49 +705,51 @@ struct DonationHomeView: View {
                     Image(systemName: "arrow.clockwise")
                     Text("Refresh Categories")
                 }
-                .font(.custom("Inter-Medium", size: 14))
+                .font(.custom("Inter-Medium", size: geometry.scale(14)))
                 .foregroundColor(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, geometry.scale(16))
+                .padding(.vertical, geometry.scale(8))
                 .background(Color(red: 0.2, green: 0.4, blue: 0.8))
-                .cornerRadius(12)
+                .cornerRadius(geometry.scale(12))
             }
-            .padding(.top, 8)
+            .padding(.top, geometry.scale(8))
         }
-        .padding(.top, 60)
-        .padding(.leading, donationSelectionPageLeftPadding)
-        .padding(.trailing, donationSelectionPageRightPadding)
+        .padding(.top, geometry.scale(60))
+        .padding(.leading, geometry.scale(donationSelectionPageLeftPadding))
+        .padding(.trailing, geometry.scale(donationSelectionPageRightPadding))
     }
     
-    private var amountSection: some View {
+    @ViewBuilder
+    private func amountSection(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: 6) {
+            VStack(spacing: geometry.scale(6)) {
                 Text("selectAmount".localized)
-                    .font(.custom(headingFont, size: headingSize))
+                    .font(.custom(headingFont, size: geometry.scale(headingSize)))
                     .foregroundColor(headingColor)
                 
                 Text("Choose a preset donation amount")
-                    .font(.custom(bodyFont, size: bodySize))
+                    .font(.custom(bodyFont, size: geometry.scale(bodySize)))
                     .foregroundColor(subtitleColor)
             }
-            .padding(.top, headerTopPadding)
-            .padding(.bottom, 12)
+            .padding(.top, geometry.scale(headerTopPadding))
+            .padding(.bottom, geometry.scale(12))
             
-            amountContent
+            amountContent(geometry: geometry)
                 .frame(maxWidth: .infinity)
             
             Spacer()
             
-            continueButton
+            continueButton(geometry: geometry)
         }
         .frame(maxWidth: .infinity)
     }
     
-    private var amountContent: some View {
-        VStack(spacing: 12) {
-            presetAmountButtons
-                .padding(.horizontal, 16)
+    @ViewBuilder
+    private func amountContent(geometry: GeometryProxy) -> some View {
+        VStack(spacing: geometry.scale(12)) {
+            presetAmountButtons(geometry: geometry)
+                .padding(.horizontal, geometry.scale(16))
             
             CleanCustomAmountField(
                 text: $customAmount,
@@ -760,27 +767,24 @@ struct DonationHomeView: View {
                 },
                 headingColor: headingColor // Pass headingColor to match title
             )
-            .padding(.horizontal, 16)
+            .padding(.horizontal, geometry.scale(16))
         }
     }
     
-    private var presetAmountButtons: some View {
+    @ViewBuilder
+    private func presetAmountButtons(geometry: GeometryProxy) -> some View {
         let buttonCount = presetAmounts.count
-        return Group {
-            if buttonCount > 0 {
-                // Use 2-column grid for 3 rows x 2 columns layout
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    ForEach(presetAmounts, id: \.self) { amount in
-                        amountButton(amount: amount)
-                    }
+        if buttonCount > 0 {
+            // Use 2-column grid for 3 rows x 2 columns layout
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: geometry.scale(12)) {
+                ForEach(presetAmounts, id: \.self) { amount in
+                    amountButton(amount: amount, geometry: geometry)
                 }
-            } else {
-                EmptyView()
             }
         }
     }
     
-    private func amountButton(amount: Double) -> some View {
+    private func amountButton(amount: Double, geometry: GeometryProxy) -> some View {
         CleanAmountButton(
             amount: amount,
             isSelected: selectedAmount == amount && selectedCategory == nil,
