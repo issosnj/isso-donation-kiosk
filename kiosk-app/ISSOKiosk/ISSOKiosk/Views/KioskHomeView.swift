@@ -858,8 +858,26 @@ struct ReaderBatteryStatusView: View {
             // Enable battery monitoring for device battery
             UIDevice.current.isBatteryMonitoringEnabled = true
             updateBatteryLevels()
-            // Update battery levels every 30 seconds
-            timer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            
+            // Observe battery level changes for instant updates
+            NotificationCenter.default.addObserver(
+                forName: UIDevice.batteryLevelDidChangeNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                updateDeviceBattery()
+            }
+            
+            NotificationCenter.default.addObserver(
+                forName: UIDevice.batteryStateDidChangeNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                updateDeviceBattery()
+            }
+            
+            // Update battery levels every 2 seconds for instant updates (especially for reader battery)
+            timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
                 updateBatteryLevels()
             }
             if let timer = timer {
@@ -869,6 +887,7 @@ struct ReaderBatteryStatusView: View {
         .onDisappear {
             timer?.invalidate()
             timer = nil
+            NotificationCenter.default.removeObserver(self)
         }
     }
     
@@ -877,6 +896,10 @@ struct ReaderBatteryStatusView: View {
         readerBatteryLevel = StripeTerminalService.shared.getReaderBatteryLevel()
         
         // Update iPad/device battery level
+        updateDeviceBattery()
+    }
+    
+    private func updateDeviceBattery() {
         let batteryLevel = UIDevice.current.batteryLevel
         if batteryLevel >= 0 {
             // batteryLevel is 0.0 to 1.0, convert to percentage
