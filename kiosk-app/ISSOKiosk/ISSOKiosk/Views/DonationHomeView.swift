@@ -529,15 +529,39 @@ struct DonationHomeView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 } else {
-                    categorySection
-                        .frame(maxWidth: .infinity)
+                    // Check if category section has X/Y positioning
+                    if donationSelectionCategorySectionX > 0 || donationSelectionCategorySectionY > 0 {
+                        GeometryReader { geometry in
+                            categorySection
+                                .position(
+                                    x: donationSelectionCategorySectionX > 0 ? donationSelectionCategorySectionX : geometry.size.width / 2,
+                                    y: donationSelectionCategorySectionY > 0 ? donationSelectionCategorySectionY : geometry.size.height / 2
+                                )
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        categorySection
+                            .frame(maxWidth: .infinity)
+                    }
                 }
                 
-                amountSection
-                    .frame(maxWidth: .infinity)
+                // Check if amount section has X/Y positioning
+                if donationSelectionAmountSectionX > 0 || donationSelectionAmountSectionY > 0 {
+                    GeometryReader { geometry in
+                        amountSection
+                            .position(
+                                x: donationSelectionAmountSectionX > 0 ? donationSelectionAmountSectionX : geometry.size.width / 2,
+                                y: donationSelectionAmountSectionY > 0 ? donationSelectionAmountSectionY : geometry.size.height / 2
+                            )
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    amountSection
+                        .frame(maxWidth: .infinity)
+                }
             }
-            .padding(.leading, donationSelectionPageLeftPadding)
-            .padding(.trailing, donationSelectionPageRightPadding)
+            .padding(.leading, (donationSelectionCategorySectionX == 0 && donationSelectionAmountSectionX == 0) ? donationSelectionPageLeftPadding : 0)
+            .padding(.trailing, (donationSelectionCategorySectionX == 0 && donationSelectionAmountSectionX == 0) ? donationSelectionPageRightPadding : 0)
             
             // Overlay to detect taps outside keypad
             // Only close when tapping on the amount section, not on the keypad itself
