@@ -3,6 +3,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useRef } from 'react'
 import api from '@/lib/api'
+import ThemeVersionHistory from './ThemeVersionHistory'
+import DefaultPositionsManager from './DefaultPositionsManager'
 
 // Helper to get API base URL for proxy
 const getApiBaseUrl = () => {
@@ -275,18 +277,24 @@ export default function ThemeTab() {
     }
   }, [globalSettings])
 
+  const [description, setDescription] = useState('')
+  const [activeTab, setActiveTab] = useState<'theme' | 'versions' | 'positions'>('theme')
+
   const updateMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: { kioskTheme: any; description?: string }) => {
       const response = await api.patch('/global-settings/kiosk-theme', {
-        kioskTheme: data,
+        kioskTheme: data.kioskTheme,
+        description: data.description || 'Theme update',
       })
       return response.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['global-settings'] })
+      queryClient.invalidateQueries({ queryKey: ['theme-versions'] })
       // Also invalidate all temple queries since they include global theme
       queryClient.invalidateQueries({ queryKey: ['temple'] })
       setIsEditing(false)
+      setDescription('')
       alert('Theme settings saved successfully! This theme will apply to all temples.')
     },
     onError: (error: any) => {
@@ -295,7 +303,10 @@ export default function ThemeTab() {
   })
 
   const handleSave = () => {
-    updateMutation.mutate(formData)
+    updateMutation.mutate({
+      kioskTheme: formData,
+      description: description.trim() || 'Theme update',
+    })
   }
 
   if (isLoading) {
@@ -304,24 +315,80 @@ export default function ThemeTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Kiosk Theme & Layout Customization</h3>
-          <p className="text-sm text-gray-600">Customize fonts, colors, and layout for the donation kiosk interface</p>
-        </div>
-        {!isEditing ? (
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => setIsEditing(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors text-sm"
+            onClick={() => setActiveTab('theme')}
+            className={`${
+              activeTab === 'theme'
+                ? 'border-purple-500 text-purple-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
-            Edit
+            Theme Settings
           </button>
-        ) : (
-          <div className="flex space-x-2">
-            <button
-              onClick={() => {
-                setIsEditing(false)
-                if (globalSettings?.kioskTheme) {
+          <button
+            onClick={() => setActiveTab('versions')}
+            className={`${
+              activeTab === 'versions'
+                ? 'border-purple-500 text-purple-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+          >
+            Version History
+          </button>
+          <button
+            onClick={() => setActiveTab('positions')}
+            className={`${
+              activeTab === 'positions'
+                ? 'border-purple-500 text-purple-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+          >
+            Default Positions
+          </button>
+        </nav>
+      </div>
+
+      {/* Version History Tab */}
+      {activeTab === 'versions' && <ThemeVersionHistory />}
+
+      {/* Default Positions Tab */}
+      {activeTab === 'positions' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="mb-4">
+            <h4 className="text-lg font-semibold text-gray-900">Default UI Element Positions</h4>
+            <p className="text-sm text-gray-600 mt-1">
+              Set default positions for UI elements. When an element's position is set, it becomes
+              the default for all new themes.
+            </p>
+          </div>
+          <DefaultPositionsManager />
+        </div>
+      )}
+
+      {/* Theme Settings Tab */}
+      {activeTab === 'theme' && (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Kiosk Theme & Layout Customization</h3>
+              <p className="text-sm text-gray-600">Customize fonts, colors, and layout for the donation kiosk interface</p>
+            </div>
+            {!isEditing ? (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors text-sm"
+              >
+                Edit
+              </button>
+            ) : (
+              <div className="flex space-x-2 items-center">
+                <button
+                  onClick={() => {
+                    setIsEditing(false)
+                    if (globalSettings?.kioskTheme) {
                   setFormData({
                     fonts: {
                       headingFamily: globalSettings.kioskTheme.fonts?.headingFamily || 'Inter-SemiBold',
@@ -2492,6 +2559,8 @@ export default function ThemeTab() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )

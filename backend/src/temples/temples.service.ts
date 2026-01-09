@@ -135,6 +135,17 @@ export class TemplesService {
           // Override temple's kioskTheme with global theme
           temple.kioskTheme = globalSettings.kioskTheme as any;
           console.log('[Temples Service] Applied global kiosk theme to temple response');
+          
+          // Apply default positions to theme layout if theme versions service is available
+          try {
+            // Import ThemeVersionsService dynamically to avoid circular dependency
+            const { ThemeVersionsService } = await import('../theme-versions/theme-versions.service');
+            // Note: We can't directly inject this service, so we'll handle it in the controller
+            // or use a helper method. For now, default positions will be applied in the frontend
+            // when setting up new elements.
+          } catch (error) {
+            // Service not available, continue without default positions
+          }
         }
       } catch (globalThemeError) {
         console.warn('[Temples Service] Could not load global theme (may not exist yet):', globalThemeError.message);
