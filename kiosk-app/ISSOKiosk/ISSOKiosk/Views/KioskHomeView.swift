@@ -854,27 +854,16 @@ struct ReaderBatteryStatusView: View {
                 }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.batteryLevelDidChangeNotification)) { _ in
+            updateDeviceBattery()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.batteryStateDidChangeNotification)) { _ in
+            updateDeviceBattery()
+        }
         .onAppear {
             // Enable battery monitoring for device battery
             UIDevice.current.isBatteryMonitoringEnabled = true
             updateBatteryLevels()
-            
-            // Observe battery level changes for instant updates
-            NotificationCenter.default.addObserver(
-                forName: UIDevice.batteryLevelDidChangeNotification,
-                object: nil,
-                queue: .main
-            ) { _ in
-                updateDeviceBattery()
-            }
-            
-            NotificationCenter.default.addObserver(
-                forName: UIDevice.batteryStateDidChangeNotification,
-                object: nil,
-                queue: .main
-            ) { _ in
-                updateDeviceBattery()
-            }
             
             // Update battery levels every 2 seconds for instant updates (especially for reader battery)
             timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
@@ -887,7 +876,6 @@ struct ReaderBatteryStatusView: View {
         .onDisappear {
             timer?.invalidate()
             timer = nil
-            NotificationCenter.default.removeObserver(self)
         }
     }
     
