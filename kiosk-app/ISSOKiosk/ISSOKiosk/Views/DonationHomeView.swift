@@ -513,57 +513,48 @@ struct DonationHomeView: View {
                         }
                         .frame(maxWidth: .infinity)
                     } else {
-                        // Custom positioning using X and Y coordinates
-                        GeometryReader { geometry in
-                            CustomNumericKeypad(
-                                amount: $customAmount,
-                                onDismiss: {
-                                    showingCustomAmountKeypad = false
-                                    customAmountFocused = false
-                                },
-                                theme: keypadTheme
-                            )
-                            .position(
-                                x: customAmountKeypadX > 0 ? geometry.scaleX(customAmountKeypadX) : geometry.size.width / 2,
-                                y: customAmountKeypadY > 0 ? geometry.scaleY(customAmountKeypadY) : geometry.size.height / 2
-                            )
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                } else {
-                    // Check if category section has X/Y positioning
-                    if donationSelectionCategorySectionX > 0 || donationSelectionCategorySectionY > 0 {
-                        GeometryReader { sectionGeometry in
-                            categorySection(geometry: sectionGeometry)
-                                .position(
-                                    x: donationSelectionCategorySectionX > 0 ? sectionGeometry.scaleX(donationSelectionCategorySectionX) : sectionGeometry.size.width / 2,
-                                    y: donationSelectionCategorySectionY > 0 ? sectionGeometry.scaleY(donationSelectionCategorySectionY) : sectionGeometry.size.height / 2
+                        // Always use VStack layout for keypad (no absolute positioning)
+                        VStack(spacing: 0) {
+                            // Match the same top padding as category section header
+                            Spacer()
+                                .frame(height: categoryHeaderTopPadding)
+                            
+                            // Match the header height and bottom padding exactly
+                            // Heading size + body size + spacing 6pt + bottom padding 12pt
+                            Spacer()
+                                .frame(height: headingSize + bodySize + 6 + 12)
+                            
+                            // Keypad aligned to start where category buttons start
+                            // Match the exact padding used by category buttons (16pt)
+                            HStack {
+                                CustomNumericKeypad(
+                                    amount: $customAmount,
+                                    onDismiss: {
+                                        showingCustomAmountKeypad = false
+                                        customAmountFocused = false
+                                    },
+                                    theme: keypadTheme
                                 )
+                                Spacer()
+                            }
+                            .padding(.horizontal, geometry.scale(16))
+                            
+                            Spacer()
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        categorySection(geometry: geometry)
-                            .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity)
                     }
-                }
-                
-                // Check if amount section has X/Y positioning
-                if donationSelectionAmountSectionX > 0 || donationSelectionAmountSectionY > 0 {
-                    GeometryReader { sectionGeometry in
-                        amountSection(geometry: sectionGeometry)
-                            .position(
-                                x: donationSelectionAmountSectionX > 0 ? sectionGeometry.scaleX(donationSelectionAmountSectionX) : sectionGeometry.size.width / 2,
-                                y: donationSelectionAmountSectionY > 0 ? sectionGeometry.scaleY(donationSelectionAmountSectionY) : sectionGeometry.size.height / 2
-                            )
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    amountSection(geometry: geometry)
+                    // Always use VStack layout for category section (no absolute positioning)
+                    categorySection(geometry: geometry)
                         .frame(maxWidth: .infinity)
                 }
+                
+                // Always use VStack layout for amount section (no absolute positioning)
+                amountSection(geometry: geometry)
+                    .frame(maxWidth: .infinity)
             }
-            .padding(.leading, (donationSelectionCategorySectionX == 0 && donationSelectionAmountSectionX == 0) ? geometry.scale(donationSelectionPageLeftPadding) : 0)
-            .padding(.trailing, (donationSelectionCategorySectionX == 0 && donationSelectionAmountSectionX == 0) ? geometry.scale(donationSelectionPageRightPadding) : 0)
+            .padding(.leading, geometry.scale(donationSelectionPageLeftPadding))
+            .padding(.trailing, geometry.scale(donationSelectionPageRightPadding))
             
             // Overlay to detect taps outside keypad
             // Only close when tapping on the amount section, not on the keypad itself

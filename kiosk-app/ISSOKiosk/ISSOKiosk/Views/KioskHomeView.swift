@@ -82,49 +82,33 @@ struct KioskHomeView: View {
         )
     }
     
-    // Main content view
+    // Main content view - Pure SwiftUI VStack/HStack/Spacer layout
     private var mainContentView: some View {
         GeometryReader { geometry in
             ZStack {
-                // Check if any element uses X/Y positioning
-                let usesXYPositioning = appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextX != nil ||
-                    appState.temple?.kioskTheme?.layout?.homeScreenHeader1X != nil ||
-                    appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextX != nil ||
-                    appState.temple?.kioskTheme?.layout?.homeScreenAddressX != nil ||
-                    appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusX != nil ||
-                    appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateX != nil ||
-                    appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsX != nil ||
-                    appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageX != nil ||
-                    appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsX != nil
+                // Main content using VStack/HStack layout
+                defaultLayout(geometry: geometry)
                 
-                if usesXYPositioning {
-                    // Use absolute positioning for elements with X/Y coordinates
-                    positionedElements(geometry: geometry)
-                } else {
-                    // Use default VStack layout
-                    defaultLayout(geometry: geometry)
-                }
-            }
-            
-            // Top-level overlay for status indicators (battery, time, network)
-            // These need to be on top of everything else, aligned at the top
-            VStack {
-                HStack(alignment: .top) {
-                    // Reader Battery Status in top left
-                    ReaderBatteryStatusView()
-                        .padding(.leading, geometry.scale(20))
-                        .padding(.top, geometry.scale(7))
-                    
-                    Spacer()
-                    
-                    // Time and Network Status in top right
-                    if appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusVisible != false {
-                        TimeAndNetworkStatusView()
-                            .padding(.trailing, geometry.scale(20))
+                // Top-level overlay for status indicators (battery, time, network)
+                // These need to be on top of everything else, aligned at the top
+                VStack {
+                    HStack(alignment: .top) {
+                        // Reader Battery Status in top left
+                        ReaderBatteryStatusView()
+                            .padding(.leading, geometry.scale(20))
                             .padding(.top, geometry.scale(7))
+                        
+                        Spacer()
+                        
+                        // Time and Network Status in top right
+                        if appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusVisible != false {
+                            TimeAndNetworkStatusView()
+                                .padding(.trailing, geometry.scale(20))
+                                .padding(.top, geometry.scale(7))
+                        }
                     }
+                    Spacer()
                 }
-                Spacer()
             }
         }
     }
@@ -192,22 +176,15 @@ struct KioskHomeView: View {
                         }
                     }
                     
-                    // Language Selector (top left) - Horizontal layout with separators
+                    // Language Selector (top left) - Always use VStack layout
                     if appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorVisible != false {
-                        if let x = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorX,
-                           let y = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorY {
-                            // Positioned using X/Y coordinates
+                        VStack {
                             LanguageSelectorView(languageManager: languageManager)
-                                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-                        } else {
-                            // Default position (top left)
-                            VStack {
-                                LanguageSelectorView(languageManager: languageManager)
-                                Spacer()
-                            }
-                            .padding(.leading, geometry.scale(20))
-                            .padding(.top, geometry.scale(7))
+                            Spacer()
                         }
+                        .padding(.leading, geometry.scale(20))
+                        .padding(.top, geometry.scale(7))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
                 }
             
@@ -303,299 +280,6 @@ struct KioskHomeView: View {
                 whatsAppButtonsView
                     .padding(.leading, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20)))
                     .padding(.bottom, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50)))
-            }
-        }
-    }
-    
-    // Positioned elements (using X/Y coordinates with responsive scaling)
-    // All absolute coordinates are scaled proportionally based on screen size
-    @ViewBuilder
-    private func positionedElements(geometry: GeometryProxy) -> some View {
-        // Welcome Text
-        if appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextVisible != false {
-            if let x = appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextX,
-               let y = appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextY {
-            Text("Welcome to Shree Swaminarayan Hindu Temple")
-                .font(.system(size: geometry.scale(42), weight: .bold, design: .default))
-                .foregroundColor(colorFromHex("423232"))
-                .multilineTextAlignment(.center)
-                .lineLimit(nil)
-                .minimumScaleFactor(0.5)
-                .frame(maxWidth: geometry.size.width * 0.9)
-                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-        } else {
-            // Default position if not set
-            Text("Welcome to Shree Swaminarayan Hindu Temple")
-                .font(.system(size: geometry.scale(42), weight: .bold, design: .default))
-                .foregroundColor(colorFromHex("423232"))
-                .multilineTextAlignment(.center)
-                .lineLimit(nil)
-                .minimumScaleFactor(0.5)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, geometry.scale(20))
-                .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60)))
-                .padding(.bottom, geometry.scale(4))
-        }
-        }
-        
-        // Header 1
-        if appState.temple?.kioskTheme?.layout?.homeScreenHeader1Visible != false {
-            if let x = appState.temple?.kioskTheme?.layout?.homeScreenHeader1X,
-               let y = appState.temple?.kioskTheme?.layout?.homeScreenHeader1Y {
-            Text(header1Text)
-                .font(.custom("Inter-SemiBold", size: geometry.scale(32)))
-                .foregroundColor(colorFromHex("423232"))
-                .multilineTextAlignment(.center)
-                .lineLimit(nil)
-                .minimumScaleFactor(0.5)
-                .frame(maxWidth: geometry.size.width * 0.9)
-                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-        } else {
-            // Default position if not set
-            Text(header1Text)
-                .font(.custom("Inter-SemiBold", size: geometry.scale(32)))
-                .foregroundColor(colorFromHex("423232"))
-                .multilineTextAlignment(.center)
-                .lineLimit(nil)
-                .minimumScaleFactor(0.5)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, geometry.scale(20))
-                .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 60))
-                .padding(.bottom, geometry.scale(4))
-        }
-        }
-        
-        // Under Gadi Text
-        if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
-            if let x = appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextX,
-               let y = appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextY {
-            Text("underGadi".localized)
-                .font(.system(size: geometry.scale(20), weight: .regular, design: .default))
-                .italic()
-                .foregroundColor(colorFromHex("423232"))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: geometry.size.width * 0.9)
-                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-        } else {
-            // Default position if not set
-            Text("underGadi".localized)
-                .font(.system(size: geometry.scale(20), weight: .regular, design: .default))
-                .italic()
-                .foregroundColor(colorFromHex("423232"))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 120))
-                .padding(.bottom, geometry.scale(4))
-        }
-        }
-        
-        // Temple Address
-        if appState.temple?.kioskTheme?.layout?.homeScreenAddressVisible != false,
-           let temple = appState.temple, let address = temple.address, !address.isEmpty {
-            if let x = appState.temple?.kioskTheme?.layout?.homeScreenAddressX,
-               let y = appState.temple?.kioskTheme?.layout?.homeScreenAddressY {
-                Text(address)
-                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
-                    .foregroundColor(colorFromHex("423232"))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .frame(maxWidth: geometry.size.width * 0.9)
-                    .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-            } else {
-                // Default position if not set
-                Text(address)
-                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
-                    .foregroundColor(colorFromHex("423232"))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60) + 160))
-                    .padding(.bottom, geometry.scale(16))
-            }
-        }
-        
-        // Time and Network Status
-        if appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusVisible != false {
-            if let x = appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusX,
-               let y = appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusY {
-            TimeAndNetworkStatusView()
-                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-        } else {
-            // Default position (top right)
-            TimeAndNetworkStatusView()
-                .padding(.trailing, geometry.scale(20))
-                .padding(.top, geometry.scale(7))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-        }
-        }
-        
-        // Tap to Donate Button
-        if appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateVisible != false {
-            if let x = appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateX,
-               let y = appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateY {
-            GoldAccentDonateButton(
-                buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
-                action: {
-                // Show donation flow immediately - don't block UI
-                navigationState.showDonationFlow = true
-                
-                // If device has been idle for 5+ minutes, trigger reconnection in background
-                // This happens while user selects donation, so hardware is ready when they proceed to payment
-                if appState.hasBeenIdleFor5Minutes() {
-                    appLog("⏰ Device idle for 5+ minutes - triggering reconnection in background...", category: "KioskHomeView")
-                    Task.detached(priority: .utility) { [weak appState] in
-                        guard let appState = appState else { return }
-                        // Trigger same reconnection behavior as app restart (in background)
-                        await appState.ensureStripeConnectionReady()
-                        await MainActor.run {
-                            appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
-                        }
-                    }
-                }
-            })
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .position(x: CGFloat(x), y: CGFloat(y))
-        } else {
-            // Default position (centered)
-            GoldAccentDonateButton(
-                buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
-                action: {
-                // Show donation flow immediately - don't block UI
-                navigationState.showDonationFlow = true
-                
-                // If device has been idle for 5+ minutes, trigger reconnection in background
-                // This happens while user selects donation, so hardware is ready when they proceed to payment
-                if appState.hasBeenIdleFor5Minutes() {
-                    appLog("⏰ Device idle for 5+ minutes - triggering reconnection in background...", category: "KioskHomeView")
-                    Task.detached(priority: .utility) { [weak appState] in
-                        guard let appState = appState else { return }
-                        // Trigger same reconnection behavior as app restart (in background)
-                        await appState.ensureStripeConnectionReady()
-                        await MainActor.run {
-                            appLog("✅ Background reconnection complete - hardware ready for payment", category: "KioskHomeView")
-                        }
-                    }
-                }
-            })
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        }
-        }
-        
-        // Quick Actions
-        if appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsVisible != false {
-            let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
-            let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
-            let hasEventsText = appState.temple?.homeScreenConfig?.eventsText?.isEmpty == false
-            let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
-            
-            if hasEvents {
-                if let x = appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsX,
-                   let y = appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsY {
-                VStack(spacing: geometry.scale(12)) {
-                    Text("quickActions".localized)
-                        .font(.custom("Inter-SemiBold", size: geometry.scale(20)))
-                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                    
-                    HStack(spacing: geometry.scale(16)) {
-                        ModernQuickActionButton(
-                            icon: "calendar",
-                            title: "events".localized,
-                            color: Color(red: 1.0, green: 0.58, blue: 0.0),
-                            isActive: true
-                        ) {
-                            showEvents = true
-                        }
-                    }
-                    .padding(.horizontal, geometry.scale(20))
-                }
-                .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-            } else {
-                // Default position
-                VStack(spacing: geometry.scale(12)) {
-                    Text("quickActions".localized)
-                        .font(.custom("Inter-SemiBold", size: geometry.scale(20)))
-                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
-                    
-                    HStack(spacing: geometry.scale(16)) {
-                        ModernQuickActionButton(
-                            icon: "calendar",
-                            title: "events".localized,
-                            color: Color(red: 1.0, green: 0.58, blue: 0.0),
-                            isActive: true
-                        ) {
-                            showEvents = true
-                        }
-                    }
-                    .padding(.horizontal, geometry.scale(20))
-                }
-                .padding(.horizontal, geometry.scale(40))
-                .padding(.top, geometry.scale(20))
-                .frame(maxWidth: geometry.scale(800))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .offset(y: geometry.scale(200)) // Position below Tap to Donate button
-            }
-            }
-        }
-        
-        // Custom Message
-        if appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageVisible != false,
-           let customMessage = appState.temple?.homeScreenConfig?.customMessage, !customMessage.isEmpty {
-            if let x = appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageX,
-               let y = appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageY {
-                Text(customMessage)
-                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
-                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: geometry.size.width * 0.9)
-                    .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-            } else {
-                // Default position
-                Text(customMessage)
-                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
-                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, geometry.scale(40))
-                    .padding(.top, geometry.scale(20))
-                    .frame(maxWidth: geometry.scale(800))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .offset(y: geometry.scale(300)) // Position below Quick Actions
-            }
-        }
-        
-        // WhatsApp/Observances Buttons
-        if appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsVisible != false {
-            if let x = appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsX,
-               let y = appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsY {
-                whatsAppButtonsView
-                    .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-            } else {
-                // Default position (bottom left)
-                whatsAppButtonsView
-                    .padding(.leading, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20)))
-                    .padding(.bottom, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50)))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-            }
-        }
-        
-        // Language Selector
-        if appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorVisible != false {
-            if let x = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorX,
-               let y = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorY {
-                // Positioned using X/Y coordinates
-                LanguageSelectorView(languageManager: languageManager)
-                    .position(x: geometry.scaleX(CGFloat(x)), y: geometry.scaleY(CGFloat(y)))
-            } else {
-                // Default position (top left)
-                VStack {
-                    LanguageSelectorView(languageManager: languageManager)
-                    Spacer()
-                }
-                .padding(.leading, 20)
-                .padding(.top, 7)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
     }
