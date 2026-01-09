@@ -6,6 +6,7 @@ import {
   JoinColumn,
   CreateDateColumn,
   Index,
+  Generated,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -16,11 +17,8 @@ export class ThemeVersion {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({
-    type: 'integer',
-    generated: true,
-    generationStrategy: 'increment',
-  })
+  @Column({ type: 'int' })
+  @Generated('increment')
   version: number;
 
   @Column({ type: 'jsonb' })

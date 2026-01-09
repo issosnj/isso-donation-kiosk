@@ -77,6 +77,10 @@ export const typeOrmConfig = (): DataSourceOptions => {
   };
 };
 
+// Load environment variables for migrations
+import { config } from 'dotenv';
+config();
+
 export default new DataSource({
   ...typeOrmConfig(),
   migrations: ['src/migrations/*.ts'],
