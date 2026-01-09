@@ -16,12 +16,18 @@ struct ISSOKioskApp: App {
             ContentView()
                 .environmentObject(appState)
                 .preferredColorScheme(.light) // Force light mode for kiosk
+                .lockOrientation(.landscape) // Lock to landscape orientation
                 .onAppear {
-                    // Lock orientation immediately on app launch
+                    // Lock orientation immediately on app launch (redundant but ensures it's locked)
                     OrientationLock.lockOrientation(.landscape, andRotateTo: .landscapeLeft)
                     startHeartbeat()
                 }
-        }
+                .onChange(of: scenePhase) { newPhase in
+                    // Re-lock orientation when app becomes active (e.g., returning from background)
+                    if newPhase == .active {
+                        OrientationLock.lockOrientation(.landscape, andRotateTo: .landscapeLeft)
+                    }
+                }
         .onChange(of: scenePhase) { newPhase in
             // Refresh theme and religious events when app becomes active
             // All operations run in background - don't block UI

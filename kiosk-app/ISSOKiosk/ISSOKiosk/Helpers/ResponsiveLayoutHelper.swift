@@ -9,10 +9,11 @@ import UIKit
  * all dimensions proportionally to maintain consistent appearance.
  */
 class ResponsiveLayoutHelper {
-    // Base reference screen size (iPad 11" portrait)
+    // Base reference screen size (iPad 11" landscape)
     // This is our design reference - all layouts are designed for this size
-    static let baseScreenWidth: CGFloat = 834.0
-    static let baseScreenHeight: CGFloat = 1194.0
+    // Note: App is locked to landscape orientation only
+    static let baseScreenWidth: CGFloat = 1194.0  // Landscape width (was portrait height)
+    static let baseScreenHeight: CGFloat = 834.0   // Landscape height (was portrait width)
     
     /**
      * Calculate scale factor based on current screen dimensions
