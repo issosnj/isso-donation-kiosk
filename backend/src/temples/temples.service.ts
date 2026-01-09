@@ -229,7 +229,46 @@ export class TemplesService {
       if (updateDto.homeScreenConfig !== undefined) temple.homeScreenConfig = updateDto.homeScreenConfig;
     } else {
       // Normal update - assign all fields except Gmail (already handled above)
-      const { gmailAccessToken, gmailRefreshToken, gmailEmail, ...otherFields } = updateDto;
+      const { gmailAccessToken, gmailRefreshToken, gmailEmail, kioskTheme, homeScreenConfig, branding, ...otherFields } = updateDto;
+      
+      // Merge nested JSON objects instead of replacing them
+      if (kioskTheme !== undefined) {
+        // Deep merge kioskTheme to preserve existing nested properties
+        temple.kioskTheme = {
+          ...(temple.kioskTheme || {}),
+          ...kioskTheme,
+          fonts: kioskTheme.fonts ? {
+            ...(temple.kioskTheme?.fonts || {}),
+            ...kioskTheme.fonts,
+          } : temple.kioskTheme?.fonts,
+          colors: kioskTheme.colors ? {
+            ...(temple.kioskTheme?.colors || {}),
+            ...kioskTheme.colors,
+          } : temple.kioskTheme?.colors,
+          layout: kioskTheme.layout ? {
+            ...(temple.kioskTheme?.layout || {}),
+            ...kioskTheme.layout,
+          } : temple.kioskTheme?.layout,
+        };
+      }
+      
+      // Merge homeScreenConfig if provided
+      if (homeScreenConfig !== undefined) {
+        temple.homeScreenConfig = {
+          ...(temple.homeScreenConfig || {}),
+          ...homeScreenConfig,
+        };
+      }
+      
+      // Merge branding if provided
+      if (branding !== undefined) {
+        temple.branding = {
+          ...(temple.branding || {}),
+          ...branding,
+        };
+      }
+      
+      // Assign other fields (non-nested objects)
       Object.assign(temple, otherFields);
     }
     
