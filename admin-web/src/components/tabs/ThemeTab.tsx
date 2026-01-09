@@ -516,6 +516,13 @@ export default function ThemeTab() {
             >
               Cancel
             </button>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Change description (optional)"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-sm"
+            />
             <button
               onClick={handleSave}
               disabled={updateMutation.isPending}
@@ -525,7 +532,7 @@ export default function ThemeTab() {
             </button>
           </div>
         )}
-      </div>
+          </div>
 
       {/* Info Banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
