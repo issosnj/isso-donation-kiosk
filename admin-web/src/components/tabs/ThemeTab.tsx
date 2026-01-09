@@ -845,47 +845,6 @@ export default function ThemeTab() {
             <p className="text-xs text-gray-500 mb-4">Customize the appearance and position of the numeric keypad that appears when users enter a custom donation amount</p>
             
             <div className="space-y-6">
-              {/* Position */}
-              <div>
-                <h5 className="text-sm font-semibold text-gray-800 mb-3">Position</h5>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      X Position (0 = use default alignment)
-                    </label>
-                    <p className="text-xs text-gray-500 mb-2">Horizontal position in pixels</p>
-                    <input
-                      type="number"
-                      value={formData.layout.customAmountKeypadX}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, customAmountKeypadX: parseInt(e.target.value) || 0 }
-                      })}
-                      disabled={!isEditing}
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Y Position (0 = use default alignment)
-                    </label>
-                    <p className="text-xs text-gray-500 mb-2">Vertical position in pixels</p>
-                    <input
-                      type="number"
-                      value={formData.layout.customAmountKeypadY}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, customAmountKeypadY: parseInt(e.target.value) || 0 }
-                      })}
-                      disabled={!isEditing}
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Size */}
               <div>
                 <h5 className="text-sm font-semibold text-gray-800 mb-3">Size</h5>
