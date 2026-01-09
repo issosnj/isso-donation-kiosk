@@ -100,18 +100,10 @@ export default function ThemeTab() {
       homeScreenWelcomeTextY: undefined as number | undefined,
       homeScreenHeader1X: undefined as number | undefined,
       homeScreenHeader1Y: undefined as number | undefined,
-      homeScreenUnderGadiTextX: undefined as number | undefined,
-      homeScreenUnderGadiTextY: undefined as number | undefined,
-      homeScreenAddressX: undefined as number | undefined,
-      homeScreenAddressY: undefined as number | undefined,
       homeScreenTimeStatusX: undefined as number | undefined,
       homeScreenTimeStatusY: undefined as number | undefined,
       homeScreenTapToDonateX: undefined as number | undefined,
       homeScreenTapToDonateY: undefined as number | undefined,
-      homeScreenQuickActionsX: undefined as number | undefined,
-      homeScreenQuickActionsY: undefined as number | undefined,
-      homeScreenCustomMessageX: undefined as number | undefined,
-      homeScreenCustomMessageY: undefined as number | undefined,
       homeScreenWhatsAppButtonsX: undefined as number | undefined,
       homeScreenWhatsAppButtonsY: undefined as number | undefined,
       homeScreenLanguageSelectorX: undefined as number | undefined,
@@ -119,12 +111,8 @@ export default function ThemeTab() {
       // Home Screen Element Visibility (hide/unhide)
       homeScreenWelcomeTextVisible: true,
       homeScreenHeader1Visible: true,
-      homeScreenUnderGadiTextVisible: true,
-      homeScreenAddressVisible: true,
       homeScreenTimeStatusVisible: true,
       homeScreenTapToDonateVisible: true,
-      homeScreenQuickActionsVisible: true,
-      homeScreenCustomMessageVisible: true,
       homeScreenWhatsAppButtonsVisible: true,
       homeScreenLanguageSelectorVisible: true,
       // Donation Details Page Layout
@@ -241,16 +229,12 @@ export default function ThemeTab() {
           homeScreenLanguageSelectorX: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorX,
           homeScreenLanguageSelectorY: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorY,
           // Home Screen Element Visibility
-          homeScreenWelcomeTextVisible: globalSettings.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
-          homeScreenHeader1Visible: globalSettings.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
-          homeScreenUnderGadiTextVisible: globalSettings.kioskTheme.layout?.homeScreenUnderGadiTextVisible ?? true,
-          homeScreenAddressVisible: globalSettings.kioskTheme.layout?.homeScreenAddressVisible ?? true,
-          homeScreenTimeStatusVisible: globalSettings.kioskTheme.layout?.homeScreenTimeStatusVisible ?? true,
-          homeScreenTapToDonateVisible: globalSettings.kioskTheme.layout?.homeScreenTapToDonateVisible ?? true,
-          homeScreenQuickActionsVisible: globalSettings.kioskTheme.layout?.homeScreenQuickActionsVisible ?? true,
-          homeScreenCustomMessageVisible: globalSettings.kioskTheme.layout?.homeScreenCustomMessageVisible ?? true,
-          homeScreenWhatsAppButtonsVisible: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
-          homeScreenLanguageSelectorVisible: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
+                      homeScreenWelcomeTextVisible: globalSettings.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
+                      homeScreenHeader1Visible: globalSettings.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
+                      homeScreenTimeStatusVisible: globalSettings.kioskTheme.layout?.homeScreenTimeStatusVisible ?? true,
+                      homeScreenTapToDonateVisible: globalSettings.kioskTheme.layout?.homeScreenTapToDonateVisible ?? true,
+                      homeScreenWhatsAppButtonsVisible: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
+                      homeScreenLanguageSelectorVisible: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
           // Donation Details Page Layout
           detailsPageHorizontalSpacing: globalSettings.kioskTheme.layout?.detailsPageHorizontalSpacing || 40,
           detailsPageSidePadding: globalSettings.kioskTheme.layout?.detailsPageSidePadding || 60,
@@ -460,18 +444,10 @@ export default function ThemeTab() {
                       homeScreenWelcomeTextY: globalSettings.kioskTheme.layout?.homeScreenWelcomeTextY,
                       homeScreenHeader1X: globalSettings.kioskTheme.layout?.homeScreenHeader1X,
                       homeScreenHeader1Y: globalSettings.kioskTheme.layout?.homeScreenHeader1Y,
-                      homeScreenUnderGadiTextX: globalSettings.kioskTheme.layout?.homeScreenUnderGadiTextX,
-                      homeScreenUnderGadiTextY: globalSettings.kioskTheme.layout?.homeScreenUnderGadiTextY,
-                      homeScreenAddressX: globalSettings.kioskTheme.layout?.homeScreenAddressX,
-                      homeScreenAddressY: globalSettings.kioskTheme.layout?.homeScreenAddressY,
                       homeScreenTimeStatusX: globalSettings.kioskTheme.layout?.homeScreenTimeStatusX,
                       homeScreenTimeStatusY: globalSettings.kioskTheme.layout?.homeScreenTimeStatusY,
                       homeScreenTapToDonateX: globalSettings.kioskTheme.layout?.homeScreenTapToDonateX,
                       homeScreenTapToDonateY: globalSettings.kioskTheme.layout?.homeScreenTapToDonateY,
-                      homeScreenQuickActionsX: globalSettings.kioskTheme.layout?.homeScreenQuickActionsX,
-                      homeScreenQuickActionsY: globalSettings.kioskTheme.layout?.homeScreenQuickActionsY,
-                      homeScreenCustomMessageX: globalSettings.kioskTheme.layout?.homeScreenCustomMessageX,
-                      homeScreenCustomMessageY: globalSettings.kioskTheme.layout?.homeScreenCustomMessageY,
                       homeScreenWhatsAppButtonsX: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsX,
                       homeScreenWhatsAppButtonsY: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsY,
                       homeScreenLanguageSelectorX: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorX,
@@ -479,12 +455,8 @@ export default function ThemeTab() {
                       // Home Screen Element Visibility
                       homeScreenWelcomeTextVisible: globalSettings.kioskTheme.layout?.homeScreenWelcomeTextVisible ?? true,
                       homeScreenHeader1Visible: globalSettings.kioskTheme.layout?.homeScreenHeader1Visible ?? true,
-                      homeScreenUnderGadiTextVisible: globalSettings.kioskTheme.layout?.homeScreenUnderGadiTextVisible ?? true,
-                      homeScreenAddressVisible: globalSettings.kioskTheme.layout?.homeScreenAddressVisible ?? true,
                       homeScreenTimeStatusVisible: globalSettings.kioskTheme.layout?.homeScreenTimeStatusVisible ?? true,
                       homeScreenTapToDonateVisible: globalSettings.kioskTheme.layout?.homeScreenTapToDonateVisible ?? true,
-                      homeScreenQuickActionsVisible: globalSettings.kioskTheme.layout?.homeScreenQuickActionsVisible ?? true,
-                      homeScreenCustomMessageVisible: globalSettings.kioskTheme.layout?.homeScreenCustomMessageVisible ?? true,
                       homeScreenWhatsAppButtonsVisible: globalSettings.kioskTheme.layout?.homeScreenWhatsAppButtonsVisible ?? true,
                       homeScreenLanguageSelectorVisible: globalSettings.kioskTheme.layout?.homeScreenLanguageSelectorVisible ?? true,
                       // Donation Details Page Layout
@@ -1384,76 +1356,6 @@ export default function ThemeTab() {
                 </div>
               </div>
 
-              {/* Under Gadi Text */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h5 className="text-sm font-semibold text-gray-800 mb-3">"Under Shree NarNarayan Dev Gadi" Text</h5>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
-                    <input
-                      type="number"
-                      value={formData.layout.homeScreenUnderGadiTextX ?? ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, homeScreenUnderGadiTextX: e.target.value ? parseFloat(e.target.value) : undefined }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="Auto (default layout)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
-                    <input
-                      type="number"
-                      value={formData.layout.homeScreenUnderGadiTextY ?? ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, homeScreenUnderGadiTextY: e.target.value ? parseFloat(e.target.value) : undefined }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="Auto (default layout)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Temple Address */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h5 className="text-sm font-semibold text-gray-800 mb-3">Temple Address</h5>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
-                    <input
-                      type="number"
-                      value={formData.layout.homeScreenAddressX ?? ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, homeScreenAddressX: e.target.value ? parseFloat(e.target.value) : undefined }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="Auto (default layout)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
-                    <input
-                      type="number"
-                      value={formData.layout.homeScreenAddressY ?? ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, homeScreenAddressY: e.target.value ? parseFloat(e.target.value) : undefined }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="Auto (default layout)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Time and Network Status */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <h5 className="text-sm font-semibold text-gray-800 mb-3">Time and Network Status (Top Right)</h5>
@@ -1515,76 +1417,6 @@ export default function ThemeTab() {
                       onChange={(e) => setFormData({
                         ...formData,
                         layout: { ...formData.layout, homeScreenTapToDonateY: e.target.value ? parseFloat(e.target.value) : undefined }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="Auto (default layout)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h5 className="text-sm font-semibold text-gray-800 mb-3">Quick Actions Section</h5>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
-                    <input
-                      type="number"
-                      value={formData.layout.homeScreenQuickActionsX ?? ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, homeScreenQuickActionsX: e.target.value ? parseFloat(e.target.value) : undefined }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="Auto (default layout)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
-                    <input
-                      type="number"
-                      value={formData.layout.homeScreenQuickActionsY ?? ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, homeScreenQuickActionsY: e.target.value ? parseFloat(e.target.value) : undefined }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="Auto (default layout)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Custom Message */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h5 className="text-sm font-semibold text-gray-800 mb-3">Custom Message</h5>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">X Coordinate</label>
-                    <input
-                      type="number"
-                      value={formData.layout.homeScreenCustomMessageX ?? ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, homeScreenCustomMessageX: e.target.value ? parseFloat(e.target.value) : undefined }
-                      })}
-                      disabled={!isEditing}
-                      placeholder="Auto (default layout)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Y Coordinate</label>
-                    <input
-                      type="number"
-                      value={formData.layout.homeScreenCustomMessageY ?? ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        layout: { ...formData.layout, homeScreenCustomMessageY: e.target.value ? parseFloat(e.target.value) : undefined }
                       })}
                       disabled={!isEditing}
                       placeholder="Auto (default layout)"
@@ -1709,40 +1541,6 @@ export default function ThemeTab() {
                   />
                 </div>
 
-                {/* Under Gadi Text */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">"Under Shree NarNarayan Dev Gadi" Text</label>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={formData.layout.homeScreenUnderGadiTextVisible ?? true}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      layout: { ...formData.layout, homeScreenUnderGadiTextVisible: e.target.checked }
-                    })}
-                    disabled={!isEditing}
-                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
-                  />
-                </div>
-
-                {/* Temple Address */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Temple Address</label>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={formData.layout.homeScreenAddressVisible ?? true}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      layout: { ...formData.layout, homeScreenAddressVisible: e.target.checked }
-                    })}
-                    disabled={!isEditing}
-                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
-                  />
-                </div>
-
                 {/* Time and Network Status */}
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
@@ -1773,42 +1571,6 @@ export default function ThemeTab() {
                     onChange={(e) => setFormData({
                       ...formData,
                       layout: { ...formData.layout, homeScreenTapToDonateVisible: e.target.checked }
-                    })}
-                    disabled={!isEditing}
-                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
-                  />
-                </div>
-
-                {/* Quick Actions */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Quick Actions Section</label>
-                    <p className="text-xs text-gray-500">Events button</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={formData.layout.homeScreenQuickActionsVisible ?? true}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      layout: { ...formData.layout, homeScreenQuickActionsVisible: e.target.checked }
-                    })}
-                    disabled={!isEditing}
-                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
-                  />
-                </div>
-
-                {/* Custom Message */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Custom Message</label>
-                    <p className="text-xs text-gray-500">Custom message text (if configured)</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={formData.layout.homeScreenCustomMessageVisible ?? true}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      layout: { ...formData.layout, homeScreenCustomMessageVisible: e.target.checked }
                     })}
                     disabled={!isEditing}
                     className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-200"
