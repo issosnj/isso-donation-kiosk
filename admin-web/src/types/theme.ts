@@ -64,18 +64,22 @@ export interface ThemeLayout {
   customAmountKeypadLetterFontSize: number
   customAmountKeypadPadding: number
   customAmountKeypadCornerRadius: number
-  // Home Screen
-  homeScreenHeaderTopPadding: number
-  homeScreenSpacerMaxHeight: number
-  homeScreenContentSpacing: number
-  homeScreenBottomButtonsPadding: number
-  homeScreenBottomButtonsLeftPadding: number
+  // Home Screen — structured presets only (no raw x/y)
+  homeScreenHeroTextPosition: 'slightly-higher' | 'centered'
+  homeScreenCtaPosition: 'centered' | 'lower-center'
+  homeScreenUtilityBarLayout: 'split' | 'grouped-left' | 'grouped-right'
   homeScreenWelcomeTextVisible: boolean
   homeScreenHeader1Visible: boolean
   homeScreenTimeStatusVisible: boolean
   homeScreenTapToDonateVisible: boolean
-  homeScreenWhatsAppButtonsVisible: boolean
+  homeScreenWhatsAppVisible: boolean
+  homeScreenObservanceVisible: boolean
   homeScreenLanguageSelectorVisible: boolean
+  // Legacy pixel values (computed from presets in kiosk app; kept for API compat)
+  homeScreenHeaderTopPadding: number
+  homeScreenSpacerMaxHeight: number
+  homeScreenContentSpacing: number
+  homeScreenBottomButtonsPadding: number
   // Donation Details
   detailsPageHorizontalSpacing: number
   detailsPageSidePadding: number

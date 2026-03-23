@@ -84,7 +84,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
   const last30Start = subDays(today, 30)
   const prev30Start = subDays(today, 60)
 
-  const { data: statsYtd, isLoading: statsLoading } = useQuery({
+  const { data: statsYtd, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['overview-stats-ytd'],
     queryFn: async () => {
       const res = await api.get('/donations/stats', {
@@ -120,7 +120,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     },
   })
 
-  const { data: donations = [], isLoading: donationsLoading } = useQuery({
+  const { data: donations = [], isLoading: donationsLoading, isError: donationsError } = useQuery({
     queryKey: ['overview-donations', ninetyDaysAgo.toISOString(), endOfToday.toISOString()],
     queryFn: async () => {
       const res = await api.get('/donations', {
@@ -141,7 +141,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     },
   })
 
-  const { summary: deviceSummary, isLoading: devicesLoading } = useDevices()
+  const { summary: deviceSummary, isLoading: devicesLoading, isError: devicesError } = useDevices()
   const { summary: alertSummary, alerts } = useAlerts()
 
   const trendData = groupDonationsByDate(donations, chartGranularity)
@@ -182,5 +182,8 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     alerts,
     isLoading: statsLoading || donationsLoading,
     devicesLoading,
+    statsError: !!statsError,
+    donationsError: !!donationsError,
+    devicesError: !!devicesError,
   }
 }

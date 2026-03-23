@@ -256,8 +256,11 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
             self.currentPaymentIntent = intent
             
             // Collect payment (SDK 3.0: use CollectConfigurationBuilder)
+            // skipTipping: true — donations are fixed amount; avoids tipping screen + confusing delay/beep
             do {
-                let collectConfig = try CollectConfigurationBuilder().build()
+                let collectConfig = try CollectConfigurationBuilder()
+                    .setSkipTipping(true)
+                    .build()
                 Terminal.shared.collectPaymentMethod(intent, collectConfig: collectConfig) { intent, error in
                 if let error = error {
                     self.paymentInProgress = false

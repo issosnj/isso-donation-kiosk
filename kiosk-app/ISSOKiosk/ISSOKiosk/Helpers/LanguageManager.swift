@@ -87,8 +87,8 @@ class LanguageManager: ObservableObject {
             "selectAmountToContinue": "Select Amount to Continue",
             
             // Payment
-            "processingPayment": "Completing your donation",
-            "processingSubtext": "This usually takes a few seconds",
+            "processingPayment": "Tap your card once",
+            "processingSubtext": "If you hear a beep, please wait — do not tap again",
             "paymentSuccessful": "Payment Successful",
             "paymentFailed": "Payment Failed",
             "thankYou": "Thank You",
@@ -150,8 +150,8 @@ class LanguageManager: ObservableObject {
             "selectAmountToContinue": "ચાલુ રાખવા માટે રકમ પસંદ કરો",
             
             // Payment
-            "processingPayment": "તમારું દાન પૂર્ણ કરી રહ્યા છીએ",
-            "processingSubtext": "આમાં સામાન્ય રીતે થોડી સેકંડ લાગે છે",
+            "processingPayment": "તમારી કાર્ડ પર એક વાર ટેપ કરો",
+            "processingSubtext": "જો તમે બીપ સાંભળો તો કૃપા કરીને રાહ જુઓ — ફરીથી ટેપ કરશો નહીં",
             "paymentSuccessful": "પેમેન્ટ સફળ",
             "paymentFailed": "પેમેન્ટ નિષ્ફળ",
             "thankYou": "આભાર",
@@ -213,8 +213,8 @@ class LanguageManager: ObservableObject {
             "selectAmountToContinue": "जारी रखने के लिए राशि चुनें",
             
             // Payment
-            "processingPayment": "आपका दान पूरा हो रहा है",
-            "processingSubtext": "इसमें आमतौर पर कुछ सेकंड लगते हैं",
+            "processingPayment": "अपना कार्ड एक बार टैप करें",
+            "processingSubtext": "बीप सुनने पर कृपया प्रतीक्षा करें — दोबारा टैप न करें",
             "paymentSuccessful": "भुगतान सफल",
             "paymentFailed": "भुगतान विफल",
             "thankYou": "धन्यवाद",

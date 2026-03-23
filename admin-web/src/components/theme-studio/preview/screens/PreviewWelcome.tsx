@@ -2,25 +2,32 @@
 
 import { memo } from 'react'
 import type { KioskTheme } from '@/types/theme'
+import { heroTopPadding, ctaSpacerHeight } from '@/lib/home-screen-presets'
 
 interface PreviewWelcomeProps {
   theme: KioskTheme
 }
 
 /**
- * Replicates KioskHomeView structure:
- * - Temple background
- * - Top status area (battery, time)
- * - Centered title + subtitle
- * - Large CTA "Tap to Donate"
- * - Bottom utilities (WhatsApp, Observances)
+ * Replicates KioskHomeView structure for iPad landscape.
+ * Uses preset-based layout — no raw x/y.
  */
 function PreviewWelcome({ theme }: PreviewWelcomeProps) {
   const { fonts, colors, layout } = theme
-  const visible = (key: keyof typeof layout) => layout[key] !== false
+  const heroPos = layout.homeScreenHeroTextPosition ?? 'slightly-higher'
+  const ctaPos = layout.homeScreenCtaPosition ?? 'centered'
+  const utilityLayout = layout.homeScreenUtilityBarLayout ?? 'split'
+
+  const showWhatsApp = layout.homeScreenWhatsAppVisible ?? true
+  const showObservance = layout.homeScreenObservanceVisible ?? true
+  const showLanguage = layout.homeScreenLanguageSelectorVisible ?? true
+  const hasLeftUtilities = showWhatsApp || showObservance
 
   const headingColor = colors.headingColor || '#423232'
   const tapColor = colors.tapToDonateButtonColor || '#D4AF37'
+
+  const heroTop = heroTopPadding(heroPos)
+  const spacerHeight = ctaSpacerHeight(ctaPos)
 
   return (
     <div
@@ -30,7 +37,7 @@ function PreviewWelcome({ theme }: PreviewWelcomeProps) {
         fontFamily: `${fonts.headingFamily || 'Inter'}, sans-serif`,
       }}
     >
-      {/* Legibility overlay (matches real app) */}
+      {/* Legibility overlay */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -38,7 +45,7 @@ function PreviewWelcome({ theme }: PreviewWelcomeProps) {
         }}
       />
 
-      {/* Top red/gold header strip (temple brand bar) */}
+      {/* Top brand strip */}
       <div
         className="w-full"
         style={{
@@ -47,44 +54,22 @@ function PreviewWelcome({ theme }: PreviewWelcomeProps) {
         }}
       />
 
-      {/* Top status bar area */}
+      {/* Top status bar */}
       <div className="flex w-full items-center justify-between px-[2%] pt-[1%]">
         <div className="flex items-center gap-2">
-          <div
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: headingColor, opacity: 0.6 }}
-          />
-          <span
-            className="text-[0.9rem] font-medium"
-            style={{ color: headingColor, opacity: 0.9 }}
-          >
-            10:42
-          </span>
+          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: headingColor, opacity: 0.6 }} />
+          <span className="text-[0.9rem] font-medium" style={{ color: headingColor, opacity: 0.9 }}>10:42</span>
         </div>
         <div className="flex items-center gap-2">
-          <div
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: '#22c55e' }}
-          />
-          <span
-            className="text-[0.9rem] font-medium"
-            style={{ color: headingColor, opacity: 0.9 }}
-          >
-            Connected
-          </span>
+          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+          <span className="text-[0.9rem] font-medium" style={{ color: headingColor, opacity: 0.9 }}>Connected</span>
         </div>
       </div>
 
       {/* Main content */}
       <div className="flex flex-1 flex-col items-center justify-between w-full max-w-[85%] py-[2%]">
-        {/* Title block */}
-        {visible('homeScreenWelcomeTextVisible') && (
-          <div
-            className="text-center"
-            style={{
-              paddingTop: `${(layout.homeScreenHeaderTopPadding || 60) / 16}rem`,
-            }}
-          >
+        {layout.homeScreenWelcomeTextVisible !== false && (
+          <div className="text-center" style={{ paddingTop: `${heroTop / 16}rem` }}>
             <h1
               className="leading-tight"
               style={{
@@ -96,39 +81,25 @@ function PreviewWelcome({ theme }: PreviewWelcomeProps) {
             >
               Welcome to Shree Swaminarayan Temple
             </h1>
-            {visible('homeScreenHeader1Visible') && (
-              <p
-                className="mt-1"
-                style={{
-                  fontSize: `${fonts.bodySize || 16}px`,
-                  fontWeight: 600,
-                  color: headingColor,
-                  fontFamily: `${fonts.bodyFamily || 'Inter'}, sans-serif`,
-                }}
-              >
+            {layout.homeScreenHeader1Visible !== false && (
+              <p className="mt-1" style={{ fontSize: `${fonts.bodySize || 16}px`, fontWeight: 600, color: headingColor }}>
                 ISSO · International Swaminarayan Satsang
               </p>
             )}
           </div>
         )}
 
-        <div
-          style={{
-            minHeight: `${(layout.homeScreenSpacerMaxHeight || 80) / 16}rem`,
-          }}
-        />
+        <div style={{ minHeight: `${spacerHeight / 16}rem` }} />
 
-        {/* Tap to Donate CTA */}
-        {visible('homeScreenTapToDonateVisible') && (
+        {layout.homeScreenTapToDonateVisible !== false && (
           <div
-            className="w-full max-w-[85%] rounded-[1.25rem] px-[4%] py-[3%] text-center shadow-lg transition-transform hover:scale-[1.02]"
+            className="w-full max-w-[85%] rounded-[1.25rem] px-[4%] py-[3%] text-center shadow-lg"
             style={{
-              background: layout.cornerRadius ? `linear-gradient(135deg, ${tapColor} 0%, ${tapColor}dd 100%)` : tapColor,
+              background: `linear-gradient(135deg, ${tapColor} 0%, ${tapColor}dd 100%)`,
               color: colors.buttonTextColor || '#ffffff',
               fontSize: `${(fonts.buttonSize || 18) + 24}px`,
               fontWeight: 700,
               letterSpacing: '0.08em',
-              fontFamily: `${fonts.buttonFamily || 'Inter'}, sans-serif`,
               boxShadow: `0 6px 24px ${tapColor}40`,
             }}
           >
@@ -139,33 +110,26 @@ function PreviewWelcome({ theme }: PreviewWelcomeProps) {
         <div className="flex-1" />
       </div>
 
-      {/* Bottom utilities: WhatsApp, Observances */}
-      {visible('homeScreenWhatsAppButtonsVisible') && (
+      {/* Utility bar — preset-driven layout */}
+      {(hasLeftUtilities || showLanguage) && (
         <div
-          className="absolute bottom-[3%] left-[2%] flex items-center gap-3 rounded-full px-[2%] py-[1%]"
+          className={`absolute bottom-[3%] left-[2%] right-[2%] flex items-center gap-3 rounded-full px-[2%] py-[1%] ${
+            utilityLayout === 'grouped-left' ? 'justify-start' : utilityLayout === 'grouped-right' ? 'justify-end' : 'justify-between'
+          }`}
           style={{
             background: 'rgba(255,255,255,0.25)',
             fontFamily: `${fonts.bodyFamily || 'Inter'}, sans-serif`,
           }}
         >
-          <span
-            className="text-[0.85rem] font-medium"
-            style={{ color: headingColor }}
-          >
-            WhatsApp
-          </span>
-          <span
-            className="text-sm opacity-60"
-            style={{ color: headingColor }}
-          >
-            |
-          </span>
-          <span
-            className="text-[0.85rem] font-medium"
-            style={{ color: headingColor }}
-          >
-            Observances
-          </span>
+          {hasLeftUtilities && (
+            <div className="flex items-center gap-3">
+              {showWhatsApp && <span className="text-[0.85rem] font-medium" style={{ color: headingColor }}>WhatsApp</span>}
+              {showWhatsApp && showObservance && <span className="opacity-60">|</span>}
+              {showObservance && <span className="text-[0.85rem] font-medium" style={{ color: headingColor }}>Observances</span>}
+            </div>
+          )}
+          {utilityLayout === 'split' && <div className="flex-1" />}
+          {showLanguage && <span className="text-[0.85rem] font-medium" style={{ color: headingColor }}>EN | ગુજરાતી</span>}
         </div>
       )}
     </div>

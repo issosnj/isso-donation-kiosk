@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { useAlerts } from '@/hooks/useAlerts'
 import { AlertCenter } from '@/components/alerts'
 import { useOverviewData } from '@/hooks/useOverviewData'
 import {
@@ -33,9 +32,10 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
     alerts,
     isLoading,
     devicesLoading,
+    statsError,
+    donationsError,
+    devicesError,
   } = useOverviewData(chartGranularity)
-
-  const { isLoading: alertsLoading } = useAlerts()
 
   // Temple Admin: show simpler view
   if (!isMasterAdmin && templeId) {
@@ -53,6 +53,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
         trendDirection={stats.trendDirection}
         countYtd={stats.countYtd}
         isLoading={isLoading}
+        isError={statsError}
       />
 
       {/* 2. Operational alerts */}
@@ -63,13 +64,13 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
           </h2>
           <AlertCenter
             alerts={alerts}
-            isLoading={alertsLoading}
+            isLoading={false}
             emptyMessage="All systems normal"
           />
         </section>
       )}
 
-      {alertSummary.total === 0 && !alertsLoading && (
+      {alertSummary.total === 0 && (
         <section>
           <AlertCenter alerts={[]} isLoading={false} emptyMessage="All systems normal" />
         </section>
@@ -83,6 +84,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
           countYtd={stats.countYtd}
           avgGift={stats.avgGift}
           isLoading={isLoading}
+          isError={statsError}
         />
       </section>
 
@@ -94,6 +96,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
             granularity={chartGranularity}
             onGranularityChange={setChartGranularity}
             isLoading={isLoading}
+            isError={donationsError}
           />
         </div>
         <div className="lg:col-span-5 space-y-6">
@@ -104,10 +107,12 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
             needingAttention={deviceSummary.needingAttention}
             setupIssuesCount={alertSummary.warning + alertSummary.critical}
             isLoading={devicesLoading}
+            isError={devicesError}
           />
           <TemplePerformanceSection
             temples={templePerformance}
             isLoading={isLoading}
+            isError={donationsError}
           />
         </div>
       </div>
@@ -116,7 +121,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
 }
 
 function TempleAdminOverview({ templeId }: { templeId: string }) {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, isError: statsError } = useQuery({
     queryKey: ['donation-stats', templeId],
     queryFn: async () => {
       const today = new Date()
@@ -141,6 +146,19 @@ function TempleAdminOverview({ templeId }: { templeId: string }) {
             <div className="h-8 bg-gray-200 rounded w-1/2" />
           </div>
         ))}
+      </div>
+    )
+  }
+
+  if (statsError) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <p className="text-gray-600 font-medium">Unable to load statistics</p>
       </div>
     )
   }

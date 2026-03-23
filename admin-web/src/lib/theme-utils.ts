@@ -63,17 +63,20 @@ export const DEFAULT_THEME: KioskTheme = {
     customAmountKeypadLetterFontSize: 10,
     customAmountKeypadPadding: 16,
     customAmountKeypadCornerRadius: 16,
-    homeScreenHeaderTopPadding: 60,
-    homeScreenSpacerMaxHeight: 100,
-    homeScreenContentSpacing: 20,
-    homeScreenBottomButtonsPadding: 50,
-    homeScreenBottomButtonsLeftPadding: 20,
+    homeScreenHeroTextPosition: 'slightly-higher',
+    homeScreenCtaPosition: 'centered',
+    homeScreenUtilityBarLayout: 'split',
     homeScreenWelcomeTextVisible: true,
     homeScreenHeader1Visible: true,
     homeScreenTimeStatusVisible: true,
     homeScreenTapToDonateVisible: true,
-    homeScreenWhatsAppButtonsVisible: true,
+    homeScreenWhatsAppVisible: true,
+    homeScreenObservanceVisible: true,
     homeScreenLanguageSelectorVisible: true,
+    homeScreenHeaderTopPadding: 36,
+    homeScreenSpacerMaxHeight: 48,
+    homeScreenContentSpacing: 20,
+    homeScreenBottomButtonsPadding: 40,
     detailsPageHorizontalSpacing: 40,
     detailsPageSidePadding: 60,
     detailsPageTopPadding: 80,
@@ -98,7 +101,30 @@ export const DEFAULT_THEME: KioskTheme = {
 /** Sync API theme (or partial) into full KioskTheme. Use for load + cancel. */
 export function themeFromApi(apiTheme: Record<string, unknown> | null | undefined): KioskTheme {
   if (!apiTheme) return { ...JSON.parse(JSON.stringify(DEFAULT_THEME)) }
-  return deepMergeTheme(DEFAULT_THEME, apiTheme as Partial<KioskTheme>)
+  const migrated = migrateLegacyLayout(apiTheme)
+  return deepMergeTheme(DEFAULT_THEME, migrated as Partial<KioskTheme>)
+}
+
+/** Migrate old layout keys to new preset-based structure. */
+function migrateLegacyLayout(api: Record<string, unknown>): Record<string, unknown> {
+  const layout = api.layout as Record<string, unknown> | undefined
+  if (!layout) return api
+  const out = { ...api, layout: { ...layout } }
+  const L = out.layout as Record<string, unknown>
+  if (L.homeScreenWhatsAppButtonsVisible !== undefined && L.homeScreenWhatsAppVisible === undefined) {
+    L.homeScreenWhatsAppVisible = L.homeScreenWhatsAppButtonsVisible
+    L.homeScreenObservanceVisible = L.homeScreenWhatsAppButtonsVisible
+  }
+  if (L.homeScreenHeroTextPosition === undefined && L.homeScreenHeaderTopPadding !== undefined) {
+    L.homeScreenHeroTextPosition = (L.homeScreenHeaderTopPadding as number) < 45 ? 'slightly-higher' : 'centered'
+  }
+  if (L.homeScreenCtaPosition === undefined && L.homeScreenSpacerMaxHeight !== undefined) {
+    L.homeScreenCtaPosition = (L.homeScreenSpacerMaxHeight as number) < 65 ? 'centered' : 'lower-center'
+  }
+  if (L.homeScreenUtilityBarLayout === undefined) {
+    L.homeScreenUtilityBarLayout = 'split'
+  }
+  return out
 }
 
 function deepMergeTheme(base: KioskTheme, override: Partial<KioskTheme>): KioskTheme {

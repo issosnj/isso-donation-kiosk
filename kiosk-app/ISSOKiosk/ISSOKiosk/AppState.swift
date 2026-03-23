@@ -691,6 +691,15 @@ struct ThemeLayout: Codable, Equatable {
     let homeScreenContentSpacing: Double?
     let homeScreenBottomButtonsPadding: Double?
     let homeScreenBottomButtonsLeftPadding: Double?
+    let homeScreenBottomButtonsRightPadding: Double?
+    let homeScreenWelcomeTextLineSpacing: Double?
+    let homeScreenAddressTopSpacing: Double?
+    // Home Screen — structured presets (Theme Studio safe controls)
+    let homeScreenHeroTextPosition: String? // "slightly-higher" | "centered"
+    let homeScreenCtaPosition: String? // "centered" | "lower-center"
+    let homeScreenUtilityBarLayout: String? // "split" | "grouped-left" | "grouped-right"
+    let homeScreenWhatsAppVisible: Bool?
+    let homeScreenObservanceVisible: Bool?
     // Home Screen Element Positioning (X/Y Coordinates)
     // X and Y coordinates are in points (pixels) relative to screen top-left (0,0)
     // If not set, elements use default layout positioning

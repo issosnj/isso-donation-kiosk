@@ -103,20 +103,20 @@ struct KioskHomeView: View {
                 // Main content using VStack/HStack layout
                 defaultLayout(geometry: geometry)
                 
-                // Top-level overlay for status indicators (battery, time, network)
-                // These need to be on top of everything else, aligned at the top
+                // Top-level overlay for status indicators — matches DonationHomeView placement
+                // homeScreenStatusTopPadding, homeScreenStatusHorizontalPadding (Theme Studio–ready)
                 VStack {
                     HStack(alignment: .center) {
                         ReaderBatteryStatusView()
-                            .padding(.leading, geometry.scale(DesignSystem.Spacing.lg))
-                            .padding(.top, geometry.scale(DesignSystem.Spacing.md))
+                            .padding(.leading, geometry.scale(DesignSystem.Layout.screenPadding))
+                            .padding(.top, geometry.scale(DesignSystem.Spacing.sm))
                         
                         Spacer()
                         
                         if appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusVisible != false {
                             TimeAndNetworkStatusView()
-                                .padding(.trailing, geometry.scale(DesignSystem.Spacing.lg))
-                                .padding(.top, geometry.scale(DesignSystem.Spacing.md))
+                                .padding(.trailing, geometry.scale(DesignSystem.Layout.screenPadding))
+                                .padding(.top, geometry.scale(DesignSystem.Spacing.sm))
                         }
                     }
                     Spacer()
@@ -129,73 +129,68 @@ struct KioskHomeView: View {
     @ViewBuilder
     private func defaultLayout(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // Header — compact, elegant text block
-                ZStack {
-                    VStack(spacing: 0) {
-                        // Temple name + subtitle group (tighter vertical rhythm)
-                        VStack(spacing: geometry.scale(6)) {
-                            if appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextVisible != false {
-                                Text("Welcome to Shree Swaminarayan Hindu Temple")
-                                    .font(.custom(DesignSystem.Typography.heroFont, size: geometry.scale(34)))
-                                    .foregroundColor(colorFromHex("423232"))
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(nil)
-                                    .minimumScaleFactor(0.5)
-                            }
-                            if appState.temple?.kioskTheme?.layout?.homeScreenHeader1Visible != false {
-                                Text(header1Text)
-                                    .font(.custom(DesignSystem.Typography.pageTitleFont, size: geometry.scale(26)))
-                                    .foregroundColor(colorFromHex("423232"))
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(nil)
-                                    .minimumScaleFactor(0.5)
-                            }
-                            if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
-                                Text("underGadi".localized)
-                                    .font(.custom(DesignSystem.Typography.bodyFont, size: geometry.scale(DesignSystem.Typography.secondarySize)))
-                                    .italic()
-                                    .foregroundColor(colorFromHex("423232"))
-                                    .multilineTextAlignment(.center)
-                            }
-                        }
-                        .padding(.horizontal, geometry.scale(DesignSystem.Layout.screenPadding))
-                        .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 44)))
-                        .padding(.bottom, geometry.scale(DesignSystem.Spacing.sm))
-                        
-                        // Address — visually separated, secondary
-                        if appState.temple?.kioskTheme?.layout?.homeScreenAddressVisible != false {
-                            if let temple = appState.temple, let address = temple.address, !address.isEmpty {
-                                Text(address)
-                                    .font(.custom(DesignSystem.Typography.bodyFont, size: geometry.scale(DesignSystem.Typography.secondarySize)))
-                                    .foregroundColor(colorFromHex("423232").opacity(0.9))
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.horizontal, geometry.scale(DesignSystem.Layout.screenPadding))
-                                    .padding(.bottom, geometry.scale(DesignSystem.Spacing.md))
-                            } else {
-                                Spacer()
-                                    .frame(height: geometry.scale(DesignSystem.Spacing.sm))
-                            }
-                        }
+            // Header — welcome/title/subtitle/address stack (Theme Studio: homeScreenHeroTextTopPadding)
+            VStack(spacing: 0) {
+                // Temple name + subtitle group — improved line spacing
+                let welcomeLineSpacing = CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextLineSpacing ?? 10)
+                let heroPos = appState.temple?.kioskTheme?.layout?.homeScreenHeroTextPosition ?? "slightly-higher"
+                let heroTopPadding = heroPos == "centered" ? 60.0 : 36.0
+                VStack(spacing: geometry.scale(welcomeLineSpacing)) {
+                    if appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextVisible != false {
+                        Text("Welcome to Shree Swaminarayan Hindu Temple")
+                            .font(.custom(DesignSystem.Typography.heroFont, size: geometry.scale(34)))
+                            .foregroundColor(colorFromHex("423232"))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(nil)
+                            .minimumScaleFactor(0.5)
                     }
-                    
-                    // Language Selector (top left) - Always use VStack layout
-                    if appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorVisible != false {
-                        VStack {
-                            LanguageSelectorView(languageManager: languageManager)
-                            Spacer()
-                        }
-                        .padding(.leading, geometry.scale(DesignSystem.Spacing.lg))
-                        .padding(.top, geometry.scale(DesignSystem.Spacing.md))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    if appState.temple?.kioskTheme?.layout?.homeScreenHeader1Visible != false {
+                        Text(header1Text)
+                            .font(.custom(DesignSystem.Typography.pageTitleFont, size: geometry.scale(26)))
+                            .foregroundColor(colorFromHex("423232"))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(nil)
+                            .minimumScaleFactor(0.5)
+                    }
+                    if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
+                        Text("underGadi".localized)
+                            .font(.custom(DesignSystem.Typography.bodyFont, size: geometry.scale(DesignSystem.Typography.secondarySize)))
+                            .italic()
+                            .foregroundColor(colorFromHex("423232"))
+                            .multilineTextAlignment(.center)
                     }
                 }
+                .padding(.horizontal, geometry.scale(DesignSystem.Layout.screenPadding))
+                .padding(.top, geometry.scale(heroTopPadding))
+                .padding(.bottom, geometry.scale(DesignSystem.Spacing.sm))
+                
+                // Address — visually separated (Theme Studio: homeScreenAddressTopSpacing)
+                let addressTopSpacing = CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenAddressTopSpacing ?? 12)
+                if appState.temple?.kioskTheme?.layout?.homeScreenAddressVisible != false {
+                    if let temple = appState.temple, let address = temple.address, !address.isEmpty {
+                        Text(address)
+                            .font(.custom(DesignSystem.Typography.bodyFont, size: geometry.scale(DesignSystem.Typography.secondarySize)))
+                            .foregroundColor(colorFromHex("423232").opacity(0.9))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, geometry.scale(addressTopSpacing))
+                            .padding(.horizontal, geometry.scale(DesignSystem.Layout.screenPadding))
+                            .padding(.bottom, geometry.scale(DesignSystem.Spacing.md))
+                    } else {
+                        Spacer()
+                            .frame(height: geometry.scale(DesignSystem.Spacing.sm))
+                    }
+                }
+            }
             
+            // Spacer between hero text and CTA (Theme Studio: homeScreenCtaPosition preset)
+            let ctaPos = appState.temple?.kioskTheme?.layout?.homeScreenCtaPosition ?? "centered"
+            let ctaSpacer: CGFloat = ctaPos == "lower-center" ? 80 : 48
             Spacer()
-                .frame(maxHeight: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenSpacerMaxHeight ?? 56))
+                .frame(maxHeight: geometry.scale(ctaSpacer))
             
-            // Centered content — Tap To Donate anchored with clear visual weight
+            // Centered content — Tap To Donate, main visual anchor
             VStack(spacing: geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenContentSpacing ?? DesignSystem.Components.sectionSpacing))) {
                 
                 if appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateVisible != false {
@@ -274,20 +269,37 @@ struct KioskHomeView: View {
             
             Spacer()
         }
-        .overlay(alignment: .bottomLeading) {
-            // Utility row — WhatsApp + Observances (subtle, low visual weight)
-            if appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsVisible != false {
-                whatsAppButtonsView
-                    .padding(.leading, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? DesignSystem.Layout.screenPadding)))
-                    .padding(.bottom, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 40)))
+        .overlay(alignment: .bottom) {
+            // Utility bar — Theme Studio presets: split | grouped-left | grouped-right
+            let showWhatsApp = appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppVisible ?? appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsVisible ?? true
+            let showObservance = appState.temple?.kioskTheme?.layout?.homeScreenObservanceVisible ?? appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsVisible ?? true
+            let showLanguage = appState.temple?.kioskTheme?.layout?.homeScreenLanguageSelectorVisible != false
+            let utilityLayout = appState.temple?.kioskTheme?.layout?.homeScreenUtilityBarLayout ?? "split"
+            let hasLeftUtilities = (showWhatsApp && (appState.temple?.homeScreenConfig?.whatsAppLink?.isEmpty == false)) || showObservance
+            if hasLeftUtilities || showLanguage {
+                HStack(alignment: .center, spacing: DesignSystem.Spacing.md) {
+                    if hasLeftUtilities { whatsAppObservanceView(showWhatsApp: showWhatsApp, showObservance: showObservance) }
+                    if utilityLayout == "split" { Spacer() }
+                    if showLanguage {
+                        LanguageSelectorView(languageManager: languageManager)
+                            .padding(.horizontal, DesignSystem.Spacing.lg)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                            .background(Capsule().fill(Color.white.opacity(0.12)))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: utilityLayout == "grouped-left" ? .leading : (utilityLayout == "grouped-right" ? .trailing : .center))
+                .padding(.leading, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? DesignSystem.Layout.screenPadding)))
+                .padding(.trailing, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsRightPadding ?? DesignSystem.Layout.screenPadding)))
+                .padding(.bottom, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 40)))
             }
         }
     }
     
-    // WhatsApp + Observances — clean utility row, subtle styling
-    private var whatsAppButtonsView: some View {
+    // WhatsApp + Observances — clean utility row (Theme Studio: homeScreenWhatsAppVisible, homeScreenObservanceVisible)
+    @ViewBuilder
+    private func whatsAppObservanceView(showWhatsApp: Bool, showObservance: Bool) -> some View {
         HStack(spacing: DesignSystem.Spacing.md) {
-            if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
+            if showWhatsApp, let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
                 Button(action: {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showWhatsAppQR = true
@@ -313,11 +325,14 @@ struct KioskHomeView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                Rectangle()
-                    .fill(colorFromHex("423232").opacity(0.2))
-                    .frame(width: 1, height: 18)
+                if showObservance {
+                    Rectangle()
+                        .fill(colorFromHex("423232").opacity(0.2))
+                        .frame(width: 1, height: 18)
+                }
             }
             
+            if showObservance {
             Button(action: {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 showReligiousEvents = true
@@ -351,6 +366,7 @@ struct KioskHomeView: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
+            }
         }
         .padding(.horizontal, DesignSystem.Spacing.lg)
         .padding(.vertical, DesignSystem.Spacing.sm)
