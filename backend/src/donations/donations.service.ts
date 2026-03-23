@@ -123,6 +123,7 @@ export class DonationsService {
   async complete(
     donationId: string,
     completeDonationDto: CompleteDonationDto,
+    callerType?: 'device' | 'user',
   ): Promise<Donation> {
     const donation = await this.donationsRepository.findOne({
       where: { id: donationId },
@@ -130,6 +131,19 @@ export class DonationsService {
     });
     if (!donation) {
       throw new NotFoundException(`Donation with ID ${donationId} not found`);
+    }
+
+    // SECURITY: Never trust client-provided status for SUCCEEDED. Verify with Stripe API.
+    if (completeDonationDto.status === DonationStatus.SUCCEEDED && completeDonationDto.stripePaymentIntentId) {
+      const paymentDetails = await this.stripeService.getPaymentIntentDetails(
+        donation.templeId,
+        completeDonationDto.stripePaymentIntentId,
+      );
+      if (paymentDetails.status !== 'succeeded') {
+        throw new BadRequestException(
+          `Cannot complete donation as succeeded: payment status is '${paymentDetails.status}'. Verify payment with Stripe.`,
+        );
+      }
     }
 
     // Support both Square (legacy) and Stripe payment IDs

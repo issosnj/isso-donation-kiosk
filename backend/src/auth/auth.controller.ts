@@ -1,46 +1,18 @@
-import { Controller, Post, Body, UseGuards, Request, Get } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { LoginDto } from './dto/login.dto';
-import { UsersService } from '../users/users.service';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private usersService: UsersService,
-  ) {}
+  constructor(private authService: AuthService) {}
 
-  @Get('test-db')
-  @ApiOperation({ summary: 'Test database connection and user lookup' })
-  async testDb() {
-    try {
-      const email = 'patelmit101@gmail.com';
-      const user = await this.usersService.findByEmail(email);
-      return {
-        success: true,
-        userFound: !!user,
-        user: user ? {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          hasPasswordHash: !!user.passwordHash,
-          templeId: user.templeId,
-        } : null,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      };
-    }
-  }
-
-  @UseGuards(LocalAuthGuard)
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 900000 } })
+  @UseGuards(LocalAuthGuard)
   @ApiOperation({ summary: 'Login user' })
   @ApiBody({ type: LoginDto })
   async login(@Request() req) {

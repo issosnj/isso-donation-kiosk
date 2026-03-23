@@ -93,15 +93,16 @@ export class DonationCategoriesController {
   @Get()
   @ApiOperation({ summary: 'Get all donation categories' })
   async findAll(@CurrentUser() user: any, @Query('templeId') templeId?: string) {
-    // If templeId is provided in query, use it (for master admin viewing specific temple)
-    // Otherwise, use user's templeId (for temple admin) or all (for master admin)
+    // Temple Admin: only their temple. Ignore templeId param to prevent IDOR.
+    if (user.role === UserRole.TEMPLE_ADMIN) {
+      return this.categoriesService.findAll(user.templeId);
+    }
+    // Master Admin: can filter by templeId or get all
     let categories;
     if (templeId) {
       categories = await this.categoriesService.findAll(templeId);
-    } else if (user.role === UserRole.MASTER_ADMIN) {
-      categories = await this.categoriesService.findAll();
     } else {
-      categories = await this.categoriesService.findAll(user.templeId);
+      categories = await this.categoriesService.findAll();
     }
     
     // Fix any duplicate displayOrder values by reassigning them
@@ -206,8 +207,8 @@ export class DonationCategoriesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get donation category by ID' })
-  findOne(@Param('id') id: string) {
-    return this.categoriesService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.categoriesService.findOne(id, user);
   }
 
   @Patch(':id')
@@ -215,14 +216,15 @@ export class DonationCategoriesController {
   update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateDonationCategoryDto,
+    @CurrentUser() user: any,
   ) {
-    return this.categoriesService.update(id, updateCategoryDto);
+    return this.categoriesService.update(id, updateCategoryDto, user);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete donation category' })
-  remove(@Param('id') id: string) {
-    return this.categoriesService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.categoriesService.remove(id, user);
   }
 }
 

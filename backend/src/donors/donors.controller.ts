@@ -77,12 +77,18 @@ export class DonorsController {
   @ApiOperation({ summary: 'Get all donors for a temple' })
   async getDonorsByTemple(
     @Param('templeId') templeId: string,
+    @Request() req,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '50',
     @Query('search') search?: string,
   ) {
+    // Temple Admin: only their temple
+    const targetTempleId = req.user.role === UserRole.TEMPLE_ADMIN ? req.user.templeId : templeId;
+    if (req.user.role === UserRole.TEMPLE_ADMIN && templeId !== req.user.templeId) {
+      throw new ForbiddenException('Cannot access donors for another temple');
+    }
     const result = await this.donorsService.getDonorsByTemple(
-      templeId,
+      targetTempleId,
       parseInt(page, 10),
       parseInt(limit, 10),
       search,
@@ -148,15 +154,16 @@ export class DonorsController {
   async updateDonor(
     @Param('id') id: string,
     @Body() updateDonorDto: UpdateDonorDto,
+    @Request() req,
   ) {
-    return this.donorsService.updateDonor(id, updateDonorDto);
+    return this.donorsService.updateDonor(id, updateDonorDto, req.user);
   }
 
   @Delete(':id')
   @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
   @ApiOperation({ summary: 'Delete a donor' })
-  async deleteDonor(@Param('id') id: string) {
-    await this.donorsService.deleteDonor(id);
+  async deleteDonor(@Param('id') id: string, @Request() req) {
+    await this.donorsService.deleteDonor(id, req.user);
     return { message: 'Donor deleted successfully' };
   }
 

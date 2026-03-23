@@ -16,6 +16,7 @@ import { GmailModule } from '../gmail/gmail.module';
 import { ReceiptPdfService } from './receipt-pdf.service';
 import { ReceiptGeneratorService } from './receipt-generator.service';
 import { DonorsModule } from '../donors/donors.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { DonorsModule } from '../donors/donors.module';
     forwardRef(() => StripeModule),
     GmailModule,
     forwardRef(() => DonorsModule),
+    AuthModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

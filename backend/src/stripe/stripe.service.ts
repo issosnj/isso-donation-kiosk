@@ -1,8 +1,12 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { TemplesService } from '../temples/temples.service';
 import { DonationsService } from '../donations/donations.service';
 import { DonationStatus } from '../donations/entities/donation.entity';
+import { StripeWebhookEvent, WebhookEventStatus } from './entities/stripe-webhook-event.entity';
+import { AppLogger } from '../common/logger/app-logger.service';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -10,10 +14,13 @@ export class StripeService {
   private stripe: Stripe;
 
   constructor(
+    @InjectRepository(StripeWebhookEvent)
+    private webhookEventRepository: Repository<StripeWebhookEvent>,
     private configService: ConfigService,
     private templesService: TemplesService,
     @Inject(forwardRef(() => DonationsService))
     private donationsService: DonationsService,
+    private logger: AppLogger,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
@@ -254,6 +261,7 @@ export class StripeService {
   async confirmPaymentIntent(
     templeId: string,
     paymentIntentId: string,
+    donationId?: string,
   ): Promise<{
     paymentIntentId: string;
     status: string;
@@ -272,6 +280,14 @@ export class StripeService {
 
     // Retrieve the PaymentIntent
     const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+
+    // Validate PaymentIntent belongs to this donation/temple
+    if (donationId && paymentIntent.metadata?.donationId !== donationId) {
+      throw new Error(`PaymentIntent metadata donationId mismatch`);
+    }
+    if (paymentIntent.metadata?.templeId !== templeId) {
+      throw new Error(`PaymentIntent metadata templeId mismatch`);
+    }
 
     // If not already confirmed, confirm it
     if (paymentIntent.status !== 'succeeded') {
@@ -621,28 +637,28 @@ export class StripeService {
   }
 
   /**
-   * Handle Stripe webhook events
-   * Note: Webhooks are optional for Terminal payments (synchronous flow)
-   * They're useful for async updates but not required for basic functionality
+   * Handle Stripe webhook events with database-backed idempotency.
+   * Safe across restarts and multiple backend instances.
    */
   async handleWebhook(webhookData: any, signature: string): Promise<void> {
     const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
-    
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+
+    if (!webhookSecret && isProduction) {
+      throw new Error('STRIPE_WEBHOOK_SECRET is required in production');
+    }
+
     let event: Stripe.Event;
 
     if (!webhookSecret) {
-      console.warn('[Stripe Service] STRIPE_WEBHOOK_SECRET not set - webhook verification skipped');
-      console.warn('[Stripe Service] Webhooks are optional for Terminal payments');
-      // For testing/development, allow webhooks without verification
-      // In production, you should set STRIPE_WEBHOOK_SECRET
+      this.logger.warn('Stripe webhook verification skipped', { reason: 'STRIPE_WEBHOOK_SECRET not set' });
       try {
-        event = webhookData as Stripe.Event;
+        event = typeof webhookData === 'string' ? JSON.parse(webhookData) : webhookData;
       } catch (err) {
-        console.error('[Stripe Service] Failed to parse webhook data:', err);
+        this.logger.error('Failed to parse webhook data', (err as Error).stack, {});
         throw new Error('Invalid webhook data');
       }
     } else {
-      // Verify webhook signature in production
       try {
         event = this.stripe.webhooks.constructEvent(
           webhookData,
@@ -650,38 +666,105 @@ export class StripeService {
           webhookSecret,
         );
       } catch (err) {
-        console.error('[Stripe Service] Webhook signature verification failed:', err);
+        this.logger.error('Webhook signature verification failed', (err as Error).stack, {
+          eventId: (event as any)?.id,
+        });
         throw new Error('Webhook signature verification failed');
       }
     }
 
+    const eventId = event.id;
+    const eventType = event.type;
+
+    this.logger.log('Stripe webhook received', { eventId, eventType });
+
+    try {
+      await this.webhookEventRepository.insert({
+        eventId,
+        eventType,
+        receivedAt: new Date(),
+        status: WebhookEventStatus.RECEIVED,
+      });
+    } catch (err: any) {
+      if (err?.code === '23505') {
+        this.logger.log('Webhook event already processed (idempotent)', { eventId, eventType });
+        return;
+      }
+      throw err;
+    }
+
     const { type, data } = event;
 
-    if (type === 'payment_intent.succeeded') {
-      const paymentIntent = data.object as Stripe.PaymentIntent;
-      const donationId = paymentIntent.metadata?.donationId;
+    try {
+      if (type === 'payment_intent.succeeded') {
+        const paymentIntent = data.object as Stripe.PaymentIntent;
+        const donationId = paymentIntent.metadata?.donationId ?? null;
 
-      if (donationId) {
-        const donation = await this.donationsService.findByStripePaymentIntentId(
-          paymentIntent.id,
-        );
-
-        if (donation) {
-          await this.donationsService.updateStatus(donation.id, DonationStatus.SUCCEEDED);
+        if (donationId) {
+          const donation = await this.donationsService.findByStripePaymentIntentId(
+            paymentIntent.id,
+          );
+          if (donation) {
+            await this.donationsService.updateStatus(donation.id, DonationStatus.SUCCEEDED);
+          }
         }
-      }
-    } else if (type === 'payment_intent.payment_failed') {
-      const paymentIntent = data.object as Stripe.PaymentIntent;
 
-      if (paymentIntent.id) {
-        const donation = await this.donationsService.findByStripePaymentIntentId(
-          paymentIntent.id,
+        await this.webhookEventRepository.update(
+          { eventId },
+          {
+            status: WebhookEventStatus.PROCESSED,
+            processedAt: new Date(),
+            donationId: (data.object as Stripe.PaymentIntent).metadata?.donationId ?? null,
+            paymentIntentId: (data.object as Stripe.PaymentIntent).id,
+          },
         );
+        this.logger.log('Webhook processed', {
+          eventId,
+          eventType,
+          donationId: (data.object as Stripe.PaymentIntent).metadata?.donationId,
+        });
+      } else if (type === 'payment_intent.payment_failed') {
+        const paymentIntent = data.object as Stripe.PaymentIntent;
 
-        if (donation) {
-          await this.donationsService.updateStatus(donation.id, DonationStatus.FAILED);
+        if (paymentIntent.id) {
+          const donation = await this.donationsService.findByStripePaymentIntentId(
+            paymentIntent.id,
+          );
+          if (donation) {
+            await this.donationsService.updateStatus(donation.id, DonationStatus.FAILED);
+          }
         }
+
+        await this.webhookEventRepository.update(
+          { eventId },
+          {
+            status: WebhookEventStatus.PROCESSED,
+            processedAt: new Date(),
+            paymentIntentId: (data.object as Stripe.PaymentIntent).id,
+          },
+        );
+        this.logger.log('Webhook processed', {
+          eventId,
+          eventType,
+          paymentIntentId: (data.object as Stripe.PaymentIntent).id,
+        });
       }
+    } catch (err) {
+      await this.webhookEventRepository.update(
+        { eventId },
+        {
+          status: WebhookEventStatus.FAILED,
+          processedAt: new Date(),
+          errorMessage: (err as Error).message?.substring(0, 500),
+          paymentIntentId: (data?.object as Stripe.PaymentIntent)?.id ?? null,
+          donationId: (data?.object as Stripe.PaymentIntent)?.metadata?.donationId ?? null,
+        },
+      );
+      this.logger.error('Webhook processing failed', (err as Error).stack, {
+        eventId,
+        eventType,
+      });
+      throw err;
     }
   }
 }

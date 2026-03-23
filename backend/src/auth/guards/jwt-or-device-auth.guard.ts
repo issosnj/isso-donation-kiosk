@@ -4,6 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { DevicesService } from '../../devices/devices.service';
 
 @Injectable()
 export class JwtOrDeviceAuthGuard extends AuthGuard('jwt') {
@@ -11,6 +12,7 @@ export class JwtOrDeviceAuthGuard extends AuthGuard('jwt') {
     private reflector: Reflector,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private devicesService: DevicesService,
   ) {
     super();
   }
@@ -51,11 +53,18 @@ export class JwtOrDeviceAuthGuard extends AuthGuard('jwt') {
       });
 
       if (payload.type === 'device') {
+        const deviceId = payload.deviceId;
+        if (deviceId) {
+          const isValid = await this.devicesService.validateDeviceToken(deviceId, token);
+          if (!isValid) {
+            throw new UnauthorizedException('Token has been revoked');
+          }
+        }
         request.device = payload;
         return true;
       }
-    } catch (deviceError) {
-      // Device auth also failed
+    } catch (e) {
+      if (e instanceof UnauthorizedException) throw e;
     }
 
     throw new UnauthorizedException('Invalid or expired token');

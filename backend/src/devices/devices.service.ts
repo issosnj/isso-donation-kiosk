@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, UnauthorizedException, Inject, forwardRef } from '@nestjs/common';
+import { AppLogger } from '../common/logger/app-logger.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -20,6 +21,7 @@ export class DevicesService {
     private telemetryRepository: Repository<DeviceTelemetry>,
     private jwtService: JwtService,
     private templesService: TemplesService,
+    private logger: AppLogger,
     @Inject(forwardRef(() => DonationCategoriesService))
     private donationCategoriesService: DonationCategoriesService,
     @Inject(forwardRef(() => StripeService))
@@ -51,7 +53,7 @@ export class DevicesService {
     });
   }
 
-  async findOne(id: string): Promise<Device> {
+  async findOne(id: string, user?: { role: string; templeId?: string }): Promise<Device> {
     const device = await this.devicesRepository.findOne({
       where: { id },
       relations: ['temple'],
@@ -59,7 +61,19 @@ export class DevicesService {
     if (!device) {
       throw new NotFoundException(`Device with ID ${id} not found`);
     }
+    // Temple Admin: only devices in their temple
+    if (user?.role === 'TEMPLE_ADMIN' && user.templeId && device.templeId !== user.templeId) {
+      throw new NotFoundException(`Device with ID ${id} not found`);
+    }
     return device;
+  }
+
+  async validateDeviceToken(deviceId: string, token: string): Promise<boolean> {
+    const device = await this.devicesRepository.findOne({
+      where: { id: deviceId },
+      select: ['id', 'deviceToken'],
+    });
+    return device?.deviceToken === token;
   }
 
   async findByDeviceCode(deviceCode: string): Promise<Device> {
@@ -78,11 +92,20 @@ export class DevicesService {
     
     // Allow reactivation: devices can be activated if PENDING, ACTIVE, or INACTIVE
     // This allows reusing the same code when app is deleted or tablet is replaced
-    if (!(device.status === DeviceStatus.PENDING || 
-          device.status === DeviceStatus.ACTIVE || 
+    if (!(device.status === DeviceStatus.PENDING ||
+          device.status === DeviceStatus.ACTIVE ||
           device.status === DeviceStatus.INACTIVE)) {
+      this.logger.warn('Device activation failed: invalid status', {
+        deviceId: device.id,
+        status: device.status,
+      });
       throw new UnauthorizedException('Device cannot be activated');
     }
+
+    this.logger.log('Device activated', {
+      deviceId: device.id,
+      templeId: device.templeId,
+    });
 
     // Generate new device token (invalidate old token)
     const deviceToken = this.jwtService.sign({
@@ -121,26 +144,26 @@ export class DevicesService {
     };
   }
 
-  async updateLastSeen(deviceId: string): Promise<void> {
-    const device = await this.findOne(deviceId);
+  async updateLastSeen(deviceId: string, user?: { role: string; templeId?: string } | null): Promise<void> {
+    const device = await this.findOne(deviceId, user ?? undefined);
     device.lastSeenAt = new Date();
     await this.devicesRepository.save(device);
   }
 
-  async remove(id: string): Promise<void> {
-    const device = await this.findOne(id);
+  async remove(id: string, user?: { role: string; templeId?: string }): Promise<void> {
+    const device = await this.findOne(id, user);
     await this.devicesRepository.remove(device);
   }
 
-  async deactivate(id: string): Promise<Device> {
-    const device = await this.findOne(id);
+  async deactivate(id: string, user?: { role: string; templeId?: string }): Promise<Device> {
+    const device = await this.findOne(id, user);
     device.status = DeviceStatus.INACTIVE;
     device.deviceToken = null; // Clear token to force reactivation
     return this.devicesRepository.save(device);
   }
 
-  async reactivate(id: string): Promise<Device> {
-    const device = await this.findOne(id);
+  async reactivate(id: string, user?: { role: string; templeId?: string }): Promise<Device> {
+    const device = await this.findOne(id, user);
     device.status = DeviceStatus.PENDING; // Set to pending so it can be activated again
     return this.devicesRepository.save(device);
   }
@@ -233,7 +256,8 @@ export class DevicesService {
     return this.telemetryRepository.save(telemetry);
   }
 
-  async getTelemetry(deviceId: string, limit: number = 100): Promise<DeviceTelemetry[]> {
+  async getTelemetry(deviceId: string, user?: { role: string; templeId?: string }, limit: number = 100): Promise<DeviceTelemetry[]> {
+    await this.findOne(deviceId, user); // Validates access
     return this.telemetryRepository.find({
       where: { deviceId },
       order: { createdAt: 'DESC' },
@@ -241,19 +265,21 @@ export class DevicesService {
     });
   }
 
-  async getLatestTelemetry(deviceId: string): Promise<DeviceTelemetry | null> {
+  async getLatestTelemetry(deviceId: string, user?: { role: string; templeId?: string }): Promise<DeviceTelemetry | null> {
+    await this.findOne(deviceId, user); // Validates access
     return this.telemetryRepository.findOne({
       where: { deviceId },
       order: { createdAt: 'DESC' },
     });
   }
 
-  async getDeviceLogs(deviceId: string, limit: number = 1000): Promise<Array<{
+  async getDeviceLogs(deviceId: string, user?: { role: string; templeId?: string }, limit: number = 1000): Promise<Array<{
     timestamp: string;
     category: string;
     message: string;
     level?: 'info' | 'warning' | 'error';
   }>> {
+    await this.findOne(deviceId, user); // Validates access
     const telemetryRecords = await this.telemetryRepository.find({
       where: { deviceId },
       order: { createdAt: 'DESC' },

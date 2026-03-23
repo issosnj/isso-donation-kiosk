@@ -148,12 +148,18 @@ export class DonorsService {
       address?: string;
       phone?: string;
     },
+    user?: { role: string; templeId?: string },
   ): Promise<Donor> {
     const donor = await this.donorsRepository.findOne({
       where: { id: donorId },
     });
 
     if (!donor) {
+      throw new Error('Donor not found');
+    }
+
+    // Temple Admin: only donors in their temple
+    if (user?.role === 'TEMPLE_ADMIN' && user.templeId && donor.templeId !== user.templeId) {
       throw new Error('Donor not found');
     }
 
@@ -170,7 +176,13 @@ export class DonorsService {
   /**
    * Delete a donor
    */
-  async deleteDonor(donorId: string): Promise<void> {
+  async deleteDonor(donorId: string, user?: { role: string; templeId?: string }): Promise<void> {
+    if (user?.role === 'TEMPLE_ADMIN' && user.templeId) {
+      const donor = await this.donorsRepository.findOne({ where: { id: donorId } });
+      if (!donor || donor.templeId !== user.templeId) {
+        throw new Error('Donor not found');
+      }
+    }
     await this.donorsRepository.delete(donorId);
   }
 

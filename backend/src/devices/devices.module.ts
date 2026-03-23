@@ -9,10 +9,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TemplesModule } from '../temples/temples.module';
 import { DonationsModule } from '../donations/donations.module';
 import { StripeModule } from '../stripe/stripe.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Device, DeviceTelemetry]),
+    forwardRef(() => AuthModule),
     TemplesModule,
     forwardRef(() => DonationsModule),
     forwardRef(() => StripeModule),
@@ -21,7 +23,7 @@ import { StripeModule } from '../stripe/stripe.module';
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: '365d', // Device tokens last a year
+          expiresIn: '90d', // Device tokens expire after 90 days; deactivate clears token
         },
       }),
       inject: [ConfigService],

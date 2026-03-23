@@ -8,15 +8,18 @@ import {
   Patch,
   Delete,
   Query,
+  Req,
   UnauthorizedException,
   InternalServerErrorException,
   BadRequestException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { ActivateDeviceDto } from './dto/activate-device.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtOrDeviceAuthGuard } from '../auth/guards/jwt-or-device-auth.guard';
 import { DeviceAuthGuard } from '../auth/guards/device-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -45,15 +48,15 @@ export class DevicesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all devices' })
   findAll(@CurrentUser() user: any, @Query('templeId') templeId?: string) {
-    // If templeId is provided in query, use it (for master admin viewing specific temple)
-    // Otherwise, use user's templeId (for temple admin) or all (for master admin)
+    // Temple Admin: only their temple. Ignore templeId param to prevent IDOR.
+    if (user.role === UserRole.TEMPLE_ADMIN) {
+      return this.devicesService.findAll(user.templeId);
+    }
+    // Master Admin: can filter by templeId or get all
     if (templeId) {
       return this.devicesService.findAll(templeId);
     }
-    if (user.role === UserRole.MASTER_ADMIN) {
-      return this.devicesService.findAll();
-    }
-    return this.devicesService.findAll(user.templeId);
+    return this.devicesService.findAll();
   }
 
   @Get('square-credentials')
@@ -113,6 +116,7 @@ export class DevicesController {
   }
 
   @Post('activate')
+  @Throttle({ default: { limit: 10, ttl: 900000 } })
   @ApiOperation({ summary: 'Activate device with device code (public endpoint)' })
   activate(@Body() activateDeviceDto: ActivateDeviceDto) {
     return this.devicesService.activate(activateDeviceDto);
@@ -122,40 +126,44 @@ export class DevicesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get device by ID' })
-  findOne(@Param('id') id: string) {
-    return this.devicesService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.devicesService.findOne(id, user);
   }
 
   @Patch(':id/heartbeat')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update device last seen timestamp' })
-  heartbeat(@Param('id') id: string) {
-    return this.devicesService.updateLastSeen(id);
+  @ApiOperation({ summary: 'Update device last seen timestamp (kiosk or admin)' })
+  heartbeat(@Param('id') id: string, @Req() req: any) {
+    // Device: must be own device. Admin: must have temple access.
+    if (req.device && req.device.deviceId !== id) {
+      throw new UnauthorizedException('Device can only update its own heartbeat');
+    }
+    return this.devicesService.updateLastSeen(id, req.device ? null : req.user);
   }
 
   @Patch(':id/deactivate')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Deactivate device (allows code reuse)' })
-  deactivate(@Param('id') id: string) {
-    return this.devicesService.deactivate(id);
+  deactivate(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.devicesService.deactivate(id, user);
   }
 
   @Patch(':id/reactivate')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reactivate device (reset to pending status)' })
-  reactivate(@Param('id') id: string) {
-    return this.devicesService.reactivate(id);
+  reactivate(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.devicesService.reactivate(id, user);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete device' })
-  remove(@Param('id') id: string) {
-    return this.devicesService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.devicesService.remove(id, user);
   }
 
   @Post(':id/telemetry')
@@ -178,24 +186,24 @@ export class DevicesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get device telemetry data' })
-  getTelemetry(@Param('id') id: string, @Query('limit') limit?: string) {
-    return this.devicesService.getTelemetry(id, limit ? parseInt(limit, 10) : 100);
+  getTelemetry(@Param('id') id: string, @CurrentUser() user: any, @Query('limit') limit?: string) {
+    return this.devicesService.getTelemetry(id, user, limit ? parseInt(limit, 10) : 100);
   }
 
   @Get(':id/telemetry/latest')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get latest device telemetry' })
-  getLatestTelemetry(@Param('id') id: string) {
-    return this.devicesService.getLatestTelemetry(id);
+  getLatestTelemetry(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.devicesService.getLatestTelemetry(id, user);
   }
 
   @Get(':id/logs')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get device logs' })
-  getDeviceLogs(@Param('id') id: string, @Query('limit') limit?: string) {
-    return this.devicesService.getDeviceLogs(id, limit ? parseInt(limit, 10) : 1000);
+  getDeviceLogs(@Param('id') id: string, @CurrentUser() user: any, @Query('limit') limit?: string) {
+    return this.devicesService.getDeviceLogs(id, user, limit ? parseInt(limit, 10) : 1000);
   }
 }
 

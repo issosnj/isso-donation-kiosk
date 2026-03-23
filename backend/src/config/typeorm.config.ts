@@ -12,6 +12,7 @@ import { ReligiousEvent } from '../religious-events/entities/religious-event.ent
 import { GlobalSettings } from '../global-settings/entities/global-settings.entity';
 import { ThemeVersion } from '../theme-versions/entities/theme-version.entity';
 import { DefaultPosition } from '../theme-versions/entities/default-position.entity';
+import { StripeWebhookEvent } from '../stripe/entities/stripe-webhook-event.entity';
 
 export const typeOrmConfig = (): DataSourceOptions => {
   const configService = new ConfigService();
@@ -30,7 +31,7 @@ export const typeOrmConfig = (): DataSourceOptions => {
       username: url.username,
       password: url.password,
       database: url.pathname.slice(1), // Remove leading /
-      entities: [User, Temple, Device, DeviceTelemetry, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent, GlobalSettings, ThemeVersion, DefaultPosition],
+      entities: [User, Temple, Device, DeviceTelemetry, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent, GlobalSettings, ThemeVersion, DefaultPosition, StripeWebhookEvent],
       synchronize: false, // Disabled to use existing Railway database schema
       logging: configService.get('NODE_ENV') === 'development',
       migrations: ['dist/migrations/*.js'],
@@ -65,7 +66,7 @@ export const typeOrmConfig = (): DataSourceOptions => {
     username,
     password: configService.get('DB_PASSWORD', 'postgres'),
     database,
-    entities: [User, Temple, Device, DeviceTelemetry, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent, GlobalSettings, ThemeVersion, DefaultPosition],
+    entities: [User, Temple, Device, DeviceTelemetry, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent, GlobalSettings, ThemeVersion, DefaultPosition, StripeWebhookEvent],
     synchronize: configService.get('NODE_ENV') === 'development',
     logging: configService.get('NODE_ENV') === 'development',
     migrations: ['dist/migrations/*.js'],

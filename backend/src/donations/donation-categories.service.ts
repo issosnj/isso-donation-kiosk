@@ -106,11 +106,14 @@ export class DonationCategoriesService {
     return categories;
   }
 
-  async findOne(id: string): Promise<DonationCategory> {
+  async findOne(id: string, user?: { role: string; templeId?: string }): Promise<DonationCategory> {
     const category = await this.categoriesRepository.findOne({
       where: { id },
     });
     if (!category) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+    if (user?.role === 'TEMPLE_ADMIN' && user.templeId && category.templeId !== user.templeId) {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
     return category;
@@ -119,14 +122,15 @@ export class DonationCategoriesService {
   async update(
     id: string,
     updateCategoryDto: UpdateDonationCategoryDto,
+    user?: { role: string; templeId?: string },
   ): Promise<DonationCategory> {
-    const category = await this.findOne(id);
+    const category = await this.findOne(id, user);
     Object.assign(category, updateCategoryDto);
     return this.categoriesRepository.save(category);
   }
 
-  async remove(id: string): Promise<void> {
-    const category = await this.findOne(id);
+  async remove(id: string, user?: { role: string; templeId?: string }): Promise<void> {
+    const category = await this.findOne(id, user);
     await this.categoriesRepository.remove(category);
   }
 

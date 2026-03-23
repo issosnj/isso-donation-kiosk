@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { AppLogger } from '../common/logger/app-logger.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -8,43 +9,32 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private logger: AppLogger,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
     try {
-      // Normalize email
       const normalizedEmail = email.toLowerCase().trim();
-      console.log('[Auth] Attempting login for email:', normalizedEmail);
-      
       const user = await this.usersService.findByEmail(normalizedEmail);
       if (!user) {
-        console.log('[Auth] User not found:', normalizedEmail);
+        this.logger.warn('Auth login failed: user not found', { email: normalizedEmail });
         throw new UnauthorizedException('Invalid credentials');
       }
-
-      console.log('[Auth] User found:', user.id, user.email, user.role);
-
       if (!user.passwordHash) {
-        console.log('[Auth] User missing passwordHash');
+        this.logger.warn('Auth login failed: missing password hash', { userId: user.id });
         throw new UnauthorizedException('Invalid user data');
       }
-
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-      console.log('[Auth] Password valid:', isPasswordValid);
-      
       if (!isPasswordValid) {
+        this.logger.warn('Auth login failed: invalid password', { email: normalizedEmail });
         throw new UnauthorizedException('Invalid credentials');
       }
-
+      this.logger.log('Auth login success', { userId: user.id, email: normalizedEmail });
       const { passwordHash, ...result } = user;
       return result;
     } catch (error) {
-      // Re-throw UnauthorizedException as-is
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
-      // Log and re-throw other errors
-      console.error('[Auth] Error in validateUser:', error);
+      if (error instanceof UnauthorizedException) throw error;
+      this.logger.error('Auth validateUser error', (error as Error).stack, { email: email?.substring(0, 3) + '***' });
       throw new UnauthorizedException('Authentication failed');
     }
   }

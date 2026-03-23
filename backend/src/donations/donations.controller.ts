@@ -9,6 +9,7 @@ import {
   BadRequestException,
   ForbiddenException,
   InternalServerErrorException,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DonationsService } from './donations.service';
@@ -19,6 +20,7 @@ import { CreatePledgeDto } from './dto/create-pledge.dto';
 import { PayPledgeDto } from './dto/pay-pledge.dto';
 import { StripeService } from '../stripe/stripe.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtOrDeviceAuthGuard } from '../auth/guards/jwt-or-device-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { DonationStatus } from './entities/donation.entity';
@@ -33,10 +35,17 @@ export class DonationsController {
   ) {}
 
   @Post('initiate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Initiate a donation (device endpoint)' })
-  async initiate(@Body() initiateDonationDto: InitiateDonationDto) {
+  @ApiOperation({ summary: 'Initiate a donation (device or admin endpoint)' })
+  async initiate(@Body() initiateDonationDto: InitiateDonationDto, @Req() req: any) {
+    // When device auth: validate device owns the temple
+    if (req.device && req.device.templeId !== initiateDonationDto.templeId) {
+      throw new ForbiddenException('Device does not belong to this temple');
+    }
+    if (req.device && initiateDonationDto.deviceId && req.device.deviceId !== initiateDonationDto.deviceId) {
+      throw new ForbiddenException('Device ID mismatch');
+    }
     try {
       console.log('[DonationsController] Initiating donation:', {
         templeId: initiateDonationDto.templeId,
@@ -69,7 +78,7 @@ export class DonationsController {
   }
 
   @Post('process-payment')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Process payment (deprecated - Square removed)' })
   async processPayment(
@@ -80,22 +89,22 @@ export class DonationsController {
   }
 
   @Post('create-payment-intent')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create Stripe PaymentIntent for Terminal payment (device endpoint)' })
   async createPaymentIntent(
     @Body() body: { donationId: string; amount: number; currency?: string },
-    @CurrentUser() user: any,
+    @Req() req: any,
   ) {
     try {
-      console.log('[DonationsController] Creating PaymentIntent for donation:', body.donationId);
       const donation = await this.donationsService.findOne(body.donationId);
-      
       if (!donation) {
         throw new BadRequestException(`Donation ${body.donationId} not found`);
       }
-      
-      console.log('[DonationsController] Donation found, templeId:', donation.templeId);
+      // When device auth: validate device owns this donation's temple
+      if (req.device && req.device.templeId !== donation.templeId) {
+        throw new ForbiddenException('Device does not have access to this donation');
+      }
       
       // Create PaymentIntent for Stripe Terminal
       const result = await this.stripeService.createPaymentIntent(
@@ -141,19 +150,24 @@ export class DonationsController {
   }
 
   @Post('confirm-payment-intent')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Confirm Stripe PaymentIntent after collection on device (device endpoint)' })
   async confirmPaymentIntent(
     @Body() body: { donationId: string; paymentIntentId: string },
-    @CurrentUser() user: any,
+    @Req() req: any,
   ) {
     const donation = await this.donationsService.findOne(body.donationId);
+    // When device auth: validate device owns this donation's temple
+    if (req.device && req.device.templeId !== donation.templeId) {
+      throw new ForbiddenException('Device does not have access to this donation');
+    }
     
-    // Confirm PaymentIntent
+    // Confirm PaymentIntent (validate metadata ownership)
     const result = await this.stripeService.confirmPaymentIntent(
       donation.templeId,
       body.paymentIntentId,
+      body.donationId,
     );
 
     // Update donation with payment result
@@ -174,7 +188,7 @@ export class DonationsController {
   }
 
   @Get('checkout-status/:checkoutId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Check status of checkout (deprecated - Square removed)' })
   async getCheckoutStatus(
@@ -186,14 +200,20 @@ export class DonationsController {
   }
 
   @Post(':id/complete')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Complete a donation (device endpoint)' })
-  complete(
+  async complete(
     @Param('id') id: string,
     @Body() completeDonationDto: CompleteDonationDto,
+    @Req() req: any,
   ) {
-    return this.donationsService.complete(id, completeDonationDto);
+    const donation = await this.donationsService.findOne(id);
+    // When device auth: validate device owns this donation's temple
+    if (req.device && req.device.templeId !== donation.templeId) {
+      throw new ForbiddenException('Device does not have access to this donation');
+    }
+    return this.donationsService.complete(id, completeDonationDto, req.device ? 'device' : 'user');
   }
 
   @Get()
@@ -326,10 +346,15 @@ export class DonationsController {
   }
 
   @Post(':id/cancel')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel a donation (device endpoint)' })
-  async cancel(@Param('id') id: string) {
+  async cancel(@Param('id') id: string, @Req() req: any) {
+    const donation = await this.donationsService.findOne(id);
+    // When device auth: validate device owns this donation's temple
+    if (req.device && req.device.templeId !== donation.templeId) {
+      throw new ForbiddenException('Device does not have access to this donation');
+    }
     return this.donationsService.cancel(id);
   }
 
@@ -381,10 +406,14 @@ export class DonationsController {
   }
 
   @Post('pledge')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrDeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a pledge (pay later) - device endpoint' })
-  async createPledge(@Body() createPledgeDto: CreatePledgeDto) {
+  async createPledge(@Body() createPledgeDto: CreatePledgeDto, @Req() req: any) {
+    // When device auth: validate device owns the temple
+    if (req.device && req.device.templeId !== createPledgeDto.templeId) {
+      throw new ForbiddenException('Device does not belong to this temple');
+    }
     return this.donationsService.createPledge(createPledgeDto);
   }
 
