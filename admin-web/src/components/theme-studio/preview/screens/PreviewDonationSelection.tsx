@@ -1,119 +1,235 @@
 'use client'
 
+import { memo } from 'react'
 import type { KioskTheme } from '@/types/theme'
 
 interface PreviewDonationSelectionProps {
   theme: KioskTheme
-  scale: number
 }
 
-export default function PreviewDonationSelection({ theme, scale }: PreviewDonationSelectionProps) {
+/**
+ * Replicates DonationHomeView structure:
+ * - Left: category list
+ * - Right: amount grid + total + buttons
+ * - Theme-driven colors and spacing
+ */
+function PreviewDonationSelection({ theme }: PreviewDonationSelectionProps) {
   const { fonts, colors, layout } = theme
-  const s = (n: number) => n * scale
   const radius = layout.cornerRadius || 12
+
+  const categories = [
+    { name: 'General Donation', selected: true },
+    { name: 'Yajman Puja', selected: false },
+  ]
+  const amounts = [25, 50, 100, 250]
+  const selectedAmount = 50
 
   return (
     <div
       className="flex h-full w-full"
       style={{
-        background: 'linear-gradient(to bottom, #ffffff, #f8f9fc)',
-        fontFamily: fonts.bodyFamily || 'Inter, sans-serif',
+        background: 'linear-gradient(to bottom, #ffffff 0%, #f8f9fc 100%)',
+        fontFamily: `${fonts.bodyFamily || 'Inter'}, sans-serif`,
       }}
     >
       {/* Left: Categories */}
       <div
-        className="flex flex-1 flex-col p-3"
-        style={{ maxWidth: s(layout.categoryBoxMaxWidth || 400) }}
+        className="flex flex-1 flex-col overflow-hidden"
+        style={{
+          maxWidth: layout.categoryBoxMaxWidth || 400,
+          paddingLeft: `${(layout.donationSelectionPageLeftPadding || 40) / 16}rem`,
+          paddingRight: `${(layout.categoryAmountSectionSpacing || 40) / 32}rem`,
+        }}
       >
-        <p
+        <div
+          className="mb-2"
           style={{
-            fontSize: s(fonts.headingSize || 24),
-            fontWeight: 600,
-            color: colors.headingColor,
-            marginBottom: s(8),
+            paddingTop: `${(layout.categoryHeaderTopPadding || 80) / 16}rem`,
           }}
         >
-          Select Category
-        </p>
-        <div className="space-y-2">
-          {['General Donation', 'Yajman Puja'].map((name, i) => (
+          <h2
+            style={{
+              fontSize: `${fonts.headingSize || 32}px`,
+              fontWeight: 600,
+              color: colors.headingColor || '#423232',
+              fontFamily: `${fonts.headingFamily || 'Inter'}, sans-serif`,
+            }}
+          >
+            Select Category
+          </h2>
+          <p
+            className="mt-0.5"
+            style={{
+              fontSize: `${fonts.bodySize || 14}px`,
+              color: colors.subtitleColor || '#808080',
+            }}
+          >
+            Choose your donation category
+          </p>
+        </div>
+        <div
+          className="flex flex-col gap-2 overflow-auto"
+          style={{ gap: `${(layout.buttonSpacing || 12) / 16}rem` }}
+        >
+          {categories.map((cat) => (
             <div
-              key={name}
+              key={cat.name}
+              className="flex items-center justify-between rounded-xl px-4 py-3"
               style={{
-                padding: s(12),
-                borderRadius: s(radius),
-                background: i === 0 ? colors.categorySelectedColor : colors.categoryUnselectedColor,
-                color: '#fff',
-                fontSize: s(fonts.bodySize + 2),
+                background: cat.selected ? colors.categorySelectedColor : colors.categoryUnselectedColor,
+                color: colors.buttonTextColor || '#fff',
+                fontSize: `${fonts.bodySize || 14 + 2}px`,
+                fontFamily: `${fonts.buttonFamily || 'Inter'}, sans-serif`,
+                borderRadius: `${radius}px`,
+                opacity: cat.selected ? 1 : 0.85,
               }}
             >
-              {name}
+              {cat.name}
+              <span className="opacity-70">›</span>
             </div>
           ))}
         </div>
       </div>
-      {/* Right: Amounts */}
-      <div className="flex flex-1 flex-col p-3">
-        <p
+
+      {/* Right: Amounts + total + buttons */}
+      <div
+        className="flex flex-1 flex-col"
+        style={{
+          paddingRight: `${(layout.donationSelectionPageRightPadding || 40) / 16}rem`,
+          paddingLeft: `${(layout.categoryAmountSectionSpacing || 40) / 32}rem`,
+        }}
+      >
+        <div
           style={{
-            fontSize: s(fonts.headingSize || 24),
-            fontWeight: 600,
-            color: colors.headingColor,
-            marginBottom: s(8),
+            paddingTop: `${(layout.headerTopPadding || 80) / 16}rem`,
+            paddingBottom: `${12 / 16}rem`,
           }}
         >
-          Select Amount
-        </p>
+          <h2
+            style={{
+              fontSize: `${fonts.headingSize || 32}px`,
+              fontWeight: 600,
+              color: colors.headingColor || '#423232',
+              fontFamily: `${fonts.headingFamily || 'Inter'}, sans-serif`,
+            }}
+          >
+            Select Amount
+          </h2>
+          <p
+            className="mt-0.5"
+            style={{
+              fontSize: `${fonts.bodySize || 14}px`,
+              color: colors.subtitleColor || '#808080',
+            }}
+          >
+            Choose a preset donation amount
+          </p>
+        </div>
+
+        {/* Amount grid */}
         <div
-          className="grid gap-2"
+          className="grid flex-1 content-start gap-2"
           style={{
             gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: s(layout.buttonSpacing || 12),
+            gap: `${(layout.buttonSpacing || 12) / 16}rem`,
           }}
         >
-          {['$25', '$50', '$100', '$250'].map((amt, i) => (
+          {amounts.map((amt) => (
             <div
               key={amt}
+              className="flex items-center justify-center rounded-xl font-medium"
               style={{
-                height: s(layout.amountButtonHeight || 56),
-                borderRadius: s(radius),
-                background: i === 1 ? colors.amountSelectedColor : colors.amountUnselectedColor,
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: s(fonts.buttonSize + 2),
-                fontWeight: 500,
+                height: `${layout.amountButtonHeight || 70}px`,
+                background: amt === selectedAmount ? colors.amountSelectedColor : colors.amountUnselectedColor,
+                color: colors.buttonTextColor || '#fff',
+                fontSize: `${fonts.buttonSize || 18}px`,
+                fontFamily: `${fonts.buttonFamily || 'Inter'}, sans-serif`,
+                borderRadius: `${radius}px`,
+                opacity: amt === selectedAmount ? 1 : 0.85,
               }}
             >
-              {amt}
+              ${amt}
             </div>
           ))}
+
+          {/* Custom amount row */}
+          <div
+            className="col-span-2 flex items-center justify-between rounded-xl px-4 py-3"
+            style={{
+              background: 'rgba(255,255,255,0.8)',
+              border: `1px solid ${colors.subtitleColor}30`,
+              borderRadius: `${radius}px`,
+            }}
+          >
+            <span style={{ fontSize: `${fonts.bodySize || 14}px`, color: colors.subtitleColor }}>
+              Custom Amount
+            </span>
+            <span style={{ fontSize: `${fonts.bodySize || 14}px`, color: colors.subtitleColor, opacity: 0.6 }}>
+              ✎
+            </span>
+          </div>
         </div>
+
+        {/* Total + buttons */}
         <div
-          className="mt-4 flex items-center justify-between rounded-xl px-4 py-3"
+          className="mt-2 flex flex-col gap-2 pb-4"
           style={{
-            background: 'rgba(255,255,255,0.6)',
-            border: '1px solid rgba(255,255,255,0.5)',
+            gap: `${(layout.buttonSpacing || 12) / 16}rem`,
+            paddingBottom: `${32 / 16}rem`,
           }}
         >
-          <span style={{ fontSize: s(14), color: colors.subtitleColor }}>Custom Amount</span>
-        </div>
-        <div className="mt-4 flex gap-2">
           <div
-            className="flex-1 rounded-xl py-3 text-center text-sm font-medium"
-            style={{ background: colors.returnToHomeButtonColor, color: '#fff' }}
+            className="flex items-center justify-between rounded-xl px-4 py-3"
+            style={{
+              background: 'rgba(255,255,255,0.7)',
+              border: '1px solid rgba(0,0,0,0.06)',
+              borderRadius: `${radius}px`,
+            }}
           >
-            Return Home
+            <span style={{ fontSize: `${fonts.bodySize || 14}px`, color: colors.subtitleColor }}>
+              Total
+            </span>
+            <span
+              style={{
+                fontSize: `${(fonts.headingSize || 32)}px`,
+                fontWeight: 600,
+                color: colors.quantityTotalColor || colors.headingColor,
+                fontFamily: `${fonts.headingFamily || 'Inter'}, sans-serif`,
+              }}
+            >
+              $50.00
+            </span>
           </div>
-          <div
-            className="flex-1 rounded-xl py-3 text-center text-sm font-medium"
-            style={{ background: colors.proceedToPaymentButtonColor, color: '#fff' }}
-          >
-            Review Donation
+          <div className="flex gap-2" style={{ gap: `${(layout.buttonSpacing || 12) / 16}rem` }}>
+            <div
+              className="flex flex-1 items-center justify-center rounded-xl py-3 font-medium"
+              style={{
+                background: colors.returnToHomeButtonColor,
+                color: colors.buttonTextColor || '#fff',
+                fontSize: `${fonts.buttonSize || 18}px`,
+                fontFamily: `${fonts.buttonFamily || 'Inter'}, sans-serif`,
+                borderRadius: `${radius}px`,
+              }}
+            >
+              Return Home
+            </div>
+            <div
+              className="flex flex-1 items-center justify-center rounded-xl py-3 font-medium"
+              style={{
+                background: colors.proceedToPaymentButtonColor,
+                color: colors.buttonTextColor || '#fff',
+                fontSize: `${fonts.buttonSize || 18}px`,
+                fontFamily: `${fonts.buttonFamily || 'Inter'}, sans-serif`,
+                borderRadius: `${radius}px`,
+              }}
+            >
+              Review Donation
+            </div>
           </div>
         </div>
       </div>
     </div>
   )
 }
+
+export default memo(PreviewDonationSelection)

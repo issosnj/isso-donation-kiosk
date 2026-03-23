@@ -28,36 +28,37 @@ struct ISSOKioskApp: App {
                         OrientationLock.lockOrientation(.landscape, andRotateTo: .landscapeLeft)
                     }
                 }
-        .onChange(of: scenePhase) { newPhase in
-            // Refresh theme and religious events when app becomes active
-            // All operations run in background - don't block UI
-            // Skip if temple config is still loading (during startup)
-            if newPhase == .active && appState.isActivated && appState.temple != nil {
-                print("[App] 🔄 App became active - refreshing in background (non-blocking)")
-                Task.detached(priority: .utility) { [weak appState] in
-                    guard let appState = appState else { return }
-                    // Only refresh if temple config is already loaded (skip during startup)
-                    if await appState.temple != nil {
-                        await appState.refreshTempleConfig()
-                        // Refresh religious events when app comes to foreground (new events may have been synced)
-                        await appState.refreshReligiousEvents()
-                        
-                        // Send telemetry when app becomes active (so status page has recent data)
-                        if let deviceId = await appState.deviceId {
-                            do {
-                                try await DeviceTelemetryService.shared.sendTelemetry(deviceId: deviceId)
-                                await MainActor.run {
-                                    appLog("✅ Telemetry sent when app became active", category: "DeviceTelemetry")
-                                }
-                            } catch {
-                                await MainActor.run {
-                                    appLog("⚠️ Failed to send telemetry when app became active: \(error.localizedDescription)", category: "DeviceTelemetry")
+                .onChange(of: scenePhase) { newPhase in
+                    // Refresh theme and religious events when app becomes active
+                    // All operations run in background - don't block UI
+                    // Skip if temple config is still loading (during startup)
+                    if newPhase == .active && appState.isActivated && appState.temple != nil {
+                        print("[App] 🔄 App became active - refreshing in background (non-blocking)")
+                        Task.detached(priority: .utility) { [weak appState] in
+                            guard let appState = appState else { return }
+                            // Only refresh if temple config is already loaded (skip during startup)
+                            if await appState.temple != nil {
+                                await appState.refreshTempleConfig()
+                                // Refresh religious events when app comes to foreground (new events may have been synced)
+                                await appState.refreshReligiousEvents()
+                                
+                                // Send telemetry when app becomes active (so status page has recent data)
+                                if let deviceId = await appState.deviceId {
+                                    do {
+                                        try await DeviceTelemetryService.shared.sendTelemetry(deviceId: deviceId)
+                                        await MainActor.run {
+                                            appLog("✅ Telemetry sent when app became active", category: "DeviceTelemetry")
+                                        }
+                                    } catch {
+                                        await MainActor.run {
+                                            appLog("⚠️ Failed to send telemetry when app became active: \(error.localizedDescription)", category: "DeviceTelemetry")
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
         }
     }
     
