@@ -460,7 +460,7 @@ struct ModernDonationDetailsView: View {
                     }
                     .padding(.horizontal, detailsPageSidePadding)
                         
-                        // CTA row — Back (secondary) + Proceed (primary)
+                        // CTA row — Back (secondary) + Proceed (primary, emphasized)
                         HStack(spacing: DesignSystem.Spacing.sm) {
                             Button(action: {
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -502,13 +502,13 @@ struct ModernDonationDetailsView: View {
                             }) {
                                 HStack(spacing: DesignSystem.Components.inlineSpacing) {
                                     Text("proceedToPayment".localized)
-                                        .font(.custom("Inter-Medium", size: detailsButtonFontSize))
+                                        .font(.custom("Inter-SemiBold", size: detailsButtonFontSize + 2))
                                     Image(systemName: "arrow.right")
-                                        .font(.system(size: detailsButtonFontSize - 4, weight: .semibold))
+                                        .font(.system(size: detailsButtonFontSize, weight: .semibold))
                                 }
-                                .foregroundColor(canProceed ? .white : Color(white: 0.45))
+                                .foregroundColor(canProceed ? .white : Color(white: DesignSystem.Components.disabledTextGray))
                                 .frame(maxWidth: .infinity)
-                                .frame(height: DesignSystem.Components.buttonHeight)
+                                .frame(height: DesignSystem.Components.buttonHeight + 4)
                                 .background(
                                     Group {
                                         if canProceed {
@@ -522,14 +522,15 @@ struct ModernDonationDetailsView: View {
                                                 buttonColor
                                             }
                                         } else {
-                                            Color(white: 0.78)
+                                            Color(white: DesignSystem.Components.disabledBackgroundGray)
                                         }
                                     }
                                 )
                                 .cornerRadius(DesignSystem.Components.buttonCornerRadius)
-                                .shadow(color: canProceed ? Color.black.opacity(0.2) : .clear, radius: 8, x: 0, y: 4)
+                                .shadow(color: canProceed ? Color.black.opacity(0.22) : .clear, radius: 10, x: 0, y: 4)
                             }
                             .disabled(!canProceed)
+                            .opacity(canProceed ? 1 : CGFloat(DesignSystem.Components.disabledOpacity))
                         }
                         .padding(.horizontal, detailsPageSidePadding)
                         .padding(.top, DesignSystem.Spacing.lg)

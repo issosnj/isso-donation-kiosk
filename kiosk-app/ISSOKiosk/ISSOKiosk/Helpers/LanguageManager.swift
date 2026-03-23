@@ -54,6 +54,7 @@ class LanguageManager: ObservableObject {
             "quickActions": "Quick Actions",
             "events": "Events",
             "whatsappGroup": "WhatsApp Group",
+            "scanToJoinWhatsAppGroup": "Scan to join WhatsApp group",
             "observance": "Observance",
             "religiousObservances": "Religious Observances",
             "done": "Done",
@@ -87,6 +88,7 @@ class LanguageManager: ObservableObject {
             "selectAmountToContinue": "Select Amount to Continue",
             
             // Payment
+            "processingHeading": "Processing your payment",
             "processingPayment": "Tap your card once",
             "processingSubtext": "If you hear a beep, please wait — do not tap again",
             "paymentSuccessful": "Payment Successful",
@@ -117,6 +119,7 @@ class LanguageManager: ObservableObject {
             "quickActions": "ઝડપી ક્રિયાઓ",
             "events": "ઇવેન્ટ્સ",
             "whatsappGroup": "વોટ્સએપ ગ્રુપ",
+            "scanToJoinWhatsAppGroup": "વોટ્સએપ ગ્રુપમાં જોડાવા સ્કેન કરો",
             "observance": "અવલોકન",
             "religiousObservances": "ધાર્મિક અવલોકનો",
             "done": "પૂર્ણ",
@@ -150,6 +153,7 @@ class LanguageManager: ObservableObject {
             "selectAmountToContinue": "ચાલુ રાખવા માટે રકમ પસંદ કરો",
             
             // Payment
+            "processingHeading": "તમારું ભુગતાન પ્રક્રિયામાં છે",
             "processingPayment": "તમારી કાર્ડ પર એક વાર ટેપ કરો",
             "processingSubtext": "જો તમે બીપ સાંભળો તો કૃપા કરીને રાહ જુઓ — ફરીથી ટેપ કરશો નહીં",
             "paymentSuccessful": "પેમેન્ટ સફળ",
@@ -180,6 +184,7 @@ class LanguageManager: ObservableObject {
             "quickActions": "त्वरित कार्य",
             "events": "इवेंट्स",
             "whatsappGroup": "व्हाट्सएप ग्रुप",
+            "scanToJoinWhatsAppGroup": "व्हाट्सएप ग्रुप में जुड़ने के लिए स्कैन करें",
             "observance": "अवलोकन",
             "religiousObservances": "धार्मिक अवलोकन",
             "done": "पूर्ण",
@@ -213,6 +218,7 @@ class LanguageManager: ObservableObject {
             "selectAmountToContinue": "जारी रखने के लिए राशि चुनें",
             
             // Payment
+            "processingHeading": "आपका भुगतान प्रक्रिया में है",
             "processingPayment": "अपना कार्ड एक बार टैप करें",
             "processingSubtext": "बीप सुनने पर कृपया प्रतीक्षा करें — दोबारा टैप न करें",
             "paymentSuccessful": "भुगतान सफल",

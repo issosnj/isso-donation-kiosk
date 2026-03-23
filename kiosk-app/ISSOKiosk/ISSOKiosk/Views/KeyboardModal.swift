@@ -143,7 +143,7 @@ struct KeyboardModal<KeyboardContent: View>: View {
         }
         .buttonStyle(.plain)
         .disabled(!canContinue)
-        .opacity(canContinue ? 1 : 0.72)
+        .opacity(canContinue ? 1 : CGFloat(DesignSystem.Components.disabledOpacity))
         .padding(.horizontal, DesignSystem.Components.keyboardModalPaddingH)
         .padding(.top, DesignSystem.Spacing.md)
         .padding(.bottom, DesignSystem.Spacing.lg)

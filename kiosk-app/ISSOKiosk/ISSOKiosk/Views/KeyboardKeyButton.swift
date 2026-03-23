@@ -39,7 +39,7 @@ struct KeyboardKeyButton: View {
             .shadow(color: Color.black.opacity(isPressed ? 0.04 : 0.08), radius: isPressed ? 2 : 4, x: 0, y: isPressed ? 1 : 2)
         }
         .buttonStyle(.plain)
-        .scaleEffect(isPressed ? 0.96 : 1.0)
+        .scaleEffect(isPressed ? DesignSystem.Components.keyPressScale : 1.0)
         .animation(.easeOut(duration: 0.12), value: isPressed)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)

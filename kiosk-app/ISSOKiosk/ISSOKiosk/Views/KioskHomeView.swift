@@ -773,35 +773,34 @@ struct QRCodeDisplayView: View {
     let cachedImage: UIImage?
     @EnvironmentObject var appState: AppState
 
+    private let qrSize: CGFloat = 336 // 280 * 1.2 for ~20% increase
+
     var body: some View {
         KioskModal(title: title, dismissButtonTitle: "done".localized) {
-            VStack(spacing: 24) {
-                Text("Scan to \(title)")
-                    .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
-                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                    .padding(.top, DesignSystem.Spacing.md)
+            VStack(spacing: DesignSystem.Spacing.lg) {
+                Text("scanToJoinWhatsAppGroup".localized)
+                    .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.bodySize))
+                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
+                    .multilineTextAlignment(.center)
 
                 if let qrImage = cachedImage ?? generateQRCode(from: url) {
                     Image(uiImage: qrImage)
                         .interpolation(.none)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 280, height: 280)
-                        .background(Color.white)
-                        .cornerRadius(DesignSystem.Components.cardCornerRadius)
-                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                        .frame(width: qrSize, height: qrSize)
                 }
 
                 Text(url)
                     .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.secondarySize))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, DesignSystem.Components.modalContentPadding)
+                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
                     .multilineTextAlignment(.center)
+                    .lineLimit(2)
 
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)
-            .padding(DesignSystem.Components.modalContentPadding)
+            .padding(DesignSystem.Components.modalCardPadding)
         }
     }
     
@@ -1331,53 +1330,48 @@ struct ReligiousEventsView: View {
 
     var body: some View {
         KioskModal(title: "religiousObservances".localized, dismissButtonTitle: "done".localized) {
-            VStack(spacing: 0) {
+            VStack(spacing: DesignSystem.Spacing.lg) {
                 Text("observanceNote".localized)
                     .font(.custom(appState.temple?.kioskTheme?.fonts?.bodyFamily ?? "Inter-Regular", size: 13))
                     .italic()
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, DesignSystem.Components.modalContentPadding)
-                    .padding(.top, DesignSystem.Spacing.sm)
-                    .padding(.bottom, DesignSystem.Spacing.md)
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
+                    VStack(spacing: DesignSystem.Spacing.md) {
                         if religiousEvents.isEmpty {
                             VStack(spacing: DesignSystem.Spacing.lg) {
                                 Image(systemName: "moon.stars.fill")
                                     .font(.system(size: 50))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.65))
                                 Text("noUpcomingObservances".localized)
                                     .font(.custom(appState.temple?.kioskTheme?.fonts?.headingFamily ?? "Inter-SemiBold", size: DesignSystem.Typography.subsectionSize))
+                                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
                             }
-                            .padding(DesignSystem.Components.modalContentPadding)
+                            .padding(DesignSystem.Spacing.xl)
                         } else {
                             ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
-                                VStack(spacing: 0) {
-                                    ReligiousEventRow(
-                                        event: event,
-                                        showCountdown: index == 0
-                                    )
-                                    if index < religiousEvents.count - 1 {
-                                        Divider()
-                                            .background(Color.gray.opacity(0.2))
-                                            .padding(.horizontal, DesignSystem.Spacing.lg)
-                                    }
+                                ReligiousEventRow(
+                                    event: event,
+                                    showCountdown: index == 0,
+                                    isUpcoming: index == 0
+                                )
+                                if index < religiousEvents.count - 1 {
+                                    Divider()
+                                        .background(Color(red: 0.85, green: 0.84, blue: 0.82))
+                                        .padding(.horizontal, DesignSystem.Spacing.lg)
                                 }
                             }
                         }
                     }
-                    .padding(.vertical, DesignSystem.Spacing.md)
+                    .padding(.vertical, DesignSystem.Spacing.sm)
                 }
                 .frame(minHeight: 280, maxHeight: 480)
-                .background(Color.white)
 
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)
-            .padding(DesignSystem.Components.modalContentPadding)
-            .background(Color.white)
+            .padding(DesignSystem.Components.modalCardPadding)
         }
     }
 }
@@ -1385,44 +1379,45 @@ struct ReligiousEventsView: View {
 struct ReligiousEventRow: View {
     let event: ReligiousEvent
     let showCountdown: Bool
+    var isUpcoming: Bool = false
+
+    private var highlightColor: Color {
+        Color(red: 0.92, green: 0.62, blue: 0.22) // Warm gold/orange
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            // LEFT SIDE: Date and Event Name
-            VStack(alignment: .leading, spacing: 10) {
-                // DATE (no icon)
+        HStack(alignment: .top, spacing: DesignSystem.Spacing.md) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(formattedDate(event.date))
                     .font(.custom("Inter-Medium", size: 15))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(isUpcoming ? highlightColor : Color(red: 0.45, green: 0.45, blue: 0.5))
 
-                // NAME (sanitized, no icons)
                 Text(sanitizedEventName(event.name))
-                    .font(.custom("Inter-SemiBold", size: 20))
-                    .foregroundColor(.primary)
+                    .font(.custom("Inter-SemiBold", size: 18))
+                    .foregroundColor(isUpcoming ? Color(red: 0.22, green: 0.2, blue: 0.2) : Color(red: 0.3, green: 0.28, blue: 0.28))
             }
 
-            // RIGHT SIDE: Countdown (only first event)
             if showCountdown, let date = parseDate(event.date) {
                 Spacer()
                 VStack(spacing: 2) {
                     Text("Until")
                         .font(.custom("Inter-Regular", size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
 
                     Text("\(daysUntil(date))")
-                        .font(.custom("Inter-Bold", size: 32))
-                        .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.8))
+                        .font(.custom("Inter-Bold", size: 28))
+                        .foregroundColor(highlightColor)
 
                     Text(daysUntil(date) == 1 ? "day" : "days")
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
                 }
-                .frame(width: 90, alignment: .trailing)
+                .frame(width: 80, alignment: .trailing)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 20)
+        .padding(.horizontal, DesignSystem.Spacing.sm)
+        .padding(.vertical, DesignSystem.Spacing.md)
     }
 
     // MARK: Helpers

@@ -168,8 +168,8 @@ struct KeypadButton: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
-        .scaleEffect(isPressed ? 0.95 : 1.0)
-        .animation(.easeInOut(duration: 0.1), value: isPressed)
+        .scaleEffect(isPressed ? DesignSystem.Components.keyPressScale : 1.0)
+        .animation(.easeOut(duration: 0.12), value: isPressed)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
@@ -189,9 +189,7 @@ struct KeypadDeleteButton: View {
     
     var body: some View {
         Button(action: {
-            // Haptic feedback
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             
             if !amount.isEmpty {
                 amount.removeLast()
@@ -212,8 +210,8 @@ struct KeypadDeleteButton: View {
                 )
         }
         .buttonStyle(PlainButtonStyle())
-        .scaleEffect(isPressed ? 0.95 : 1.0)
-        .animation(.easeInOut(duration: 0.1), value: isPressed)
+        .scaleEffect(isPressed ? DesignSystem.Components.keyPressScale : 1.0)
+        .animation(.easeOut(duration: 0.12), value: isPressed)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in

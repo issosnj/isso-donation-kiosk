@@ -215,7 +215,7 @@ struct DonationHomeView: View {
     }
     
     var categoryAmountSectionSpacing: CGFloat {
-        CGFloat(theme?.layout?.categoryAmountSectionSpacing ?? DesignSystem.Spacing.xl)
+        CGFloat(theme?.layout?.categoryAmountSectionSpacing ?? DesignSystem.Layout.donationSelectionSectionSpacing)
     }
     
     var donationSelectionPageLeftPadding: CGFloat {
@@ -454,8 +454,8 @@ struct DonationHomeView: View {
     @ViewBuilder
     private func mainContent(geometry: GeometryProxy) -> some View {
         ZStack {
-            // Use reduced spacing when keypad is showing
-            HStack(spacing: showingCustomAmountKeypad ? geometry.scale(DesignSystem.Components.sectionSpacing) : geometry.scale(categoryAmountSectionSpacing)) {
+            // Use reduced spacing when keypad is showing; otherwise use generous section spacing
+            HStack(alignment: .top, spacing: showingCustomAmountKeypad ? geometry.scale(DesignSystem.Components.sectionSpacing) : geometry.scale(categoryAmountSectionSpacing)) {
                 // Show keypad in place of category section when active
                 if showingCustomAmountKeypad {
                     VStack(spacing: 0) {
@@ -505,7 +505,7 @@ struct DonationHomeView: View {
             }
             .padding(.leading, geometry.scale(donationSelectionPageLeftPadding))
             .padding(.trailing, geometry.scale(donationSelectionPageRightPadding))
-            .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration), value: showingCustomAmountKeypad)
+            .animation(.spring(response: DesignSystem.Components.modalSpringResponse, dampingFraction: DesignSystem.Components.modalSpringDamping), value: showingCustomAmountKeypad)
             
             // Overlay to detect taps outside keypad
             // Only close when tapping on the amount section, not on the keypad itself
@@ -541,8 +541,8 @@ struct DonationHomeView: View {
     @ViewBuilder
     private func categorySection(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
+            // Header — clear hierarchy
+            VStack(alignment: .leading, spacing: geometry.scale(DesignSystem.Spacing.xs)) {
                 Text("selectCategory".localized)
                     .font(.custom(headingFont, size: geometry.scale(headingSize)))
                     .foregroundColor(headingColor)
@@ -556,13 +556,14 @@ struct DonationHomeView: View {
                             .font(.custom(bodyFont, size: geometry.scale(bodySize - 2)))
                             .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                     }
-                    .padding(.top, geometry.scale(DesignSystem.Spacing.xs))
+                    .padding(.top, geometry.scale(2))
                 } else {
                     Text("Choose your donation category")
                         .font(.custom(bodyFont, size: geometry.scale(bodySize)))
                         .foregroundColor(subtitleColor)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, geometry.scale(categoryHeaderTopPadding))
             .padding(.bottom, geometry.scale(DesignSystem.Components.inlineSpacing))
             
@@ -664,16 +665,17 @@ struct DonationHomeView: View {
     @ViewBuilder
     private func amountSection(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
+            // Header — matches category section hierarchy
+            VStack(alignment: .leading, spacing: geometry.scale(DesignSystem.Spacing.xs)) {
                 Text("selectAmount".localized)
                     .font(.custom(headingFont, size: geometry.scale(headingSize)))
                     .foregroundColor(headingColor)
                 
-                Text("Choose a preset donation amount")
+                Text("Choose a preset amount or enter custom")
                     .font(.custom(bodyFont, size: geometry.scale(bodySize)))
                     .foregroundColor(subtitleColor)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, geometry.scale(headerTopPadding))
             .padding(.bottom, geometry.scale(DesignSystem.Components.inlineSpacing))
             
@@ -922,7 +924,7 @@ struct DonationHomeView: View {
                 }) {
                     Text("Review Donation")
                         .font(.custom("Inter-Medium", size: geometry.scale(18)))
-                        .foregroundColor(hasValidAmount ? .white : Color(white: 0.45))
+                        .foregroundColor(hasValidAmount ? .white : Color(white: DesignSystem.Components.disabledTextGray))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, geometry.scale(18))
                         .background(
@@ -938,7 +940,7 @@ struct DonationHomeView: View {
                                         buttonColor
                                     }
                                 } else {
-                                    Color(white: 0.78)
+                                    Color(white: DesignSystem.Components.disabledBackgroundGray)
                                 }
                             }
                         )

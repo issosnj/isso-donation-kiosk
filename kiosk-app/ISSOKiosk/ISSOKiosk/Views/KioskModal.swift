@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Shared modal wrapper — overlay, card, header, fade+scale animation.
+/// Shared modal wrapper — overlay with blur, single card, modern styling.
 /// Use for WhatsApp, Observances, Events, and other content modals.
 struct KioskModal<Content: View>: View {
     let title: String
@@ -26,15 +26,20 @@ struct KioskModal<Content: View>: View {
     }
 
     private var overlay: some View {
-        Color.black.opacity(DesignSystem.Components.modalOverlayOpacity)
-            .ignoresSafeArea()
-            .opacity(isVisible && !isDismissing ? 1 : 0)
-            .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration), value: isVisible)
-            .onTapGesture {
-                if tapOverlayToDismiss {
-                    dismissWithAnimation()
-                }
+        ZStack {
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.ultraThinMaterial)
+            Color.black.opacity(DesignSystem.Components.modalOverlayOpacityNew)
+        }
+        .ignoresSafeArea()
+        .opacity(isVisible && !isDismissing ? 1 : 0)
+        .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration), value: isVisible)
+        .onTapGesture {
+            if tapOverlayToDismiss {
+                dismissWithAnimation()
             }
+        }
     }
 
     private var modalCard: some View {
@@ -43,15 +48,15 @@ struct KioskModal<Content: View>: View {
             content()
         }
         .frame(maxWidth: DesignSystem.Components.modalMaxWidth)
-        .background(Color.white)
-        .cornerRadius(DesignSystem.Components.modalCornerRadius)
+        .background(DesignSystem.Components.modalCardBackground)
+        .cornerRadius(DesignSystem.Components.modalCardCornerRadius)
         .shadow(
-            color: Color.black.opacity(DesignSystem.Components.modalShadowOpacity),
-            radius: DesignSystem.Components.modalShadowRadius,
+            color: Color.black.opacity(DesignSystem.Components.modalCardShadowOpacity),
+            radius: DesignSystem.Components.modalCardShadowRadius,
             x: 0,
-            y: DesignSystem.Components.modalShadowY
+            y: 20
         )
-        .padding(DesignSystem.Components.modalContentPadding)
+        .padding(DesignSystem.Spacing.lg)
         .scaleEffect(isDismissing ? 0.96 : (isVisible ? 1 : 0.96))
         .opacity(isDismissing ? 0 : (isVisible ? 1 : 0))
         .animation(.spring(response: DesignSystem.Components.modalSpringResponse, dampingFraction: DesignSystem.Components.modalSpringDamping), value: isVisible)
@@ -62,8 +67,10 @@ struct KioskModal<Content: View>: View {
         HStack {
             Spacer()
             Text(title)
-                .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
+                .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Components.modalTitleSize))
+                .fontWeight(.semibold)
                 .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                .multilineTextAlignment(.center)
             Spacer()
             Button(action: dismissWithAnimation) {
                 Text(dismissButtonTitle)

@@ -826,17 +826,22 @@ struct ModernProcessingView: View {
                 .scaleEffect(appearAnimation ? 1.0 : 0.9)
                 .opacity(appearAnimation ? 1.0 : 0.0)
 
-                // Text hierarchy: status → amount → subtext
+                // Text hierarchy: heading → amount → instruction → subtext (trust + clarity)
                 VStack(spacing: DesignSystem.Spacing.lg) {
-                    Text("processingPayment".localized)
-                        .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
+                    Text("processingHeading".localized)
+                        .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize + 4))
                         .foregroundColor(headingColor)
                         .multilineTextAlignment(.center)
 
                     Text(amount.formattedCurrency())
-                        .font(.custom("Inter-SemiBold", size: DesignSystem.Typography.amountDisplaySize + 16))
+                        .font(.custom("Inter-SemiBold", size: DesignSystem.Typography.amountDisplaySize + 20))
                         .foregroundColor(buttonColor)
                         .monospacedDigit()
+
+                    Text("processingPayment".localized)
+                        .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.bodySize))
+                        .foregroundColor(headingColor.opacity(0.9))
+                        .multilineTextAlignment(.center)
 
                     Text("processingSubtext".localized)
                         .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.secondarySize))
@@ -849,7 +854,7 @@ struct ModernProcessingView: View {
 
                 Spacer()
 
-                // Cancel — visible but secondary, structured tap target
+                // Cancel — visible but secondary, structured tap target with haptic
                 Button(action: {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     onCancel()
@@ -858,7 +863,7 @@ struct ModernProcessingView: View {
                         .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
                         .foregroundColor(bodyTextColor)
                         .padding(.horizontal, DesignSystem.Spacing.xl)
-                        .padding(.vertical, DesignSystem.Spacing.md)
+                        .padding(.vertical, DesignSystem.Spacing.md + 4)
                 }
                 .padding(.top, DesignSystem.Spacing.md)
                 .padding(.bottom, DesignSystem.Spacing.xl)
@@ -890,7 +895,7 @@ struct ModernProcessingView: View {
             }
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.5).delay(0.1)) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.85).delay(0.1)) {
                 appearAnimation = true
             }
             withAnimation(.linear(duration: 2.5).repeatForever(autoreverses: false)) {

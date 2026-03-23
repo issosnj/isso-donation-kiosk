@@ -143,8 +143,31 @@ enum DesignSystem {
         /// Spring response for modal/button transitions
         static let modalSpringResponse: Double = 0.35
         static let modalSpringDamping: Double = 0.85
+        /// Disabled button opacity
+        static let disabledOpacity: Double = 0.72
+        /// Disabled text gray (0–1)
+        static let disabledTextGray: Double = 0.45
+        /// Disabled background gray (0–1)
+        static let disabledBackgroundGray: Double = 0.78
+        /// Key press scale (0–1) for consistent press feedback
+        static let keyPressScale: CGFloat = 0.96
         /// Modal max width
         static let modalMaxWidth: CGFloat = 900
+
+        // MARK: - Modal Redesign (WhatsApp, Observance)
+        /// Overlay: dim opacity
+        static let modalOverlayOpacityNew: Double = 0.25
+        /// Modal card: soft warm white
+        static let modalCardBackground = Color(red: 1.0, green: 0.992, blue: 0.969) // #FFFDF8
+        /// Modal card corner radius
+        static let modalCardCornerRadius: CGFloat = 24
+        /// Modal card padding
+        static let modalCardPadding: CGFloat = 26
+        /// Modal title size
+        static let modalTitleSize: CGFloat = 21
+        /// Modal shadow
+        static let modalCardShadowRadius: CGFloat = 60
+        static let modalCardShadowOpacity: Double = 0.15
     }
 
     // MARK: - Layout
@@ -163,6 +186,9 @@ enum DesignSystem {
 
         /// Bottom padding for corner actions (e.g. WhatsApp buttons)
         static let bottomCornerPadding: CGFloat = 48
+
+        /// Donation selection: spacing between category and amount sections
+        static let donationSelectionSectionSpacing: CGFloat = 40
 
         /// Spacing between stacked buttons
         static let buttonStackSpacing: CGFloat = 16
