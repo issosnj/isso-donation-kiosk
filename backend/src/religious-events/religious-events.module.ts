@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ReligiousEventsService } from './religious-events.service';
 import { ReligiousEventsController } from './religious-events.controller';
@@ -6,10 +6,12 @@ import { GoogleCalendarService } from './google-calendar.service';
 import { ReligiousEventsSyncService } from './religious-events-sync.service';
 import { ReligiousEvent } from './entities/religious-event.entity';
 import { JwtModule } from '@nestjs/jwt';
+import { DevicesModule } from '../devices/devices.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ReligiousEvent]),
+    forwardRef(() => DevicesModule), // Required for DeviceAuthGuard (DevicesService)
     JwtModule.register({}),
   ],
   controllers: [ReligiousEventsController],
