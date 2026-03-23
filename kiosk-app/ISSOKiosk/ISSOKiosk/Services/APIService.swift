@@ -402,6 +402,18 @@ class APIService {
         )
     }
     
+    func getKioskConfig(timeout: TimeInterval = 10.0) async throws -> KioskConfigResponse {
+        let response: KioskConfigResponse = try await request(
+            endpoint: "/devices/kiosk-config",
+            method: "GET",
+            requiresAuth: true,
+            maxRetries: 2,
+            timeout: timeout
+        )
+        print("[APIService] ✅ Kiosk config fetched (showObservances: \(response.showObservances))")
+        return response
+    }
+    
     func getTemple(templeId: String, timeout: TimeInterval = 10.0) async throws -> Temple {
         
         guard let url = URL(string: "\(baseURL)/temples/\(templeId)") else {

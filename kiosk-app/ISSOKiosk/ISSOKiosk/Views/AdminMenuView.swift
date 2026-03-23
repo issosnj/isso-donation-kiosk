@@ -279,7 +279,7 @@ struct AdminMenuView: View {
                 
                 Section(header: Text("Actions")) {
                     Button(action: {
-                        refreshTempleConfig()
+                        refreshKioskConfig()
                     }) {
                         HStack {
                             Image(systemName: "arrow.clockwise")
@@ -512,10 +512,10 @@ struct AdminMenuView: View {
         }
     }
     
-    private func refreshTempleConfig() {
+    private func refreshKioskConfig() {
         appLog("🔧 Admin: Refreshing temple config", category: "AdminMenu")
         Task {
-            await appState.refreshTempleConfig()
+            await appState.refreshKioskConfig()
         }
     }
     

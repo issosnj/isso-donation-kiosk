@@ -38,7 +38,7 @@ struct ISSOKioskApp: App {
                             guard let appState = appState else { return }
                             // Only refresh if temple config is already loaded (skip during startup)
                             if await appState.temple != nil {
-                                await appState.refreshTempleConfig()
+                                await appState.refreshKioskConfig()
                                 // Refresh religious events when app comes to foreground (new events may have been synced)
                                 await appState.refreshReligiousEvents()
                                 

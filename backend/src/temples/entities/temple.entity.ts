@@ -79,6 +79,7 @@ export class Temple {
       whatsAppLink?: string;
       eventsText?: string; // Deprecated - use localEvents instead
       googleCalendarLink?: string;
+      observanceCalendarUrl?: string; // Google Calendar URL for religious observances (used when showObservances enabled)
       localEvents?: Array<{
         id: string;
         title: string;

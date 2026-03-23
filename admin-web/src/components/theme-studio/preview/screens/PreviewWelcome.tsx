@@ -19,7 +19,7 @@ function PreviewWelcome({ theme }: PreviewWelcomeProps) {
   const utilityLayout = layout.homeScreenUtilityBarLayout ?? 'split'
 
   const showWhatsApp = layout.homeScreenWhatsAppVisible ?? true
-  const showObservance = layout.homeScreenObservanceVisible ?? true
+  const showObservance = true
   const showLanguage = layout.homeScreenLanguageSelectorVisible ?? true
   const hasLeftUtilities = showWhatsApp || showObservance
 

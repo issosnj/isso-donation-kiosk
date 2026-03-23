@@ -23,6 +23,8 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
   const [formData, setFormData] = useState({
     idleTimeoutSeconds: 60,
     whatsAppLink: '',
+    observanceCalendarUrl: '',
+    googleCalendarLink: '',
     presetAmounts: [5, 10, 25, 50, 100] as number[],
   })
 
@@ -31,6 +33,8 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
       setFormData({
         idleTimeoutSeconds: temple.homeScreenConfig.idleTimeoutSeconds || 60,
         whatsAppLink: temple.homeScreenConfig.whatsAppLink || '',
+        observanceCalendarUrl: temple.homeScreenConfig.observanceCalendarUrl || '',
+        googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
         presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
       })
     }
@@ -39,7 +43,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await api.patch(`/temples/${templeId}`, {
-        homeScreenConfig: data,
+        homeScreenConfig: { ...temple?.homeScreenConfig, ...data },
       })
       return response.data
     },
@@ -50,7 +54,13 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
   })
 
   const handleSave = () => {
-    updateMutation.mutate(formData)
+    updateMutation.mutate({
+      idleTimeoutSeconds: formData.idleTimeoutSeconds,
+      whatsAppLink: formData.whatsAppLink || undefined,
+      observanceCalendarUrl: formData.observanceCalendarUrl || undefined,
+      googleCalendarLink: formData.googleCalendarLink || undefined,
+      presetAmounts: formData.presetAmounts,
+    })
   }
 
   if (isLoading) {
@@ -80,6 +90,8 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                   setFormData({
                     idleTimeoutSeconds: temple.homeScreenConfig.idleTimeoutSeconds || 60,
                     whatsAppLink: temple.homeScreenConfig.whatsAppLink || '',
+                    observanceCalendarUrl: temple.homeScreenConfig.observanceCalendarUrl || '',
+                    googleCalendarLink: temple.homeScreenConfig.googleCalendarLink || '',
                     presetAmounts: temple.homeScreenConfig.presetAmounts || [5, 10, 25, 50, 100],
                   })
                 }
@@ -130,7 +142,39 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
             placeholder="https://chat.whatsapp.com/..."
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
           />
-          <p className="mt-1 text-xs text-gray-500">QR code will be generated automatically</p>
+          <p className="mt-1 text-xs text-gray-500">QR code will be generated automatically on the kiosk</p>
+        </div>
+
+        {/* Observance Calendar URL */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Observance Calendar URL
+          </label>
+          <input
+            type="url"
+            value={formData.observanceCalendarUrl}
+            onChange={(e) => setFormData({ ...formData, observanceCalendarUrl: e.target.value })}
+            disabled={!isEditing}
+            placeholder="https://calendar.google.com/calendar/..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+          />
+          <p className="mt-1 text-xs text-gray-500">Google Calendar public URL for religious observances. When set, kiosk will use this instead of global events.</p>
+        </div>
+
+        {/* Events Calendar Link */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Events Calendar Link
+          </label>
+          <input
+            type="url"
+            value={formData.googleCalendarLink}
+            onChange={(e) => setFormData({ ...formData, googleCalendarLink: e.target.value })}
+            disabled={!isEditing}
+            placeholder="https://calendar.google.com/calendar/..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+          />
+          <p className="mt-1 text-xs text-gray-500">Link to temple events calendar (displayed on kiosk)</p>
         </div>
 
         {/* Preset Donation Amounts */}

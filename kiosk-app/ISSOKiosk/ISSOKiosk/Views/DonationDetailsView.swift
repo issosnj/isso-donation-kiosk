@@ -564,7 +564,7 @@ struct ModernDonationDetailsView: View {
                 HStack {
                     ReaderBatteryStatusView()
                         .padding(.leading, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm + 2)
+                        .padding(.top, DesignSystem.Spacing.sm)
                     Spacer()
                 }
                 Spacer()
@@ -576,7 +576,7 @@ struct ModernDonationDetailsView: View {
                     Spacer()
                     TimeAndNetworkStatusView()
                         .padding(.trailing, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm + 2)
+                        .padding(.top, DesignSystem.Spacing.sm)
                 }
                 Spacer()
             }

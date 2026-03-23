@@ -399,7 +399,7 @@ struct DonationHomeView: View {
             }
             
             // Refresh temple config to get latest theme settings
-            await appState.refreshTempleConfig()
+            await appState.refreshKioskConfig()
         }
         .onChange(of: appState.temple?.kioskTheme) { _ in
             // Theme was updated, view will automatically refresh due to @EnvironmentObject

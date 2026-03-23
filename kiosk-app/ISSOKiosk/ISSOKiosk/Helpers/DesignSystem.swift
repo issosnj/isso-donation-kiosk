@@ -139,7 +139,10 @@ enum DesignSystem {
         /// Modal content padding
         static let modalContentPadding: CGFloat = 24
         /// Animation duration (seconds)
-        static let modalAnimationDuration: Double = 0.3
+        static let modalAnimationDuration: Double = 0.28
+        /// Spring response for modal/button transitions
+        static let modalSpringResponse: Double = 0.35
+        static let modalSpringDamping: Double = 0.85
         /// Modal max width
         static let modalMaxWidth: CGFloat = 900
     }

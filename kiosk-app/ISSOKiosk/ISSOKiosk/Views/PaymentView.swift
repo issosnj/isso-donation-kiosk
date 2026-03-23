@@ -82,7 +82,7 @@ struct ModernPaymentView: View {
                 HStack {
                     ReaderBatteryStatusView()
                         .padding(.leading, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm - 1)
+                        .padding(.top, DesignSystem.Spacing.sm)
                     Spacer()
                 }
                 Spacer()
@@ -94,7 +94,7 @@ struct ModernPaymentView: View {
                     Spacer()
                     TimeAndNetworkStatusView()
                         .padding(.trailing, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm - 1)
+                        .padding(.top, DesignSystem.Spacing.sm)
                 }
                 Spacer()
             }
@@ -849,11 +849,16 @@ struct ModernProcessingView: View {
 
                 Spacer()
 
-                // Cancel — visible but secondary
-                Button(action: onCancel) {
+                // Cancel — visible but secondary, structured tap target
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onCancel()
+                }) {
                     Text("cancel".localized)
                         .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
                         .foregroundColor(bodyTextColor)
+                        .padding(.horizontal, DesignSystem.Spacing.xl)
+                        .padding(.vertical, DesignSystem.Spacing.md)
                 }
                 .padding(.top, DesignSystem.Spacing.md)
                 .padding(.bottom, DesignSystem.Spacing.xl)
@@ -867,7 +872,7 @@ struct ModernProcessingView: View {
                 HStack {
                     ReaderBatteryStatusView()
                         .padding(.leading, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm - 1)
+                        .padding(.top, DesignSystem.Spacing.sm)
                     Spacer()
                 }
                 Spacer()
@@ -879,7 +884,7 @@ struct ModernProcessingView: View {
                     Spacer()
                     TimeAndNetworkStatusView()
                         .padding(.trailing, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm - 1)
+                        .padding(.top, DesignSystem.Spacing.sm)
                 }
                 Spacer()
             }
@@ -1081,7 +1086,7 @@ struct ModernPaymentResultView: View {
                 HStack {
                     ReaderBatteryStatusView()
                         .padding(.leading, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm - 1)
+                        .padding(.top, DesignSystem.Spacing.sm)
                     Spacer()
                 }
                 Spacer()
@@ -1093,7 +1098,7 @@ struct ModernPaymentResultView: View {
                     Spacer()
                     TimeAndNetworkStatusView()
                         .padding(.trailing, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm - 1)
+                        .padding(.top, DesignSystem.Spacing.sm)
                 }
                 Spacer()
             }

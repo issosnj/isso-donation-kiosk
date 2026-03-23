@@ -71,7 +71,6 @@ export const DEFAULT_THEME: KioskTheme = {
     homeScreenTimeStatusVisible: true,
     homeScreenTapToDonateVisible: true,
     homeScreenWhatsAppVisible: true,
-    homeScreenObservanceVisible: true,
     homeScreenLanguageSelectorVisible: true,
     homeScreenHeaderTopPadding: 36,
     homeScreenSpacerMaxHeight: 48,
@@ -113,7 +112,6 @@ function migrateLegacyLayout(api: Record<string, unknown>): Record<string, unkno
   const L = out.layout as Record<string, unknown>
   if (L.homeScreenWhatsAppButtonsVisible !== undefined && L.homeScreenWhatsAppVisible === undefined) {
     L.homeScreenWhatsAppVisible = L.homeScreenWhatsAppButtonsVisible
-    L.homeScreenObservanceVisible = L.homeScreenWhatsAppButtonsVisible
   }
   if (L.homeScreenHeroTextPosition === undefined && L.homeScreenHeaderTopPadding !== undefined) {
     L.homeScreenHeroTextPosition = (L.homeScreenHeaderTopPadding as number) < 45 ? 'slightly-higher' : 'centered'

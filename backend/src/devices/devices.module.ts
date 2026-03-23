@@ -10,6 +10,7 @@ import { TemplesModule } from '../temples/temples.module';
 import { DonationsModule } from '../donations/donations.module';
 import { StripeModule } from '../stripe/stripe.module';
 import { AuthModule } from '../auth/auth.module';
+import { GlobalSettingsModule } from '../global-settings/global-settings.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuthModule } from '../auth/auth.module';
     TemplesModule,
     forwardRef(() => DonationsModule),
     forwardRef(() => StripeModule),
+    GlobalSettingsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

@@ -11,6 +11,7 @@ import { CreateDeviceTelemetryDto } from './dto/create-device-telemetry.dto';
 import { TemplesService } from '../temples/temples.service';
 import { DonationCategoriesService } from '../donations/donation-categories.service';
 import { StripeService } from '../stripe/stripe.service';
+import { GlobalSettingsService } from '../global-settings/global-settings.service';
 
 @Injectable()
 export class DevicesService {
@@ -21,6 +22,7 @@ export class DevicesService {
     private telemetryRepository: Repository<DeviceTelemetry>,
     private jwtService: JwtService,
     private templesService: TemplesService,
+    private globalSettingsService: GlobalSettingsService,
     private logger: AppLogger,
     @Inject(forwardRef(() => DonationCategoriesService))
     private donationCategoriesService: DonationCategoriesService,
@@ -119,28 +121,65 @@ export class DevicesService {
     device.lastSeenAt = new Date();
     await this.devicesRepository.save(device);
 
-    // Get temple config
+    // Get temple config and global kiosk behavior
     const temple = await this.templesService.findOne(device.templeId);
     const categories = await this.donationCategoriesService.findByTemple(
       device.templeId,
       true, // forKiosk = true to filter by date/time
     );
+    const globalSettings = await this.globalSettingsService.getSettings();
+    const showObservances = globalSettings.kioskBehavior?.showObservances ?? true;
 
     return {
       deviceToken,
-      temple: {
-        id: temple.id,
-        name: temple.name,
-        logoUrl: temple.logoUrl,
-        branding: temple.branding,
-        squareLocationId: temple.squareLocationId,
-        homeScreenConfig: temple.homeScreenConfig || null,
-      },
+      showObservances,
+      temple: this.toKioskSafeTemple(temple),
       categories: categories.map((cat) => ({
         id: cat.id,
         name: cat.name,
         defaultAmount: cat.defaultAmount,
       })),
+    };
+  }
+
+  /**
+   * Get kiosk runtime config for device-authenticated requests.
+   * Returns only kiosk-safe fields; no admin-only or sensitive data.
+   */
+  async getKioskConfig(deviceId: string): Promise<{
+    showObservances: boolean;
+    temple: {
+      id: string;
+      name: string;
+      address?: string;
+      logoUrl?: string;
+      branding?: any;
+      squareLocationId?: string;
+      homeScreenConfig?: any;
+      kioskTheme?: any;
+    };
+  }> {
+    const device = await this.findOne(deviceId);
+    const temple = await this.templesService.findOne(device.templeId);
+    const globalSettings = await this.globalSettingsService.getSettings();
+    const showObservances = globalSettings.kioskBehavior?.showObservances ?? true;
+    return {
+      showObservances,
+      temple: this.toKioskSafeTemple(temple),
+    };
+  }
+
+  /** Kiosk-safe temple shape: excludes Square/Stripe/Gmail tokens, receiptConfig, etc. */
+  private toKioskSafeTemple(temple: { id: string; name: string; address?: string; logoUrl?: string; branding?: any; squareLocationId?: string; homeScreenConfig?: any; kioskTheme?: any }) {
+    return {
+      id: temple.id,
+      name: temple.name,
+      address: temple.address,
+      logoUrl: temple.logoUrl,
+      branding: temple.branding,
+      squareLocationId: temple.squareLocationId,
+      homeScreenConfig: temple.homeScreenConfig || null,
+      kioskTheme: temple.kioskTheme || null,
     };
   }
 

@@ -9,6 +9,7 @@ class AppState: ObservableObject {
     @Published var temple: Temple?
     @Published var categories: [DonationCategory] = []
     @Published var religiousEvents: [ReligiousEvent] = []
+    @Published var showObservances: Bool = true
     @Published var languageManager = LanguageManager.shared
     
     // Track last successful donation time for idle reconnection
@@ -36,7 +37,9 @@ class AppState: ObservableObject {
             self.deviceToken = response.deviceToken
             self.temple = response.temple
             self.categories = response.categories
+            self.showObservances = response.showObservances ?? true
             self.isActivated = true
+            UserDefaults.standard.set(response.showObservances ?? true, forKey: "showObservances")
             
             // Extract device ID from JWT token
             let token = response.deviceToken
@@ -74,6 +77,7 @@ class AppState: ObservableObject {
         if let token = keychain.load(forKey: "deviceToken") {
             self.deviceToken = token
             self.deviceId = extractDeviceId(from: token)
+            self.showObservances = UserDefaults.standard.object(forKey: "showObservances") as? Bool ?? true
             APIService.shared.setDeviceToken(token)
             
             // Don't set isActivated yet - wait for temple config to load first
@@ -115,28 +119,26 @@ class AppState: ObservableObject {
         }
     }
     
-    func refreshTempleConfig() async {
+    func refreshKioskConfig() async {
         // Prevent refresh if initial load is still in progress
         if isLoadingTempleConfig {
-            print("[AppState] ⚠️ Temple config load in progress - skipping refresh")
+            print("[AppState] ⚠️ Kiosk config load in progress - skipping refresh")
             return
         }
         
         // Prevent duplicate refresh calls
         guard !isRefreshingTempleConfig else {
-            print("[AppState] ⚠️ Temple config refresh already in progress - skipping duplicate call")
+            print("[AppState] ⚠️ Kiosk config refresh already in progress - skipping duplicate call")
             return
         }
         
-        // Refresh temple config to get latest theme settings
-        guard let token = deviceToken,
-              let templeId = extractTempleId(from: token) else {
-            print("[AppState] ⚠️ Cannot refresh temple config - missing token or templeId")
+        guard deviceToken != nil else {
+            print("[AppState] ⚠️ Cannot refresh kiosk config - missing device token")
             return
         }
         
         isRefreshingTempleConfig = true
-        print("[AppState] 🔄 Refreshing temple config for theme updates...")
+        print("[AppState] 🔄 Refreshing kiosk config...")
         
         defer {
             Task { @MainActor in
@@ -145,20 +147,15 @@ class AppState: ObservableObject {
         }
         
         do {
-            let temple = try await APIService.shared.getTemple(templeId: templeId)
-            // Check if background URL changed (for cache invalidation)
-            let _ = self.temple?.homeScreenConfig?.backgroundImageUrl
-            let _ = temple.homeScreenConfig?.backgroundImageUrl
-            
+            let config = try await APIService.shared.getKioskConfig()
             await MainActor.run {
-                self.temple = temple
-                print("[AppState] ✅ Temple config refreshed (including theme)")
+                self.temple = config.temple
+                self.showObservances = config.showObservances
+                UserDefaults.standard.set(config.showObservances, forKey: "showObservances")
+                print("[AppState] ✅ Kiosk config refreshed (showObservances: \(config.showObservances))")
             }
-            
-            // Don't automatically refresh categories here - let timers handle it to avoid duplicates
-            // Categories will be refreshed by the category refresh timer
         } catch {
-            print("[AppState] ❌ Failed to refresh temple config: \(error.localizedDescription)")
+            print("[AppState] ❌ Failed to refresh kiosk config: \(error.localizedDescription)")
         }
     }
     
@@ -200,7 +197,7 @@ class AppState: ObservableObject {
     }
     
     func refreshReligiousEvents() async {
-        
+        guard showObservances else { return }
         do {
             let events = try await APIService.shared.getReligiousEvents()
             
@@ -257,10 +254,9 @@ class AppState: ObservableObject {
             return
         }
         
-        // Fetch temple config from backend using templeId from JWT token
-        guard let token = deviceToken,
-              let templeId = extractTempleId(from: token) else {
-            appLog("⚠️ Cannot load temple config - missing token or templeId", category: "AppState")
+        // Fetch kiosk config from device-authenticated endpoint
+        guard deviceToken != nil else {
+            appLog("⚠️ Cannot load kiosk config - missing device token", category: "AppState")
             // Don't set isActivated here - it should already be set if we have credentials
             // Only set it if this is called from activate() (first-time activation)
             if !isActivated {
@@ -290,19 +286,21 @@ class AppState: ObservableObject {
             }
             
             do {
-                // Use 8s timeout for all attempts (faster than 30s default, but not too aggressive)
+                // Use device-authenticated kiosk config endpoint (no admin JWT dependency)
                 let timeout = 8.0
-                let temple = try await APIService.shared.getTemple(templeId: templeId, timeout: timeout)
+                let config = try await APIService.shared.getKioskConfig(timeout: timeout)
                 
                 await MainActor.run {
-                    self.temple = temple
+                    self.temple = config.temple
+                    self.showObservances = config.showObservances
+                    UserDefaults.standard.set(config.showObservances, forKey: "showObservances")
                     // Set activated when temple config loads successfully
                     // This ensures UI only shows when server connection is ready
                     if !self.isActivated {
                         self.isActivated = true
                         appLog("✅ Temple config loaded - activating UI", category: "AppState")
                     }
-                    appLog("✅ Temple config loaded: \(temple.name)", category: "AppState")
+                    appLog("✅ Kiosk config loaded: \(config.temple.name), showObservances: \(config.showObservances)", category: "AppState")
                     
                     // Start automatic theme refresh timer if not already started
                     if themeRefreshTimer == nil {
@@ -536,7 +534,7 @@ class AppState: ObservableObject {
         // Refresh immediately on first start (non-blocking background task)
         Task.detached(priority: .utility) { [weak self] in
             guard let self = self else { return }
-            await refreshTempleConfig()
+            await refreshKioskConfig()
         }
         
         // Then refresh every 30 seconds (all in background)
@@ -546,7 +544,7 @@ class AppState: ObservableObject {
             }
             Task.detached(priority: .utility) { [weak self] in
                 guard let self = self else { return }
-                await self.refreshTempleConfig()
+                await self.refreshKioskConfig()
             }
         }
     }
@@ -571,7 +569,7 @@ class AppState: ObservableObject {
         
         print("[AppState] 🔄 Starting automatic category refresh timer (every 30 seconds)")
         
-        // Don't refresh immediately - categories are loaded in loadTempleConfig()
+        // Don't refresh immediately - categories are loaded in loadTempleConfig() / loadKioskConfig()
         // Timer will handle periodic refreshes
         
         // Then refresh every 30 seconds (all in background)
@@ -598,9 +596,9 @@ class AppState: ObservableObject {
         // Stop existing timer if any
         religiousEventsRefreshTimer?.invalidate()
         
-        // Only start if device is activated
-        guard isActivated else {
-            print("[AppState] ⏸️ Skipping religious events refresh timer - device not activated")
+        // Only start if device is activated and observances are enabled
+        guard isActivated, showObservances else {
+            print("[AppState] ⏸️ Skipping religious events refresh timer - device not activated or observances disabled")
             return
         }
         
@@ -897,5 +895,13 @@ struct DeviceActivationResponse: Codable {
     let deviceToken: String
     let temple: Temple
     let categories: [DonationCategory]
+    /// Global setting: whether to show religious observances on kiosk (default: true)
+    let showObservances: Bool?
+}
+
+/// Kiosk runtime config from device-authenticated endpoint (no admin JWT)
+struct KioskConfigResponse: Codable {
+    let showObservances: Bool
+    let temple: Temple
 }
 

@@ -43,14 +43,14 @@ struct KeyboardModal<KeyboardContent: View>: View {
                 x: 0,
                 y: DesignSystem.Components.modalShadowY
             )
-            .scaleEffect(isDismissing ? 0.95 : (isVisible ? 1 : 0.95))
+                .scaleEffect(isDismissing ? 0.96 : (isVisible ? 1 : 0.96))
             .opacity(isDismissing ? 0 : (isVisible ? 1 : 0))
-            .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration), value: isVisible)
-            .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration * 0.85), value: isDismissing)
+            .animation(.spring(response: DesignSystem.Components.modalSpringResponse, dampingFraction: DesignSystem.Components.modalSpringDamping), value: isVisible)
+            .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration * 0.9), value: isDismissing)
         }
         .onAppear {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            withAnimation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration)) {
+            withAnimation(.spring(response: DesignSystem.Components.modalSpringResponse, dampingFraction: DesignSystem.Components.modalSpringDamping)) {
                 isVisible = true
             }
         }
@@ -107,7 +107,11 @@ struct KeyboardModal<KeyboardContent: View>: View {
     }
 
     private var footer: some View {
-        Button(action: onContinue) {
+        Button(action: {
+            guard canContinue else { return }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            onContinue()
+        }) {
             HStack(spacing: DesignSystem.Components.inlineSpacing) {
                 Text("Continue")
                     .font(.custom("Inter-Medium", size: DesignSystem.Typography.buttonSize + 2))
@@ -135,13 +139,15 @@ struct KeyboardModal<KeyboardContent: View>: View {
                 }
             )
             .cornerRadius(DesignSystem.Components.buttonCornerRadius)
-            .shadow(color: canContinue ? Color.black.opacity(0.2) : .clear, radius: 8, x: 0, y: 4)
+            .shadow(color: canContinue ? Color.black.opacity(0.18) : .clear, radius: 6, x: 0, y: 3)
         }
+        .buttonStyle(.plain)
         .disabled(!canContinue)
+        .opacity(canContinue ? 1 : 0.72)
         .padding(.horizontal, DesignSystem.Components.keyboardModalPaddingH)
         .padding(.top, DesignSystem.Spacing.md)
         .padding(.bottom, DesignSystem.Spacing.lg)
-        .animation(.easeInOut(duration: 0.2), value: canContinue)
+        .animation(.easeInOut(duration: 0.18), value: canContinue)
     }
 
     private func colorFromHex(_ hex: String?, defaultColor: Color) -> Color {

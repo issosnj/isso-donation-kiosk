@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Req,
   BadRequestException,
   HttpException,
   HttpStatus,
@@ -63,8 +64,21 @@ export class ReligiousEventsController {
   @UseGuards(DeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get upcoming religious events for kiosk (Device authenticated)' })
-  findUpcomingForKiosk() {
-    return this.religiousEventsService.findUpcoming(50);
+  findUpcomingForKiosk(@Req() req: { device: { templeId: string } }) {
+    return this.religiousEventsService.findUpcomingForKiosk(req.device.templeId, 50);
+  }
+
+  @Get('observance-status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MASTER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get observance calendar failure status (Master Admin only)' })
+  getObservanceStatus(@Query('templeId') templeId?: string) {
+    const failures = this.religiousEventsService.getLastObservanceFailure(templeId);
+    const asArray = failures instanceof Map
+      ? Array.from(failures.entries()).map(([id, f]) => ({ templeId: id, ...f }))
+      : failures ? [{ ...failures }] : [];
+    return { lastFailures: asArray };
   }
 
   @Get(':id')

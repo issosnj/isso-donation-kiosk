@@ -16,6 +16,11 @@ export class GlobalSettings {
   key: string;
 
   @Column({ type: 'json', nullable: true })
+  kioskBehavior: {
+    showObservances?: boolean;
+  };
+
+  @Column({ type: 'json', nullable: true })
   kioskTheme: {
     // Font settings
     fonts?: {

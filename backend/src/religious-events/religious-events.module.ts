@@ -7,11 +7,13 @@ import { ReligiousEventsSyncService } from './religious-events-sync.service';
 import { ReligiousEvent } from './entities/religious-event.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { DevicesModule } from '../devices/devices.module';
+import { TemplesModule } from '../temples/temples.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ReligiousEvent]),
     forwardRef(() => DevicesModule), // Required for DeviceAuthGuard (DevicesService)
+    TemplesModule,
     JwtModule.register({}),
   ],
   controllers: [ReligiousEventsController],

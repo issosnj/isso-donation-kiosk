@@ -48,6 +48,7 @@ export class CreateTempleDto {
     whatsAppLink?: string;
     eventsText?: string;
     googleCalendarLink?: string;
+    observanceCalendarUrl?: string;
     localEvents?: Array<{
       id: string;
       title: string;

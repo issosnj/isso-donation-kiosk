@@ -78,5 +78,14 @@ export class GlobalSettingsService {
     console.log('[Global Settings] Theme saved successfully');
     return saved;
   }
+
+  async updateKioskBehavior(kioskBehavior: { showObservances?: boolean }): Promise<GlobalSettings> {
+    let settings = await this.getSettings();
+    const nextShow = kioskBehavior.showObservances !== undefined
+      ? kioskBehavior.showObservances
+      : (settings.kioskBehavior?.showObservances ?? true);
+    settings.kioskBehavior = { showObservances: nextShow };
+    return this.globalSettingsRepository.save(settings);
+  }
 }
 

@@ -52,10 +52,10 @@ struct KioskModal<Content: View>: View {
             y: DesignSystem.Components.modalShadowY
         )
         .padding(DesignSystem.Components.modalContentPadding)
-        .scaleEffect(isDismissing ? 0.95 : (isVisible ? 1 : 0.95))
+        .scaleEffect(isDismissing ? 0.96 : (isVisible ? 1 : 0.96))
         .opacity(isDismissing ? 0 : (isVisible ? 1 : 0))
-        .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration), value: isVisible)
-        .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration * 0.85), value: isDismissing)
+        .animation(.spring(response: DesignSystem.Components.modalSpringResponse, dampingFraction: DesignSystem.Components.modalSpringDamping), value: isVisible)
+        .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration * 0.9), value: isDismissing)
     }
 
     private var header: some View {
@@ -84,7 +84,7 @@ struct KioskModal<Content: View>: View {
     }
 
     private func animateIn() {
-        withAnimation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration)) {
+        withAnimation(.spring(response: DesignSystem.Components.modalSpringResponse, dampingFraction: DesignSystem.Components.modalSpringDamping)) {
             isVisible = true
         }
     }

@@ -90,12 +90,6 @@ export default function LayoutEditor({ theme, onChange, disabled }: LayoutEditor
               disabled={disabled}
             />
             <ToggleInput
-              label="Show Observance"
-              checked={theme.layout.homeScreenObservanceVisible ?? true}
-              onChange={(v) => updateLayout({ homeScreenObservanceVisible: v })}
-              disabled={disabled}
-            />
-            <ToggleInput
               label="Show Language Selector"
               checked={theme.layout.homeScreenLanguageSelectorVisible ?? true}
               onChange={(v) => updateLayout({ homeScreenLanguageSelectorVisible: v })}

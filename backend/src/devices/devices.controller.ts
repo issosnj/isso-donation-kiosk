@@ -82,6 +82,18 @@ export class DevicesController {
     }
   }
 
+  @Get('kiosk-config')
+  @UseGuards(DeviceAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get kiosk runtime config (device endpoint, no admin JWT)' })
+  async getKioskConfig(@CurrentDevice() device: any) {
+    const deviceId = device?.deviceId;
+    if (!deviceId) {
+      throw new UnauthorizedException('Device ID not found in token');
+    }
+    return this.devicesService.getKioskConfig(deviceId);
+  }
+
   @Get('stripe-credentials')
   @UseGuards(DeviceAuthGuard)
   @ApiBearerAuth()

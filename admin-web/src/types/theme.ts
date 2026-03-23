@@ -73,7 +73,6 @@ export interface ThemeLayout {
   homeScreenTimeStatusVisible: boolean
   homeScreenTapToDonateVisible: boolean
   homeScreenWhatsAppVisible: boolean
-  homeScreenObservanceVisible: boolean
   homeScreenLanguageSelectorVisible: boolean
   // Legacy pixel values (computed from presets in kiosk app; kept for API compat)
   homeScreenHeaderTopPadding: number

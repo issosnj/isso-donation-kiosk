@@ -75,5 +75,12 @@ export class GlobalSettingsController {
 
     return updated;
   }
+
+  @Patch('kiosk-behavior')
+  @ApiOperation({ summary: 'Update kiosk behavior (Master Admin only)' })
+  @Roles(UserRole.MASTER_ADMIN)
+  async updateKioskBehavior(@Body() body: { showObservances?: boolean }) {
+    return this.globalSettingsService.updateKioskBehavior(body);
+  }
 }
 
