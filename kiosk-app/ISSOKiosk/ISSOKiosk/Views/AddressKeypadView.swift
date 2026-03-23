@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AddressKeypadView: View {
     @Binding var address: String
@@ -8,50 +9,41 @@ struct AddressKeypadView: View {
     @State private var showAddressSuggestions: Bool = false
     @State private var isSearchingAddresses: Bool = false
     @State private var addressSessionToken: String? = nil
+    @State private var isVisible = false
+    @State private var isDismissing = false
     @EnvironmentObject var appState: AppState
-    
+
     var body: some View {
         ZStack {
-            // Semi-transparent background overlay
-            Color.black.opacity(0.4)
+            Color.black.opacity(DesignSystem.Components.modalOverlayOpacity)
                 .ignoresSafeArea()
-                .onTapGesture {
-                    onDismiss()
-                }
-            
-            // Single smooth popup - wider and more appealing
+                .opacity(isVisible && !isDismissing ? 1 : 0)
+                .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration), value: isVisible)
+                .onTapGesture { dismissWithAnimation { onDismiss() } }
+
             ScrollView {
                 VStack(spacing: 0) {
-                    // Header with Cancel button
                     HStack {
-                        Button(action: {
-                            onDismiss()
-                        }) {
+                        Button(action: { dismissWithAnimation { onDismiss() } }) {
                             Text("Cancel")
-                                .font(.custom("Inter-Medium", size: 16))
+                                .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
                                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, DesignSystem.Spacing.md)
+                                .padding(.vertical, DesignSystem.Spacing.sm)
                         }
-                        
-                    Spacer()
-                    
-                    Text("Mailing Address")
-                        .font(.custom("Inter-SemiBold", size: 24))
-                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                    
-                    Spacer()
-                        
-                        // Invisible spacer to balance Cancel button
+                        Spacer()
+                        Text("Mailing Address")
+                            .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
+                            .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                        Spacer()
                         Text("Cancel")
-                            .font(.custom("Inter-Medium", size: 16))
+                            .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
                             .foregroundColor(.clear)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, DesignSystem.Spacing.md)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
                     }
-                .padding(.horizontal, 24)
-                .padding(.top, 12)
-                .padding(.bottom, 16)
+                    .padding(.horizontal, DesignSystem.Components.keyboardModalPaddingH)
+                    .padding(.bottom, DesignSystem.Spacing.md)
                 
                 // Address input display with suggestions
                 VStack(alignment: .leading, spacing: 12) {
@@ -119,10 +111,8 @@ struct AddressKeypadView: View {
                 }
                 .padding(.bottom, 16)
                 
-                // Text keypad with numbers
-                VStack(spacing: 12) {
-                    // Numbers row
-                    HStack(spacing: 12) {
+                VStack(spacing: DesignSystem.Components.keyboardKeySpacing) {
+                    HStack(spacing: DesignSystem.Components.keyboardKeySpacing) {
                         TextKeypadButton(character: "1", enteredText: $enteredAddress)
                         TextKeypadButton(character: "2", enteredText: $enteredAddress)
                         TextKeypadButton(character: "3", enteredText: $enteredAddress)
@@ -134,8 +124,7 @@ struct AddressKeypadView: View {
                         TextKeypadButton(character: "9", enteredText: $enteredAddress)
                         TextKeypadButton(character: "0", enteredText: $enteredAddress)
                     }
-                    
-                    HStack(spacing: 12) {
+                    HStack(spacing: DesignSystem.Components.keyboardKeySpacing) {
                         TextKeypadButton(character: "Q", enteredText: $enteredAddress)
                         TextKeypadButton(character: "W", enteredText: $enteredAddress)
                         TextKeypadButton(character: "E", enteredText: $enteredAddress)
@@ -147,7 +136,7 @@ struct AddressKeypadView: View {
                         TextKeypadButton(character: "O", enteredText: $enteredAddress)
                         TextKeypadButton(character: "P", enteredText: $enteredAddress)
                     }
-                    HStack(spacing: 12) {
+                    HStack(spacing: DesignSystem.Components.keyboardKeySpacing) {
                         TextKeypadButton(character: "A", enteredText: $enteredAddress)
                         TextKeypadButton(character: "S", enteredText: $enteredAddress)
                         TextKeypadButton(character: "D", enteredText: $enteredAddress)
@@ -158,7 +147,7 @@ struct AddressKeypadView: View {
                         TextKeypadButton(character: "K", enteredText: $enteredAddress)
                         TextKeypadButton(character: "L", enteredText: $enteredAddress)
                     }
-                    HStack(spacing: 12) {
+                    HStack(spacing: DesignSystem.Components.keyboardKeySpacing) {
                         TextKeypadButton(character: "Z", enteredText: $enteredAddress)
                         TextKeypadButton(character: "X", enteredText: $enteredAddress)
                         TextKeypadButton(character: "C", enteredText: $enteredAddress)
@@ -169,47 +158,20 @@ struct AddressKeypadView: View {
                         TextKeypadButton(character: ".", enteredText: $enteredAddress)
                         TextKeypadButton(character: ",", enteredText: $enteredAddress)
                     }
-                    HStack(spacing: 12) {
-                        // Space button
-                        Button(action: {
-                            enteredAddress += " "
-                        }) {
-                                    Text("Space")
-                                        .font(.custom("Inter-Medium", size: 16))
-                                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 60)
-                                        .background(Color(red: 0.98, green: 0.97, blue: 0.95))
-                                        .cornerRadius(12)
-                                        .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
-                        }
-                        .frame(maxWidth: .infinity)
-                        
-                        // Backspace button
-                        Button(action: {
-                            if !enteredAddress.isEmpty {
-                                enteredAddress.removeLast()
-                            }
-                        }) {
-                                    Image(systemName: "delete.left.fill")
-                                        .font(.system(size: 20, weight: .semibold))
-                                        .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 60)
-                                        .background(Color(red: 0.98, green: 0.97, blue: 0.95))
-                                        .cornerRadius(12)
-                                        .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 2)
-                        }
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: DesignSystem.Components.keyboardKeySpacing) {
+                        KeyboardKeyButton(primaryLabel: "Space", action: { enteredAddress += " " })
+                            .frame(maxWidth: .infinity)
+                        KeyboardKeyButton(systemImage: "delete.left.fill", action: {
+                            if !enteredAddress.isEmpty { enteredAddress.removeLast() }
+                        })
                     }
                 }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, DesignSystem.Components.keyboardModalPaddingH)
                 .padding(.bottom, 16)
                 
-                // Continue button
                 Button(action: {
                     address = enteredAddress
-                    onDismiss()
+                    dismissWithAnimation { onDismiss() }
                 }) {
                     HStack(spacing: 12) {
                         Text("Continue")
@@ -240,24 +202,45 @@ struct AddressKeypadView: View {
                 .padding(.horizontal, 32)
                 .padding(.bottom, 16)
             }
-            .frame(maxWidth: 900) // Wider popup
-            .padding(.vertical, 16)
+            .frame(maxWidth: DesignSystem.Components.keyboardModalMaxWidth)
+            .padding(.vertical, DesignSystem.Components.keyboardModalPaddingV)
         }
-        .frame(maxWidth: 900)
+        .frame(maxWidth: DesignSystem.Components.keyboardModalMaxWidth)
         .background(Color.white)
-        .cornerRadius(24)
-        .shadow(color: Color.black.opacity(0.25), radius: 30, x: 0, y: 15)
+        .cornerRadius(DesignSystem.Components.modalCornerRadius)
+        .shadow(
+            color: Color.black.opacity(DesignSystem.Components.modalShadowOpacity),
+            radius: DesignSystem.Components.modalShadowRadius,
+            x: 0,
+            y: DesignSystem.Components.modalShadowY
+        )
+        .scaleEffect(isDismissing ? 0.95 : (isVisible ? 1 : 0.95))
+        .opacity(isDismissing ? 0 : (isVisible ? 1 : 0))
+        .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration), value: isVisible)
+        .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration * 0.85), value: isDismissing)
         }
         .onAppear {
             enteredAddress = address
-            // Hide system keyboard when view appears
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            withAnimation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration)) {
+                isVisible = true
+            }
         }
         .onChange(of: enteredAddress) { newValue in
-            // Trigger address search when user types
             Task {
                 await searchAddresses(input: newValue)
             }
+        }
+    }
+
+    private func dismissWithAnimation(completion: (() -> Void)? = nil) {
+        guard !isDismissing else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        withAnimation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration * 0.85)) {
+            isDismissing = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + DesignSystem.Components.modalAnimationDuration * 0.9) {
+            completion?()
         }
     }
     

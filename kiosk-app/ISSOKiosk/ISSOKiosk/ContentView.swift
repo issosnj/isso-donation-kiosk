@@ -33,21 +33,25 @@ struct ContentView: View {
                     // Show donation flow on top when active
                     if navigationState.showDonationFlow {
                         DonationHomeView(onDismiss: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
                                 navigationState.showDonationFlow = false
                             }
                         })
                         .environmentObject(appState)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .move(edge: .bottom).combined(with: .opacity)
+                        ))
                         .zIndex(1)
                     }
                 }
+                .animation(.spring(response: 0.45, dampingFraction: 0.9), value: navigationState.showDonationFlow)
                 .detectTouches()
                 .onAppear {
                     setupIdleTimer()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .idleTimeoutReached)) { _ in
-                    withAnimation {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
                         navigationState.showDonationFlow = false
                     }
                 }

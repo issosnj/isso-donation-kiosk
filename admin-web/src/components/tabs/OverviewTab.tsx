@@ -1,27 +1,131 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { format } from 'date-fns'
+import { useAlerts } from '@/hooks/useAlerts'
+import { AlertCenter } from '@/components/alerts'
+import { useOverviewData } from '@/hooks/useOverviewData'
+import {
+  ExecutiveHero,
+  OverviewStatCards,
+  DonationTrendsChart,
+  TemplePerformanceSection,
+  DeviceHealthSection,
+} from '@/components/overview'
 
 interface OverviewTabProps {
   templeId?: string
 }
 
 export default function OverviewTab({ templeId }: OverviewTabProps) {
+  const isMasterAdmin = !templeId
+  const [chartGranularity, setChartGranularity] = useState<
+    'day' | 'week' | 'month'
+  >('day')
+
+  const {
+    stats,
+    trendData,
+    templePerformance,
+    deviceSummary,
+    alertSummary,
+    alerts,
+    isLoading,
+    devicesLoading,
+  } = useOverviewData(chartGranularity)
+
+  const { isLoading: alertsLoading } = useAlerts()
+
+  // Temple Admin: show simpler view
+  if (!isMasterAdmin && templeId) {
+    return (
+      <TempleAdminOverview templeId={templeId} />
+    )
+  }
+
+  // Master Admin: full executive dashboard
+  return (
+    <div className="space-y-8">
+      {/* 1. Executive hero */}
+      <ExecutiveHero
+        totalYtd={stats.totalYtd}
+        trendDirection={stats.trendDirection}
+        countYtd={stats.countYtd}
+        isLoading={isLoading}
+      />
+
+      {/* 2. Operational alerts */}
+      {alertSummary.total > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">
+            What needs attention
+          </h2>
+          <AlertCenter
+            alerts={alerts}
+            isLoading={alertsLoading}
+            emptyMessage="All systems normal"
+          />
+        </section>
+      )}
+
+      {alertSummary.total === 0 && !alertsLoading && (
+        <section>
+          <AlertCenter alerts={[]} isLoading={false} emptyMessage="All systems normal" />
+        </section>
+      )}
+
+      {/* 3. Key metrics row */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-900 mb-3">Key metrics</h2>
+        <OverviewStatCards
+          totalYtd={stats.totalYtd}
+          countYtd={stats.countYtd}
+          avgGift={stats.avgGift}
+          isLoading={isLoading}
+        />
+      </section>
+
+      {/* 4. Donation trends + Temple performance + Device health */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-7">
+          <DonationTrendsChart
+            data={trendData}
+            granularity={chartGranularity}
+            onGranularityChange={setChartGranularity}
+            isLoading={isLoading}
+          />
+        </div>
+        <div className="lg:col-span-5 space-y-6">
+          <DeviceHealthSection
+            total={deviceSummary.total}
+            online={deviceSummary.online}
+            offline={deviceSummary.offline}
+            needingAttention={deviceSummary.needingAttention}
+            setupIssuesCount={alertSummary.warning + alertSummary.critical}
+            isLoading={devicesLoading}
+          />
+          <TemplePerformanceSection
+            temples={templePerformance}
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TempleAdminOverview({ templeId }: { templeId: string }) {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['donation-stats', templeId],
     queryFn: async () => {
-      // Get year-to-date stats (from January 1st of current year to today)
       const today = new Date()
-      const startOfYear = new Date(today.getFullYear(), 0, 1) // January 1st
+      const startOfYear = new Date(today.getFullYear(), 0, 1)
       const endDate = new Date()
-      
       const response = await api.get('/donations/stats', {
         params: {
           startDate: startOfYear.toISOString(),
           endDate: endDate.toISOString(),
-          ...(templeId && { templeId }),
         },
       })
       return response.data
@@ -32,11 +136,9 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white p-6 rounded-lg shadow">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-              <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-            </div>
+          <div key={i} className="bg-white p-6 rounded-lg shadow animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
+            <div className="h-8 bg-gray-200 rounded w-1/2" />
           </div>
         ))}
       </div>
@@ -59,7 +161,6 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Hero Banner */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg p-8 text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div>
@@ -75,7 +176,6 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
         </div>
       </div>
 
-      {/* Statistics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -119,4 +219,3 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
     </div>
   )
 }
-

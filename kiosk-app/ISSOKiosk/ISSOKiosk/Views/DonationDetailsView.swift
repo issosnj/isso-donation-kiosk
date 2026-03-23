@@ -113,7 +113,7 @@ struct ModernDonationDetailsView: View {
     }
     
     private var detailsPageHorizontalSpacing: CGFloat {
-        CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? 40)
+        CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? DesignSystem.Spacing.xl)
     }
     
     private var detailsPageSidePadding: CGFloat {
@@ -121,11 +121,11 @@ struct ModernDonationDetailsView: View {
     }
     
     private var detailsPageTopPadding: CGFloat {
-        CGFloat(theme?.layout?.detailsPageTopPadding ?? 80)
+        CGFloat(theme?.layout?.detailsPageTopPadding ?? DesignSystem.Layout.pageTopPadding)
     }
     
     private var detailsPageBottomPadding: CGFloat {
-        CGFloat(theme?.layout?.detailsPageBottomPadding ?? 40)
+        CGFloat(theme?.layout?.detailsPageBottomPadding ?? DesignSystem.Spacing.xl)
     }
     
     private var detailsCardMaxWidth: CGFloat {
@@ -137,11 +137,11 @@ struct ModernDonationDetailsView: View {
     }
     
     private var detailsCardPadding: CGFloat {
-        CGFloat(theme?.layout?.detailsCardPadding ?? 24)
+        CGFloat(theme?.layout?.detailsCardPadding ?? DesignSystem.Layout.cardPadding)
     }
     
     private var detailsCardSpacing: CGFloat {
-        CGFloat(theme?.layout?.detailsCardSpacing ?? 16)
+        CGFloat(theme?.layout?.detailsCardSpacing ?? DesignSystem.Spacing.md)
     }
     
     // Font sizes
@@ -150,15 +150,15 @@ struct ModernDonationDetailsView: View {
     }
     
     private var detailsLabelFontSize: CGFloat {
-        CGFloat(theme?.layout?.detailsLabelFontSize ?? 18)
+        CGFloat(theme?.layout?.detailsLabelFontSize ?? DesignSystem.Typography.inputSize)
     }
     
     private var detailsInputFontSize: CGFloat {
-        CGFloat(theme?.layout?.detailsInputFontSize ?? 18)
+        CGFloat(theme?.layout?.detailsInputFontSize ?? DesignSystem.Typography.inputSize)
     }
     
     private var detailsButtonFontSize: CGFloat {
-        CGFloat(theme?.layout?.detailsButtonFontSize ?? 22)
+        CGFloat(theme?.layout?.detailsButtonFontSize ?? DesignSystem.Typography.subsectionSize + 2)
     }
     
     // Colors
@@ -184,6 +184,51 @@ struct ModernDonationDetailsView: View {
     
     private var detailsButtonTextColor: Color {
         colorFromHex(theme?.layout?.detailsButtonTextColor, defaultColor: Color.white)
+    }
+    
+    // Reusable donor input row — polished empty & filled states, consistent spacing
+    @ViewBuilder
+    private func donorInputRow(
+        label: String,
+        icon: String,
+        value: String,
+        isEmpty: Bool,
+        hasError: Bool,
+        onTap: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            Text(label)
+                .font(.custom(DesignSystem.Typography.labelFont, size: DesignSystem.Typography.labelSize))
+                .foregroundColor(detailsTextColor.opacity(0.75))
+            Button(action: onTap) {
+                HStack(alignment: .center, spacing: DesignSystem.Components.inlineSpacing) {
+                    Image(systemName: icon)
+                        .font(.system(size: DesignSystem.Typography.secondarySize))
+                        .foregroundColor(detailsTextColor.opacity(isEmpty ? 0.45 : 0.65))
+                        .frame(width: DesignSystem.Components.iconFrameWidth, alignment: .center)
+                    Text(value)
+                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
+                        .foregroundColor(isEmpty ? detailsTextColor.opacity(0.45) : detailsTextColor)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(minHeight: DesignSystem.Components.inputHeight)
+                .padding(.horizontal, DesignSystem.Spacing.lg)
+                .padding(.vertical, DesignSystem.Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                        .fill(Color.white.opacity(0.55))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                                .stroke(
+                                    hasError ? Color.red.opacity(0.5) : Color.white.opacity(0.4),
+                                    lineWidth: 1
+                                )
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+        }
     }
     
     // Helper view for background
@@ -220,114 +265,69 @@ struct ModernDonationDetailsView: View {
                         HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
                             // LEFT SIDE: Review Donation Panel
                     VStack(alignment: .leading, spacing: 0) {
-                        // Panel Title
                         Text("reviewDonation".localized)
-                            .font(.custom("Inter-SemiBold", size: 24))
+                            .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
                             .foregroundColor(detailsTextColor)
-                            .padding(.bottom, 24)
+                            .padding(.bottom, DesignSystem.Spacing.md)
                         
-                        // Large amount display
-                        Text(amount.formattedCurrency())
-                            .font(.custom("Inter-SemiBold", size: detailsAmountFontSize))
-                            .foregroundColor(detailsAmountColor)
-                            .padding(.bottom, 32)
-                        
-                        // Donation breakdown
-                        VStack(alignment: .leading, spacing: 16) {
-                            // Category name if selected
+                        // Donation breakdown — Donation line first, then Total
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                             if let category = category {
                                 HStack {
                                     Text(category.name)
                                         .font(.custom("Inter-Regular", size: detailsLabelFontSize))
-                                        .foregroundColor(detailsTextColor)
+                                        .foregroundColor(detailsTextColor.opacity(0.9))
                                     Spacer()
                                     Text(amount.formattedCurrency())
-                                        .font(.custom("Inter-Regular", size: detailsLabelFontSize))
-                                        .foregroundColor(detailsTextColor)
+                                        .font(.custom("Inter-Medium", size: detailsLabelFontSize + 2))
+                                        .foregroundColor(detailsAmountColor)
+                                        .monospacedDigit()
                                 }
                             }
-                            
-                            // Donation line
                             HStack {
                                 Text("Donation")
                                     .font(.custom("Inter-Regular", size: detailsLabelFontSize))
-                                    .foregroundColor(detailsTextColor)
+                                    .foregroundColor(detailsTextColor.opacity(0.9))
                                 Spacer()
                                 Text(amount.formattedCurrency())
-                                    .font(.custom("Inter-Regular", size: detailsLabelFontSize))
-                                    .foregroundColor(detailsTextColor)
+                                    .font(.custom("Inter-Medium", size: detailsLabelFontSize + 2))
+                                    .foregroundColor(detailsAmountColor)
+                                    .monospacedDigit()
                             }
-                            
-                            // Divider
                             Divider()
-                                .background(Color.gray.opacity(0.3))
-                                .padding(.vertical, 8)
-                            
-                            // Total
+                                .background(Color.gray.opacity(0.25))
+                                .padding(.vertical, DesignSystem.Spacing.xs)
                             HStack {
                                 Text("Total")
                                     .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
                                     .foregroundColor(detailsTextColor)
                                 Spacer()
                                 Text(amount.formattedCurrency())
-                                    .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
-                                    .foregroundColor(detailsTextColor)
+                                    .font(.custom("Inter-SemiBold", size: detailsAmountFontSize - 8))
+                                    .foregroundColor(detailsAmountColor)
+                                    .monospacedDigit()
                             }
                         }
-                        .padding(.bottom, 24)
+                        .padding(.vertical, DesignSystem.Spacing.md)
+                        .padding(.horizontal, DesignSystem.Spacing.md)
+                        .background(Color.white.opacity(0.2))
+                        .cornerRadius(DesignSystem.Components.chipCornerRadius)
+                        .padding(.bottom, DesignSystem.Spacing.md)
                         
-                        // Change Amount link
                         Button(action: {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             dismiss()
                         }) {
                             HStack(spacing: 4) {
                                 Text("Change Amount")
-                                    .font(.custom("Inter-Medium", size: 16))
-                                    .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                    .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
+                                    .font(.system(size: DesignSystem.Typography.secondarySize, weight: .medium))
                             }
+                            .foregroundColor(detailsButtonColor)
                         }
-                        .padding(.bottom, 32)
                         
-                        Spacer()
-                        
-                        // Back to Donation button at bottom (same style as Proceed to Payment)
-                        Button(action: {
-                            withAnimation {
-                                if let onCancel = onCancel {
-                                    onCancel()
-                                } else {
-                                    dismiss()
-                                }
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "arrow.left.circle.fill")
-                                    .font(.system(size: detailsButtonFontSize - 4, weight: .semibold))
-                                Text("backToDonation".localized)
-                                    .font(.custom("Inter-Medium", size: detailsButtonFontSize))
-                            }
-                            .foregroundColor(Color.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(
-                                Group {
-                                    let buttonColor = colorFromHex(
-                                        theme?.colors?.returnToHomeButtonColor,
-                                        defaultColor: Color(red: 0.85, green: 0.75, blue: 0.5)
-                                    )
-                                    if theme?.colors?.returnToHomeButtonGradient == true {
-                                        gradientFromColor(buttonColor)
-                                    } else {
-                                        buttonColor
-                                    }
-                                }
-                            )
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
-                        }
+                        Spacer(minLength: 0)
                     }
                     .frame(width: detailsCardMaxWidth, alignment: .leading)
                     .padding(detailsCardPadding)
@@ -343,154 +343,50 @@ struct ModernDonationDetailsView: View {
                                 )
                         }
                     )
-                    .cornerRadius(16)
+                    .cornerRadius(DesignSystem.Components.cardCornerRadius)
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
                     
                     // RIGHT SIDE: Optional Information Panel
                     VStack(alignment: .leading, spacing: 0) {
-                        // Panel Title
                         Text("Optional Information")
-                            .font(.custom("Inter-SemiBold", size: 24))
+                            .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
                             .foregroundColor(detailsTextColor)
-                            .padding(.bottom, 24)
+                            .padding(.bottom, DesignSystem.Spacing.md)
                         
-                        VStack(alignment: .leading, spacing: 20) {
-                            // Name field with icon
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("nameOptional".localized)
-                                    .font(.custom("Inter-Regular", size: 14))
-                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                
-                                Button(action: {
-                                    showingNameKeypad = true
-                                }) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "person.fill")
-                                            .font(.system(size: 18))
-                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                            .frame(width: 24)
-                                        
-                                        Text(donorName.isEmpty ? "enterYourName".localized : donorName)
-                                            .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                            .foregroundColor(donorName.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                    .padding(16)
-                                    .background(Color.white.opacity(0.6))
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(
-                                                (category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty
-                                                    ? Color.red.opacity(0.5)
-                                                    : Color.white.opacity(0.3)),
-                                                lineWidth: 1
-                                            )
-                                    )
-                                }
-                            }
-                            
-                            // Phone field with icon
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("phoneOptional".localized)
-                                    .font(.custom("Inter-Regular", size: 14))
-                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                
-                                Button(action: {
-                                    showingPhoneKeypad = true
-                                }) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "phone.fill")
-                                            .font(.system(size: 18))
-                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                            .frame(width: 24)
-                                        
-                                        Text(donorPhone.isEmpty ? "enterYourPhone".localized : formatPhoneDisplay(donorPhone))
-                                            .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                            .foregroundColor(donorPhone.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                    .padding(16)
-                                    .background(Color.white.opacity(0.6))
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(
-                                                (category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty
-                                                    ? Color.red.opacity(0.5)
-                                                    : Color.white.opacity(0.3)),
-                                                lineWidth: 1
-                                            )
-                                    )
-                                }
-                            }
-                            
-                            // Email field with icon
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("emailForReceipt".localized)
-                                    .font(.custom("Inter-Regular", size: 14))
-                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                
-                                Button(action: {
-                                    showingEmailKeypad = true
-                                }) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "envelope.fill")
-                                            .font(.system(size: 18))
-                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                            .frame(width: 24)
-                                        
-                                        Text(donorEmail.isEmpty ? "enterYourEmail".localized : donorEmail)
-                                            .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                            .foregroundColor(donorEmail.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                    .padding(16)
-                                    .background(Color.white.opacity(0.6))
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(
-                                                Color.white.opacity(0.3),
-                                                lineWidth: 1
-                                            )
-                                    )
-                                }
-                            }
-                            
-                            // Address field with icon and autocomplete
+                        VStack(alignment: .leading, spacing: DesignSystem.Components.inlineSpacing) {
+                            donorInputRow(
+                                label: "nameOptional".localized,
+                                icon: "person.fill",
+                                value: donorName.isEmpty ? "enterYourName".localized : donorName,
+                                isEmpty: donorName.isEmpty,
+                                hasError: category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty,
+                                onTap: { showingNameKeypad = true }
+                            )
+                            donorInputRow(
+                                label: "phoneOptional".localized,
+                                icon: "phone.fill",
+                                value: donorPhone.isEmpty ? "enterYourPhone".localized : formatPhoneDisplay(donorPhone),
+                                isEmpty: donorPhone.isEmpty,
+                                hasError: category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty,
+                                onTap: { showingPhoneKeypad = true }
+                            )
+                            donorInputRow(
+                                label: "emailForReceipt".localized,
+                                icon: "envelope.fill",
+                                value: donorEmail.isEmpty ? "enterYourEmail".localized : donorEmail,
+                                isEmpty: donorEmail.isEmpty,
+                                hasError: false,
+                                onTap: { showingEmailKeypad = true }
+                            )
                             ZStack(alignment: .topLeading) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("mailingAddressOptional".localized)
-                                        .font(.custom("Inter-Regular", size: 14))
-                                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                    
-                                    Button(action: {
-                                        showingAddressKeypad = true
-                                    }) {
-                                        HStack(spacing: 12) {
-                                            Image(systemName: "map.fill")
-                                                .font(.system(size: 18))
-                                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                                .frame(width: 24)
-                                            
-                                            Text(donorAddress.isEmpty ? "enterYourAddress".localized : donorAddress)
-                                                .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                                                .foregroundColor(donorAddress.isEmpty ? Color(red: 0.5, green: 0.5, blue: 0.6) : detailsTextColor)
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                        }
-                                        .padding(16)
-                                        .background(Color.white.opacity(0.6))
-                                        .cornerRadius(12)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(
-                                                    Color.white.opacity(0.3),
-                                                    lineWidth: 1
-                                                )
-                                        )
-                                    }
-                                }
+                                donorInputRow(
+                                    label: "mailingAddressOptional".localized,
+                                    icon: "mappin.circle.fill",
+                                    value: donorAddress.isEmpty ? "enterYourAddress".localized : donorAddress,
+                                    isEmpty: donorAddress.isEmpty,
+                                    hasError: false,
+                                    onTap: { showingAddressKeypad = true }
+                                )
                                 
                                 // Address suggestions overlay - positioned absolutely to prevent layout shifts
                                 if showAddressSuggestions && !addressSuggestions.isEmpty && addressFocused {
@@ -534,7 +430,7 @@ struct ModernDonationDetailsView: View {
                                         }
                                     }
                                     .background(Color.white)
-                                    .cornerRadius(12)
+                                    .cornerRadius(DesignSystem.Components.buttonCornerRadius)
                                     .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
                                     .frame(maxWidth: 400)
                                     .frame(maxHeight: 300)
@@ -542,56 +438,8 @@ struct ModernDonationDetailsView: View {
                                 }
                             }
                         }
-                        .padding(.bottom, 32)
                         
-                        Spacer()
-                        
-                        // Proceed to Payment button
-                        Button(action: {
-                            withAnimation {
-                                onConfirm(
-                                    donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
-                                    donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
-                                    donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces),
-                                    donorAddress.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorAddress.trimmingCharacters(in: .whitespaces)
-                                )
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Text("proceedToPayment".localized)
-                                    .font(.custom("Inter-Medium", size: detailsButtonFontSize))
-                                    .foregroundColor(canProceed ? Color.white : Color.gray)
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: detailsButtonFontSize - 4, weight: .semibold))
-                                    .foregroundColor(canProceed ? Color.white : Color.gray)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(
-                                Group {
-                                    if canProceed {
-                                        let buttonColor = colorFromHex(
-                                            theme?.colors?.proceedToPaymentButtonColor,
-                                            defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                        )
-                                        if theme?.colors?.proceedToPaymentButtonGradient == true {
-                                            gradientFromColor(buttonColor)
-                                        } else {
-                                            buttonColor
-                                        }
-                                    } else {
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    }
-                                }
-                            )
-                            .cornerRadius(12)
-                            .shadow(color: canProceed ? Color.black.opacity(0.2) : Color.clear, radius: 8, x: 0, y: 4)
-                        }
-                        .disabled(!canProceed)
+                        Spacer(minLength: 0)
                     }
                     .frame(width: donorFormMaxWidth)
                     .padding(detailsCardPadding)
@@ -607,14 +455,85 @@ struct ModernDonationDetailsView: View {
                                 )
                         }
                     )
-                    .cornerRadius(16)
+                    .cornerRadius(DesignSystem.Components.cardCornerRadius)
                     .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
                     }
                     .padding(.horizontal, detailsPageSidePadding)
                         
-                        // Bottom spacing
-                        Spacer()
-                            .frame(height: detailsPageBottomPadding)
+                        // CTA row — Back (secondary) + Proceed (primary)
+                        HStack(spacing: DesignSystem.Spacing.sm) {
+                            Button(action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+                                    if let onCancel = onCancel {
+                                        onCancel()
+                                    } else {
+                                        dismiss()
+                                    }
+                                }
+                            }) {
+                                HStack(spacing: DesignSystem.Components.inlineSpacing) {
+                                    Image(systemName: "arrow.left")
+                                        .font(.system(size: detailsButtonFontSize - 4, weight: .medium))
+                                    Text("backToDonation".localized)
+                                        .font(.custom("Inter-Medium", size: detailsButtonFontSize))
+                                }
+                                .foregroundColor(detailsButtonColor)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: DesignSystem.Components.buttonHeight)
+                                .background(Color.white.opacity(0.6))
+                                .cornerRadius(DesignSystem.Components.buttonCornerRadius)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                                        .stroke(detailsButtonColor.opacity(0.5), lineWidth: 1.5)
+                                )
+                            }
+                            Button(action: {
+                                guard canProceed else { return }
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+                                    onConfirm(
+                                        donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
+                                        donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
+                                        donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces),
+                                        donorAddress.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorAddress.trimmingCharacters(in: .whitespaces)
+                                    )
+                                }
+                            }) {
+                                HStack(spacing: DesignSystem.Components.inlineSpacing) {
+                                    Text("proceedToPayment".localized)
+                                        .font(.custom("Inter-Medium", size: detailsButtonFontSize))
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: detailsButtonFontSize - 4, weight: .semibold))
+                                }
+                                .foregroundColor(canProceed ? .white : Color(white: 0.45))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: DesignSystem.Components.buttonHeight)
+                                .background(
+                                    Group {
+                                        if canProceed {
+                                            let buttonColor = colorFromHex(
+                                                theme?.colors?.proceedToPaymentButtonColor,
+                                                defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                                            )
+                                            if theme?.colors?.proceedToPaymentButtonGradient == true {
+                                                gradientFromColor(buttonColor)
+                                            } else {
+                                                buttonColor
+                                            }
+                                        } else {
+                                            Color(white: 0.78)
+                                        }
+                                    }
+                                )
+                                .cornerRadius(DesignSystem.Components.buttonCornerRadius)
+                                .shadow(color: canProceed ? Color.black.opacity(0.2) : .clear, radius: 8, x: 0, y: 4)
+                            }
+                            .disabled(!canProceed)
+                        }
+                        .padding(.horizontal, detailsPageSidePadding)
+                        .padding(.top, DesignSystem.Spacing.lg)
+                        .padding(.bottom, detailsPageBottomPadding)
                     }
                 }
         }
@@ -644,8 +563,8 @@ struct ModernDonationDetailsView: View {
             VStack {
                 HStack {
                     ReaderBatteryStatusView()
-                        .padding(.leading, 20)
-                        .padding(.top, 10)
+                        .padding(.leading, DesignSystem.Layout.screenPadding)
+                        .padding(.top, DesignSystem.Spacing.sm + 2)
                     Spacer()
                 }
                 Spacer()
@@ -656,8 +575,8 @@ struct ModernDonationDetailsView: View {
                 HStack {
                     Spacer()
                     TimeAndNetworkStatusView()
-                        .padding(.trailing, 20)
-                        .padding(.top, 10)
+                        .padding(.trailing, DesignSystem.Layout.screenPadding)
+                        .padding(.top, DesignSystem.Spacing.sm + 2)
                 }
                 Spacer()
             }

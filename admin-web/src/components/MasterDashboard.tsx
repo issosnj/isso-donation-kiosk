@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useAlerts } from '@/hooks/useAlerts'
+import { StatusSummaryStrip } from './alerts'
 import OverviewTab from './tabs/OverviewTab'
 import TemplesTab from './tabs/TemplesTab'
 import DonationsTab from './tabs/DonationsTab'
@@ -9,22 +11,15 @@ import UsersTab from './tabs/UsersTab'
 import ThemeTab from './tabs/ThemeTab'
 import MasterReceiptsTab from './tabs/MasterReceiptsTab'
 import ReligiousEventsTab from './tabs/ReligiousEventsTab'
+import MasterDevicesTab from './tabs/MasterDevicesTab'
 
 interface MasterDashboardProps {
   activeTab: string
 }
 
 export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
-  // Get templeId from URL if present (for viewing specific temple's donors)
-  const [templeId, setTempleId] = useState<string | undefined>(undefined)
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search)
-      const templeIdParam = urlParams.get('templeId')
-      setTempleId(templeIdParam || undefined)
-    }
-  }, [])
+  const searchParams = useSearchParams()
+  const templeId = searchParams.get('templeId') || undefined
 
   const renderTab = () => {
     switch (activeTab) {
@@ -32,6 +27,8 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
         return <OverviewTab />
       case 'temples':
         return <TemplesTab />
+      case 'devices':
+        return <MasterDevicesTab />
       case 'donations':
         return <DonationsTab isMasterAdmin={true} />
       case 'donors':
@@ -49,11 +46,16 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
     }
   }
 
+  const { summary, isLoading } = useAlerts()
+
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Master Admin Dashboard</h1>
         <p className="text-sm text-gray-600">Manage temples, users, and view all donations across the platform</p>
+      </div>
+      <div className="mb-6">
+        <StatusSummaryStrip summary={summary} isLoading={isLoading} />
       </div>
       {renderTab()}
     </div>

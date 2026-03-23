@@ -117,6 +117,7 @@ export class DonorsService {
   ): Promise<{ donors: Donor[]; total: number }> {
     const queryBuilder = this.donorsRepository
       .createQueryBuilder('donor')
+      .leftJoinAndSelect('donor.temple', 'temple')
       .where('donor.templeId = :templeId', { templeId })
       .orderBy('donor.lastDonationDate', 'DESC')
       .addOrderBy('donor.createdAt', 'DESC');
@@ -135,6 +136,56 @@ export class DonorsService {
       .getManyAndCount();
 
     return { donors, total };
+  }
+
+  /**
+   * Get donor stats for a temple (for CRM dashboard)
+   */
+  async getDonorStats(templeId: string): Promise<{
+    total: number;
+    totalDonated: number;
+    newThisMonth: number;
+    repeatCount: number;
+    activeCount: number;
+  }> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const twelveMonthsAgo = new Date(now);
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+    const [total, totalDonatedResult, newThisMonth, repeatCount, activeCount] = await Promise.all([
+      this.donorsRepository.count({ where: { templeId } }),
+      this.donorsRepository
+        .createQueryBuilder('donor')
+        .select('COALESCE(SUM(donor.totalAmount), 0)', 'sum')
+        .where('donor.templeId = :templeId', { templeId })
+        .getRawOne(),
+      this.donorsRepository
+        .createQueryBuilder('donor')
+        .where('donor.templeId = :templeId', { templeId })
+        .andWhere('donor.createdAt >= :startOfMonth', { startOfMonth })
+        .getCount(),
+      this.donorsRepository
+        .createQueryBuilder('donor')
+        .where('donor.templeId = :templeId', { templeId })
+        .andWhere('donor.totalDonations > 1')
+        .getCount(),
+      this.donorsRepository
+        .createQueryBuilder('donor')
+        .where('donor.templeId = :templeId', { templeId })
+        .andWhere('donor.lastDonationDate >= :twelveMonthsAgo', { twelveMonthsAgo })
+        .getCount(),
+    ]);
+
+    const totalDonated = Number(totalDonatedResult?.sum ?? 0);
+
+    return {
+      total,
+      totalDonated,
+      newThisMonth,
+      repeatCount,
+      activeCount,
+    };
   }
 
   /**

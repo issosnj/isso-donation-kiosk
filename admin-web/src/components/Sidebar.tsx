@@ -41,11 +41,12 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
   const masterTabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'temples', label: 'Temples' },
+    { id: 'devices', label: 'Devices' },
     { id: 'donations', label: 'All Donations' },
     { id: 'donors', label: 'All Donors' },
     { id: 'users', label: 'Users' },
     { id: 'religious-events', label: 'Observances' },
-    { id: 'theme', label: 'Kiosk Theme' },
+    { id: 'theme', label: 'Kiosk Theme Studio' },
     { id: 'receipts', label: 'Receipts' },
   ]
 

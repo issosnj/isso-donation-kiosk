@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { format } from 'date-fns'
 import { useState } from 'react'
 import DonorInfoPopup from '../DonorInfoPopup'
+import { DonationStatusBadge, PendingDonationsAlert } from '@/components/donations'
 
 interface DonationsTabProps {
   templeId?: string
@@ -33,6 +34,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   const [showCreateDonor, setShowCreateDonor] = useState(false)
   const [newDonorForm, setNewDonorForm] = useState({ name: '', phone: '', email: '', address: '' })
   const [sendReceiptEmail, setSendReceiptEmail] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Fetch temples for master admin filter
   const { data: temples } = useQuery({
@@ -111,6 +113,38 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     },
     onError: (error: any) => {
       alert(error.response?.data?.message || 'Failed to backfill Stripe fees')
+    },
+  })
+
+  const cleanupPendingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/donations/cleanup/pending')
+      return response.data
+    },
+    onSuccess: (data) => {
+      alert(`Successfully cleaned up ${data.deleted} pending donation(s).`)
+      queryClient.invalidateQueries({ queryKey: ['donations'] })
+      setSelectedIds(new Set())
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to cleanup pending donations')
+    },
+  })
+
+  const cancelDonationMutation = useMutation({
+    mutationFn: async (donationId: string) => {
+      await api.post(`/donations/${donationId}/cancel`)
+    },
+    onSuccess: (_, donationId) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(donationId)
+        return next
+      })
+      queryClient.invalidateQueries({ queryKey: ['donations'] })
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to cancel donation')
     },
   })
 
@@ -297,6 +331,12 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     }
   }
 
+  const handleCleanupPending = () => {
+    if (confirm(`Delete all ${pendingCount} pending donation(s)? This cannot be undone.`)) {
+      cleanupPendingMutation.mutate()
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-8">
@@ -364,10 +404,76 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
 
   const showTempleColumn = isMasterAdmin && selectedTempleId === 'all'
 
+  const handleBulkCancelPending = () => {
+    const pendingSelected = filteredDonations.filter(
+      (d: any) => d.status === 'PENDING' && selectedIds.has(d.id)
+    )
+    if (pendingSelected.length === 0) return
+    if (confirm(`Cancel ${pendingSelected.length} selected pending donation(s)?`)) {
+      pendingSelected.forEach((d: any) => cancelDonationMutation.mutate(d.id))
+    }
+  }
+
+  const handleExport = () => {
+    const rows = filteredDonations.map((d: any) => ({
+      Date: format(new Date(d.createdAt), 'yyyy-MM-dd HH:mm'),
+      Temple: d.temple?.name || '',
+      Receipt: d.receiptNumber || '',
+      Gross: Number(d.amount).toFixed(2),
+      Fee: d.stripeFee || d.squareFee ? Number(d.stripeFee || d.squareFee).toFixed(2) : '',
+      Net: d.netAmount ? Number(d.netAmount).toFixed(2) : Number(d.amount).toFixed(2),
+      Category: d.category?.name || 'General',
+      Status: d.status,
+      Donor: d.donorName || d.donorPhone || 'Anonymous',
+      Email: d.donorEmail || '',
+    }))
+    const headers = Object.keys(rows[0] || {})
+    const csv = [headers.join(','), ...rows.map((r: Record<string, string | number>) => headers.map((h) => `"${String(r[h]).replace(/"/g, '""')}"`).join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `donations-${format(new Date(), 'yyyy-MM-dd')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredDonations.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredDonations.map((d: any) => d.id)))
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectedPendingCount = filteredDonations.filter(
+    (d: any) => d.status === 'PENDING' && selectedIds.has(d.id)
+  ).length
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      {/* Filters */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
+      {/* Pending donations alert - actionable card */}
+      {pendingCount > 0 && (
+        <PendingDonationsAlert
+          count={pendingCount}
+          onReview={() => setShowFailedAndCancelled(true)}
+          onCleanupPending={isMasterAdmin ? handleCleanupPending : undefined}
+          isCleaningUp={cleanupPendingMutation.isPending}
+          isMasterAdmin={isMasterAdmin}
+        />
+      )}
+
+      {/* Sticky filters */}
+      <div className="sticky top-0 z-10 p-4 border-b border-gray-200 bg-gray-50 shadow-sm">
         <div className="flex flex-wrap gap-4 items-end justify-between">
           <div className="flex flex-wrap gap-4 items-end">
             {isMasterAdmin && (
@@ -460,10 +566,48 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
           </div>
         </div>
 
+      {/* Bulk actions bar */}
+      <div className="flex items-center justify-between gap-4 px-4 py-2 border-b border-gray-200 bg-white">
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filteredDonations.length > 0 && selectedIds.size === filteredDonations.length}
+              onChange={toggleSelectAll}
+              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            />
+            <span className="text-sm text-gray-600">Select all</span>
+          </label>
+          {selectedIds.size > 0 && (
+            <span className="text-sm text-gray-500">{selectedIds.size} selected</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Export CSV
+          </button>
+          {selectedPendingCount > 0 && (
+            <button
+              onClick={handleBulkCancelPending}
+              disabled={cancelDonationMutation.isPending}
+              className="px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 disabled:opacity-50"
+            >
+              Cancel {selectedPendingCount} Pending
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-4 py-3 w-10">
+                <span className="sr-only">Select</span>
+              </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
               {showTempleColumn && (
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Temple</th>
@@ -473,31 +617,23 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stripe Fee</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Net Amount</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
-              <th className="px-2 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-16">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Donor Info</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {/* Show info about PENDING donations if any exist */}
-            {pendingCount > 0 && (
-              <tr>
-                <td colSpan={showTempleColumn ? 10 : 9} className="px-6 py-3 bg-yellow-50 border-y border-yellow-200">
-                  <div className="flex items-center gap-2 text-sm text-yellow-800">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span>
-                      <strong>{pendingCount} donation(s) with PENDING status</strong> - These are donations that were initiated but the payment flow was interrupted (app closed, network error, etc.). 
-                      They should be automatically cleaned up or can be manually cancelled.
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            )}
             {filteredDonations.map((donation: any) => (
               <tr key={donation.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 align-top">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(donation.id)}
+                    onChange={() => toggleSelect(donation.id)}
+                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap align-top">
                   <div className="text-sm font-medium text-gray-900">
                     {format(new Date(donation.createdAt), 'MMM dd, yyyy')}
                   </div>
@@ -517,55 +653,45 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                     {donation.receiptNumber || <span className="text-gray-400 italic">-</span>}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-bold text-green-600">
+                <td className="px-6 py-4 whitespace-nowrap align-top">
+                  <div className="text-sm font-semibold text-gray-900 tabular-nums">
                     ${Number(donation.amount).toFixed(2)}
                   </div>
+                  <div className="text-xs text-gray-500">Gross</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-red-600">
-                    {donation.status === 'SUCCEEDED' && (donation.stripeFee || donation.squareFee) ? `-$${Number(donation.stripeFee || donation.squareFee).toFixed(2)}` : '-'}
+                <td className="px-6 py-4 whitespace-nowrap align-top">
+                  <div className="text-sm text-gray-600 tabular-nums">
+                    {donation.status === 'SUCCEEDED' && (donation.stripeFee || donation.squareFee)
+                      ? `-$${Number(donation.stripeFee || donation.squareFee).toFixed(2)}`
+                      : '—'}
                   </div>
+                  <div className="text-xs text-gray-500">Fee</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-bold text-blue-600">
-                    {donation.status === 'SUCCEEDED' && donation.netAmount ? `$${Number(donation.netAmount).toFixed(2)}` : donation.status === 'SUCCEEDED' && donation.amount ? `$${Number(donation.amount).toFixed(2)}` : '-'}
+                <td className="px-6 py-4 whitespace-nowrap align-top">
+                  <div className="text-sm font-bold text-purple-700 tabular-nums">
+                    {donation.status === 'SUCCEEDED' && donation.netAmount
+                      ? `$${Number(donation.netAmount).toFixed(2)}`
+                      : donation.status === 'SUCCEEDED' && donation.amount
+                        ? `$${Number(donation.amount).toFixed(2)}`
+                        : '—'}
                   </div>
+                  <div className="text-xs text-gray-500">Net</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-600">{donation.category?.name || 'General'}</div>
                 </td>
-                <td className="px-2 py-4 whitespace-nowrap text-center">
-                  <div className="relative group inline-flex items-center justify-center">
-                    <div
-                      className={`w-3 h-3 rounded-full shadow-sm ${
-                        donation.status === 'SUCCEEDED'
-                          ? 'bg-green-500 shadow-green-500/50'
-                          : donation.status === 'PENDING'
-                          ? 'bg-yellow-500 shadow-yellow-500/50'
-                          : donation.status === 'FAILED'
-                          ? 'bg-red-500 shadow-red-500/50'
-                          : donation.status === 'CANCELED'
-                          ? 'bg-gray-500 shadow-gray-500/50'
-                          : 'bg-red-500 shadow-red-500/50'
-                      }`}
-                    />
-                    {/* Tooltip on hover */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-10">
-                      {donation.status === 'CANCELED' 
-                        ? 'User Cancelled' 
-                        : donation.status === 'FAILED'
-                        ? 'Failed'
-                        : donation.status}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    </div>
-                  </div>
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <DonationStatusBadge status={donation.status} size="sm" />
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 align-top">
                   {donation.donorPhone || donation.donorId ? (
-                    <div className="flex flex-col gap-1">
+                    <div className="space-y-0.5">
+                      <div className="font-medium text-gray-900 text-sm">
+                        {donation.donorName || 'Unknown'}
+                      </div>
+                      {donation.donorPhone && (
+                        <div className="text-xs text-gray-600">{donation.donorPhone}</div>
+                      )}
                       <button
                         onClick={() => setViewingDonorInfo({
                           phone: donation.donorPhone,
@@ -573,23 +699,23 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                           email: donation.donorEmail,
                           address: donation.donorAddress,
                         })}
-                        className="text-sm text-purple-600 hover:text-purple-800 hover:underline font-medium text-left"
+                        className="text-xs text-purple-600 hover:text-purple-800 hover:underline"
                       >
-                        View Info
+                        View details
                       </button>
                       {donation.assignedAt && (
                         <div className="text-xs text-gray-500">
-                          Assigned {format(new Date(donation.assignedAt), 'MMM dd, yyyy')}
+                          Assigned {format(new Date(donation.assignedAt), 'MMM dd')}
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm text-gray-400">Anonymous</span>
+                    <div className="space-y-1">
+                      <span className="text-sm text-gray-500">Anonymous</span>
                       {donation.status === 'SUCCEEDED' && (
                         <button
                           onClick={() => setAssigningDonationId(donation.id)}
-                          className="px-3 py-1 text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline w-fit"
+                          className="block text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline"
                         >
                           Assign to Donor
                         </button>

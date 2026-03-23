@@ -195,15 +195,15 @@ struct DonationHomeView: View {
     }
     
     var amountButtonHeight: CGFloat {
-        CGFloat(theme?.layout?.amountButtonHeight ?? 70)
+        CGFloat(theme?.layout?.amountButtonHeight ?? DesignSystem.Components.buttonHeight)
     }
     
     var categoryButtonHeight: CGFloat {
-        CGFloat(theme?.layout?.categoryButtonHeight ?? 70)
+        CGFloat(theme?.layout?.categoryButtonHeight ?? DesignSystem.Components.buttonHeight)
     }
     
     var headerTopPadding: CGFloat {
-        CGFloat(theme?.layout?.headerTopPadding ?? 80)
+        CGFloat(theme?.layout?.headerTopPadding ?? DesignSystem.Layout.pageTopPadding)
     }
     
     var categoryHeaderTopPadding: CGFloat {
@@ -211,19 +211,19 @@ struct DonationHomeView: View {
     }
     
     var sectionSpacing: CGFloat {
-        CGFloat(theme?.layout?.sectionSpacing ?? 40)
+        CGFloat(theme?.layout?.sectionSpacing ?? DesignSystem.Spacing.xl)
     }
     
     var categoryAmountSectionSpacing: CGFloat {
-        CGFloat(theme?.layout?.categoryAmountSectionSpacing ?? 40)
+        CGFloat(theme?.layout?.categoryAmountSectionSpacing ?? DesignSystem.Spacing.xl)
     }
     
     var donationSelectionPageLeftPadding: CGFloat {
-        CGFloat(theme?.layout?.donationSelectionPageLeftPadding ?? 40)
+        CGFloat(theme?.layout?.donationSelectionPageLeftPadding ?? DesignSystem.Layout.pageHorizontalPadding)
     }
     
     var donationSelectionPageRightPadding: CGFloat {
-        CGFloat(theme?.layout?.donationSelectionPageRightPadding ?? 40)
+        CGFloat(theme?.layout?.donationSelectionPageRightPadding ?? DesignSystem.Layout.pageHorizontalPadding)
     }
     
     
@@ -232,8 +232,8 @@ struct DonationHomeView: View {
         return KeypadTheme(
             width: CGFloat(layout?.customAmountKeypadWidth ?? 320),
             buttonHeight: CGFloat(layout?.customAmountKeypadButtonHeight ?? 70),
-            buttonSpacing: CGFloat(layout?.customAmountKeypadButtonSpacing ?? 12),
-            buttonCornerRadius: CGFloat(layout?.customAmountKeypadButtonCornerRadius ?? 12),
+            buttonSpacing: CGFloat(layout?.customAmountKeypadButtonSpacing ?? DesignSystem.Components.inlineSpacing),
+            buttonCornerRadius: CGFloat(layout?.customAmountKeypadButtonCornerRadius ?? DesignSystem.Components.buttonCornerRadius),
             backgroundColor: colorFromHex(layout?.customAmountKeypadBackgroundColor, defaultColor: Color(red: 135/255.0, green: 81/255.0, blue: 43/255.0)),
             borderColor: colorFromHex(layout?.customAmountKeypadBorderColor, defaultColor: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0)),
             borderWidth: CGFloat(layout?.customAmountKeypadBorderWidth ?? 3),
@@ -243,21 +243,21 @@ struct DonationHomeView: View {
             buttonTextColor: colorFromHex(layout?.customAmountKeypadButtonTextColor, defaultColor: Color(red: 0.2, green: 0.2, blue: 0.3)),
             numberFontSize: CGFloat(layout?.customAmountKeypadNumberFontSize ?? 32),
             letterFontSize: CGFloat(layout?.customAmountKeypadLetterFontSize ?? 10),
-            padding: CGFloat(layout?.customAmountKeypadPadding ?? 16),
-            cornerRadius: CGFloat(layout?.customAmountKeypadCornerRadius ?? 16)
+            padding: CGFloat(layout?.customAmountKeypadPadding ?? DesignSystem.Spacing.md),
+            cornerRadius: CGFloat(layout?.customAmountKeypadCornerRadius ?? DesignSystem.Components.cardCornerRadius)
         )
     }
     
     var buttonSpacing: CGFloat {
-        CGFloat(theme?.layout?.buttonSpacing ?? 12)
+        CGFloat(theme?.layout?.buttonSpacing ?? DesignSystem.Components.inlineSpacing)
     }
     
     var cornerRadius: CGFloat {
-        CGFloat(theme?.layout?.cornerRadius ?? 12)
+        CGFloat(theme?.layout?.cornerRadius ?? DesignSystem.Components.buttonCornerRadius)
     }
     
     var quantityTotalSpacing: CGFloat {
-        CGFloat(theme?.layout?.quantityTotalSpacing ?? 24)
+        CGFloat(theme?.layout?.quantityTotalSpacing ?? DesignSystem.Components.sectionSpacing)
     }
     
     var body: some View {
@@ -271,8 +271,8 @@ struct DonationHomeView: View {
                 VStack {
                     HStack {
                         ReaderBatteryStatusView()
-                            .padding(.leading, geometry.scale(20))
-                            .padding(.top, geometry.scale(7))
+                            .padding(.leading, geometry.scale(DesignSystem.Layout.screenPadding))
+                            .padding(.top, geometry.scale(DesignSystem.Spacing.sm))
                         Spacer()
                     }
                     Spacer()
@@ -283,8 +283,8 @@ struct DonationHomeView: View {
                     HStack {
                         Spacer()
                         TimeAndNetworkStatusView()
-                            .padding(.trailing, geometry.scale(20))
-                            .padding(.top, geometry.scale(7))
+                            .padding(.trailing, geometry.scale(DesignSystem.Layout.screenPadding))
+                            .padding(.top, geometry.scale(DesignSystem.Spacing.sm))
                     }
                     Spacer()
                 }
@@ -455,10 +455,9 @@ struct DonationHomeView: View {
     private func mainContent(geometry: GeometryProxy) -> some View {
         ZStack {
             // Use reduced spacing when keypad is showing
-            HStack(spacing: showingCustomAmountKeypad ? geometry.scale(20) : geometry.scale(categoryAmountSectionSpacing)) {
+            HStack(spacing: showingCustomAmountKeypad ? geometry.scale(DesignSystem.Components.sectionSpacing) : geometry.scale(categoryAmountSectionSpacing)) {
                 // Show keypad in place of category section when active
                 if showingCustomAmountKeypad {
-                    // Always use VStack layout for keypad (no absolute positioning)
                     VStack(spacing: 0) {
                         // Match the same top padding as category section header
                         Spacer()
@@ -482,15 +481,22 @@ struct DonationHomeView: View {
                             )
                             Spacer()
                         }
-                        .padding(.horizontal, geometry.scale(16))
+                        .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
                         
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .scale(scale: 0.97)),
+                        removal: .opacity.combined(with: .scale(scale: 0.97))
+                    ))
                 } else {
-                    // Always use VStack layout for category section (no absolute positioning)
                     categorySection(geometry: geometry)
                         .frame(maxWidth: .infinity)
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.97)),
+                            removal: .opacity.combined(with: .scale(scale: 0.97))
+                        ))
                 }
                 
                 // Always use VStack layout for amount section (no absolute positioning)
@@ -499,6 +505,7 @@ struct DonationHomeView: View {
             }
             .padding(.leading, geometry.scale(donationSelectionPageLeftPadding))
             .padding(.trailing, geometry.scale(donationSelectionPageRightPadding))
+            .animation(.easeOut(duration: DesignSystem.Components.modalAnimationDuration), value: showingCustomAmountKeypad)
             
             // Overlay to detect taps outside keypad
             // Only close when tapping on the amount section, not on the keypad itself
@@ -535,7 +542,7 @@ struct DonationHomeView: View {
     private func categorySection(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: geometry.scale(6)) {
+            VStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
                 Text("selectCategory".localized)
                     .font(.custom(headingFont, size: geometry.scale(headingSize)))
                     .foregroundColor(headingColor)
@@ -549,7 +556,7 @@ struct DonationHomeView: View {
                             .font(.custom(bodyFont, size: geometry.scale(bodySize - 2)))
                             .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                     }
-                    .padding(.top, geometry.scale(4))
+                    .padding(.top, geometry.scale(DesignSystem.Spacing.xs))
                 } else {
                     Text("Choose your donation category")
                         .font(.custom(bodyFont, size: geometry.scale(bodySize)))
@@ -557,7 +564,7 @@ struct DonationHomeView: View {
                 }
             }
             .padding(.top, geometry.scale(categoryHeaderTopPadding))
-            .padding(.bottom, geometry.scale(12))
+            .padding(.bottom, geometry.scale(DesignSystem.Components.inlineSpacing))
             
             categoryContent(geometry: geometry)
                 .frame(maxWidth: .infinity)
@@ -569,10 +576,10 @@ struct DonationHomeView: View {
     
     @ViewBuilder
     private func categoryContent(geometry: GeometryProxy) -> some View {
-        VStack(spacing: geometry.scale(12)) {
+        VStack(spacing: geometry.scale(DesignSystem.Components.inlineSpacing)) {
             if !appState.categories.isEmpty {
                 ScrollView {
-                    VStack(spacing: geometry.scale(12)) {
+                    VStack(spacing: geometry.scale(10)) {
                         ForEach(appState.categories) { category in
                             CleanCategoryButton(
                                 category: category,
@@ -604,7 +611,7 @@ struct DonationHomeView: View {
                             .frame(maxWidth: geometry.scale(categoryBoxMaxWidth)) // Use theme width
                         }
                     }
-                    .padding(.horizontal, geometry.scale(16))
+                    .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
                     .frame(maxWidth: .infinity)
                     .frame(alignment: .center)
                 }
@@ -617,7 +624,7 @@ struct DonationHomeView: View {
     
     @ViewBuilder
     private func emptyCategoriesView(geometry: GeometryProxy) -> some View {
-        VStack(spacing: geometry.scale(16)) {
+        VStack(spacing: geometry.scale(DesignSystem.Spacing.md)) {
             Image(systemName: "folder.fill")
                 .font(.system(size: geometry.scale(48)))
                 .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
@@ -642,7 +649,7 @@ struct DonationHomeView: View {
                 }
                 .font(.custom("Inter-Medium", size: geometry.scale(14)))
                 .foregroundColor(.white)
-                .padding(.horizontal, geometry.scale(16))
+                .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
                 .padding(.vertical, geometry.scale(8))
                 .background(Color(red: 0.2, green: 0.4, blue: 0.8))
                 .cornerRadius(geometry.scale(12))
@@ -658,7 +665,7 @@ struct DonationHomeView: View {
     private func amountSection(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: geometry.scale(6)) {
+            VStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
                 Text("selectAmount".localized)
                     .font(.custom(headingFont, size: geometry.scale(headingSize)))
                     .foregroundColor(headingColor)
@@ -668,7 +675,7 @@ struct DonationHomeView: View {
                     .foregroundColor(subtitleColor)
             }
             .padding(.top, geometry.scale(headerTopPadding))
-            .padding(.bottom, geometry.scale(12))
+            .padding(.bottom, geometry.scale(DesignSystem.Components.inlineSpacing))
             
             amountContent(geometry: geometry)
                 .frame(maxWidth: .infinity)
@@ -682,13 +689,12 @@ struct DonationHomeView: View {
     
     @ViewBuilder
     private func amountContent(geometry: GeometryProxy) -> some View {
-        VStack(spacing: geometry.scale(12)) {
+        VStack(spacing: geometry.scale(8)) {
             presetAmountButtons(geometry: geometry)
-                .padding(.horizontal, geometry.scale(16))
             
             CleanCustomAmountField(
                 text: $customAmount,
-                isActive: true, // Always show inline text field
+                isActive: selectedCategory == nil && selectedAmount == nil && (!customAmount.isEmpty || customAmountFocused),
                 isFocused: $customAmountFocused,
                 showingKeypad: $showingCustomAmountKeypad,
                 onTap: {
@@ -700,18 +706,17 @@ struct DonationHomeView: View {
                     showingCustomAmountKeypad = true
                     customAmountFocused = true
                 },
-                headingColor: headingColor // Pass headingColor to match title
+                headingColor: headingColor
             )
-            .padding(.horizontal, geometry.scale(16))
         }
+        .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
     }
     
     @ViewBuilder
     private func presetAmountButtons(geometry: GeometryProxy) -> some View {
         let buttonCount = presetAmounts.count
         if buttonCount > 0 {
-            // Use 2-column grid for 3 rows x 2 columns layout
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: geometry.scale(12)) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: geometry.scale(10)) {
                 ForEach(presetAmounts, id: \.self) { amount in
                     amountButton(amount: amount, geometry: geometry)
                 }
@@ -746,18 +751,19 @@ struct DonationHomeView: View {
     
     @ViewBuilder
     private func continueButton(geometry: GeometryProxy) -> some View {
-        VStack(spacing: geometry.scale(16)) {
+        VStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
             // Show quantity and total side by side when category with quantity is selected
             if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
                 HStack(spacing: geometry.scale(quantityTotalSpacing)) {
                     // Quantity selector
-                    VStack(spacing: geometry.scale(8)) {
+                    VStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
                         Text("quantity".localized)
                             .font(.custom(bodyFont, size: geometry.scale(bodySize)))
                             .foregroundColor(subtitleColor)
                         
-                        HStack(spacing: geometry.scale(12)) {
+                        HStack(spacing: geometry.scale(DesignSystem.Components.inlineSpacing)) {
                             Button(action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 if quantity > 1 {
                                     quantity -= 1
                                 }
@@ -774,6 +780,7 @@ struct DonationHomeView: View {
                                 .frame(minWidth: geometry.scale(40))
                             
                             Button(action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 quantity += 1
                             }) {
                                 Image(systemName: "plus.circle.fill")
@@ -781,8 +788,8 @@ struct DonationHomeView: View {
                                     .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                             }
                         }
-                        .padding(.vertical, geometry.scale(10))
-                        .padding(.horizontal, geometry.scale(24))
+                        .padding(.vertical, geometry.scale(DesignSystem.Spacing.sm + 2))
+                        .padding(.horizontal, geometry.scale(DesignSystem.Components.sectionSpacing))
                         .background(Color.white)
                         .cornerRadius(geometry.scale(cornerRadius))
                         .shadow(color: Color.black.opacity(0.1), radius: geometry.scale(4), x: 0, y: geometry.scale(2))
@@ -804,8 +811,8 @@ struct DonationHomeView: View {
                             .monospacedDigit()
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, geometry.scale(12))
-                    .padding(.horizontal, geometry.scale(20))
+                    .padding(.vertical, geometry.scale(DesignSystem.Components.inlineSpacing))
+                    .padding(.horizontal, geometry.scale(DesignSystem.Layout.screenPadding))
                     .background(
                         RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
                             .fill(.ultraThinMaterial)
@@ -826,7 +833,6 @@ struct DonationHomeView: View {
                             .shadow(color: Color.black.opacity(0.15), radius: geometry.scale(8), x: 0, y: geometry.scale(4))
                     )
                 }
-                .padding(.bottom, geometry.scale(8))
                 .transition(.scale.combined(with: .opacity))
             } else if hasValidAmount {
                 // Show total only when amount is selected (no quantity) - liquid glass styling
@@ -846,8 +852,8 @@ struct DonationHomeView: View {
                             .fontWeight(.semibold)
                             .monospacedDigit()
                     }
-                    .padding(.vertical, geometry.scale(12))
-                    .padding(.horizontal, geometry.scale(28))
+                    .padding(.vertical, geometry.scale(DesignSystem.Components.inlineSpacing))
+                    .padding(.horizontal, geometry.scale(DesignSystem.Spacing.xl))
                     .background(
                         RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
                             .fill(.ultraThinMaterial)
@@ -869,14 +875,14 @@ struct DonationHomeView: View {
                     )
                     Spacer()
                 }
-                .padding(.bottom, geometry.scale(8))
                 .transition(.scale.combined(with: .opacity))
             }
             
-            // Buttons side by side: Home and Continue
-            HStack(spacing: geometry.scale(16)) {
+            // Buttons: Home and Review Donation — single decision area
+            HStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
                 // Home button - uses returnToHomeButtonColor from theme
                 Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     // Clear donor details when returning to home
                     donorName = nil
                     donorPhone = nil
@@ -884,7 +890,7 @@ struct DonationHomeView: View {
                     donorAddress = nil
                     onDismiss()
                 }) {
-                    HStack(spacing: geometry.scale(8)) {
+                    HStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
                         Image(systemName: "house.fill")
                         Text("returnToHome".localized)
                     }
@@ -908,13 +914,15 @@ struct DonationHomeView: View {
                     .cornerRadius(geometry.scale(12))
                 }
                 
-                // Continue button - uses proceedToPaymentButtonColor from theme
+                // Review Donation button — clean disabled state when no amount selected
                 Button(action: {
+                    guard hasValidAmount else { return }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showingDetails = true
                 }) {
                     Text("Review Donation")
                         .font(.custom("Inter-Medium", size: geometry.scale(18)))
-                        .foregroundColor(.white)
+                        .foregroundColor(hasValidAmount ? .white : Color(white: 0.45))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, geometry.scale(18))
                         .background(
@@ -930,7 +938,7 @@ struct DonationHomeView: View {
                                         buttonColor
                                     }
                                 } else {
-                                    Color.gray.opacity(0.4)
+                                    Color(white: 0.78)
                                 }
                             }
                         )
@@ -939,7 +947,7 @@ struct DonationHomeView: View {
                 .disabled(!hasValidAmount)
             }
             .frame(maxWidth: .infinity)
-            .padding(.bottom, geometry.scale(30))
+            .padding(.bottom, geometry.scale(DesignSystem.Layout.actionBottomPadding))
         }
         .frame(maxWidth: .infinity)
     }
@@ -1043,7 +1051,7 @@ struct PledgeOptionViewWrapper: View {
     }
 }
 
-// Clean, simple amount button matching reference
+// Amount button — clear selected state, structured grid feel
 struct CleanAmountButton: View {
     let amount: Double
     let isSelected: Bool
@@ -1052,51 +1060,54 @@ struct CleanAmountButton: View {
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
-                Text(amount.formattedCurrencyWhole())
-                .font(.custom("Inter-Medium", size: 20))
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
+            Text(amount.formattedCurrencyWhole())
+                .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 70)
+                .frame(height: DesignSystem.Components.buttonHeight)
                 .background(isSelected ? selectedColor : unselectedColor)
-                .cornerRadius(12)
+                .cornerRadius(DesignSystem.Components.buttonCornerRadius)
         }
-        .scaleEffect(isSelected ? 1.02 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                .stroke(isSelected ? Color.white.opacity(0.35) : Color.clear, lineWidth: 1.5)
+        )
+        .scaleEffect(isSelected ? 1.01 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
 }
 
-// Clean custom amount field with liquid glass styling
+// Custom amount — integrates with amount grid (same height, spacing, styling)
 struct CleanCustomAmountField: View {
     @Binding var text: String
     let isActive: Bool
     @FocusState.Binding var isFocused: Bool
     @Binding var showingKeypad: Bool
     let onTap: () -> Void
-    let headingColor: Color // Pass headingColor from parent
-    
-    // Theme values (matching the total amount box)
-    private let bodyFont = "Inter-Regular"
-    private let bodySize: CGFloat = 14
-    private let subtitleColor = Color(red: 0.5, green: 0.5, blue: 0.6)
-    private let cornerRadius: CGFloat = 12
+    let headingColor: Color
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Always show placeholder when text is empty, or when text has value (don't show the amount here)
+        HStack(spacing: DesignSystem.Components.inlineSpacing) {
             Text("customAmount".localized)
-                .font(.custom(bodyFont, size: 20))
-                .foregroundColor(headingColor) // Use headingColor to match title
+                .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.bodySize))
+                .foregroundColor(headingColor)
             Spacer()
+            Image(systemName: "square.and.pencil")
+                .font(.system(size: DesignSystem.Typography.secondarySize))
+                .foregroundColor(headingColor.opacity(0.6))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 12)
-        .padding(.horizontal, 28) // Increased from 20 to 28 to make it wider, matching total amount box
+        .frame(height: DesignSystem.Components.buttonHeight)
+        .padding(.horizontal, DesignSystem.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: cornerRadius)
+            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
                 .fill(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius)
+                    RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
                         .stroke(
                             LinearGradient(
                                 gradient: Gradient(colors: [
@@ -1109,10 +1120,11 @@ struct CleanCustomAmountField: View {
                             lineWidth: 1
                         )
                 )
-                .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                .shadow(color: Color.black.opacity(0.1), radius: DesignSystem.Spacing.xs, x: 0, y: 1)
         )
         .contentShape(Rectangle())
         .onTapGesture {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             onTap()
         }
         .onChange(of: isFocused) { focused in
@@ -1125,12 +1137,16 @@ struct CleanCustomAmountField: View {
                 }
             }
         }
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                .stroke(isActive ? Color.white.opacity(0.4) : Color.clear, lineWidth: 1.5)
+        )
         .scaleEffect(isActive ? 1.01 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isActive)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isActive)
     }
 }
 
-// Clean category button
+// Clean category button — lighter visual weight, clear hierarchy
 struct CleanCategoryButton: View {
     let category: DonationCategory
     let isSelected: Bool
@@ -1138,7 +1154,6 @@ struct CleanCategoryButton: View {
     let unselectedColor: Color
     let action: () -> Void
     
-    // Check if custom background images exist
     private var hasSelectedImage: Bool {
         UIImage(named: "CategoryButtonSelected") != nil
     }
@@ -1148,52 +1163,52 @@ struct CleanCategoryButton: View {
     }
     
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                // Category name and amount side by side
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-            Text(category.name)
-                            .font(.custom("Inter-Bold", size: 18))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                        
-                        if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                            Text(defaultAmount.formattedCurrencyWhole())
-                                .font(.custom("Inter-Bold", size: 18))
-                                .foregroundColor(.white)
-                        }
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(category.name)
+                        .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+                        Text(defaultAmount.formattedCurrencyWhole())
+                            .font(.custom(DesignSystem.Typography.secondaryFont, size: DesignSystem.Typography.secondarySize))
+                            .foregroundColor(.white.opacity(0.9))
                     }
                     
-                    // Show yajman opportunities indicator - make it more visible
                     if let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
                         HStack(spacing: 4) {
                             Image(systemName: "star.fill")
                                 .font(.system(size: 10))
                                 .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
                             Text("Includes \(opportunities.count) yajman \(opportunities.count == 1 ? "opportunity" : "opportunities")")
-                                .font(.custom("Inter-Medium", size: 13))
-                                .foregroundColor(.white.opacity(0.95))
+                                .font(.custom(DesignSystem.Typography.secondaryFont, size: 11))
+                                .foregroundColor(.white.opacity(0.9))
                         }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Spacer()
-                
-                // Chevron on the right
                 Image(systemName: "chevron.right")
-                    .font(.custom("Inter-SemiBold", size: 14))
-                    .foregroundColor(.white.opacity(0.8))
+                    .font(.system(size: DesignSystem.Typography.secondarySize, weight: .medium))
+                    .foregroundColor(.white.opacity(isSelected ? 1.0 : 0.7))
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, DesignSystem.Spacing.md)
             .frame(maxWidth: .infinity)
-            .frame(height: 70)
+            .frame(height: DesignSystem.Components.buttonHeight)
             .background(buttonBackground)
-            .cornerRadius(12)
+            .cornerRadius(DesignSystem.Components.buttonCornerRadius)
         }
-        .scaleEffect(isSelected ? 1.02 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                .stroke(isSelected ? Color.white.opacity(0.3) : Color.clear, lineWidth: 1.5)
+        )
+        .scaleEffect(isSelected ? 1.01 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
     
     // Button background - uses custom images if available, otherwise falls back to colors

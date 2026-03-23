@@ -19,9 +19,9 @@ struct KeypadTheme {
     
     static let `default` = KeypadTheme(
         width: 320,
-        buttonHeight: 70,
-        buttonSpacing: 12,
-        buttonCornerRadius: 12,
+        buttonHeight: DesignSystem.Components.buttonHeight,
+        buttonSpacing: DesignSystem.Components.inlineSpacing,
+        buttonCornerRadius: DesignSystem.Components.buttonCornerRadius,
         backgroundColor: Color(red: 135/255.0, green: 81/255.0, blue: 43/255.0),
         borderColor: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0),
         borderWidth: 3,
@@ -31,8 +31,8 @@ struct KeypadTheme {
         buttonTextColor: Color(red: 0.2, green: 0.2, blue: 0.3),
         numberFontSize: 32,
         letterFontSize: 10,
-        padding: 16,
-        cornerRadius: 16
+        padding: DesignSystem.Spacing.md,
+        cornerRadius: DesignSystem.Components.cardCornerRadius
     )
 }
 

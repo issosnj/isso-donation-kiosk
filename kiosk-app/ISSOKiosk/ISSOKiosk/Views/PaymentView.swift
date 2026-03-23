@@ -81,8 +81,8 @@ struct ModernPaymentView: View {
             VStack {
                 HStack {
                     ReaderBatteryStatusView()
-                        .padding(.leading, 20)
-                        .padding(.top, 7)
+                        .padding(.leading, DesignSystem.Layout.screenPadding)
+                        .padding(.top, DesignSystem.Spacing.sm - 1)
                     Spacer()
                 }
                 Spacer()
@@ -93,8 +93,8 @@ struct ModernPaymentView: View {
                 HStack {
                     Spacer()
                     TimeAndNetworkStatusView()
-                        .padding(.trailing, 20)
-                        .padding(.top, 7)
+                        .padding(.trailing, DesignSystem.Layout.screenPadding)
+                        .padding(.top, DesignSystem.Spacing.sm - 1)
                 }
                 Spacer()
             }
@@ -529,12 +529,12 @@ struct ModernPaymentReadyView: View {
                         .foregroundColor(.gray)
                         .opacity(appearAnimation ? 1.0 : 0.0)
                         .offset(y: appearAnimation ? 0 : 20)
-                        .padding(.top, 10)
+                        .padding(.top, DesignSystem.Spacing.sm + 2)
                 }
                 
                 Spacer()
             }
-            .padding(40)
+            .padding(DesignSystem.Spacing.xl + DesignSystem.Spacing.sm)
             
             // Cancel button (top left)
             VStack {
@@ -699,7 +699,7 @@ struct ModernPaymentProcessingView: View {
                 .opacity(appearAnimation ? 1.0 : 0.0)
                 .offset(y: appearAnimation ? 0 : 30)
             }
-            .padding(40)
+            .padding(DesignSystem.Spacing.xl + DesignSystem.Spacing.sm)
         }
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
@@ -796,96 +796,78 @@ struct ModernProcessingView: View {
             }
             .ignoresSafeArea(.all, edges: .all)
             
-            VStack(spacing: 50) {
+            VStack(spacing: 0) {
                 Spacer()
-                
-                // Animated progress indicator
+
+                // Loader — integrated, gentle animation
                 ZStack {
-                    // Outer ring with theme colors
                     Circle()
-                        .stroke(
-                            headingColor.opacity(0.2),
-                            lineWidth: 12
-                        )
-                        .frame(width: 150, height: 150)
-                    
-                    // Animated progress ring with theme colors
+                        .stroke(headingColor.opacity(0.12), lineWidth: 8)
+                        .frame(width: 120, height: 120)
                     Circle()
-                        .trim(from: 0, to: 0.7)
+                        .trim(from: 0, to: 0.75)
                         .stroke(
                             LinearGradient(
                                 gradient: Gradient(colors: [
-                                    buttonColor,
-                                    buttonColor.opacity(0.7)
+                                    buttonColor.opacity(0.9),
+                                    buttonColor.opacity(0.5)
                                 ]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
                         )
-                        .frame(width: 150, height: 150)
+                        .frame(width: 120, height: 120)
                         .rotationEffect(.degrees(rotationAngle))
-                    
-                    // Center icon with theme color
                     Image(systemName: "creditcard.fill")
-                        .font(.system(size: 50))
-                        .foregroundColor(buttonColor)
+                        .font(.system(size: 40))
+                        .foregroundColor(buttonColor.opacity(0.95))
                 }
-                .scaleEffect(appearAnimation ? 1.0 : 0.8)
-                .opacity(appearAnimation ? 1.0 : 0.0)
-                
-                VStack(spacing: 15) {
-                    Text("processingPayment".localized)
-                        .font(.custom("Inter-SemiBold", size: 32))
-                        .foregroundColor(headingColor)
-                        .opacity(appearAnimation ? 1.0 : 0.0)
-                        .offset(y: appearAnimation ? 0 : 20)
-                    
-                    Text(amount.formattedCurrency())
-                        .font(.custom("Inter-SemiBold", size: 56))
-                        .foregroundColor(buttonColor)
-                        .opacity(appearAnimation ? 1.0 : 0.0)
-                        .offset(y: appearAnimation ? 0 : 20)
-                    
-                    Text("Please wait")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(bodyTextColor)
-                        .opacity(appearAnimation ? 1.0 : 0.0)
-                        .offset(y: appearAnimation ? 0 : 20)
-                }
-                
-                // Cancel button - matching theme
-                Button(action: onCancel) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 22))
-                        Text("Tap to Cancel")
-                            .font(.custom("Inter-Medium", size: 20))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(buttonColor)
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
-                }
-                .padding(.horizontal, 40)
-                .padding(.top, 20)
                 .scaleEffect(appearAnimation ? 1.0 : 0.9)
                 .opacity(appearAnimation ? 1.0 : 0.0)
-                .offset(y: appearAnimation ? 0 : 30)
-                
+
+                // Text hierarchy: status → amount → subtext
+                VStack(spacing: DesignSystem.Spacing.lg) {
+                    Text("processingPayment".localized)
+                        .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
+                        .foregroundColor(headingColor)
+                        .multilineTextAlignment(.center)
+
+                    Text(amount.formattedCurrency())
+                        .font(.custom("Inter-SemiBold", size: DesignSystem.Typography.amountDisplaySize + 16))
+                        .foregroundColor(buttonColor)
+                        .monospacedDigit()
+
+                    Text("processingSubtext".localized)
+                        .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.secondarySize))
+                        .foregroundColor(bodyTextColor)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, DesignSystem.Spacing.xl + DesignSystem.Spacing.md)
+                .opacity(appearAnimation ? 1.0 : 0.0)
+                .offset(y: appearAnimation ? 0 : 12)
+
                 Spacer()
+
+                // Cancel — visible but secondary
+                Button(action: onCancel) {
+                    Text("cancel".localized)
+                        .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
+                        .foregroundColor(bodyTextColor)
+                }
+                .padding(.top, DesignSystem.Spacing.md)
+                .padding(.bottom, DesignSystem.Spacing.xl)
+                .opacity(appearAnimation ? 1.0 : 0.0)
             }
-            .padding(40)
+            .padding(DesignSystem.Spacing.xl + DesignSystem.Spacing.sm)
             
             // Time and Network Status in top right
             // Reader Battery Status in top left
             VStack {
                 HStack {
                     ReaderBatteryStatusView()
-                        .padding(.leading, 20)
-                        .padding(.top, 7)
+                        .padding(.leading, DesignSystem.Layout.screenPadding)
+                        .padding(.top, DesignSystem.Spacing.sm - 1)
                     Spacer()
                 }
                 Spacer()
@@ -896,18 +878,17 @@ struct ModernProcessingView: View {
                 HStack {
                     Spacer()
                     TimeAndNetworkStatusView()
-                        .padding(.trailing, 20)
-                        .padding(.top, 7)
+                        .padding(.trailing, DesignSystem.Layout.screenPadding)
+                        .padding(.top, DesignSystem.Spacing.sm - 1)
                 }
                 Spacer()
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+            withAnimation(.easeOut(duration: 0.5).delay(0.1)) {
                 appearAnimation = true
             }
-            
-            withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: 2.5).repeatForever(autoreverses: false)) {
                 rotationAngle = 360
             }
         }
@@ -1092,15 +1073,15 @@ struct ModernPaymentResultView: View {
                 
                 Spacer()
             }
-            .padding(40)
+            .padding(DesignSystem.Spacing.xl + DesignSystem.Spacing.sm)
             
             // Time and Network Status in top right
             // Reader Battery Status in top left
             VStack {
                 HStack {
                     ReaderBatteryStatusView()
-                        .padding(.leading, 20)
-                        .padding(.top, 7)
+                        .padding(.leading, DesignSystem.Layout.screenPadding)
+                        .padding(.top, DesignSystem.Spacing.sm - 1)
                     Spacer()
                 }
                 Spacer()
@@ -1111,8 +1092,8 @@ struct ModernPaymentResultView: View {
                 HStack {
                     Spacer()
                     TimeAndNetworkStatusView()
-                        .padding(.trailing, 20)
-                        .padding(.top, 7)
+                        .padding(.trailing, DesignSystem.Layout.screenPadding)
+                        .padding(.top, DesignSystem.Spacing.sm - 1)
                 }
                 Spacer()
             }

@@ -87,7 +87,8 @@ class LanguageManager: ObservableObject {
             "selectAmountToContinue": "Select Amount to Continue",
             
             // Payment
-            "processingPayment": "Processing Payment...",
+            "processingPayment": "Completing your donation",
+            "processingSubtext": "This usually takes a few seconds",
             "paymentSuccessful": "Payment Successful",
             "paymentFailed": "Payment Failed",
             "thankYou": "Thank You",
@@ -149,7 +150,8 @@ class LanguageManager: ObservableObject {
             "selectAmountToContinue": "ચાલુ રાખવા માટે રકમ પસંદ કરો",
             
             // Payment
-            "processingPayment": "પેમેન્ટ પ્રક્રિયા કરી રહ્યા છીએ...",
+            "processingPayment": "તમારું દાન પૂર્ણ કરી રહ્યા છીએ",
+            "processingSubtext": "આમાં સામાન્ય રીતે થોડી સેકંડ લાગે છે",
             "paymentSuccessful": "પેમેન્ટ સફળ",
             "paymentFailed": "પેમેન્ટ નિષ્ફળ",
             "thankYou": "આભાર",
@@ -211,7 +213,8 @@ class LanguageManager: ObservableObject {
             "selectAmountToContinue": "जारी रखने के लिए राशि चुनें",
             
             // Payment
-            "processingPayment": "भुगतान प्रसंस्करण...",
+            "processingPayment": "आपका दान पूरा हो रहा है",
+            "processingSubtext": "इसमें आमतौर पर कुछ सेकंड लगते हैं",
             "paymentSuccessful": "भुगतान सफल",
             "paymentFailed": "भुगतान विफल",
             "thankYou": "धन्यवाद",

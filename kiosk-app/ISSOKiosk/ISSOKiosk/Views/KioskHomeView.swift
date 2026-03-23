@@ -52,25 +52,39 @@ struct KioskHomeView: View {
     // Background view - uses separate homepage background
     @ViewBuilder
     private func backgroundView(geometry: GeometryProxy) -> some View {
-        // First try homepage-specific background asset
-        if UIImage(named: "KioskHomeBackground") != nil {
-            Image("KioskHomeBackground")
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
-        } else if UIImage(named: "KioskBackground") != nil {
-            // Fallback to general background if homepage background not found
-            Image("KioskBackground")
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
-        } else {
-            defaultGradient
+        Group {
+            if UIImage(named: "KioskHomeBackground") != nil {
+                Image("KioskHomeBackground")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else if UIImage(named: "KioskBackground") != nil {
+                Image("KioskBackground")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                defaultGradient
+            }
         }
+        .frame(width: geometry.size.width, height: geometry.size.height)
+        .clipped()
+        .overlay(textLegibilityOverlay)
     }
     
+    @ViewBuilder
+    private var textLegibilityOverlay: some View {
+        if UIImage(named: "KioskHomeBackground") != nil || UIImage(named: "KioskBackground") != nil {
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.06),
+                    Color.black.opacity(0.02),
+                    Color.clear
+                ],
+                startPoint: .top,
+                endPoint: .center
+            )
+        }
+    }
+
     private var defaultGradient: some View {
         LinearGradient(
             gradient: Gradient(colors: [
@@ -92,19 +106,17 @@ struct KioskHomeView: View {
                 // Top-level overlay for status indicators (battery, time, network)
                 // These need to be on top of everything else, aligned at the top
                 VStack {
-                    HStack(alignment: .top) {
-                        // Reader Battery Status in top left
+                    HStack(alignment: .center) {
                         ReaderBatteryStatusView()
-                            .padding(.leading, geometry.scale(20))
-                            .padding(.top, geometry.scale(7))
+                            .padding(.leading, geometry.scale(DesignSystem.Spacing.lg))
+                            .padding(.top, geometry.scale(DesignSystem.Spacing.md))
                         
                         Spacer()
                         
-                        // Time and Network Status in top right
                         if appState.temple?.kioskTheme?.layout?.homeScreenTimeStatusVisible != false {
                             TimeAndNetworkStatusView()
-                                .padding(.trailing, geometry.scale(20))
-                                .padding(.top, geometry.scale(7))
+                                .padding(.trailing, geometry.scale(DesignSystem.Spacing.lg))
+                                .padding(.top, geometry.scale(DesignSystem.Spacing.md))
                         }
                     }
                     Spacer()
@@ -117,61 +129,53 @@ struct KioskHomeView: View {
     @ViewBuilder
     private func defaultLayout(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // Header at top, transparent background
+            // Header — compact, elegant text block
                 ZStack {
                     VStack(spacing: 0) {
-                        // Welcome to Shree Swaminarayan Hindu Temple (on top, smaller) - Bold
-                        if appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextVisible != false {
-                            Text("Welcome to Shree Swaminarayan Hindu Temple")
-                                .font(.system(size: geometry.scale(42), weight: .bold, design: .default))
-                                .foregroundColor(colorFromHex("423232"))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(nil)
-                                .minimumScaleFactor(0.5)
-                                .frame(maxWidth: .infinity)
-                                .padding(.horizontal, geometry.scale(20))
-                                .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 60)))
-                                .padding(.bottom, geometry.scale(4))
+                        // Temple name + subtitle group (tighter vertical rhythm)
+                        VStack(spacing: geometry.scale(6)) {
+                            if appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextVisible != false {
+                                Text("Welcome to Shree Swaminarayan Hindu Temple")
+                                    .font(.custom(DesignSystem.Typography.heroFont, size: geometry.scale(34)))
+                                    .foregroundColor(colorFromHex("423232"))
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(nil)
+                                    .minimumScaleFactor(0.5)
+                            }
+                            if appState.temple?.kioskTheme?.layout?.homeScreenHeader1Visible != false {
+                                Text(header1Text)
+                                    .font(.custom(DesignSystem.Typography.pageTitleFont, size: geometry.scale(26)))
+                                    .foregroundColor(colorFromHex("423232"))
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(nil)
+                                    .minimumScaleFactor(0.5)
+                            }
+                            if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
+                                Text("underGadi".localized)
+                                    .font(.custom(DesignSystem.Typography.bodyFont, size: geometry.scale(DesignSystem.Typography.secondarySize)))
+                                    .italic()
+                                    .foregroundColor(colorFromHex("423232"))
+                                    .multilineTextAlignment(.center)
+                            }
                         }
+                        .padding(.horizontal, geometry.scale(DesignSystem.Layout.screenPadding))
+                        .padding(.top, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenHeaderTopPadding ?? 44)))
+                        .padding(.bottom, geometry.scale(DesignSystem.Spacing.sm))
                         
-                        // Header 1 (default: "International Swaminarayan Satsang Organization (ISSO)")
-                        if appState.temple?.kioskTheme?.layout?.homeScreenHeader1Visible != false {
-                            Text(header1Text)
-                                .font(.custom("Inter-SemiBold", size: geometry.scale(32)))
-                                .foregroundColor(colorFromHex("423232"))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(nil)
-                                .minimumScaleFactor(0.5)
-                                .frame(maxWidth: .infinity)
-                                .padding(.horizontal, geometry.scale(20))
-                                .padding(.bottom, geometry.scale(4))
-                        }
-                        
-                        // Under Shree NarNarayan Dev Gadi - Italic
-                        if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
-                            Text("underGadi".localized)
-                                .font(.system(size: geometry.scale(20), weight: .regular, design: .default))
-                                .italic()
-                                .foregroundColor(colorFromHex("423232"))
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: .infinity)
-                                .padding(.bottom, geometry.scale(4))
-                        }
-                        
-                        // Temple Address
+                        // Address — visually separated, secondary
                         if appState.temple?.kioskTheme?.layout?.homeScreenAddressVisible != false {
                             if let temple = appState.temple, let address = temple.address, !address.isEmpty {
                                 Text(address)
-                                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
-                                    .foregroundColor(colorFromHex("423232"))
+                                    .font(.custom(DesignSystem.Typography.bodyFont, size: geometry.scale(DesignSystem.Typography.secondarySize)))
+                                    .foregroundColor(colorFromHex("423232").opacity(0.9))
                                     .multilineTextAlignment(.center)
                                     .lineLimit(2)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.bottom, geometry.scale(16))
+                                    .padding(.horizontal, geometry.scale(DesignSystem.Layout.screenPadding))
+                                    .padding(.bottom, geometry.scale(DesignSystem.Spacing.md))
                             } else {
-                                // Add padding if no address
                                 Spacer()
-                                    .frame(height: geometry.scale(16))
+                                    .frame(height: geometry.scale(DesignSystem.Spacing.sm))
                             }
                         }
                     }
@@ -182,27 +186,25 @@ struct KioskHomeView: View {
                             LanguageSelectorView(languageManager: languageManager)
                             Spacer()
                         }
-                        .padding(.leading, geometry.scale(20))
-                        .padding(.top, geometry.scale(7))
+                        .padding(.leading, geometry.scale(DesignSystem.Spacing.lg))
+                        .padding(.top, geometry.scale(DesignSystem.Spacing.md))
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
                 }
             
             Spacer()
-                .frame(maxHeight: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenSpacerMaxHeight ?? 100))
+                .frame(maxHeight: CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenSpacerMaxHeight ?? 56))
             
-            // Centered content
-            VStack(spacing: geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenContentSpacing ?? 20))) {
+            // Centered content — Tap To Donate anchored with clear visual weight
+            VStack(spacing: geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenContentSpacing ?? DesignSystem.Components.sectionSpacing))) {
                 
-                // Main: Tap To Donate Button - Gold-Accented Design (centered vertically)
                 if appState.temple?.kioskTheme?.layout?.homeScreenTapToDonateVisible != false {
-                    HStack {
-                        Spacer()
-                        GoldAccentDonateButton(
+                    GoldAccentDonateButton(
                             buttonColor: appState.temple?.kioskTheme?.colors?.tapToDonateButtonColor ?? "#D4AF37",
                             action: {
-                            // Show donation flow immediately - don't block UI
-                            navigationState.showDonationFlow = true
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+                                navigationState.showDonationFlow = true
+                            }
                             
                             // If device has been idle for 5+ minutes, trigger reconnection in background
                             // This happens while user selects donation, so hardware is ready when they proceed to payment
@@ -218,16 +220,14 @@ struct KioskHomeView: View {
                                 }
                             }
                         })
-                        .padding(.horizontal, geometry.scale(20)) // Add padding to prevent clipping during animation
-                        .padding(.vertical, geometry.scale(10)) // Add vertical padding for zoom animation
-                        Spacer()
-                    }
+                    .padding(.horizontal, geometry.scale(DesignSystem.Spacing.xl))
+                    .padding(.vertical, geometry.scale(DesignSystem.Components.sectionSpacing))
                     .frame(maxWidth: .infinity)
                 }
                 
                 // Bottom: Action Buttons (only show active ones)
                 if appState.temple?.kioskTheme?.layout?.homeScreenQuickActionsVisible != false {
-                    VStack(spacing: geometry.scale(20)) {
+                    VStack(spacing: geometry.scale(DesignSystem.Components.sectionSpacing)) {
                         // Quick Actions Section (Events only)
                         let hasGoogleCalendar = appState.temple?.homeScreenConfig?.googleCalendarLink?.isEmpty == false
                         let hasLocalEvents = (appState.temple?.homeScreenConfig?.localEvents?.isEmpty == false)
@@ -235,12 +235,12 @@ struct KioskHomeView: View {
                         let hasEvents = hasGoogleCalendar || hasLocalEvents || hasEventsText
                         
                             if hasEvents {
-                                VStack(spacing: geometry.scale(12)) {
+                                VStack(spacing: geometry.scale(DesignSystem.Components.inlineSpacing)) {
                                     Text("quickActions".localized)
-                                        .font(.custom("Inter-SemiBold", size: geometry.scale(20)))
+                                        .font(.custom(DesignSystem.Typography.subsectionFont, size: geometry.scale(DesignSystem.Typography.subsectionSize)))
                                         .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
                                     
-                                    HStack(spacing: geometry.scale(16)) {
+                                    HStack(spacing: geometry.scale(DesignSystem.Spacing.md)) {
                                         // Upcoming Events - only show if configured
                                         ModernQuickActionButton(
                                             icon: "calendar",
@@ -251,23 +251,23 @@ struct KioskHomeView: View {
                                             showEvents = true
                                         }
                                     }
-                                    .padding(.horizontal, geometry.scale(20))
+                                    .padding(.horizontal, geometry.scale(DesignSystem.Layout.screenPadding))
                                 }
                             }
                     }
-                    .padding(.horizontal, geometry.scale(40))
-                    .padding(.top, geometry.scale(20))
+                    .padding(.horizontal, geometry.scale(DesignSystem.Spacing.xl))
+                    .padding(.top, geometry.scale(DesignSystem.Components.sectionSpacing))
                 }
                 
                     // Custom Message at Bottom (if configured)
                     if appState.temple?.kioskTheme?.layout?.homeScreenCustomMessageVisible != false,
                        let customMessage = appState.temple?.homeScreenConfig?.customMessage, !customMessage.isEmpty {
                         Text(customMessage)
-                            .font(.custom("Inter-Regular", size: geometry.scale(18)))
+                            .font(.custom(DesignSystem.Typography.bodyFont, size: geometry.scale(DesignSystem.Typography.bodySize)))
                             .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.5))
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, geometry.scale(40))
-                            .padding(.top, geometry.scale(20))
+                            .padding(.horizontal, geometry.scale(DesignSystem.Spacing.xl))
+                            .padding(.top, geometry.scale(DesignSystem.Components.sectionSpacing))
                     }
             }
             .frame(maxWidth: geometry.scale(800)) // Limit width for better centering
@@ -275,73 +275,64 @@ struct KioskHomeView: View {
             Spacer()
         }
         .overlay(alignment: .bottomLeading) {
-            // WhatsApp and Observances buttons in bottom left corner (horizontal layout)
+            // Utility row — WhatsApp + Observances (subtle, low visual weight)
             if appState.temple?.kioskTheme?.layout?.homeScreenWhatsAppButtonsVisible != false {
                 whatsAppButtonsView
-                    .padding(.leading, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? 20)))
-                    .padding(.bottom, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 50)))
+                    .padding(.leading, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsLeftPadding ?? DesignSystem.Layout.screenPadding)))
+                    .padding(.bottom, geometry.scale(CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenBottomButtonsPadding ?? 40)))
             }
         }
     }
     
-    // WhatsApp buttons view (reusable)
+    // WhatsApp + Observances — clean utility row, subtle styling
     private var whatsAppButtonsView: some View {
-        HStack(spacing: 12) {
-            // WhatsApp Group
+        HStack(spacing: DesignSystem.Spacing.md) {
             if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink, !whatsAppLink.isEmpty {
                 Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showWhatsAppQR = true
                 }) {
-                    HStack(spacing: 8) {
-                        // WhatsApp icon (custom asset)
+                    HStack(spacing: DesignSystem.Spacing.sm) {
                         if UIImage(named: "WhatsAppIcon") != nil {
                             Image("WhatsAppIcon")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 32, height: 32)
-                                .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+                                .frame(width: DesignSystem.Components.iconSize, height: DesignSystem.Components.iconSize)
                         } else {
-                            // Fallback to system icon if asset not found
                             Image(systemName: "message.fill")
-                                .font(.system(size: 24))
+                                .font(.system(size: DesignSystem.Typography.secondarySize))
                                 .foregroundColor(.white)
-                                .frame(width: 32, height: 32)
+                                .frame(width: DesignSystem.Components.iconSize, height: DesignSystem.Components.iconSize)
                                 .background(Color(red: 0.18, green: 0.64, blue: 0.33))
                                 .clipShape(Circle())
-                                .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
                         }
-                        
                         Text("whatsappGroup".localized)
-                            .font(.system(size: 18, weight: .bold, design: .serif))
-                            .foregroundColor(colorFromHex("423232")) // Matches header color
+                            .font(.custom(DesignSystem.Typography.secondaryFont, size: DesignSystem.Typography.secondarySize))
+                            .foregroundColor(colorFromHex("423232").opacity(0.95))
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                // Vertical separator
                 Rectangle()
-                    .fill(Color(red: 0.26, green: 0.20, blue: 0.20).opacity(0.3))
-                    .frame(width: 1, height: 30)
+                    .fill(colorFromHex("423232").opacity(0.2))
+                    .frame(width: 1, height: 18)
             }
             
-            // Observance
             Button(action: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 showReligiousEvents = true
             }) {
-                HStack(spacing: 8) {
-                    // Observances icon (custom asset)
+                HStack(spacing: DesignSystem.Spacing.sm) {
                     if UIImage(named: "ObservancesIcon") != nil {
                         Image("ObservancesIcon")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 32, height: 32)
-                            .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .frame(width: DesignSystem.Components.iconSize, height: DesignSystem.Components.iconSize)
                     } else {
-                        // Fallback to system bell icon if asset not found
                         Image(systemName: "bell.fill")
-                            .font(.system(size: 20))
+                            .font(.system(size: DesignSystem.Typography.secondarySize))
                             .foregroundColor(.white)
-                            .frame(width: 32, height: 32)
+                            .frame(width: DesignSystem.Components.iconSize, height: DesignSystem.Components.iconSize)
                             .background(
                                 LinearGradient(
                                     gradient: Gradient(colors: [
@@ -353,16 +344,20 @@ struct KioskHomeView: View {
                                 )
                             )
                             .clipShape(Circle())
-                            .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
                     }
-                    
                     Text("observance".localized)
-                        .font(.system(size: 18, weight: .bold, design: .serif))
-                        .foregroundColor(colorFromHex("423232"))
+                        .font(.custom(DesignSystem.Typography.secondaryFont, size: DesignSystem.Typography.secondarySize))
+                        .foregroundColor(colorFromHex("423232").opacity(0.95))
                 }
             }
             .buttonStyle(PlainButtonStyle())
         }
+        .padding(.horizontal, DesignSystem.Spacing.lg)
+        .padding(.vertical, DesignSystem.Spacing.sm)
+        .background(
+            Capsule()
+                .fill(Color.white.opacity(0.12))
+        )
     }
     
     var body: some View {
@@ -477,9 +472,8 @@ struct ReaderBatteryStatusView: View {
     @State private var timer: Timer?
     
     var body: some View {
-        HStack(spacing: 16) {
-            // iPad Battery (left side)
-            HStack(spacing: 8) {
+        HStack(spacing: DesignSystem.Spacing.md) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
                 if let level = deviceBatteryLevel {
                     // Battery icon
                     Image(systemName: batteryIconName(for: level))
@@ -506,14 +500,12 @@ struct ReaderBatteryStatusView: View {
                 }
             }
             
-            // Separator (optional visual separator)
             Text("|")
-                .font(.custom("Inter-Medium", size: 16))
+                .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.secondarySize))
                 .foregroundColor(.white.opacity(0.5))
                 .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
             
-            // Stripe Reader Battery (right side)
-            HStack(spacing: 8) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
                 if let level = readerBatteryLevel {
                     // Battery icon
                     Image(systemName: batteryIconName(for: level))
@@ -632,22 +624,19 @@ struct TimeAndNetworkStatusView: View {
         VStack {
             HStack {
                 Spacer()
-                HStack(spacing: 12) {
-                    // Hardware status indicator (Square Reader 2nd Gen)
+                HStack(spacing: DesignSystem.Spacing.sm) {
                     Circle()
                         .fill(hardwareMonitor.isHardwareConnected ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
-                        .shadow(color: hardwareMonitor.isHardwareConnected ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 4)
+                        .frame(width: 10, height: 10)
+                        .shadow(color: (hardwareMonitor.isHardwareConnected ? Color.green : Color.red).opacity(0.4), radius: 2)
                     
-                    // Network status indicator
                     Circle()
                         .fill(networkMonitor.isConnected ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
-                        .shadow(color: networkMonitor.isConnected ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 4)
+                        .frame(width: 10, height: 10)
+                        .shadow(color: (networkMonitor.isConnected ? Color.green : Color.red).opacity(0.4), radius: 2)
                     
-                    // Time display - tappable for admin access
                     Text(timeString)
-                        .font(.custom("Inter-Medium", size: 18))
+                        .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
                         .foregroundColor(.white)
                         .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
                         .onTapGesture {
@@ -709,8 +698,8 @@ struct ModernQuickActionButton: View {
     
     var body: some View {
         Button(action: {
-            // Button actions in SwiftUI are already on main thread
             if isActive {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 action()
             }
         }) {
@@ -723,9 +712,9 @@ struct ModernQuickActionButton: View {
                     .font(.custom("Inter-Medium", size: 14))
                     .foregroundColor(isActive ? .white : .gray.opacity(0.5))
             }
-            .frame(width: 110, height: 110)
+            .frame(width: DesignSystem.Components.quickActionSize, height: DesignSystem.Components.quickActionSize)
             .background(isActive ? color : Color.gray.opacity(0.1))
-            .cornerRadius(18)
+            .cornerRadius(DesignSystem.Components.cardCornerRadius)
             .overlay(
                 RoundedRectangle(cornerRadius: 18)
                     .stroke(isActive ? Color.clear : Color.gray.opacity(0.2), lineWidth: 1)
@@ -765,46 +754,38 @@ func colorForPlatform(_ platform: String) -> Color {
 struct QRCodeDisplayView: View {
     let url: String
     let title: String
-    let cachedImage: UIImage? // Use cached image if available
-    @Environment(\.dismiss) var dismiss
-    
+    let cachedImage: UIImage?
+    @EnvironmentObject var appState: AppState
+
     var body: some View {
-        NavigationView {
-            VStack(spacing: 30) {
+        KioskModal(title: title, dismissButtonTitle: "done".localized) {
+            VStack(spacing: 24) {
                 Text("Scan to \(title)")
-                    .font(.custom("Inter-SemiBold", size: 24))
-                    .padding(.top, 40)
-                
-                // Use cached image if available, otherwise generate on the fly
+                    .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
+                    .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
+                    .padding(.top, DesignSystem.Spacing.md)
+
                 if let qrImage = cachedImage ?? generateQRCode(from: url) {
                     Image(uiImage: qrImage)
                         .interpolation(.none)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 300, height: 300)
+                        .frame(width: 280, height: 280)
                         .background(Color.white)
-                        .cornerRadius(12)
-                        .shadow(radius: 5)
+                        .cornerRadius(DesignSystem.Components.cardCornerRadius)
+                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
                 }
-                
+
                 Text(url)
-                    .font(.system(size: 14))
+                    .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.secondarySize))
                     .foregroundColor(.secondary)
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, DesignSystem.Components.modalContentPadding)
                     .multilineTextAlignment(.center)
-                
-                Spacer()
+
+                Spacer(minLength: 0)
             }
-            .padding()
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
+            .frame(maxWidth: .infinity)
+            .padding(DesignSystem.Components.modalContentPadding)
         }
     }
     
@@ -870,7 +851,10 @@ struct GoldAccentDonateButton: View {
     }
     
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            action()
+        }) {
             ZStack {
                 // Image background - new 1600x400 ratio (4:1)
                 Image("DonateButtonBackground")
@@ -899,13 +883,13 @@ struct GoldAccentDonateButton: View {
         }
         .buttonStyle(PlainButtonStyle())
         .onAppear {
-            // Reset and start pulsing animation
+            // Subtle, calming pulse — premium feel without distraction
             pulseScale = 1.0
             withAnimation(
-                Animation.easeInOut(duration: 2.0)
+                Animation.easeInOut(duration: 2.5)
                     .repeatForever(autoreverses: true)
             ) {
-                pulseScale = 1.05
+                pulseScale = 1.02
             }
         }
         .onChange(of: navigationState.showDonationFlow) { _ in
@@ -914,10 +898,10 @@ struct GoldAccentDonateButton: View {
                 pulseScale = 1.0
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     withAnimation(
-                        Animation.easeInOut(duration: 2.0)
+                        Animation.easeInOut(duration: 2.5)
                             .repeatForever(autoreverses: true)
                     ) {
-                        pulseScale = 1.05
+                        pulseScale = 1.02
                     }
                 }
             }
@@ -945,35 +929,25 @@ struct UnifiedCalendarEventsView: View {
     let googleCalendarLink: String?
     let localEvents: [LocalEvent]?
     let eventsText: String?
-    @Environment(\.dismiss) var dismiss
     @State private var googleEvents: [GoogleCalendarEvent] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var selectedView: CalendarViewType = .list
-    
+
     enum CalendarViewType {
         case calendar, list
     }
-    
+
     var body: some View {
-        NavigationView {
+        KioskModal(title: "upcomingEvents".localized, dismissButtonTitle: "done".localized) {
             VStack(spacing: 0) {
-                // Default to list view - remove calendar picker for cleaner UI
                 EventsListView(
                     googleEvents: googleEvents,
                     localEvents: localEvents ?? [],
                     eventsText: eventsText
                 )
             }
-            .navigationTitle("upcomingEvents".localized)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .task {
                 await loadGoogleEvents()
             }
@@ -1334,64 +1308,34 @@ struct LocalEventCard: View {
     }
 }
 
-// Religious Events View
+// Religious Events View (Observances modal)
 struct ReligiousEventsView: View {
     let religiousEvents: [ReligiousEvent]
-    @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
-    
-    // Helper to convert hex string to Color
-    private func colorFromHex(_ hex: String?, defaultColor: Color) -> Color {
-        guard let hex = hex, !hex.isEmpty else {
-            return defaultColor
-        }
-        
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if hexSanitized.hasPrefix("#") {
-            hexSanitized.removeFirst()
-        }
-        
-        if hexSanitized.count == 3 {
-            hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
-        }
-        
-        guard hexSanitized.count == 6,
-              let rgb = UInt32(hexSanitized, radix: 16) else {
-            return defaultColor
-        }
-        
-        let r = Double((rgb >> 16) & 0xFF) / 255.0
-        let g = Double((rgb >> 8) & 0xFF) / 255.0
-        let b = Double(rgb & 0xFF) / 255.0
-        
-        return Color(red: r, green: g, blue: b)
-    }
 
     var body: some View {
-        NavigationView {
+        KioskModal(title: "religiousObservances".localized, dismissButtonTitle: "done".localized) {
             VStack(spacing: 0) {
-                // Note text below title
                 Text("observanceNote".localized)
                     .font(.custom(appState.temple?.kioskTheme?.fonts?.bodyFamily ?? "Inter-Regular", size: 13))
                     .italic()
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-                    .padding(.top, 20)
-                    .padding(.bottom, 16)
+                    .padding(.horizontal, DesignSystem.Components.modalContentPadding)
+                    .padding(.top, DesignSystem.Spacing.sm)
+                    .padding(.bottom, DesignSystem.Spacing.md)
 
-                // LIST CONTENT
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         if religiousEvents.isEmpty {
-                            VStack(spacing: 20) {
+                            VStack(spacing: DesignSystem.Spacing.lg) {
                                 Image(systemName: "moon.stars.fill")
                                     .font(.system(size: 50))
                                     .foregroundColor(.gray)
                                 Text("noUpcomingObservances".localized)
-                                    .font(.custom(appState.temple?.kioskTheme?.fonts?.headingFamily ?? "Inter-SemiBold", size: 20))
+                                    .font(.custom(appState.temple?.kioskTheme?.fonts?.headingFamily ?? "Inter-SemiBold", size: DesignSystem.Typography.subsectionSize))
                             }
-                            .padding()
+                            .padding(DesignSystem.Components.modalContentPadding)
                         } else {
                             ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
                                 VStack(spacing: 0) {
@@ -1399,41 +1343,26 @@ struct ReligiousEventsView: View {
                                         event: event,
                                         showCountdown: index == 0
                                     )
-                                    
-                                    // Divider between rows (except last)
                                     if index < religiousEvents.count - 1 {
                                         Divider()
                                             .background(Color.gray.opacity(0.2))
-                                            .padding(.horizontal, 18)
+                                            .padding(.horizontal, DesignSystem.Spacing.lg)
                                     }
                                 }
                             }
                         }
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, DesignSystem.Spacing.md)
                 }
-                .frame(minHeight: 320, maxHeight: 520)
+                .frame(minHeight: 280, maxHeight: 480)
                 .background(Color.white)
-                
-                Spacer()
+
+                Spacer(minLength: 0)
             }
-            .padding()
+            .frame(maxWidth: .infinity)
+            .padding(DesignSystem.Components.modalContentPadding)
             .background(Color.white)
-            .navigationTitle("religiousObservances".localized)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("done".localized) {
-                        dismiss()
-                    }
-                    .foregroundColor(colorFromHex(
-                        appState.temple?.kioskTheme?.colors?.doneButtonColor,
-                        defaultColor: Color.blue
-                    ))
-                }
-            }
         }
-        .background(Color.white)
     }
 }
 

@@ -72,6 +72,20 @@ export class DonorsController {
     };
   }
 
+  @Get('temple/:templeId/stats')
+  @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
+  @ApiOperation({ summary: 'Get donor stats for a temple' })
+  async getDonorStats(
+    @Param('templeId') templeId: string,
+    @Request() req,
+  ) {
+    const targetTempleId = req.user.role === UserRole.TEMPLE_ADMIN ? req.user.templeId : templeId;
+    if (req.user.role === UserRole.TEMPLE_ADMIN && templeId !== req.user.templeId) {
+      throw new ForbiddenException('Cannot access donors for another temple');
+    }
+    return this.donorsService.getDonorStats(targetTempleId);
+  }
+
   @Get('temple/:templeId')
   @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
   @ApiOperation({ summary: 'Get all donors for a temple' })
