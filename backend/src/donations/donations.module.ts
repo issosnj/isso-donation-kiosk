@@ -26,7 +26,7 @@ import { AuthModule } from '../auth/auth.module';
     forwardRef(() => StripeModule),
     GmailModule,
     forwardRef(() => DonorsModule),
-    AuthModule,
+    forwardRef(() => AuthModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
