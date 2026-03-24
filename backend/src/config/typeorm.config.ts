@@ -49,22 +49,28 @@ export const typeOrmConfig = (): DataSourceOptions => {
     return config;
   }
   
-  // Fallback to individual variables
+  // Fallback to individual variables - NO default passwords
   const host = configService.get('DB_HOST', 'localhost');
   const port = parseInt(configService.get('DB_PORT', '5432'), 10);
   const username = configService.get('DB_USERNAME', 'postgres');
   const database = configService.get('DB_DATABASE', 'isso_donation_kiosk');
-  
+  const password = configService.get('DB_PASSWORD');
+
+  if (!password) {
+    throw new Error(
+      'DB_PASSWORD is required when using individual DB variables. ' +
+        'Prefer DATABASE_URL or DATABASE_PUBLIC_URL (connection string) instead.'
+    );
+  }
+
   console.log(`[TypeORM] Using individual DB variables: ${host}:${port}/${database} as ${username}`);
-  console.log(`[TypeORM] DATABASE_URL is: ${databaseUrl ? 'set' : 'not set'}`);
-  console.log(`[TypeORM] DB_HOST is: ${host}`);
-  
+
   return {
     type: 'postgres',
     host,
     port,
     username,
-    password: configService.get('DB_PASSWORD', 'postgres'),
+    password,
     database,
     entities: [User, Temple, Device, DeviceTelemetry, DonationCategory, Donation, Donor, AuditLog, ReligiousEvent, GlobalSettings, ThemeVersion, DefaultPosition, StripeWebhookEvent],
     synchronize: configService.get('NODE_ENV') === 'development',

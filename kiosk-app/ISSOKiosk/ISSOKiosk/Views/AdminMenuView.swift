@@ -646,7 +646,8 @@ struct AdminPasswordView: View {
     @State private var errorMessage: String = ""
     @State private var isAuthenticated: Bool = false
 
-    // Default password — change in AdminMenuView.swift if needed. Current: admin123
+    // SECURITY: This should be moved to Keychain or secure config. Do not use in production without rotation.
+    // Consider fetching from backend or storing securely per-device.
     private let adminPassword = "admin123"
 
     var body: some View {

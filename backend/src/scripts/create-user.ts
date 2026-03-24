@@ -12,9 +12,13 @@ async function createUser() {
 
     const usersRepository = dataSource.getRepository(User);
 
-    // Get user details from environment or use defaults
-    const email = process.env.USER_EMAIL || 'patelmit101@gmail.com';
-    const password = process.env.USER_PASSWORD || 'Admin123';
+    // Get user details from environment - REQUIRED
+    const email = process.env.USER_EMAIL;
+    const password = process.env.USER_PASSWORD;
+    if (!email || !password) {
+      console.error('❌ Error: USER_EMAIL and USER_PASSWORD are required.');
+      process.exit(1);
+    }
     const name = process.env.USER_NAME || 'Admin User';
     const role = (process.env.USER_ROLE as UserRole) || UserRole.MASTER_ADMIN;
     const templeId = process.env.USER_TEMPLE_ID || undefined;

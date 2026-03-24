@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { TempleFilter, DonorSummaryCards } from '@/components/donors'
+import DonorInfoPopup from '@/components/DonorInfoPopup'
 
 interface DonorsTabProps {
   templeId?: string
@@ -32,6 +33,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [editingDonor, setEditingDonor] = useState<Donor | null>(null)
+  const [selectedDonor, setSelectedDonor] = useState<Donor | null>(null)
   const [editForm, setEditForm] = useState({ name: '', email: '', address: '', phone: '' })
   const limit = 50
 
@@ -353,13 +355,23 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {donors.map((donor) => (
-                    <tr key={donor.id} className="hover:bg-purple-50/30 transition-colors">
+                    <tr
+                      key={donor.id}
+                      className="hover:bg-purple-50/30 transition-colors cursor-pointer"
+                      onClick={() => setSelectedDonor(donor)}
+                    >
                       <td className="px-6 py-4">
-                        <span className="font-medium text-gray-900">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedDonor(donor)
+                          }}
+                          className="font-medium text-purple-600 hover:text-purple-800 hover:underline text-left"
+                        >
                           {donor.name || (
                             <span className="text-gray-500 italic">No name</span>
                           )}
-                        </span>
+                        </button>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {donor.email || '—'}
@@ -381,7 +393,13 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {formatDate(donor.lastDonationDate)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setSelectedDonor(donor)}
+                          className="text-purple-600 hover:text-purple-800 text-sm font-medium mr-3"
+                        >
+                          View
+                        </button>
                         <button
                           onClick={() => handleEdit(donor)}
                           className="text-purple-600 hover:text-purple-800 text-sm font-medium mr-3"
@@ -427,6 +445,20 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
           </>
         )}
       </div>
+
+      {/* Donor detail modal (donation history & receipts) */}
+      {selectedDonor && (
+        <DonorInfoPopup
+          donorPhone={selectedDonor.phone}
+          donorName={selectedDonor.name}
+          donorEmail={selectedDonor.email}
+          donorAddress={selectedDonor.address}
+          donorId={selectedDonor.id}
+          templeId={effectiveTempleId}
+          isMasterAdmin={isMasterAdmin}
+          onClose={() => setSelectedDonor(null)}
+        />
+      )}
 
       {/* Edit modal */}
       {editingDonor && (

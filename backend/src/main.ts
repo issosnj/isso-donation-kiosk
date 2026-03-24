@@ -11,7 +11,22 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
+function validateRequiredEnv() {
+  const databaseUrl = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL;
+  if (!databaseUrl || !databaseUrl.trim()) {
+    throw new Error(
+      'DATABASE_URL or DATABASE_PUBLIC_URL is required. ' +
+        'See .env.example and SECURITY.md for setup.'
+    );
+  }
+  if (!process.env.JWT_SECRET || !process.env.JWT_SECRET.trim()) {
+    throw new Error('JWT_SECRET is required. See .env.example and SECURITY.md for setup.');
+  }
+}
+
 async function bootstrap() {
+  validateRequiredEnv();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false });
   
   // Serve static files from uploads directory

@@ -1,11 +1,31 @@
-// Script to verify user exists and test password - can run with: node verify-user.js
+// Script to verify user exists and test password
+// Usage: USER_EMAIL=... USER_PASSWORD=... DATABASE_URL='...' node verify-user.js
+// All of USER_EMAIL, USER_PASSWORD, and DATABASE_URL are REQUIRED.
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const { Client } = require('pg');
 const bcrypt = require('bcrypt');
 
+function requireEnv(name) {
+  const val = process.env[name];
+  if (!val || !val.trim()) {
+    console.error(`❌ Error: ${name} is required.`);
+    process.exit(1);
+  }
+  return val;
+}
+
 async function verifyUser() {
-  const databaseUrl = process.env.DATABASE_URL || 
-    'postgresql://postgres:QtyRmuiBsJQcMLAJUfwpsJmTvMXQHSll@caboose.proxy.rlwy.net:30512/railway';
-  
+  const databaseUrl = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL;
+  if (!databaseUrl || !databaseUrl.trim()) {
+    console.error('❌ Error: DATABASE_URL or DATABASE_PUBLIC_URL is required.');
+    process.exit(1);
+  }
+
+  const email = requireEnv('USER_EMAIL');
+  const testPassword = requireEnv('USER_PASSWORD');
+
   const client = new Client({
     connectionString: databaseUrl,
   });
@@ -14,10 +34,6 @@ async function verifyUser() {
     await client.connect();
     console.log('✅ Database connected');
 
-    const email = 'patelmit101@gmail.com';
-    const testPassword = 'Admin123';
-
-    // Get user
     const result = await client.query(
       'SELECT id, email, "passwordHash", role, name FROM users WHERE email = $1',
       [email]
@@ -37,22 +53,16 @@ async function verifyUser() {
     console.log('  Role:', user.role);
     console.log('  Password Hash:', user.passwordHash.substring(0, 20) + '...');
 
-    // Test password
     const isValid = await bcrypt.compare(testPassword, user.passwordHash);
     console.log('\n🔐 Password Test:');
-    console.log('  Test Password:', testPassword);
     console.log('  Password Valid:', isValid ? '✅ YES' : '❌ NO');
 
     if (!isValid) {
       console.log('\n⚠️  Password mismatch! Regenerating password hash...');
       const newHash = await bcrypt.hash(testPassword, 10);
-      await client.query(
-        'UPDATE users SET "passwordHash" = $1 WHERE email = $2',
-        [newHash, email]
-      );
+      await client.query('UPDATE users SET "passwordHash" = $1 WHERE email = $2', [newHash, email]);
       console.log('✅ Password hash updated!');
-      
-      // Test again
+
       const isValidAfter = await bcrypt.compare(testPassword, newHash);
       console.log('  Password Valid After Update:', isValidAfter ? '✅ YES' : '❌ NO');
     }
@@ -61,11 +71,9 @@ async function verifyUser() {
     process.exit(0);
   } catch (error) {
     console.error('❌ Error:', error.message);
-    console.error(error);
     await client.end();
     process.exit(1);
   }
 }
 
 verifyUser();
-

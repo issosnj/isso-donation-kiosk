@@ -2,6 +2,10 @@
 
 A modern, multi-tenant donation kiosk system for temples with Stripe Terminal payment integration. Features a NestJS backend, Next.js admin portal, and native iOS kiosk app.
 
+## 🚨 Security Notice
+
+**All previously committed credentials must be considered compromised.** See [SECURITY.md](./SECURITY.md) for credential rotation instructions and security hardening details.
+
 ## 🏗️ Architecture
 
 - **Backend**: NestJS REST API with PostgreSQL (deployed on Railway)

@@ -11,6 +11,7 @@ interface DonorInfoPopupProps {
   donorName?: string | null
   donorEmail?: string | null
   donorAddress?: string | null
+  donorId?: string
   templeId?: string
   isMasterAdmin?: boolean
   onClose: () => void
@@ -21,12 +22,14 @@ export default function DonorInfoPopup({
   donorName,
   donorEmail,
   donorAddress,
+  donorId,
   templeId,
   isMasterAdmin = false,
   onClose,
 }: DonorInfoPopupProps) {
   const [viewingReceiptId, setViewingReceiptId] = useState<string | null>(null)
   const [receiptData, setReceiptData] = useState<any>(null)
+  const [resendingId, setResendingId] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
     name: donorName || '',
@@ -73,6 +76,28 @@ export default function DonorInfoPopup({
     } catch (error) {
       console.error('Failed to load receipt:', error)
       alert('Failed to load receipt')
+    }
+  }
+
+  const resendReceiptMutation = useMutation({
+    mutationFn: async (donationId: string) => {
+      const response = await api.post(`/donations/${donationId}/resend-receipt`)
+      return response.data
+    },
+    onSuccess: () => {
+      alert('Receipt email sent successfully!')
+      setResendingId(null)
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to send receipt email')
+      setResendingId(null)
+    },
+  })
+
+  const handleResendReceipt = (donationId: string) => {
+    if (confirm('Resend receipt email to this donor?')) {
+      setResendingId(donationId)
+      resendReceiptMutation.mutate(donationId)
     }
   }
 
@@ -182,21 +207,24 @@ export default function DonorInfoPopup({
   // Update donor mutation
   const updateDonorMutation = useMutation({
     mutationFn: async (updates: { name?: string; email?: string; address?: string; phone?: string }) => {
-      // First, we need to find the donor ID by phone
-      const donorsResponse = await api.get(`/donors/my-temple?search=${donorPhone}`)
-      const donors = donorsResponse.data.donors || []
-      const donor = donors.find((d: any) => d.phone === donorPhone.replace(/\D/g, ''))
-      
-      if (!donor) {
-        throw new Error('Donor not found')
+      let id = donorId
+      if (!id) {
+        const endpoint = isMasterAdmin && templeId
+          ? `/donors/temple/${templeId}`
+          : '/donors/my-temple'
+        const donorsResponse = await api.get(`${endpoint}?search=${encodeURIComponent(donorPhone)}`)
+        const donors = donorsResponse.data.donors || []
+        const donor = donors.find((d: any) => String(d.phone) === String(donorPhone).replace(/\D/g, ''))
+        if (!donor) throw new Error('Donor not found')
+        id = donor.id
       }
-
-      const response = await api.put(`/donors/${donor.id}`, updates)
+      const response = await api.put(`/donors/${id}`, updates)
       return response.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['donations-by-donor', donorPhone] })
       queryClient.invalidateQueries({ queryKey: ['donors'] })
+      queryClient.invalidateQueries({ queryKey: ['donor-stats'] })
       setIsEditing(false)
       alert('Donor information updated successfully!')
     },
@@ -218,21 +246,40 @@ export default function DonorInfoPopup({
 
   if (viewingReceiptId && receiptData) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold">Receipt</h2>
-            <button
-              onClick={() => {
-                setViewingReceiptId(null)
-                setReceiptData(null)
-              }}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl shadow-xl border border-gray-200 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center rounded-t-xl z-10">
+            <h2 className="text-xl font-semibold text-gray-900">Receipt</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+              </button>
+              <a
+                href={`/receipt?id=${viewingReceiptId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 flex items-center gap-2"
+              >
+                Open in new tab
+              </a>
+              <button
+                onClick={() => {
+                  setViewingReceiptId(null)
+                  setReceiptData(null)
+                }}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div className="p-6">
             <ReceiptView
@@ -247,15 +294,15 @@ export default function DonorInfoPopup({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold">Donor Information</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center rounded-t-xl z-10">
+          <h2 className="text-xl font-semibold text-gray-900">Donor Information</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -265,11 +312,11 @@ export default function DonorInfoPopup({
           {/* Donor Info */}
           <div className="mb-6 pb-6 border-b border-gray-200">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Contact Information</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
                 >
                   Edit
                 </button>
@@ -396,66 +443,90 @@ export default function DonorInfoPopup({
             )}
           </div>
 
-          {/* Past Donations */}
+          {/* Donation History */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Past Donations</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Donation History</h3>
+              {!isLoading && donations.length > 0 && (
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-gray-600">
+                    <span className="font-semibold text-gray-900">{donations.length}</span> donation{donations.length !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-gray-400">|</span>
+                  <span className="font-semibold text-green-600">
+                    {formatCurrency(donations.reduce((sum: number, d: any) => sum + Number(d.amount), 0))} total
+                  </span>
+                </div>
+              )}
+            </div>
             {isLoading ? (
               <div className="text-center py-8">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                 <p className="mt-2 text-gray-600">Loading donations...</p>
               </div>
             ) : donations.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>No past donations found for this donor.</p>
+              <div className="text-center py-8 bg-gray-50 rounded-xl border border-gray-200">
+                <p className="text-gray-500">No past donations found for this donor.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Receipt #
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Amount
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Category
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {donations.map((donation: any) => (
-                      <tr key={donation.id} className="hover:bg-gray-50">
+                      <tr key={donation.id} className="hover:bg-purple-50/30 transition-colors">
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {format(new Date(donation.createdAt), 'MMM dd, yyyy')}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 tabular-nums">
                           {donation.receiptNumber || (
                             <span className="text-gray-400 italic">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-green-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600 tabular-nums">
                           {formatCurrency(Number(donation.amount))}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                           {donation.category?.name || 'General'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          {donation.receiptNumber && (
-                            <button
-                              onClick={() => handleViewReceipt(donation.id)}
-                              className="text-purple-600 hover:text-purple-800 hover:underline"
-                            >
-                              View Receipt
-                            </button>
-                          )}
+                          <div className="flex items-center gap-3">
+                            {donation.receiptNumber && (
+                              <>
+                                <button
+                                  onClick={() => handleViewReceipt(donation.id)}
+                                  className="text-purple-600 hover:text-purple-800 font-medium"
+                                >
+                                  View Receipt
+                                </button>
+                                <button
+                                  onClick={() => handleResendReceipt(donation.id)}
+                                  disabled={resendingId === donation.id}
+                                  className="text-gray-600 hover:text-gray-800 text-sm disabled:opacity-50"
+                                >
+                                  {resendingId === donation.id ? 'Sending...' : 'Resend email'}
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -1,6 +1,8 @@
 // Script to restore a theme from a JSON string
-// Usage: node backend/scripts/restore-theme.js '{"fonts": {...}, "colors": {...}, "layout": {...}}'
+// Usage: DATABASE_URL='...' node backend/scripts/restore-theme.js '{"fonts": {...}}'
 // Or: node backend/scripts/restore-theme.js < theme.json
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const { Client } = require('pg');
 
@@ -27,11 +29,13 @@ async function restoreTheme(themeJson) {
     process.exit(1);
   }
 
-  // Get database URL
-  const databaseUrl = process.env.DATABASE_PUBLIC_URL || 
-    process.env.DATABASE_URL ||
-    'postgresql://postgres:QtyRmuiBsJQcMLAJUfwpsJmTvMXQHSll@caboose.proxy.rlwy.net:30512/railway';
-  
+  // Get database URL - REQUIRED, no fallback
+  const databaseUrl = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL;
+  if (!databaseUrl || !databaseUrl.trim()) {
+    console.error('❌ Error: DATABASE_URL or DATABASE_PUBLIC_URL is required.');
+    process.exit(1);
+  }
+
   const client = new Client({
     connectionString: databaseUrl,
   });
