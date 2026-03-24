@@ -54,4 +54,5 @@ npm run dev
 - Tailwind CSS
 - TanStack Query (React Query)
 - Zustand (State Management)
+- Netlify (deployment)
 
