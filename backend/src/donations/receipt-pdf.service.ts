@@ -146,7 +146,7 @@ export class ReceiptPdfService {
     if (donation.stripePaymentIntentId || donation.squarePaymentId) {
       doc.moveDown(1);
       doc.fontSize(10).font('Helvetica-Bold').text('Payment Method:', { continued: true });
-      const paymentMethod = donation.stripePaymentIntentId ? 'Paid by Stripe' : 'Paid by Square';
+      const paymentMethod = donation.stripePaymentIntentId ? 'Paid by Stripe' : 'Paid by Stripe';
       doc.font('Helvetica').text(paymentMethod);
       doc.moveDown(0.3);
       
@@ -388,7 +388,7 @@ export class ReceiptPdfService {
 
         // Payment Method - Better sizing with scaling
         if (receiptConfig.showPaymentMethod !== false) {
-          const paymentMethod = donation.stripePaymentIntentId ? 'Paid by Stripe' : donation.squarePaymentId ? 'Paid by Square' : 'N/A';
+          const paymentMethod = donation.stripePaymentIntentId ? 'Paid by Stripe' : donation.squarePaymentId ? 'Paid by Stripe' : 'N/A';
           doc.fontSize(10 * scaleFactor).font('Helvetica').fillColor('#666666').text(`Payment Method: ${paymentMethod}`, margin, currentY);
           currentY += (13 * scaleFactor);
           

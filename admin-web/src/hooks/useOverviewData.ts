@@ -92,6 +92,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       })
       return res.data
     },
+    retry: 1,
   })
 
   const { data: statsLast30 } = useQuery({
@@ -131,6 +132,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       })
       return Array.isArray(res.data) ? res.data : []
     },
+    retry: 1,
   })
 
   const { data: temples = [] } = useQuery({

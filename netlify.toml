@@ -3,6 +3,8 @@
   command = "npm run build"
   publish = "out"
 
+# Required: Set NEXT_PUBLIC_API_URL in Netlify site settings (Build & deploy > Environment)
+# e.g. https://kiosk-backend.issousa.org/api
 [build.environment]
   NODE_VERSION = "20"
 

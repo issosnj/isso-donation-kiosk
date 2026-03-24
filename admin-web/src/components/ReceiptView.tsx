@@ -192,7 +192,7 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
         {/* Payment Method */}
         {config.showPaymentMethod !== false && (
           <div className="mb-6">
-            <p className="text-sm text-gray-600">Payment Method: Paid by Square</p>
+            <p className="text-sm text-gray-600">Payment Method: Paid by Stripe</p>
             {donation.cardType && donation.cardLast4 && (
               <p className="text-sm text-gray-600 mt-1">
                 Card: {donation.cardType} ending in {donation.cardLast4}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import api from '@/lib/api'
+import api, { apiBaseURL } from '@/lib/api'
 import { AlertCenter } from '@/components/alerts'
 import { useOverviewData } from '@/hooks/useOverviewData'
 import {
@@ -44,9 +44,24 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
     )
   }
 
+  // Warn when API may be misconfigured (production URL but API points to localhost)
+  const apiMayBeMisconfigured =
+    typeof window !== 'undefined' &&
+    !window.location.hostname.includes('localhost') &&
+    apiBaseURL.includes('localhost') &&
+    (statsError || donationsError)
+
   // Master Admin: full executive dashboard
   return (
     <div className="space-y-8">
+      {apiMayBeMisconfigured && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+          <p className="text-sm font-medium">API may be misconfigured</p>
+          <p className="text-xs mt-1">
+            Set <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_API_URL</code> in Netlify environment variables to your backend URL (e.g. https://kiosk-backend.issousa.org/api).
+          </p>
+        </div>
+      )}
       {/* 1. Executive hero */}
       <ExecutiveHero
         totalYtd={stats.totalYtd}

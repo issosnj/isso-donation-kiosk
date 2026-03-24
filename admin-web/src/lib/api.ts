@@ -2,6 +2,8 @@ import axios from 'axios'
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 
+export { baseURL as apiBaseURL }
+
 // Log the API URL to help debug (always log in browser)
 if (typeof window !== 'undefined') {
   console.log('[API] Base URL:', baseURL)
@@ -10,6 +12,7 @@ if (typeof window !== 'undefined') {
 
 const api = axios.create({
   baseURL,
+  timeout: 30000, // 30s - prevents infinite loading when API is unreachable
 })
 
 // Add auth token to requests
