@@ -289,9 +289,9 @@ function DeviceStatusContent() {
                 )}
               </div>
 
-              {/* Square Hardware */}
+              {/* Stripe Terminal */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Square Hardware</h3>
+                <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Stripe Terminal</h3>
                 {telemetryLoading ? (
                   <p className="text-gray-500 text-sm">Loading...</p>
                 ) : telemetryError ? (
@@ -379,7 +379,7 @@ function DeviceStatusContent() {
                         <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Timestamp</th>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Battery</th>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Network</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Square Hardware</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Stripe Terminal</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">

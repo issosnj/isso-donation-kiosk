@@ -12,7 +12,7 @@ export default function TemplesTab() {
   const [newTempleAddress, setNewTempleAddress] = useState('')
   const queryClient = useQueryClient()
 
-  // Check if we should auto-open a temple (e.g., after Square connection)
+  // Check if we should auto-open a temple (e.g., after Stripe connection)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const openTempleId = sessionStorage.getItem('openTempleId')
@@ -189,7 +189,7 @@ export default function TemplesTab() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Square Connected</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stripe Connected</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Devices</th>
                 </tr>
               </thead>
@@ -207,11 +207,11 @@ export default function TemplesTab() {
                       <div className="text-sm text-gray-600">{temple.address || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${temple.squareMerchantId
+                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${temple.stripeAccountId || temple.stripePublishableKey
                         ? 'bg-green-100 text-green-700 border border-green-200'
                         : 'bg-gray-100 text-gray-700 border border-gray-200'
                         }`}>
-                        {temple.squareMerchantId ? 'Connected' : 'Not Connected'}
+                        {temple.stripeAccountId || temple.stripePublishableKey ? 'Connected' : 'Not Connected'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

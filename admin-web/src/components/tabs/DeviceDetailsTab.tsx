@@ -147,9 +147,9 @@ export default function DeviceDetailsTab({ deviceId, onBack }: DeviceDetailsTabP
           )}
         </div>
 
-        {/* Square Hardware */}
+        {/* Stripe Terminal */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Square Hardware</h3>
+          <h3 className="text-sm font-semibold text-gray-600 uppercase mb-3">Stripe Terminal</h3>
           {latestTelemetry ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">

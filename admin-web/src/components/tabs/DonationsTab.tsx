@@ -744,7 +744,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                         {resendingId === donation.id ? 'Sending...' : 'Resend Receipt'}
                       </button>
                     )}
-                    {donation.status === 'SUCCEEDED' && donation.squarePaymentId && (
+                    {donation.status === 'SUCCEEDED' && (donation.stripePaymentIntentId || donation.squarePaymentId) && (
                       <>
                         <button
                           onClick={() => handleViewPaymentDetails(donation.id)}

@@ -1,6 +1,6 @@
 # ISSO Donation Kiosk - Admin Web Portal
 
-Next.js admin portal for managing temples, devices, donations, and Square integration.
+Next.js admin portal for managing temples, devices, donations, and Stripe integration.
 
 ## Setup
 
@@ -44,7 +44,7 @@ npm run dev
 - Donation management and filtering
 - Device management and activation codes
 - Donation category management
-- Square account connection
+- Stripe account connection
 
 ## Tech Stack
 

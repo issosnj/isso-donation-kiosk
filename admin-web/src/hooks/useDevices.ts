@@ -8,7 +8,7 @@
  *
  * Future backend enhancements to consider:
  * - lastActivityAt: last donation timestamp (join/aggregate from donations)
- * - readerConnected: from latest device_telemetry.squareHardwareConnected (batch endpoint)
+ * - readerConnected: from latest device_telemetry (Stripe Terminal / payment reader status)
  * - tokenStatus: derived from deviceToken + expiry if stored
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
