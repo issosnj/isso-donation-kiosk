@@ -239,7 +239,8 @@ export class DonorsService {
 
   /**
    * Backfill donors from past donations
-   * Creates donor records for all successful donations that have a phone number
+   * Creates donor records for all successful donations that have a phone number.
+   * Resets donor stats before recalculating so running multiple times does not double-count.
    */
   async backfillDonorsFromDonations(
     donationsRepository: Repository<any>,
@@ -260,6 +261,23 @@ export class DonorsService {
     }
 
     const donations = await queryBuilder.getMany();
+
+    // Reset stats for donors we're about to update (prevents double-counting when backfill runs multiple times)
+    const donorKeys = new Set<string>();
+    for (const d of donations) {
+      const normalized = d.donorPhone?.replace(/\D/g, '');
+      if (normalized) donorKeys.add(`${d.templeId}:${normalized}`);
+    }
+    for (const key of donorKeys) {
+      const [tId, phone] = key.split(':');
+      const donor = await this.donorsRepository.findOne({ where: { templeId: tId, phone } });
+      if (donor) {
+        donor.totalDonations = 0;
+        donor.totalAmount = 0;
+        donor.lastDonationDate = null;
+        await this.donorsRepository.save(donor);
+      }
+    }
 
     for (const donation of donations) {
       try {
