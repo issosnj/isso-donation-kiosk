@@ -353,14 +353,36 @@ export class DonationsService {
     return { deleted: result.affected || 0 };
   }
 
-  async findByDonorPhone(phone: string, templeId?: string): Promise<Donation[]> {
+  /**
+   * Find all successful donations for a donor, matching by:
+   * - Normalized phone (donorPhone with non-digits stripped) - handles +1, dashes, etc.
+   * - donorId when provided (donations explicitly linked to donor entity)
+   */
+  async findByDonorPhone(
+    phone: string,
+    templeId?: string,
+    donorId?: string,
+  ): Promise<Donation[]> {
+    const normalizedPhone = phone.replace(/\D/g, '');
     const queryBuilder = this.donationsRepository
       .createQueryBuilder('donation')
       .leftJoinAndSelect('donation.temple', 'temple')
       .leftJoinAndSelect('donation.category', 'category')
-      .where('donation.donorPhone = :phone', { phone })
-      .andWhere('donation.status = :status', { status: DonationStatus.SUCCEEDED })
+      .where('donation.status = :status', { status: DonationStatus.SUCCEEDED })
       .orderBy('donation.createdAt', 'DESC');
+
+    // Match by donorId OR normalized phone (PostgreSQL: strip non-digits from donorPhone)
+    if (donorId) {
+      queryBuilder.andWhere(
+        '(donation.donorId = :donorId OR REGEXP_REPLACE(COALESCE(donation.donorPhone, \'\'), \'[^0-9]\', \'\', \'g\') = :normalizedPhone)',
+        { donorId, normalizedPhone },
+      );
+    } else {
+      queryBuilder.andWhere(
+        "REGEXP_REPLACE(COALESCE(donation.donorPhone, ''), '[^0-9]', '', 'g') = :normalizedPhone",
+        { normalizedPhone },
+      );
+    }
 
     if (templeId) {
       queryBuilder.andWhere('donation.templeId = :templeId', { templeId });

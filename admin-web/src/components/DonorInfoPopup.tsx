@@ -44,13 +44,16 @@ export default function DonorInfoPopup({
   const addressDropdownRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
 
-  // Fetch donations for this donor
+  // Fetch donations for this donor (pass donorId when available for better matching)
   const { data: donations = [], isLoading } = useQuery({
-    queryKey: ['donations-by-donor', donorPhone, templeId],
+    queryKey: ['donations-by-donor', donorPhone, templeId, donorId],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (templeId && isMasterAdmin) {
         params.append('templeId', templeId)
+      }
+      if (donorId) {
+        params.append('donorId', donorId)
       }
       const response = await api.get(`/donations/by-donor/${encodeURIComponent(donorPhone)}?${params.toString()}`)
       return response.data
