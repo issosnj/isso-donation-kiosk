@@ -27,26 +27,23 @@ struct KioskHomeView: View {
     
     // Helper function to convert hex string to Color
     private func colorFromHex(_ hex: String) -> Color {
+        colorFromHex(hex, defaultColor: Color(red: 0.26, green: 0.20, blue: 0.20))
+    }
+    private func colorFromHex(_ hex: String?, defaultColor: Color) -> Color {
+        guard let hex = hex, !hex.isEmpty else { return defaultColor }
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if hexSanitized.hasPrefix("#") {
-            hexSanitized.removeFirst()
-        }
-        
-        // Handle 3-character hex codes
+        if hexSanitized.hasPrefix("#") { hexSanitized.removeFirst() }
         if hexSanitized.count == 3 {
             hexSanitized = hexSanitized.map { String($0) + String($0) }.joined()
         }
-        
-        guard hexSanitized.count == 6,
-              let rgb = UInt32(hexSanitized, radix: 16) else {
-            return Color(red: 0.26, green: 0.20, blue: 0.20) // Default to #423232 if parsing fails
+        guard hexSanitized.count == 6, let rgb = UInt32(hexSanitized, radix: 16) else {
+            return defaultColor
         }
-        
-        let red = Double((rgb >> 16) & 0xFF) / 255.0
-        let green = Double((rgb >> 8) & 0xFF) / 255.0
-        let blue = Double(rgb & 0xFF) / 255.0
-        
-        return Color(red: red, green: green, blue: blue)
+        return Color(
+            red: Double((rgb >> 16) & 0xFF) / 255,
+            green: Double((rgb >> 8) & 0xFF) / 255,
+            blue: Double(rgb & 0xFF) / 255
+        )
     }
     
     // Background view - uses separate homepage background
@@ -132,34 +129,38 @@ struct KioskHomeView: View {
     @ViewBuilder
     private func defaultLayout(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // Header — welcome/title/subtitle/address stack (Theme Studio: homeScreenHeroTextTopPadding)
+            // Header — welcome/title/subtitle/address (theme-aware, matches sepia temple aesthetic)
             VStack(spacing: 0) {
-                // Temple name + subtitle group — improved line spacing
-                let welcomeLineSpacing = CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextLineSpacing ?? 10)
+                let headerColor = colorFromHex(appState.temple?.kioskTheme?.colors?.headingColor, defaultColor: Color(red: 0.22, green: 0.18, blue: 0.16))
+                let headerMuted = headerColor.opacity(0.92)
+                let welcomeLineSpacing = CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextLineSpacing ?? 4)
                 let heroPos = appState.temple?.kioskTheme?.layout?.homeScreenHeroTextPosition ?? "slightly-higher"
-                let heroTopPadding = heroPos == "centered" ? 60.0 : 32.0
+                let heroTopPadding = (heroPos == "centered" ? 60.0 : 32.0) + 100
                 VStack(spacing: geometry.scale(welcomeLineSpacing)) {
                     if appState.temple?.kioskTheme?.layout?.homeScreenWelcomeTextVisible != false {
-                        Text("Welcome to Shree Swaminarayan Hindu Temple")
-                            .font(.custom(DesignSystem.Typography.heroFont, size: geometry.scale(34)))
-                            .foregroundColor(colorFromHex("423232"))
+                        Text("welcome".localized)
+                            .font(.system(size: geometry.scale(46), weight: .bold, design: .serif))
+                            .foregroundColor(headerColor)
+                            .shadow(color: Color.black.opacity(0.15), radius: 2, x: 0, y: 1)
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.5)
                     }
                     if appState.temple?.kioskTheme?.layout?.homeScreenHeader1Visible != false {
                         Text(header1Text)
-                            .font(.custom(DesignSystem.Typography.pageTitleFont, size: geometry.scale(26)))
-                            .foregroundColor(colorFromHex("423232"))
+                            .font(.custom(DesignSystem.Typography.pageTitleFont, size: geometry.scale(34)))
+                            .foregroundColor(headerColor)
+                            .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.5)
                     }
                     if appState.temple?.kioskTheme?.layout?.homeScreenUnderGadiTextVisible != false {
                         Text("underGadi".localized)
-                            .font(.custom(DesignSystem.Typography.bodyFont, size: geometry.scale(DesignSystem.Typography.secondarySize)))
+                            .font(.system(size: geometry.scale(DesignSystem.Typography.secondarySize + 10), weight: .regular, design: .serif))
                             .italic()
-                            .foregroundColor(colorFromHex("423232"))
+                            .foregroundColor(headerMuted)
+                            .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                             .multilineTextAlignment(.center)
                     }
                 }
@@ -167,13 +168,13 @@ struct KioskHomeView: View {
                 .padding(.top, geometry.scale(heroTopPadding))
                 .padding(.bottom, geometry.scale(DesignSystem.Spacing.sm))
                 
-                // Address — visually separated (Theme Studio: homeScreenAddressTopSpacing)
-                let addressTopSpacing = CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenAddressTopSpacing ?? 12)
+                let addressTopSpacing = CGFloat(appState.temple?.kioskTheme?.layout?.homeScreenAddressTopSpacing ?? 6)
                 if appState.temple?.kioskTheme?.layout?.homeScreenAddressVisible != false {
                     if let temple = appState.temple, let address = temple.address, !address.isEmpty {
                         Text(address)
-                            .font(.custom(DesignSystem.Typography.bodyFont, size: geometry.scale(DesignSystem.Typography.secondarySize)))
-                            .foregroundColor(colorFromHex("423232").opacity(0.9))
+                            .font(.system(size: geometry.scale(DesignSystem.Typography.secondarySize + 9), weight: .regular, design: .serif))
+                            .foregroundColor(headerMuted)
+                            .shadow(color: Color.black.opacity(0.08), radius: 1, x: 0, y: 1)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .frame(maxWidth: .infinity)
@@ -266,6 +267,7 @@ struct KioskHomeView: View {
                     }
             }
             .frame(maxWidth: geometry.scale(800)) // Limit width for better centering
+            .offset(y: -geometry.scale(30)) // Move Tap To Donate block up by 30pt
             
             Spacer(minLength: geometry.scale(32))
         }
@@ -319,8 +321,10 @@ struct KioskHomeView: View {
                                 .clipShape(Circle())
                         }
                         Text("whatsappGroup".localized)
-                            .font(.custom(DesignSystem.Typography.secondaryFont, size: DesignSystem.Typography.secondarySize))
+                            .font(.custom("Inter-SemiBold", size: DesignSystem.Typography.secondarySize + 3))
                             .foregroundColor(colorFromHex("423232").opacity(0.95))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -361,8 +365,10 @@ struct KioskHomeView: View {
                             .clipShape(Circle())
                     }
                     Text("observance".localized)
-                        .font(.custom(DesignSystem.Typography.secondaryFont, size: DesignSystem.Typography.secondarySize))
+                        .font(.custom("Inter-SemiBold", size: DesignSystem.Typography.secondarySize + 3))
                         .foregroundColor(colorFromHex("423232").opacity(0.95))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                 }
             }
             .buttonStyle(PlainButtonStyle())
@@ -387,9 +393,11 @@ struct KioskHomeView: View {
             mainContentView
         }
         .animation(.none, value: navigationState.showDonationFlow) // Disable animation for background during transition
-        .sheet(isPresented: $showWhatsAppQR) {
+        .fullScreenCover(isPresented: $showWhatsAppQR) {
             if let whatsAppLink = appState.temple?.homeScreenConfig?.whatsAppLink {
                 QRCodeDisplayView(url: whatsAppLink, title: "whatsappGroup".localized, cachedImage: qrCodeCache[whatsAppLink])
+                    .environmentObject(appState)
+                    .presentationBackground(.clear)
             }
         }
         .sheet(isPresented: $showEvents) {
@@ -399,9 +407,10 @@ struct KioskHomeView: View {
                 eventsText: appState.temple?.homeScreenConfig?.eventsText
             )
         }
-        .sheet(isPresented: $showReligiousEvents) {
+        .fullScreenCover(isPresented: $showReligiousEvents) {
             ReligiousEventsView(religiousEvents: appState.religiousEvents)
                 .environmentObject(appState)
+                .presentationBackground(.clear)
         }
         .onAppear {
             // Start timer to update time every second - optimized for performance
@@ -675,9 +684,10 @@ struct TimeAndNetworkStatusView: View {
             timer?.invalidate()
             timer = nil
         }
-        .sheet(isPresented: $showPasswordPrompt) {
+        .fullScreenCover(isPresented: $showPasswordPrompt) {
             AdminPasswordView(isPresented: $showPasswordPrompt)
                 .environmentObject(appState)
+                .presentationBackground(.clear)
         }
     }
     
@@ -773,34 +783,71 @@ struct QRCodeDisplayView: View {
     let cachedImage: UIImage?
     @EnvironmentObject var appState: AppState
 
-    private let qrSize: CGFloat = 336 // 280 * 1.2 for ~20% increase
-
     var body: some View {
-        KioskModal(title: title, dismissButtonTitle: "done".localized) {
-            VStack(spacing: DesignSystem.Spacing.lg) {
-                Text("scanToJoinWhatsAppGroup".localized)
-                    .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.bodySize))
-                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
-                    .multilineTextAlignment(.center)
+        PremiumKioskModal {
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 0) {
+                // Icon
+                Group {
+                    if UIImage(named: "WhatsAppIcon") != nil {
+                        Image("WhatsAppIcon")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        Image(systemName: "message.fill")
+                            .font(.system(size: 32))
+                            .foregroundColor(Color(red: 0.18, green: 0.64, blue: 0.33))
+                    }
+                }
+                .frame(width: 52, height: 52)
 
+                // Title
+                Text("joinWhatsAppGroup".localized)
+                    .font(.custom("Inter-Bold", size: 24))
+                    .foregroundColor(Color(red: 0.12, green: 0.13, blue: 0.17))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 16)
+
+                // Subtitle
+                Text("whatsAppDescription".localized)
+                    .font(.custom("Inter-Regular", size: 15))
+                    .foregroundColor(Color(red: 0.55, green: 0.57, blue: 0.62))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .frame(maxWidth: 320)
+                    .padding(.top, 8)
+
+                // QR block — subtle premium well
                 if let qrImage = cachedImage ?? generateQRCode(from: url) {
                     Image(uiImage: qrImage)
                         .interpolation(.none)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: qrSize, height: qrSize)
+                        .frame(width: 192, height: 192)
+                        .padding(20)
+                        .background(Color(red: 0.977, green: 0.977, blue: 0.982))
+                        .cornerRadius(14)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color(red: 0.94, green: 0.945, blue: 0.955), lineWidth: 0.5)
+                        )
+                        .padding(.top, 18)
                 }
 
+                // Link — secondary
                 Text(url)
-                    .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.secondarySize))
-                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
+                    .font(.custom("Inter-Regular", size: 12))
+                    .foregroundColor(Color(red: 0.62, green: 0.64, blue: 0.68))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-
-                Spacer(minLength: 0)
+                    .truncationMode(.tail)
+                    .padding(.top, 12)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 24)
             }
             .frame(maxWidth: .infinity)
-            .padding(DesignSystem.Components.modalCardPadding)
         }
     }
     
@@ -1329,95 +1376,148 @@ struct ReligiousEventsView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        KioskModal(title: "religiousObservances".localized, dismissButtonTitle: "done".localized) {
-            VStack(spacing: DesignSystem.Spacing.lg) {
-                Text("observanceNote".localized)
-                    .font(.custom(appState.temple?.kioskTheme?.fonts?.bodyFamily ?? "Inter-Regular", size: 13))
-                    .italic()
-                    .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
-                    .multilineTextAlignment(.center)
+        PremiumKioskModal {
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 0) {
+                    Text("observance".localized)
+                        .font(.custom("Inter-Bold", size: 24))
+                        .foregroundColor(Color(red: 0.12, green: 0.13, blue: 0.17))
 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: DesignSystem.Spacing.md) {
-                        if religiousEvents.isEmpty {
-                            VStack(spacing: DesignSystem.Spacing.lg) {
-                                Image(systemName: "moon.stars.fill")
-                                    .font(.system(size: 50))
-                                    .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.65))
-                                Text("noUpcomingObservances".localized)
-                                    .font(.custom(appState.temple?.kioskTheme?.fonts?.headingFamily ?? "Inter-SemiBold", size: DesignSystem.Typography.subsectionSize))
-                                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
-                            }
-                            .padding(DesignSystem.Spacing.xl)
-                        } else {
+                    Text("observanceSubtitle".localized)
+                        .font(.custom("Inter-Regular", size: 15))
+                        .foregroundColor(Color(red: 0.55, green: 0.57, blue: 0.62))
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 8)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 24)
+
+                // List
+                if religiousEvents.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "moon.stars.fill")
+                            .font(.system(size: 44))
+                            .foregroundColor(Color(red: 0.72, green: 0.72, blue: 0.76))
+                        Text("noUpcomingObservances".localized)
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(Color(red: 0.55, green: 0.57, blue: 0.62))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 44)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 4) {
                             ForEach(Array(religiousEvents.enumerated()), id: \.element.id) { index, event in
                                 ReligiousEventRow(
                                     event: event,
                                     showCountdown: index == 0,
-                                    isUpcoming: index == 0
+                                    isToday: isEventToday(event.date),
+                                    isFeatured: index == 0
                                 )
-                                if index < religiousEvents.count - 1 {
-                                    Divider()
-                                        .background(Color(red: 0.85, green: 0.84, blue: 0.82))
-                                        .padding(.horizontal, DesignSystem.Spacing.lg)
-                                }
                             }
                         }
+                        .padding(.top, 6)
+                        .padding(.bottom, 16)
                     }
-                    .padding(.vertical, DesignSystem.Spacing.sm)
+                    .frame(minHeight: 200, maxHeight: 360)
                 }
-                .frame(minHeight: 280, maxHeight: 480)
-
-                Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)
-            .padding(DesignSystem.Components.modalCardPadding)
         }
+    }
+
+    private func isEventToday(_ dateString: String) -> Bool {
+        guard let date = parseDate(dateString) else { return false }
+        return Calendar.current.isDateInToday(date)
+    }
+
+    private func parseDate(_ dateString: String) -> Date? {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: dateString)
     }
 }
 
 struct ReligiousEventRow: View {
     let event: ReligiousEvent
     let showCountdown: Bool
-    var isUpcoming: Bool = false
+    var isToday: Bool = false
+    var isFeatured: Bool = false
 
-    private var highlightColor: Color {
-        Color(red: 0.92, green: 0.62, blue: 0.22) // Warm gold/orange
-    }
+    private var highlightBg: Color { Color(red: 0.998, green: 0.976, blue: 0.92) }
+    private var highlightText: Color { Color(red: 0.58, green: 0.4, blue: 0.22) }
+    private var primaryText: Color { Color(red: 0.14, green: 0.15, blue: 0.19) }
+    private var secondaryText: Color { Color(red: 0.52, green: 0.54, blue: 0.6) }
+    private var dividerColor: Color { Color(red: 0.96, green: 0.962, blue: 0.97) }
 
     var body: some View {
-        HStack(alignment: .top, spacing: DesignSystem.Spacing.md) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(formattedDate(event.date))
-                    .font(.custom("Inter-Medium", size: 15))
-                    .foregroundColor(isUpcoming ? highlightColor : Color(red: 0.45, green: 0.45, blue: 0.5))
-
-                Text(sanitizedEventName(event.name))
-                    .font(.custom("Inter-SemiBold", size: 18))
-                    .foregroundColor(isUpcoming ? Color(red: 0.22, green: 0.2, blue: 0.2) : Color(red: 0.3, green: 0.28, blue: 0.28))
-            }
-
-            if showCountdown, let date = parseDate(event.date) {
-                Spacer()
-                VStack(spacing: 2) {
-                    Text("Until")
-                        .font(.custom("Inter-Regular", size: 12))
-                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
-
-                    Text("\(daysUntil(date))")
-                        .font(.custom("Inter-Bold", size: 28))
-                        .foregroundColor(highlightColor)
-
-                    Text(daysUntil(date) == 1 ? "day" : "days")
-                        .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(displayEventName(event.name))
+                        .font(.custom(isFeatured ? "Inter-SemiBold" : "Inter-Medium", size: 15))
+                        .foregroundColor(isFeatured ? highlightText : primaryText)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
+                    if isFeatured {
+                        Text(formattedDate(event.date))
+                            .font(.custom("Inter-Regular", size: 12))
+                            .foregroundColor(secondaryText)
+                    }
                 }
-                .frame(width: 80, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                rightContent
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, isFeatured ? 20 : 16)
+            .padding(.horizontal, isFeatured ? 16 : 0)
+            .background(
+                isFeatured
+                    ? RoundedRectangle(cornerRadius: 12).fill(highlightBg)
+                    : nil
+            )
+            .padding(.horizontal, isFeatured ? 4 : 0)
+
+            if !isFeatured {
+                Rectangle()
+                    .fill(dividerColor)
+                    .frame(height: 1)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, DesignSystem.Spacing.sm)
-        .padding(.vertical, DesignSystem.Spacing.md)
+        .padding(.bottom, isFeatured ? 16 : 0)
+    }
+
+    @ViewBuilder
+    private var rightContent: some View {
+        Group {
+            if isToday {
+                Text("today".localized)
+                    .font(.custom("Inter-SemiBold", size: 13))
+                    .foregroundColor(highlightText)
+            } else if showCountdown, let date = parseDate(event.date) {
+                VStack(spacing: 2) {
+                    Text("Until")
+                        .font(.custom("Inter-Regular", size: 10))
+                        .foregroundColor(secondaryText)
+                    Text("\(daysUntil(date))")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(Color(red: 0.48, green: 0.34, blue: 0.7))
+                    Text(daysUntil(date) == 1 ? "day" : "days")
+                        .font(.custom("Inter-Regular", size: 10))
+                        .foregroundColor(secondaryText)
+                }
+                .frame(alignment: .trailing)
+            } else {
+                Text(formattedDate(event.date))
+                    .font(.custom("Inter-Regular", size: 12))
+                    .foregroundColor(Color(red: 0.55, green: 0.57, blue: 0.63))
+            }
+        }
+        .frame(alignment: .trailing)
+        .frame(minWidth: 60, alignment: .trailing)
     }
 
     // MARK: Helpers
@@ -1444,34 +1544,9 @@ struct ReligiousEventRow: View {
         return max(0, day)
     }
 
-    private func sanitizedEventName(_ name: String) -> String {
+    /// Returns the full event name for display (no truncation or word filtering).
+    private func displayEventName(_ name: String) -> String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // If the name is empty, return localized "Observance"
-        guard !trimmed.isEmpty else {
-            return "observance".localized
-        }
-        
-        // Split into words
-        let words = trimmed.components(separatedBy: " ").filter { !$0.isEmpty }
-        
-        // Words to remove (case-insensitive)
-        let wordsToRemove = ["fast", "shree", "hari", "jayanti", "poonam"]
-        
-        // Filter out words that match our removal list
-        let filteredWords = words.filter { word in
-            !wordsToRemove.contains { wordToRemove in
-                word.lowercased() == wordToRemove.lowercased()
-            }
-        }
-        
-        // If after filtering we have no words left, use the original name
-        if filteredWords.isEmpty {
-            // Return original name with proper capitalization
-            return words.map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }.joined(separator: " ")
-        }
-        
-        // Return filtered words with proper capitalization
-        return filteredWords.map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }.joined(separator: " ")
+        return trimmed.isEmpty ? "observance".localized : trimmed
     }
 }

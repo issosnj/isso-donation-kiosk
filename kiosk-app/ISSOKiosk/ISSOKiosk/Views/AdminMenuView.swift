@@ -6,6 +6,7 @@ struct AdminMenuView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject private var networkMonitor = NetworkMonitor.shared
     @ObservedObject private var hardwareMonitor = HardwareMonitor.shared
+    @ObservedObject private var bluetoothMonitor = BluetoothMonitor.shared
     @State private var logs: [String] = []
     @State private var isLoadingLogs = false
     @State private var showingReconnectAlert = false
@@ -129,6 +130,51 @@ struct AdminMenuView: View {
                         Text(readerInfo.connected ? "Connected" : "Disconnected")
                             .font(.caption)
                             .foregroundColor(readerInfo.connected ? .green : .orange)
+                    }
+                }
+
+                Section(header: Text("Wi‑Fi")) {
+                    HStack {
+                        Image(systemName: "wifi")
+                            .foregroundColor(networkMonitor.connectionType == .wifi ? .green : .secondary)
+                        Text("Status")
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(networkMonitor.isConnected ? "Connected" : "Disconnected")
+                                .font(.caption)
+                                .foregroundColor(networkMonitor.isConnected ? .green : .red)
+                            Text(connectionTypeLabel)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    Button(action: openSettings) {
+                        HStack {
+                            Image(systemName: "gear")
+                                .foregroundColor(.blue)
+                            Text("Open Settings to change Wi‑Fi")
+                                .foregroundColor(.primary)
+                        }
+                    }
+                }
+
+                Section(header: Text("Bluetooth")) {
+                    HStack {
+                        Image(systemName: "bluetooth")
+                            .foregroundColor(bluetoothMonitor.isPoweredOn ? .green : .secondary)
+                        Text("Status")
+                        Spacer()
+                        Text(bluetoothMonitor.stateDescription)
+                            .font(.caption)
+                            .foregroundColor(bluetoothMonitor.isPoweredOn ? .green : .secondary)
+                    }
+                    Button(action: openSettings) {
+                        HStack {
+                            Image(systemName: "gear")
+                                .foregroundColor(.blue)
+                            Text("Open Settings to change Bluetooth")
+                                .foregroundColor(.primary)
+                        }
                     }
                 }
                 
@@ -322,6 +368,22 @@ struct AdminMenuView: View {
         }
     }
     
+    private var connectionTypeLabel: String {
+        switch networkMonitor.connectionType {
+        case .wifi: return "Wi‑Fi"
+        case .cellular: return "Cellular"
+        case .ethernet: return "Ethernet"
+        case .none: return "No connection"
+        case .unknown: return "Unknown"
+        }
+    }
+
+    private func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+
     private func refreshReaderStatus() {
         readerInfo = StripeTerminalService.shared.getReaderInfo()
     }
@@ -583,195 +645,128 @@ struct AdminPasswordView: View {
     @State private var password: String = ""
     @State private var errorMessage: String = ""
     @State private var isAuthenticated: Bool = false
-    
-    // Default password - should be configurable or stored securely
-    private let adminPassword = "isso2024"
-    
+
+    // Default password — change in AdminMenuView.swift if needed. Current: admin123
+    private let adminPassword = "admin123"
+
     var body: some View {
-        ZStack {
-            // Blurred background overlay
-            Color.white.opacity(0.85)
-                .ignoresSafeArea()
-            
+        PremiumKioskModal(showBottomCloseButton: false) {
             VStack(spacing: 0) {
-                Spacer()
-                
-                // Main card
-                VStack(spacing: 28) {
-                    // Header with icon
-                    VStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.purple.opacity(0.15), Color.blue.opacity(0.15)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 80, height: 80)
-                            
-                            Image(systemName: "lock.shield.fill")
-                                .font(.system(size: 36))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [Color.purple, Color.blue],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                        }
-                        
-                        Text("Admin Access")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
-                        
-                        Text("Enter your password to continue")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    // Password input section
-                    VStack(spacing: 20) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Password")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.primary)
-                                .padding(.horizontal, 4)
-                            
-                            HStack {
-                                Image(systemName: "lock.fill")
-                                    .foregroundColor(.secondary)
-                                    .frame(width: 20)
-                                
-                                SecureField("", text: $password, prompt: Text("Enter password").foregroundColor(.secondary.opacity(0.6)))
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .textContentType(.password)
-                                    .autocorrectionDisabled()
-                                    .textInputAutocapitalization(.never)
-                                    .focused($isPasswordFocused)
-                                    .onSubmit {
-                                        if !password.isEmpty {
-                                            checkPassword()
-                                        }
-                                    }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.systemGray6))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(
-                                                errorMessage.isEmpty 
-                                                    ? Color(.systemGray4) 
-                                                    : Color.red,
-                                                lineWidth: errorMessage.isEmpty ? 1 : 2
-                                            )
-                                    )
-                            )
-                        }
-                        
-                        // Error message with animation
-                        if !errorMessage.isEmpty {
-                            HStack(spacing: 8) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.red)
-                                
-                                Text(errorMessage)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.red)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.red.opacity(0.1))
-                            )
-                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                        }
-                    }
-                    
-                    // Action buttons
-                    HStack(spacing: 12) {
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                password = ""
-                                errorMessage = ""
-                                isPresented = false
-                            }
-                        } label: {
-                            Text("Cancel")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.primary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(.systemGray5))
-                                )
-                        }
-                        
-                        Button {
-                            checkPassword()
-                        } label: {
-                            Text("Submit")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    LinearGradient(
-                                        colors: password.isEmpty 
-                                            ? [Color.gray.opacity(0.4), Color.gray.opacity(0.4)]
-                                            : [Color.purple, Color.blue],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(12)
-                                .shadow(color: password.isEmpty ? Color.clear : Color.purple.opacity(0.3), radius: 8, x: 0, y: 4)
-                        }
-                        .disabled(password.isEmpty)
-                    }
+                // Header
+                VStack(spacing: 16) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(Color(red: 0.35, green: 0.34, blue: 0.84))
+
+                    Text("Admin Access")
+                        .font(.custom("Inter-Bold", size: 24))
+                        .foregroundColor(Color(red: 0.12, green: 0.13, blue: 0.17))
+
+                    Text("Enter your password to continue")
+                        .font(.custom("Inter-Regular", size: 15))
+                        .foregroundColor(Color(red: 0.55, green: 0.57, blue: 0.62))
                 }
-                .padding(32)
-                .background(
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color(.systemBackground))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 24)
-                                .stroke(
-                                    Color(.systemGray4),
-                                    lineWidth: 1
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 28)
+
+                // Password field
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Password")
+                        .font(.custom("Inter-SemiBold", size: 14))
+                        .foregroundColor(Color(red: 0.2, green: 0.21, blue: 0.27))
+
+                    SecureField("", text: $password, prompt: Text("Enter password").foregroundColor(Color(red: 0.6, green: 0.62, blue: 0.68)))
+                        .font(.custom("Inter-Regular", size: 16))
+                        .foregroundColor(Color(red: 0.12, green: 0.13, blue: 0.17))
+                        .textContentType(.password)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .focused($isPasswordFocused)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(red: 0.96, green: 0.962, blue: 0.97))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(errorMessage.isEmpty ? Color(red: 0.9, green: 0.905, blue: 0.92) : Color.red.opacity(0.6), lineWidth: errorMessage.isEmpty ? 1 : 2)
                                 )
                         )
-                        .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
-                )
-                .padding(.horizontal, 32)
-                
-                Spacer()
+                        .onSubmit {
+                            if !password.isEmpty { checkPassword() }
+                        }
+                }
+                .padding(.bottom, 16)
+
+                // Error message
+                if !errorMessage.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(.red)
+                        Text(errorMessage)
+                            .font(.custom("Inter-Medium", size: 14))
+                            .foregroundColor(.red)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.red.opacity(0.08))
+                    )
+                    .padding(.bottom, 20)
+                }
+
+                // Buttons
+                HStack(spacing: 12) {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        password = ""
+                        errorMessage = ""
+                        isPresented = false
+                    } label: {
+                        Text("Cancel")
+                            .font(.custom("Inter-SemiBold", size: 15))
+                            .foregroundColor(Color(red: 0.35, green: 0.37, blue: 0.42))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                    }
+                    .buttonStyle(PremiumCloseButtonStyle())
+
+                    Button {
+                        checkPassword()
+                    } label: {
+                        Text("Submit")
+                            .font(.custom("Inter-SemiBold", size: 15))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(password.isEmpty ? Color(red: 0.75, green: 0.76, blue: 0.78) : Color(red: 0.35, green: 0.34, blue: 0.84))
+                            )
+                    }
+                    .disabled(password.isEmpty)
+                }
+                .padding(.top, 8)
             }
+            .frame(maxWidth: .infinity)
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: errorMessage.isEmpty)
+        .animation(.easeOut(duration: 0.2), value: errorMessage.isEmpty)
         .onAppear {
-            // Auto-focus password field immediately when view appears
-            // Use a very short delay to ensure the view is fully laid out
-            DispatchQueue.main.async {
-                isPasswordFocused = true
-            }
+            DispatchQueue.main.async { isPasswordFocused = true }
         }
-        .fullScreenCover(isPresented: $isAuthenticated) {
+        .fullScreenCover(isPresented: $isAuthenticated, onDismiss: {
+            isPresented = false
+        }) {
             AdminMenuView()
                 .environmentObject(appState)
         }
     }
-    
+
     private func checkPassword() {
         if password == adminPassword {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             isAuthenticated = true
             password = ""
             errorMessage = ""
