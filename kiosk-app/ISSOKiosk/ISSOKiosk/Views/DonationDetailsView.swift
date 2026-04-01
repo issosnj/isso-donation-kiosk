@@ -1157,26 +1157,18 @@ private enum DonorEmailQuickDomains {
         "att.net",
     ]
 
-    /// Builds `local@domain` rows: before `@`, offers each domain; after `@`, filters domains by the fragment.
-    static func suggestions(for raw: String, maxCount: Int = 8) -> [String] {
+    /// Preset chip row: `local` + tap `@domain`, or replace domain if `@` already present.
+    static func applyPresetDomain(_ raw: String, domain: String) -> String {
+        let d = domain.lowercased()
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return [] }
-
-        let fullLower = trimmed.lowercased()
-
-        if let atRaw = trimmed.firstIndex(of: "@") {
-            let localDisplay = String(trimmed[..<atRaw])
-            guard !localDisplay.isEmpty else { return [] }
-            let domainFrag = String(trimmed[trimmed.index(after: atRaw)...]).lowercased()
-            let matched: [String] = domainFrag.isEmpty
-                ? domains
-                : domains.filter { $0.hasPrefix(domainFrag) }
-            return matched.prefix(maxCount).map { "\(localDisplay)@\($0)" }
-                .filter { $0.lowercased() != fullLower }
+        if let atIdx = trimmed.firstIndex(of: "@") {
+            let local = String(trimmed[..<atIdx])
+            return local + "@" + d
         }
-
-        let local = trimmed
-        return domains.prefix(maxCount).map { "\(local)@\($0)" }
+        if trimmed.isEmpty {
+            return "@" + d
+        }
+        return trimmed + "@" + d
     }
 }
 
@@ -1194,11 +1186,6 @@ private struct DonorFieldFullScreenCover: View {
     let onAddressQuery: (String) async -> Void
     let onPickAddress: (AddressPrediction) async -> Void
     let onDone: () -> Void
-
-    private var emailQuickSuggestions: [String] {
-        guard field == .email else { return [] }
-        return DonorEmailQuickDomains.suggestions(for: text)
-    }
 
     var body: some View {
         NavigationStack {
@@ -1255,6 +1242,50 @@ private struct DonorFieldFullScreenCover: View {
                                     )
                                     .frame(minHeight: sc(132))
                                 }
+                            } else if field == .email {
+                                VStack(alignment: .leading, spacing: sc(10)) {
+                                    DonorSingleLineUIKitField(
+                                        text: $text,
+                                        placeholder: prompt,
+                                        fontSize: inputFont,
+                                        textUIColor: UIColor(headingColor),
+                                        placeholderUIColor: UIColor(headingColor.opacity(0.38)),
+                                        keyboardType: keyboardType,
+                                        textContentType: textContentType,
+                                        autocapitalization: uiAutocapitalization,
+                                        disableAutocorrect: true,
+                                        onEditingDone: onDone,
+                                        isPhoneField: false
+                                    )
+                                    .frame(minHeight: sc(56))
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: sc(10)) {
+                                            ForEach(DonorEmailQuickDomains.domains, id: \.self) { domain in
+                                                Button {
+                                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                                    text = DonorEmailQuickDomains.applyPresetDomain(text, domain: domain)
+                                                } label: {
+                                                    Text("@\(domain)")
+                                                        .font(.custom("Georgia", size: sc(15)))
+                                                        .foregroundColor(headingColor)
+                                                        .padding(.horizontal, sc(12))
+                                                        .padding(.vertical, sc(8))
+                                                        .background(
+                                                            Capsule()
+                                                                .fill(Color.white.opacity(0.65))
+                                                                .overlay(
+                                                                    Capsule()
+                                                                        .stroke(goldAccent.opacity(0.9), lineWidth: 1)
+                                                                )
+                                                        )
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
+                                        }
+                                        .padding(.vertical, sc(2))
+                                        .padding(.trailing, sc(4))
+                                    }
+                                }
                             } else {
                                 DonorSingleLineUIKitField(
                                     text: $text,
@@ -1265,7 +1296,7 @@ private struct DonorFieldFullScreenCover: View {
                                     keyboardType: keyboardType,
                                     textContentType: textContentType,
                                     autocapitalization: uiAutocapitalization,
-                                    disableAutocorrect: field == .email || field == .phone,
+                                    disableAutocorrect: field == .phone,
                                     onEditingDone: onDone,
                                     isPhoneField: field == .phone
                                 )
@@ -1338,44 +1369,6 @@ private struct DonorFieldFullScreenCover: View {
                             .padding(.top, sc(16))
                         }
 
-                        if field == .email && !emailQuickSuggestions.isEmpty {
-                            ScrollView {
-                                VStack(spacing: 0) {
-                                    ForEach(Array(emailQuickSuggestions.enumerated()), id: \.offset) { index, suggested in
-                                        Button {
-                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                            text = suggested
-                                        } label: {
-                                            HStack(alignment: .center, spacing: sc(12)) {
-                                                Image(systemName: "at.circle.fill")
-                                                    .font(.system(size: sc(20)))
-                                                    .foregroundColor(goldAccent)
-                                                Text(suggested)
-                                                    .font(.custom("Georgia", size: sc(17)))
-                                                    .foregroundColor(headingColor)
-                                                    .lineLimit(1)
-                                                    .minimumScaleFactor(0.75)
-                                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                            }
-                                            .padding(.horizontal, sc(16))
-                                            .padding(.vertical, sc(12))
-                                            .background(Color.white)
-                                        }
-                                        .buttonStyle(.plain)
-                                        if index < emailQuickSuggestions.count - 1 {
-                                            Divider().padding(.leading, sc(48))
-                                        }
-                                    }
-                                }
-                            }
-                            .frame(maxHeight: sc(240))
-                            .background(Color.white)
-                            .cornerRadius(DesignSystem.Components.buttonCornerRadius)
-                            .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
-                            .padding(.horizontal, sc(36))
-                            .padding(.top, sc(16))
-                        }
-                        
                         Spacer(minLength: sc(100))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
