@@ -69,10 +69,19 @@ export class DonationsService {
       }
       
       console.log('[DonationsService] Temple validated successfully');
-      
-      // Create donation entity
+
+      if (initiateDonationDto.lineItems?.length) {
+        const sum = initiateDonationDto.lineItems.reduce((acc, row) => acc + Number(row.amount), 0);
+        const total = Number(initiateDonationDto.amount);
+        if (Math.abs(sum - total) > 0.02) {
+          throw new BadRequestException('Line item amounts must equal the donation total');
+        }
+      }
+
+      const { lineItems: lineItemsDto, ...donationFields } = initiateDonationDto;
       const donation = this.donationsRepository.create({
-        ...initiateDonationDto,
+        ...donationFields,
+        lineItems: lineItemsDto?.length ? lineItemsDto : null,
         status: DonationStatus.PENDING,
       });
       

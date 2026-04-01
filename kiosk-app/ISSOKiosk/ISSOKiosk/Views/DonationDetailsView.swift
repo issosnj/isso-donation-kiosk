@@ -1,8 +1,13 @@
 import SwiftUI
 import UIKit
 
+private enum DonorFieldEditor: String, Identifiable, Hashable {
+    case name, phone, email, address
+    var id: String { rawValue }
+}
+
 struct ModernDonationDetailsView: View {
-    let amount: Double
+    @Binding var donationLines: [CheckoutDonationLine]
     let category: DonationCategory?
     let initialDonorName: String?
     let initialDonorPhone: String?
@@ -10,6 +15,8 @@ struct ModernDonationDetailsView: View {
     let initialDonorAddress: String?
     let onConfirm: (String?, String?, String?, String?) -> Void // name, phone, email, address
     let onCancel: (() -> Void)? // Optional callback to return to home
+    /// When set, shows “additional seva” under the donation line; tap returns to donation selection (e.g. to pick another category).
+    let onAddAdditionalSeva: (() -> Void)?
     @ObservedObject private var languageManager = LanguageManager.shared
     
     @State private var donorName = ""
@@ -22,16 +29,13 @@ struct ModernDonationDetailsView: View {
     @State private var addressSuggestions: [AddressPrediction] = []
     @State private var showAddressSuggestions = false
     @State private var addressSessionToken: String? = nil
-    @FocusState private var nameFocused: Bool
-    @FocusState private var phoneFocused: Bool
-    @FocusState private var emailFocused: Bool
-    @FocusState private var addressFocused: Bool
-    @State private var showingPhoneKeypad = false
-    @State private var showingNameKeypad = false
-    @State private var showingEmailKeypad = false
-    @State private var showingAddressKeypad = false
+    @State private var activeDonorFieldEditor: DonorFieldEditor?
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
+    
+    private var totalDonationAmount: Double {
+        donationLines.reduce(0) { $0 + $1.amount }
+    }
     
     // If category is selected, name and phone are required
     private var isNameRequired: Bool {
@@ -56,6 +60,31 @@ struct ModernDonationDetailsView: View {
     // Theme layout helpers
     private var theme: KioskTheme? {
         appState.temple?.kioskTheme
+    }
+    
+    /// Matches home screen header / DonationHomeView.
+    private var headingColor: Color {
+        colorFromHex(theme?.colors?.headingColor, defaultColor: Color(red: 0.22, green: 0.18, blue: 0.16))
+    }
+    
+    private var creamFill: Color { Color(red: 242.0/255.0, green: 235.0/255.0, blue: 224.0/255.0) }
+    private var burgundyBrand: Color { Color(red: 147.0/255.0, green: 22.0/255.0, blue: 19.0/255.0) }
+    private var goldAccent: Color { Color(red: 0.78, green: 0.58, blue: 0.16) }
+    private var stepLineBrown: Color { Color(red: 0.42, green: 0.32, blue: 0.32) }
+    private let glassPanelCorner: CGFloat = 28
+    
+    /// Matches `DonationHomeView` / Step 2 donation selection glass panel metrics.
+    private let glassPanelMaxWidthFraction: CGFloat = 0.94
+    private let glassPanelMaxWidthPoints: CGFloat = 1400
+    private let glassPanelHorizontalPadding: CGFloat = 56
+    private let glassPanelVerticalPadding: CGFloat = 8
+    private let glassPanelColumnSpacing: CGFloat = 64
+    private let glassPanelInternalPadding: CGFloat = 44
+    /// Extra inset below the glass panel’s top padding so Step 3 content sits lower than Step 2’s first row.
+    private let step3PanelContentTopInset: CGFloat = 20
+    
+    private var categoryAmountSectionSpacing: CGFloat {
+        CGFloat(theme?.layout?.categoryAmountSectionSpacing ?? DesignSystem.Layout.donationSelectionSectionSpacing)
     }
     
     // Helper to convert hex string to Color
@@ -89,59 +118,16 @@ struct ModernDonationDetailsView: View {
         return Color(red: r, green: g, blue: b)
     }
     
-    // Helper to create a gradient from a color (lighter variant for gradient effect)
-    private func gradientFromColor(_ color: Color) -> LinearGradient {
-        // Convert Color to UIColor to extract components
-        let uiColor = UIColor(color)
-        var r: CGFloat = 0
-        var g: CGFloat = 0
-        var b: CGFloat = 0
-        var a: CGFloat = 0
-        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-        
-        // Create a lighter variant by increasing brightness
-        let lighterColor = Color(
-            red: min(1.0, Double(r) * 1.15),
-            green: min(1.0, Double(g) * 1.15),
-            blue: min(1.0, Double(b) * 1.15)
-        )
-        return LinearGradient(
-            gradient: Gradient(colors: [color, lighterColor]),
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-    
     private var detailsPageHorizontalSpacing: CGFloat {
         CGFloat(theme?.layout?.detailsPageHorizontalSpacing ?? DesignSystem.Spacing.xl)
-    }
-    
-    private var detailsPageSidePadding: CGFloat {
-        CGFloat(theme?.layout?.detailsPageSidePadding ?? 60)
-    }
-    
-    private var detailsPageTopPadding: CGFloat {
-        CGFloat(theme?.layout?.detailsPageTopPadding ?? DesignSystem.Layout.pageTopPadding)
     }
     
     private var detailsPageBottomPadding: CGFloat {
         CGFloat(theme?.layout?.detailsPageBottomPadding ?? DesignSystem.Spacing.xl)
     }
     
-    private var detailsCardMaxWidth: CGFloat {
-        CGFloat(theme?.layout?.detailsCardMaxWidth ?? 420)
-    }
-    
-    private var donorFormMaxWidth: CGFloat {
-        CGFloat(theme?.layout?.donorFormMaxWidth ?? 420)
-    }
-    
     private var detailsCardPadding: CGFloat {
         CGFloat(theme?.layout?.detailsCardPadding ?? DesignSystem.Layout.cardPadding)
-    }
-    
-    private var detailsCardSpacing: CGFloat {
-        CGFloat(theme?.layout?.detailsCardSpacing ?? DesignSystem.Spacing.md)
     }
     
     // Font sizes
@@ -149,46 +135,13 @@ struct ModernDonationDetailsView: View {
         CGFloat(theme?.layout?.detailsAmountFontSize ?? 56)
     }
     
-    private var detailsLabelFontSize: CGFloat {
-        CGFloat(theme?.layout?.detailsLabelFontSize ?? DesignSystem.Typography.inputSize)
-    }
-    
     private var detailsInputFontSize: CGFloat {
         CGFloat(theme?.layout?.detailsInputFontSize ?? DesignSystem.Typography.inputSize)
     }
     
-    private var detailsButtonFontSize: CGFloat {
-        CGFloat(theme?.layout?.detailsButtonFontSize ?? DesignSystem.Typography.subsectionSize + 2)
-    }
-    
-    // Colors
-    private var detailsAmountColor: Color {
-        colorFromHex(theme?.layout?.detailsAmountColor, defaultColor: Color(red: 0.26, green: 0.20, blue: 0.20))
-    }
-    
-    private var detailsTextColor: Color {
-        colorFromHex(theme?.layout?.detailsTextColor, defaultColor: Color(red: 0.26, green: 0.20, blue: 0.20))
-    }
-    
-    private var detailsInputBorderColor: Color {
-        colorFromHex(theme?.layout?.detailsInputBorderColor, defaultColor: Color.gray.opacity(0.2))
-    }
-    
-    private var detailsInputFocusColor: Color {
-        colorFromHex(theme?.layout?.detailsInputFocusColor, defaultColor: Color(red: 0.2, green: 0.4, blue: 0.8))
-    }
-    
-    private var detailsButtonColor: Color {
-        colorFromHex(theme?.layout?.detailsButtonColor, defaultColor: Color(red: 0.2, green: 0.4, blue: 0.8))
-    }
-    
-    private var detailsButtonTextColor: Color {
-        colorFromHex(theme?.layout?.detailsButtonTextColor, defaultColor: Color.white)
-    }
-    
-    // Reusable donor input row — polished empty & filled states, consistent spacing
     @ViewBuilder
     private func donorInputRow(
+        geometry: GeometryProxy,
         label: String,
         icon: String,
         value: String,
@@ -196,32 +149,34 @@ struct ModernDonationDetailsView: View {
         hasError: Bool,
         onTap: @escaping () -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+        let s = geometry.scale
+        VStack(alignment: .leading, spacing: s(6)) {
             Text(label)
-                .font(.custom(DesignSystem.Typography.labelFont, size: DesignSystem.Typography.labelSize))
-                .foregroundColor(detailsTextColor.opacity(0.75))
+                .font(.custom("Georgia", size: s(16)))
+                .foregroundColor(goldAccent)
             Button(action: onTap) {
-                HStack(alignment: .center, spacing: DesignSystem.Components.inlineSpacing) {
+                HStack(alignment: .center, spacing: s(DesignSystem.Components.inlineSpacing)) {
                     Image(systemName: icon)
-                        .font(.system(size: DesignSystem.Typography.secondarySize))
-                        .foregroundColor(detailsTextColor.opacity(isEmpty ? 0.45 : 0.65))
-                        .frame(width: DesignSystem.Components.iconFrameWidth, alignment: .center)
+                        .font(.system(size: s(18)))
+                        .foregroundColor(goldAccent.opacity(isEmpty ? 0.5 : 0.9))
+                        .frame(width: s(28), alignment: .center)
                     Text(value)
-                        .font(.custom("Inter-Regular", size: detailsInputFontSize))
-                        .foregroundColor(isEmpty ? detailsTextColor.opacity(0.45) : detailsTextColor)
+                        .font(.system(size: s(detailsInputFontSize), weight: .regular, design: .serif))
+                        .foregroundColor(isEmpty ? headingColor.opacity(0.48) : headingColor)
                         .lineLimit(2)
+                        .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(minHeight: DesignSystem.Components.inputHeight)
-                .padding(.horizontal, DesignSystem.Spacing.lg)
-                .padding(.vertical, DesignSystem.Spacing.md)
+                .frame(minHeight: s(DesignSystem.Components.inputHeight))
+                .padding(.horizontal, s(DesignSystem.Spacing.lg))
+                .padding(.vertical, s(DesignSystem.Spacing.md))
                 .background(
                     RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
-                        .fill(Color.white.opacity(0.55))
+                        .fill(Color.white.opacity(0.72))
                         .overlay(
                             RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
                                 .stroke(
-                                    hasError ? Color.red.opacity(0.5) : Color.white.opacity(0.4),
+                                    hasError ? Color.red.opacity(0.55) : Color.black.opacity(0.06),
                                     lineWidth: 1
                                 )
                         )
@@ -229,6 +184,24 @@ struct ModernDonationDetailsView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+    
+    @ViewBuilder
+    private func step3Header(geometry: GeometryProxy) -> some View {
+        // Same layout as `stepHeaderView` on DonationHomeView (Step 2).
+        let lineColor = stepLineBrown.opacity(0.4)
+        HStack(spacing: geometry.scale(16)) {
+            Rectangle()
+                .fill(lineColor)
+                .frame(height: 1)
+            Text("step3ReviewPayment".localized)
+                .font(.custom("Georgia", size: geometry.scale(20)))
+                .foregroundColor(stepLineBrown)
+            Rectangle()
+                .fill(lineColor)
+                .frame(height: 1)
+        }
+        .padding(.horizontal, geometry.scale(40))
     }
     
     // Helper view for background
@@ -252,357 +225,415 @@ struct ModernDonationDetailsView: View {
         }
     }
     
-    // Main content view
     @ViewBuilder
-    private var mainContentView: some View {
-        ScrollView {
+    private func mainContentView(geometry: GeometryProxy) -> some View {
+        let s = geometry.scale
+        // Match `DonationHomeView.mainContent` / Step 2 donation selection.
+        let panelMaxWidth = min(geometry.size.width * glassPanelMaxWidthFraction, glassPanelMaxWidthPoints)
+        let columnSpacing = s(max(glassPanelColumnSpacing, categoryAmountSectionSpacing))
+        let cardCorner = s(DesignSystem.Components.cardCornerRadius)
+        ZStack(alignment: .top) {
+            VStack(spacing: 0) {
+                step3Header(geometry: geometry)
+                    .padding(.top, s(78))
+                    .padding(.bottom, s(20))
+                
+                // Same shell as Step 2: inner `VStack(spacing: 0)` then padded content. Actions sit under the summary column only.
+                VStack(spacing: 0) {
                     VStack(spacing: 0) {
-                        // Top spacing
-                        Spacer()
-                            .frame(height: detailsPageTopPadding)
-                        
-                        // Main content: Left (Review Donation) and Right (Optional Information)
-                        HStack(alignment: .top, spacing: detailsPageHorizontalSpacing) {
-                            // LEFT SIDE: Review Donation Panel
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("reviewDonation".localized)
-                            .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
-                            .foregroundColor(detailsTextColor)
-                            .padding(.bottom, DesignSystem.Spacing.md)
-                        
-                        // Donation breakdown — Donation line first, then Total
-                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                            if let category = category {
-                                HStack {
-                                    Text(category.name)
-                                        .font(.custom("Inter-Regular", size: detailsLabelFontSize))
-                                        .foregroundColor(detailsTextColor.opacity(0.9))
-                                    Spacer()
-                                    Text(amount.formattedCurrency())
-                                        .font(.custom("Inter-Medium", size: detailsLabelFontSize + 2))
-                                        .foregroundColor(detailsAmountColor)
-                                        .monospacedDigit()
-                                }
+                        HStack(alignment: .top, spacing: columnSpacing) {
+                            donorDetailsCard(geometry: geometry, cardCorner: cardCorner)
+                                .frame(maxWidth: .infinity, alignment: .top)
+                            
+                            Rectangle()
+                                .fill(Color.black.opacity(0.06))
+                                .frame(width: 1)
+                                .frame(maxHeight: .infinity)
+                            
+                            VStack(alignment: .center, spacing: s(12)) {
+                                donationSummaryCard(geometry: geometry, cardCorner: cardCorner)
+                                summaryActionButtonsRow(geometry: geometry)
                             }
-                            HStack {
-                                Text("Donation")
-                                    .font(.custom("Inter-Regular", size: detailsLabelFontSize))
-                                    .foregroundColor(detailsTextColor.opacity(0.9))
-                                Spacer()
-                                Text(amount.formattedCurrency())
-                                    .font(.custom("Inter-Medium", size: detailsLabelFontSize + 2))
-                                    .foregroundColor(detailsAmountColor)
-                                    .monospacedDigit()
-                            }
-                            Divider()
-                                .background(Color.gray.opacity(0.25))
-                                .padding(.vertical, DesignSystem.Spacing.xs)
-                            HStack {
-                                Text("Total")
-                                    .font(.custom("Inter-SemiBold", size: detailsLabelFontSize + 2))
-                                    .foregroundColor(detailsTextColor)
-                                Spacer()
-                                Text(amount.formattedCurrency())
-                                    .font(.custom("Inter-SemiBold", size: detailsAmountFontSize - 8))
-                                    .foregroundColor(detailsAmountColor)
-                                    .monospacedDigit()
-                            }
+                            .frame(maxWidth: .infinity, alignment: .top)
                         }
-                        .padding(.vertical, DesignSystem.Spacing.md)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                        .background(Color.white.opacity(0.2))
-                        .cornerRadius(DesignSystem.Components.chipCornerRadius)
-                        .padding(.bottom, DesignSystem.Spacing.md)
-                        
-                        Button(action: {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            dismiss()
-                        }) {
-                            HStack(spacing: 4) {
-                                Text("Change Amount")
-                                    .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: DesignSystem.Typography.secondarySize, weight: .medium))
-                            }
-                            .foregroundColor(detailsButtonColor)
-                        }
-                        
-                        Spacer(minLength: 0)
                     }
-                    .frame(width: detailsCardMaxWidth, alignment: .leading)
-                    .padding(detailsCardPadding)
-                    .background(
-                        // Glass effect background
-                        ZStack {
-                            // Blur effect
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white.opacity(0.25))
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(.ultraThinMaterial)
-                                )
-                        }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .padding(.horizontal, s(glassPanelInternalPadding))
+                    .padding(.top, s(glassPanelVerticalPadding + step3PanelContentTopInset))
+                    .padding(.bottom, s(28))
+                }
+                .frame(maxWidth: panelMaxWidth, maxHeight: geometry.size.height * 0.76, alignment: .top)
+                .background(
+                    RoundedRectangle(cornerRadius: s(glassPanelCorner))
+                        .fill(Color.white.opacity(0.15))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: s(glassPanelCorner))
+                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.09), radius: s(40), x: 0, y: s(16))
+                .padding(.horizontal, s(glassPanelHorizontalPadding))
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+    
+    @ViewBuilder
+    private func creamGoldCard<Content: View>(geometry: GeometryProxy, cornerRadius: CGFloat, @ViewBuilder content: () -> Content) -> some View {
+        let s = geometry.scale
+        content()
+            .padding(s(detailsCardPadding))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(creamFill)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .fill(Color.white.opacity(0.15))
                     )
-                    .cornerRadius(DesignSystem.Components.cardCornerRadius)
-                    .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
+                    .shadow(color: Color.black.opacity(0.08), radius: s(12), x: 0, y: s(6))
+            )
+            .cornerRadius(cornerRadius)
+            .overlay(
+                DonationGoldRingBorder(cornerRadius: cornerRadius)
+                    .allowsHitTesting(false)
+            )
+    }
+    
+    @ViewBuilder
+    private func donationSummaryCard(geometry: GeometryProxy, cardCorner: CGFloat) -> some View {
+        let s = geometry.scale
+        creamGoldCard(geometry: geometry, cornerRadius: cardCorner) {
+            VStack(alignment: .center, spacing: 0) {
+                // Match `categorySection` / `amountSection` on DonationHomeView (Select Category / Select Amount).
+                VStack(alignment: .center, spacing: s(6)) {
+                    Text("donationSummary".localized)
+                        .font(.custom("Georgia", size: s(28)))
+                        .foregroundColor(headingColor)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, s(8))
+                .padding(.bottom, s(21))
+                
+                VStack(alignment: .center, spacing: s(14)) {
+                    VStack(alignment: .leading, spacing: s(8)) {
+                        ForEach(donationLines) { line in
+                            HStack(alignment: .top, spacing: s(8)) {
+                                Text(line.label)
+                                    .font(.system(size: s(16), weight: .medium, design: .serif))
+                                    .foregroundColor(headingColor.opacity(0.9))
+                                    .multilineTextAlignment(.leading)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(line.amount.formattedCurrency())
+                                    .font(.system(size: s(16), weight: .semibold, design: .serif))
+                                    .foregroundColor(headingColor)
+                                    .monospacedDigit()
+                                    .multilineTextAlignment(.trailing)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                     
-                    // RIGHT SIDE: Optional Information Panel
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Optional Information")
-                            .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize))
-                            .foregroundColor(detailsTextColor)
-                            .padding(.bottom, DesignSystem.Spacing.md)
-                        
-                        VStack(alignment: .leading, spacing: DesignSystem.Components.inlineSpacing) {
-                            donorInputRow(
-                                label: "nameOptional".localized,
-                                icon: "person.fill",
-                                value: donorName.isEmpty ? "enterYourName".localized : donorName,
-                                isEmpty: donorName.isEmpty,
-                                hasError: category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty,
-                                onTap: { showingNameKeypad = true }
-                            )
-                            donorInputRow(
-                                label: "phoneOptional".localized,
-                                icon: "phone.fill",
-                                value: donorPhone.isEmpty ? "enterYourPhone".localized : formatPhoneDisplay(donorPhone),
-                                isEmpty: donorPhone.isEmpty,
-                                hasError: category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty,
-                                onTap: { showingPhoneKeypad = true }
-                            )
-                            donorInputRow(
-                                label: "emailForReceipt".localized,
-                                icon: "envelope.fill",
-                                value: donorEmail.isEmpty ? "enterYourEmail".localized : donorEmail,
-                                isEmpty: donorEmail.isEmpty,
-                                hasError: false,
-                                onTap: { showingEmailKeypad = true }
-                            )
-                            ZStack(alignment: .topLeading) {
-                                donorInputRow(
-                                    label: "mailingAddressOptional".localized,
-                                    icon: "mappin.circle.fill",
-                                    value: donorAddress.isEmpty ? "enterYourAddress".localized : donorAddress,
-                                    isEmpty: donorAddress.isEmpty,
-                                    hasError: false,
-                                    onTap: { showingAddressKeypad = true }
-                                )
-                                
-                                // Address suggestions overlay - positioned absolutely to prevent layout shifts
-                                if showAddressSuggestions && !addressSuggestions.isEmpty && addressFocused {
-                                    VStack(spacing: 0) {
-                                        ForEach(addressSuggestions.prefix(5)) { suggestion in
-                                            Button(action: {
-                                                Task {
-                                                    await selectAddress(suggestion: suggestion)
-                                                }
-                                            }) {
-                                                HStack(alignment: .top, spacing: 12) {
-                                                    Image(systemName: "mappin.circle.fill")
-                                                        .font(.system(size: 18))
-                                                        .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                                                        .padding(.top, 2)
-                                                    
-                                                    VStack(alignment: .leading, spacing: 4) {
-                                                        Text(suggestion.structured_formatting.main_text)
-                                                            .font(.custom("Inter-Medium", size: detailsInputFontSize))
-                                                            .foregroundColor(detailsTextColor)
-                                                            .lineLimit(2)
-                                                            .fixedSize(horizontal: false, vertical: true)
-                                                        Text(suggestion.structured_formatting.secondary_text)
-                                                            .font(.custom("Inter-Regular", size: detailsInputFontSize - 2))
-                                                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                                            .lineLimit(2)
-                                                            .fixedSize(horizontal: false, vertical: true)
-                                                    }
-                                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                                }
-                                                .padding(.horizontal, 16)
-                                                .padding(.vertical, 12)
-                                                .background(Color.white)
-                                            }
-                                            .buttonStyle(PlainButtonStyle())
-                                            
-                                            if suggestion.id != addressSuggestions.prefix(5).last?.id {
-                                                Divider()
-                                                    .padding(.horizontal, 16)
-                                            }
-                                        }
-                                    }
-                                    .background(Color.white)
-                                    .cornerRadius(DesignSystem.Components.buttonCornerRadius)
-                                    .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
-                                    .frame(maxWidth: 400)
-                                    .frame(maxHeight: 300)
-                                    .padding(.top, 60) // Position below the address input field
-                                }
-                            }
-                        }
-                        
-                        Spacer(minLength: 0)
+                    Text(totalDonationAmount.formattedCurrency())
+                        .font(.system(size: s(min(detailsAmountFontSize, 56)), weight: .bold, design: .serif))
+                        .foregroundColor(burgundyBrand)
+                        .monospacedDigit()
+                        .multilineTextAlignment(.center)
+                        .padding(.top, s(4))
+                    
+                    Text("thankYouForYourSeva".localized)
+                        .font(.system(size: s(17), weight: .regular, design: .serif))
+                        .italic()
+                        .foregroundColor(goldAccent)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, s(4))
+                    
+                    HStack {
+                        Text("donationColon".localized)
+                            .font(.system(size: s(18), weight: .medium, design: .serif))
+                            .foregroundColor(headingColor)
+                        Spacer()
+                        Text(totalDonationAmount.formattedCurrency())
+                            .font(.system(size: s(18), weight: .semibold, design: .serif))
+                            .foregroundColor(headingColor)
+                            .monospacedDigit()
                     }
-                    .frame(width: donorFormMaxWidth)
-                    .padding(detailsCardPadding)
-                    .background(
-                        // Glass effect background
-                        ZStack {
-                            // Blur effect
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white.opacity(0.25))
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(.ultraThinMaterial)
-                                )
-                        }
-                    )
-                    .cornerRadius(DesignSystem.Components.cardCornerRadius)
-                    .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
-                    }
-                    .padding(.horizontal, detailsPageSidePadding)
-                        
-                        // CTA row — Back (secondary) + Proceed (primary, emphasized)
-                        HStack(spacing: DesignSystem.Spacing.sm) {
-                            Button(action: {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
-                                    if let onCancel = onCancel {
-                                        onCancel()
-                                    } else {
-                                        dismiss()
-                                    }
-                                }
-                            }) {
-                                HStack(spacing: DesignSystem.Components.inlineSpacing) {
-                                    Image(systemName: "arrow.left")
-                                        .font(.system(size: detailsButtonFontSize - 4, weight: .medium))
-                                    Text("backToDonation".localized)
-                                        .font(.custom("Inter-Medium", size: detailsButtonFontSize))
-                                }
-                                .foregroundColor(detailsButtonColor)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: DesignSystem.Components.buttonHeight)
-                                .background(Color.white.opacity(0.6))
-                                .cornerRadius(DesignSystem.Components.buttonCornerRadius)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
-                                        .stroke(detailsButtonColor.opacity(0.5), lineWidth: 1.5)
-                                )
-                            }
-                            Button(action: {
-                                guard canProceed else { return }
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
-                                    onConfirm(
-                                        donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
-                                        donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
-                                        donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces),
-                                        donorAddress.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorAddress.trimmingCharacters(in: .whitespaces)
-                                    )
-                                }
-                            }) {
-                                HStack(spacing: DesignSystem.Components.inlineSpacing) {
-                                    Text("proceedToPayment".localized)
-                                        .font(.custom("Inter-SemiBold", size: detailsButtonFontSize + 2))
-                                    Image(systemName: "arrow.right")
-                                        .font(.system(size: detailsButtonFontSize, weight: .semibold))
-                                }
-                                .foregroundColor(canProceed ? .white : Color(white: DesignSystem.Components.disabledTextGray))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: DesignSystem.Components.buttonHeight + 4)
-                                .background(
-                                    Group {
-                                        if canProceed {
-                                            let buttonColor = colorFromHex(
-                                                theme?.colors?.proceedToPaymentButtonColor,
-                                                defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                            )
-                                            if theme?.colors?.proceedToPaymentButtonGradient == true {
-                                                gradientFromColor(buttonColor)
-                                            } else {
-                                                buttonColor
-                                            }
-                                        } else {
-                                            Color(white: DesignSystem.Components.disabledBackgroundGray)
-                                        }
-                                    }
-                                )
-                                .cornerRadius(DesignSystem.Components.buttonCornerRadius)
-                                .shadow(color: canProceed ? Color.black.opacity(0.22) : .clear, radius: 10, x: 0, y: 4)
-                            }
-                            .disabled(!canProceed)
-                            .opacity(canProceed ? 1 : CGFloat(DesignSystem.Components.disabledOpacity))
-                        }
-                        .padding(.horizontal, detailsPageSidePadding)
-                        .padding(.top, DesignSystem.Spacing.lg)
-                        .padding(.bottom, detailsPageBottomPadding)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, s(8))
+                    
+                    if onAddAdditionalSeva != nil {
+                        additionalSevaButton(geometry: geometry)
+                            .padding(.top, s(6))
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .top)
+            }
+            .frame(maxWidth: .infinity, alignment: .top)
         }
+    }
+    
+    /// Back + Proceed under the donation summary column: two columns of equal width, narrower than full panel.
+    @ViewBuilder
+    private func summaryActionButtonsRow(geometry: GeometryProxy) -> some View {
+        let s = geometry.scale
+        HStack(alignment: .center, spacing: s(8)) {
+            backToDonationButton(geometry: geometry, compact: true)
+                .frame(maxWidth: .infinity)
+            proceedToPaymentButton(geometry: geometry, compact: true)
+                .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, s(4))
+    }
+    
+    @ViewBuilder
+    private func additionalSevaButton(geometry: GeometryProxy) -> some View {
+        let s = geometry.scale
+        let corner = s(DesignSystem.Components.buttonCornerRadius)
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onAddAdditionalSeva?()
+        } label: {
+            Text("clickToDoAdditionalSeva".localized)
+                .font(.custom("Georgia", size: s(15)))
+                .multilineTextAlignment(.center)
+                .foregroundColor(burgundyBrand)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, s(14))
+                .padding(.horizontal, s(10))
+                .background(
+                    RoundedRectangle(cornerRadius: corner)
+                        .fill(Color.white.opacity(0.55))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: corner)
+                                .stroke(goldAccent.opacity(0.75), lineWidth: 1.5)
+                        )
+                )
+        }
+        .buttonStyle(.plain)
+    }
+    
+    @ViewBuilder
+    private func donorDetailsCard(geometry: GeometryProxy, cardCorner: CGFloat) -> some View {
+        let s = geometry.scale
+        creamGoldCard(geometry: geometry, cornerRadius: cardCorner) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Match `categorySection` / `amountSection` on DonationHomeView (Select Category / Select Amount).
+                VStack(alignment: .center, spacing: s(6)) {
+                    Text("donorInfo".localized)
+                        .font(.custom("Georgia", size: s(28)))
+                        .foregroundColor(headingColor)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, s(8))
+                .padding(.bottom, s(21))
+                
+                VStack(alignment: .leading, spacing: geometry.scale(DesignSystem.Components.inlineSpacing)) {
+                    donorInputRow(
+                        geometry: geometry,
+                        label: "name".localized,
+                        icon: "person.fill",
+                        value: donorName.isEmpty ? "enterYourName".localized : donorName,
+                        isEmpty: donorName.isEmpty,
+                        hasError: category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty,
+                        onTap: { activeDonorFieldEditor = .name }
+                    )
+                    donorInputRow(
+                        geometry: geometry,
+                        label: "phoneNumber".localized,
+                        icon: "phone.fill",
+                        value: donorPhone.isEmpty ? "enterYourPhone".localized : formatPhoneDisplay(donorPhone),
+                        isEmpty: donorPhone.isEmpty,
+                        hasError: category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty,
+                        onTap: { activeDonorFieldEditor = .phone }
+                    )
+                    donorInputRow(
+                        geometry: geometry,
+                        label: "emailForReceipt".localized,
+                        icon: "envelope.fill",
+                        value: donorEmail.isEmpty ? "enterYourEmail".localized : donorEmail,
+                        isEmpty: donorEmail.isEmpty,
+                        hasError: false,
+                        onTap: { activeDonorFieldEditor = .email }
+                    )
+                    donorInputRow(
+                        geometry: geometry,
+                        label: "mailingAddress".localized,
+                        icon: "mappin.circle.fill",
+                        value: donorAddress.isEmpty ? "enterYourAddress".localized : donorAddress,
+                        isEmpty: donorAddress.isEmpty,
+                        hasError: false,
+                        onTap: { activeDonorFieldEditor = .address }
+                    )
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func backToDonationButton(geometry: GeometryProxy, compact: Bool = false) -> some View {
+        let s = geometry.scale
+        let actionCorner = s(DesignSystem.Components.buttonCornerRadius)
+        let actionButtonHeight = compact ? s(58) : s(72)
+        let iconSize = compact ? s(15) : s(18)
+        let titleSize = compact ? s(13) : s(16)
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+                if let onCancel = onCancel {
+                    onCancel()
+                } else {
+                    dismiss()
+                }
+            }
+        }) {
+            HStack(spacing: compact ? s(4) : s(DesignSystem.Spacing.sm)) {
+                Image(systemName: "arrow.left")
+                    .font(.system(size: iconSize, weight: .medium))
+                Text("backToDonation".localized)
+                    .font(.custom("Georgia", size: titleSize))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+                    .multilineTextAlignment(.center)
+            }
+            .foregroundColor(headingColor)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, compact ? s(4) : s(8))
+            .background(
+                RoundedRectangle(cornerRadius: actionCorner)
+                    .fill(creamFill)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: actionCorner)
+                            .fill(Color.white.opacity(0.15))
+                    )
+            )
+            .cornerRadius(actionCorner)
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, minHeight: actionButtonHeight, maxHeight: actionButtonHeight)
+        .overlay(
+            DonationGoldRingBorder(cornerRadius: actionCorner)
+                .allowsHitTesting(false)
+        )
+    }
+    
+    @ViewBuilder
+    private func proceedToPaymentButton(geometry: GeometryProxy, compact: Bool = false) -> some View {
+        let s = geometry.scale
+        let actionCorner = s(DesignSystem.Components.buttonCornerRadius)
+        let actionButtonHeight = compact ? s(58) : s(72)
+        let titleFont = compact ? s(13) : s(17)
+        let arrowSize = compact ? s(13) : s(16)
+        let subtitleFont = compact ? s(9) : s(11)
+        Button(action: {
+            guard canProceed else { return }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+                onConfirm(
+                    donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
+                    donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
+                    donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces),
+                    donorAddress.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorAddress.trimmingCharacters(in: .whitespaces)
+                )
+            }
+        }) {
+            VStack(spacing: compact ? s(1) : s(2)) {
+                HStack(spacing: compact ? s(4) : s(6)) {
+                    Text("proceedToPayment".localized)
+                        .font(.custom("Georgia", size: titleFont))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.78)
+                        .multilineTextAlignment(.center)
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: arrowSize, weight: .semibold))
+                }
+                if canProceed {
+                    Text("secureFastEncrypted".localized)
+                        .font(.custom("Georgia", size: subtitleFont))
+                        .opacity(compact ? 0.92 : 0.95)
+                        .lineLimit(1)
+                        .minimumScaleFactor(compact ? 0.7 : 0.8)
+                }
+            }
+            .foregroundColor(canProceed ? Color.white : headingColor)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, compact ? s(4) : s(8))
+            .padding(.vertical, compact ? s(4) : s(6))
+            .background(
+                RoundedRectangle(cornerRadius: actionCorner)
+                    .fill(canProceed ? burgundyBrand : creamFill)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: actionCorner)
+                            .fill(canProceed ? Color.clear : Color.white.opacity(0.15))
+                    )
+            )
+            .cornerRadius(actionCorner)
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, minHeight: actionButtonHeight, maxHeight: actionButtonHeight)
+        .overlay(
+            DonationGoldRingBorder(cornerRadius: actionCorner)
+                .allowsHitTesting(false)
+        )
+        .allowsHitTesting(canProceed)
+    }
     
     var body: some View {
-        ZStack {
-            // Background: Use same background as donation page
-            GeometryReader { geometry in
+        // Match `DonationHomeView.body`: one GeometryReader + ignore safe area so Step 3 shares the same coordinate space as Step 2.
+        GeometryReader { geometry in
+            ZStack {
                 backgroundView(geometry: geometry)
-            }
-            .ignoresSafeArea(.all, edges: .all)
-            
-            // Main content
-            GeometryReader { geometry in
-                mainContentView
-                    .frame(width: geometry.size.width)
-                    .onTapGesture {
-                        // Dismiss keyboard when tapping background
-                        nameFocused = false
-                        phoneFocused = false
-                        emailFocused = false
-                        addressFocused = false
+                
+                mainContentView(geometry: geometry)
+                
+                VStack {
+                    HStack {
+                        ReaderBatteryStatusView()
+                            .padding(.leading, geometry.scale(DesignSystem.Layout.screenPadding))
+                            .padding(.top, geometry.scale(DesignSystem.Spacing.sm))
+                        Spacer()
                     }
-            }
-            
-            // Reader Battery Status in top left
-            VStack {
-                HStack {
-                    ReaderBatteryStatusView()
-                        .padding(.leading, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm)
                     Spacer()
                 }
-                Spacer()
-            }
-            
-            // Time and Network Status in top right
-            VStack {
-                HStack {
+                
+                VStack {
+                    HStack {
+                        Spacer()
+                        TimeAndNetworkStatusView()
+                            .padding(.trailing, geometry.scale(DesignSystem.Layout.screenPadding))
+                            .padding(.top, geometry.scale(DesignSystem.Spacing.sm))
+                    }
                     Spacer()
-                    TimeAndNetworkStatusView()
-                        .padding(.trailing, DesignSystem.Layout.screenPadding)
-                        .padding(.top, DesignSystem.Spacing.sm)
                 }
-                Spacer()
             }
         }
-        .sheet(isPresented: $showingPhoneKeypad) {
-            PhoneNumberKeypadView(phoneNumber: $donorPhone) {
-                showingPhoneKeypad = false
-            }
-        }
-        .sheet(isPresented: $showingNameKeypad) {
-            NameKeypadView(name: $donorName) {
-                showingNameKeypad = false
-            }
-            .presentationBackground(.clear)
-            .presentationDetents([.large])
-        }
-        .sheet(isPresented: $showingEmailKeypad) {
-            EmailKeypadView(email: $donorEmail) {
-                showingEmailKeypad = false
-            }
-        }
-        .sheet(isPresented: $showingAddressKeypad) {
-            AddressKeypadView(address: $donorAddress) {
-                showingAddressKeypad = false
-            }
+        .ignoresSafeArea(.all, edges: .all)
+        .fullScreenCover(item: $activeDonorFieldEditor) { field in
+            DonorFieldFullScreenCover(
+                field: field,
+                text: bindingForDonorField(field),
+                navTitle: navTitle(for: field),
+                prompt: promptForDonorField(field),
+                headingColor: headingColor,
+                creamFill: creamFill,
+                burgundyBrand: burgundyBrand,
+                goldAccent: goldAccent,
+                addressSuggestions: $addressSuggestions,
+                showAddressSuggestions: $showAddressSuggestions,
+                onAddressQuery: { input in
+                    await searchAddresses(input: input)
+                },
+                onPickAddress: { prediction in
+                    await selectAddress(suggestion: prediction)
+                },
+                onDone: {
+                    activeDonorFieldEditor = nil
+                    showAddressSuggestions = false
+                }
+            )
         }
         .sheet(isPresented: $showingYajmanOpportunities) {
             if let category = category, let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
@@ -656,9 +687,64 @@ struct ModernDonationDetailsView: View {
             // User is typing in email field - reset idle timer
             IdleTimer.shared.userDidInteract()
         }
-        .onChange(of: donorAddress) { _ in
-            // User is typing in address field - reset idle timer
+        .onChange(of: donorAddress) { newValue in
             IdleTimer.shared.userDidInteract()
+            if activeDonorFieldEditor == .address {
+                Task {
+                    await searchAddresses(input: newValue)
+                }
+            }
+        }
+    }
+    
+    private func bindingForDonorField(_ field: DonorFieldEditor) -> Binding<String> {
+        switch field {
+        case .name: return $donorName
+        case .phone: return $donorPhone
+        case .email: return $donorEmail
+        case .address: return $donorAddress
+        }
+    }
+    
+    private func navTitle(for field: DonorFieldEditor) -> String {
+        switch field {
+        case .name:
+            return "name".localized
+        case .phone:
+            return "phoneNumber".localized
+        case .email:
+            return "emailForReceipt".localized
+        case .address:
+            return "mailingAddress".localized
+        }
+    }
+    
+    private func promptForDonorField(_ field: DonorFieldEditor) -> String {
+        switch field {
+        case .name: return "enterYourName".localized
+        case .phone: return "enterYourPhone".localized
+        case .email: return "enterYourEmail".localized
+        case .address: return "enterYourAddress".localized
+        }
+    }
+    
+    private func formatPhoneDisplay(_ phone: String) -> String {
+        let digits = phone.filter { $0.isNumber }
+        if digits.isEmpty {
+            return ""
+        }
+        
+        if digits.count <= 3 {
+            return "(\(digits)"
+        } else if digits.count <= 6 {
+            let areaCode = String(digits.prefix(3))
+            let firstPart = String(digits.dropFirst(3))
+            return "(\(areaCode)) \(firstPart)"
+        } else {
+            let areaCode = String(digits.prefix(3))
+            let firstPart = String(digits.dropFirst(3).prefix(3))
+            let lastPart = String(digits.dropFirst(6))
+            return "(\(areaCode)) \(firstPart)-\(lastPart)"
         }
     }
     
@@ -739,38 +825,354 @@ struct ModernDonationDetailsView: View {
                     donorAddress = suggestion.description
                 }
                 showAddressSuggestions = false
-                addressFocused = false
-                // Reset session token after selection
                 addressSessionToken = nil
+                activeDonorFieldEditor = nil
             }
         } catch {
             // Fallback to description if details fetch fails
             await MainActor.run {
                 donorAddress = suggestion.description
                 showAddressSuggestions = false
-                addressFocused = false
                 addressSessionToken = nil
+                activeDonorFieldEditor = nil
+            }
+        }
+    }
+}
+
+// MARK: - UIKit-backed large Georgia input (SwiftUI TextField ignores custom font sizes)
+private struct DonorSingleLineUIKitField: UIViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    var fontSize: CGFloat
+    var textUIColor: UIColor
+    var placeholderUIColor: UIColor
+    var keyboardType: UIKeyboardType
+    var textContentType: UITextContentType?
+    var autocapitalization: UITextAutocapitalizationType
+    var disableAutocorrect: Bool
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    func makeUIView(context: Context) -> UITextField {
+        let tf = UITextField()
+        context.coordinator.parent = self
+        tf.delegate = context.coordinator
+        tf.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
+        tf.textColor = textUIColor
+        tf.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            attributes: [
+                .foregroundColor: placeholderUIColor,
+                .font: UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
+            ]
+        )
+        tf.keyboardType = keyboardType
+        tf.textContentType = textContentType
+        tf.autocapitalizationType = autocapitalization
+        tf.autocorrectionType = disableAutocorrect ? .no : .yes
+        tf.adjustsFontSizeToFitWidth = false
+        tf.minimumFontSize = fontSize * 0.85
+        tf.returnKeyType = .done
+        tf.text = text
+        tf.addTarget(context.coordinator, action: #selector(Coordinator.textChanged), for: .editingChanged)
+        DispatchQueue.main.async {
+            tf.becomeFirstResponder()
+        }
+        return tf
+    }
+    
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        context.coordinator.parent = self
+        uiView.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
+        uiView.textColor = textUIColor
+        uiView.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            attributes: [
+                .foregroundColor: placeholderUIColor,
+                .font: UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
+            ]
+        )
+        if uiView.text != text {
+            uiView.text = text
+        }
+    }
+    
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: DonorSingleLineUIKitField
+        
+        init(_ parent: DonorSingleLineUIKitField) {
+            self.parent = parent
+        }
+        
+        @objc func textChanged(_ sender: UITextField) {
+            parent.text = sender.text ?? ""
+        }
+        
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            textField.resignFirstResponder()
+            return true
+        }
+    }
+}
+
+private struct DonorMultilineUIKitTextView: UIViewRepresentable {
+    @Binding var text: String
+    var fontSize: CGFloat
+    var textUIColor: UIColor
+    var autocapitalization: UITextAutocapitalizationType
+    var disableAutocorrect: Bool
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        context.coordinator.parent = self
+        tv.delegate = context.coordinator
+        tv.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
+        tv.textColor = textUIColor
+        tv.backgroundColor = .clear
+        tv.textContainerInset = UIEdgeInsets(top: 6, left: 4, bottom: 6, right: 4)
+        tv.autocapitalizationType = autocapitalization
+        tv.autocorrectionType = disableAutocorrect ? .no : .yes
+        tv.keyboardType = .default
+        tv.textContentType = .fullStreetAddress
+        tv.text = text
+        DispatchQueue.main.async {
+            tv.becomeFirstResponder()
+        }
+        return tv
+    }
+    
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        context.coordinator.parent = self
+        uiView.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
+        uiView.textColor = textUIColor
+        if uiView.text != text {
+            uiView.text = text
+        }
+    }
+    
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var parent: DonorMultilineUIKitTextView
+        
+        init(_ parent: DonorMultilineUIKitTextView) {
+            self.parent = parent
+        }
+        
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text ?? ""
+        }
+    }
+}
+
+// MARK: - Full-screen donor field editor (system keyboard)
+private struct DonorFieldFullScreenCover: View {
+    let field: DonorFieldEditor
+    @Binding var text: String
+    let navTitle: String
+    let prompt: String
+    let headingColor: Color
+    let creamFill: Color
+    let burgundyBrand: Color
+    let goldAccent: Color
+    @Binding var addressSuggestions: [AddressPrediction]
+    @Binding var showAddressSuggestions: Bool
+    let onAddressQuery: (String) async -> Void
+    let onPickAddress: (AddressPrediction) async -> Void
+    let onDone: () -> Void
+    
+    var body: some View {
+        NavigationStack {
+            GeometryReader { geo in
+                let sc = geo.scaleWidthStable
+                let inputFont = max(sc(36), min(sc(52), geo.size.width * 0.028 + sc(28))) + 10
+                ZStack {
+                    Group {
+                        if UIImage(named: "KioskBackground") != nil {
+                            Image("KioskBackground")
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: geo.size.width, height: geo.size.height)
+                                .clipped()
+                                .blur(radius: 4)
+                        } else {
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color(red: 0.95, green: 0.97, blue: 1.0)
+                                ]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        }
+                    }
+                    .ignoresSafeArea()
+                    
+                    creamFill.opacity(0.15)
+                        .ignoresSafeArea()
+                    
+                    VStack(spacing: 0) {
+                        Spacer(minLength: sc(28))
+                        
+                        VStack(alignment: .leading, spacing: 0) {
+                            if field == .address {
+                                ZStack(alignment: .topLeading) {
+                                    if text.isEmpty {
+                                        Text(prompt)
+                                            .font(.custom("Georgia", size: inputFont * 0.92))
+                                            .foregroundColor(headingColor.opacity(0.38))
+                                            .padding(.horizontal, sc(20))
+                                            .padding(.vertical, sc(10))
+                                            .allowsHitTesting(false)
+                                    }
+                                    DonorMultilineUIKitTextView(
+                                        text: $text,
+                                        fontSize: inputFont,
+                                        textUIColor: UIColor(headingColor),
+                                        autocapitalization: .words,
+                                        disableAutocorrect: false
+                                    )
+                                    .frame(minHeight: sc(132))
+                                }
+                            } else {
+                                DonorSingleLineUIKitField(
+                                    text: $text,
+                                    placeholder: prompt,
+                                    fontSize: inputFont,
+                                    textUIColor: UIColor(headingColor),
+                                    placeholderUIColor: UIColor(headingColor.opacity(0.38)),
+                                    keyboardType: keyboardType,
+                                    textContentType: textContentType,
+                                    autocapitalization: uiAutocapitalization,
+                                    disableAutocorrect: field == .email || field == .phone
+                                )
+                                .frame(minHeight: sc(56))
+                            }
+                        }
+                        .padding(.horizontal, sc(20))
+                        .padding(.vertical, sc(12))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: sc(20))
+                                .fill(Color.white.opacity(0.55))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: sc(20))
+                                        .fill(creamFill.opacity(0.45))
+                                )
+                                .shadow(color: Color.black.opacity(0.06), radius: sc(16), x: 0, y: sc(8))
+                        )
+                        .overlay(
+                            DonationGoldRingBorder(cornerRadius: sc(20))
+                                .allowsHitTesting(false)
+                        )
+                        .padding(.horizontal, sc(36))
+                        
+                        if field == .address && showAddressSuggestions && !addressSuggestions.isEmpty {
+                            ScrollView {
+                                VStack(spacing: 0) {
+                                    ForEach(addressSuggestions.prefix(5)) { suggestion in
+                                        Button(action: {
+                                            Task {
+                                                await onPickAddress(suggestion)
+                                            }
+                                        }) {
+                                            HStack(alignment: .top, spacing: 12) {
+                                                Image(systemName: "mappin.circle.fill")
+                                                    .font(.system(size: 18))
+                                                    .foregroundColor(goldAccent)
+                                                    .padding(.top, 2)
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(suggestion.structured_formatting.main_text)
+                                                        .font(.custom("Inter-Medium", size: 17))
+                                                        .foregroundColor(headingColor)
+                                                        .lineLimit(2)
+                                                    Text(suggestion.structured_formatting.secondary_text)
+                                                        .font(.custom("Inter-Regular", size: 14))
+                                                        .foregroundColor(headingColor.opacity(0.55))
+                                                        .lineLimit(2)
+                                                }
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                            }
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
+                                            .background(Color.white)
+                                        }
+                                        .buttonStyle(.plain)
+                                        if suggestion.id != addressSuggestions.prefix(5).last?.id {
+                                            Divider().padding(.horizontal, 16)
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(maxHeight: sc(260))
+                            .background(Color.white)
+                            .cornerRadius(DesignSystem.Components.buttonCornerRadius)
+                            .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
+                            .padding(.horizontal, sc(36))
+                            .padding(.top, sc(16))
+                        }
+                        
+                        Spacer(minLength: sc(100))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(navTitle)
+                        .font(.custom("Georgia", size: 18))
+                        .foregroundColor(headingColor)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .multilineTextAlignment(.center)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: onDone) {
+                        Text("done".localized)
+                            .font(.custom("Georgia", size: 18))
+                            .foregroundColor(burgundyBrand)
+                    }
+                }
+            }
+            .toolbarBackground(creamFill.opacity(0.98), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .onChange(of: text) { newValue in
+            if field == .address {
+                Task {
+                    await onAddressQuery(newValue)
+                }
             }
         }
     }
     
-    private func formatPhoneDisplay(_ phone: String) -> String {
-        let digits = phone.filter { $0.isNumber }
-        if digits.isEmpty {
-            return ""
+    private var keyboardType: UIKeyboardType {
+        switch field {
+        case .phone: return .phonePad
+        case .email: return .emailAddress
+        case .name, .address: return .default
         }
-        
-        if digits.count <= 3 {
-            return "(\(digits)"
-        } else if digits.count <= 6 {
-            let areaCode = String(digits.prefix(3))
-            let firstPart = String(digits.dropFirst(3))
-            return "(\(areaCode)) \(firstPart)"
-        } else {
-            let areaCode = String(digits.prefix(3))
-            let firstPart = String(digits.dropFirst(3).prefix(3))
-            let lastPart = String(digits.dropFirst(6))
-            return "(\(areaCode)) \(firstPart)-\(lastPart)"
+    }
+    
+    private var textContentType: UITextContentType {
+        switch field {
+        case .name: return .name
+        case .phone: return .telephoneNumber
+        case .email: return .emailAddress
+        case .address: return .fullStreetAddress
+        }
+    }
+    
+    private var uiAutocapitalization: UITextAutocapitalizationType {
+        switch field {
+        case .email, .phone: return .none
+        case .name, .address: return .words
         }
     }
 }
@@ -780,17 +1182,24 @@ struct DonationDetailsView: View {
     let amount: Double
     let category: DonationCategory?
     let onConfirm: (String?, String?, String?, String?) -> Void // name, phone, email, address
+    @State private var donationLines: [CheckoutDonationLine] = []
     
     var body: some View {
         ModernDonationDetailsView(
-            amount: amount,
+            donationLines: $donationLines,
             category: category,
             initialDonorName: nil,
             initialDonorPhone: nil,
             initialDonorEmail: nil,
             initialDonorAddress: nil,
             onConfirm: onConfirm,
-            onCancel: nil
+            onCancel: nil,
+            onAddAdditionalSeva: nil
         )
+        .onAppear {
+            if donationLines.isEmpty {
+                donationLines = [CheckoutDonationLine.primary(amount: amount, category: category)]
+            }
+        }
     }
 }

@@ -19,6 +19,9 @@ struct DonationHomeView: View {
     @State private var donorPhone: String?
     @State private var donorEmail: String?
     @State private var donorAddress: String?
+    /// Line items for Step 3 review + payment (primary row + optional additional seva).
+    @State private var reviewDonationLines: [CheckoutDonationLine] = []
+    @State private var showingAdditionalSevaPicker = false
     @FocusState private var customAmountFocused: Bool
     
     // Preset amounts from backend config, fallback to defaults
@@ -38,6 +41,8 @@ struct DonationHomeView: View {
     
     // Cache default colors for better performance
     private static let defaultBlue = Color(red: 0.2, green: 0.4, blue: 0.8) // Vibrant blue matching image
+    /// Selected category / amount buttons (always #931613 on this screen).
+    private static let donationSelectedButtonColor = Color(red: 147/255, green: 22/255, blue: 19/255)
     
     // Helper to convert hex string to Color - optimized
     func colorFromHex(_ hex: String?, defaultColor: Color = Self.defaultBlue) -> Color {
@@ -95,46 +100,42 @@ struct DonationHomeView: View {
     }
     
     // Get button colors from kioskTheme.colors, fallback to homeScreenConfig.buttonColors for backward compatibility
+    // Reference theme: cream/beige; selected category solid burgundy
     var categorySelectedColor: String {
-        appState.temple?.kioskTheme?.colors?.categorySelectedColor ?? 
-        appState.temple?.homeScreenConfig?.buttonColors?.categorySelected ?? "#3366CC"
+        appState.temple?.kioskTheme?.colors?.categorySelectedColor ??
+        appState.temple?.homeScreenConfig?.buttonColors?.categorySelected ?? "#931613"
     }
     
     var categoryUnselectedColor: String {
-        appState.temple?.kioskTheme?.colors?.categoryUnselectedColor ?? 
-        appState.temple?.homeScreenConfig?.buttonColors?.categoryUnselected ?? "#3366CC"
+        appState.temple?.kioskTheme?.colors?.categoryUnselectedColor ??
+        appState.temple?.homeScreenConfig?.buttonColors?.categoryUnselected ?? "#E8E4DC"
     }
     
     var amountSelectedColor: String {
-        appState.temple?.kioskTheme?.colors?.amountSelectedColor ?? 
-        appState.temple?.homeScreenConfig?.buttonColors?.amountSelected ?? "#3366CC"
+        appState.temple?.kioskTheme?.colors?.amountSelectedColor ??
+        appState.temple?.homeScreenConfig?.buttonColors?.amountSelected ?? "#931613"
     }
     
     var amountUnselectedColor: String {
-        appState.temple?.kioskTheme?.colors?.amountUnselectedColor ?? 
-        appState.temple?.homeScreenConfig?.buttonColors?.amountUnselected ?? "#3366CC"
+        appState.temple?.kioskTheme?.colors?.amountUnselectedColor ??
+        appState.temple?.homeScreenConfig?.buttonColors?.amountUnselected ?? "#E8E4DC"
     }
     
     // Get colors with defaults (Color values)
     var categorySelectedColorValue: Color {
-        // Default to red for selected category if not configured
-        if !categorySelectedColor.isEmpty {
-            return colorFromHex(categorySelectedColor)
-        }
-        return Color(red: 0.9, green: 0.2, blue: 0.2) // Red color for selected category
+        Self.donationSelectedButtonColor
     }
     
     var categoryUnselectedColorValue: Color {
         let baseColor = colorFromHex(categoryUnselectedColor)
-        // If unselected color is same as selected, apply opacity
         if categoryUnselectedColor == categorySelectedColor {
-            return baseColor.opacity(0.7)
+            return baseColor.opacity(0.8)
         }
         return baseColor
     }
     
     var amountSelectedColorValue: Color {
-        colorFromHex(amountSelectedColor)
+        Self.donationSelectedButtonColor
     }
     
     var amountUnselectedColorValue: Color {
@@ -147,11 +148,15 @@ struct DonationHomeView: View {
     }
     
     var headingFont: String {
-        theme?.fonts?.headingFamily ?? "Inter-SemiBold"
+        theme?.fonts?.headingFamily ?? "Inter-Bold"
     }
     
     var headingSize: CGFloat {
-        CGFloat(theme?.fonts?.headingSize ?? 32)
+        CGFloat(theme?.fonts?.headingSize ?? 34)
+    }
+    
+    var sectionSubtitleSize: CGFloat {
+        13
     }
     
     var buttonFont: String {
@@ -170,8 +175,9 @@ struct DonationHomeView: View {
         CGFloat(theme?.fonts?.bodySize ?? 14)
     }
     
+    /// Same source and default as `KioskHomeView` header (`headingColor` / welcome text).
     var headingColor: Color {
-        colorFromHex(theme?.colors?.headingColor, defaultColor: colorFromHex("423232"))
+        colorFromHex(theme?.colors?.headingColor, defaultColor: Color(red: 0.22, green: 0.18, blue: 0.16))
     }
     
     var bodyTextColor: Color {
@@ -179,7 +185,7 @@ struct DonationHomeView: View {
     }
     
     var subtitleColor: Color {
-        colorFromHex(theme?.colors?.subtitleColor, defaultColor: Color(red: 0.5, green: 0.5, blue: 0.6))
+        colorFromHex(theme?.colors?.subtitleColor, defaultColor: Color(red: 0.45, green: 0.45, blue: 0.52))
     }
     
     var quantityTotalColor: Color {
@@ -195,11 +201,11 @@ struct DonationHomeView: View {
     }
     
     var amountButtonHeight: CGFloat {
-        CGFloat(theme?.layout?.amountButtonHeight ?? DesignSystem.Components.buttonHeight)
+        CGFloat(theme?.layout?.amountButtonHeight ?? 64)
     }
     
     var categoryButtonHeight: CGFloat {
-        CGFloat(theme?.layout?.categoryButtonHeight ?? DesignSystem.Components.buttonHeight)
+        CGFloat(theme?.layout?.categoryButtonHeight ?? 64)
     }
     
     var headerTopPadding: CGFloat {
@@ -260,14 +266,69 @@ struct DonationHomeView: View {
         CGFloat(theme?.layout?.quantityTotalSpacing ?? DesignSystem.Components.sectionSpacing)
     }
     
+    // Glass panel design — premium centered container
+    private let glassPanelMaxWidthFraction: CGFloat = 0.94
+    private let glassPanelMaxWidthPoints: CGFloat = 1400
+    private let glassPanelHorizontalPadding: CGFloat = 56
+    private let glassPanelVerticalPadding: CGFloat = 8
+    private let glassPanelColumnSpacing: CGFloat = 64
+    private let glassPanelCornerRadius: CGFloat = 28
+    private let glassPanelInternalPadding: CGFloat = 44
+    
     var body: some View {
+        donationHomeRoot
+            .sheet(isPresented: $showingYajmanOpportunities) {
+                yajmanOpportunitiesSheetContent
+            }
+            .fullScreenCover(isPresented: $showingDetails) {
+                reviewDonationFullScreenCover
+            }
+            .sheet(isPresented: $showingPledgeOption) {
+                pledgeOptionSheetContent
+            }
+            .fullScreenCover(isPresented: $showingPayment) {
+                paymentFullScreenCover
+            }
+            .task {
+                if appState.categories.isEmpty {
+                    await appState.refreshCategories()
+                }
+                await appState.refreshKioskConfig()
+            }
+            .onChange(of: appState.temple?.kioskTheme) { _ in
+                print("[DonationHomeView] Theme updated, view will refresh")
+            }
+            .detectTouches()
+            .onChange(of: customAmount) { _ in
+                IdleTimer.shared.userDidInteract()
+            }
+            .onChange(of: selectedCategory) { _ in
+                IdleTimer.shared.userDidInteract()
+            }
+            .onChange(of: selectedAmount) { _ in
+                IdleTimer.shared.userDidInteract()
+            }
+            .onChange(of: quantity) { _ in
+                IdleTimer.shared.userDidInteract()
+            }
+            .sheet(isPresented: $showingAdditionalSevaPicker) {
+                AdditionalSevaPickerView(
+                    onAdd: { line in
+                        reviewDonationLines.append(line)
+                        showingAdditionalSevaPicker = false
+                    },
+                    onCancel: { showingAdditionalSevaPicker = false }
+                )
+                .environmentObject(appState)
+            }
+    }
+    
+    /// Split from `body` so the compiler can type-check the main screen and flow modifiers separately.
+    private var donationHomeRoot: some View {
         GeometryReader { geometry in
             ZStack {
                 backgroundView(geometry: geometry)
-                
                 mainContent(geometry: geometry)
-                
-                // Reader Battery Status in top left
                 VStack {
                     HStack {
                         ReaderBatteryStatusView()
@@ -277,8 +338,6 @@ struct DonationHomeView: View {
                     }
                     Spacer()
                 }
-                
-                // Time and Network Status in top right
                 VStack {
                     HStack {
                         Spacer()
@@ -291,137 +350,107 @@ struct DonationHomeView: View {
             }
         }
         .ignoresSafeArea(.all, edges: .all)
-        .sheet(isPresented: $showingYajmanOpportunities) {
-            if let category = selectedCategory, let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
-                YajmanOpportunitiesView(
-                    category: category,
-                    opportunities: opportunities,
-                    onDismiss: {
-                        showingYajmanOpportunities = false
-                    }
-                )
-            }
-        }
-        .fullScreenCover(isPresented: $showingDetails) {
-            ModernDonationDetailsView(
-                    amount: currentAmount,
-                    category: selectedCategory,
-                    initialDonorName: donorName,
-                    initialDonorPhone: donorPhone,
-                    initialDonorEmail: donorEmail,
-                    initialDonorAddress: donorAddress,
-                    onConfirm: { name, phone, email, address in
-                        showingDetails = false
-                        // Show pledge option ONLY if selected category has yajman opportunities (sponsor tiers)
-                        let categoryHasOpportunities = selectedCategory?.yajmanOpportunities != nil && !(selectedCategory?.yajmanOpportunities?.isEmpty ?? true)
-                        
-                        print("[DonationHomeView] 🔍 Category has opportunities: \(categoryHasOpportunities)")
-                        print("[DonationHomeView] 🔍 Selected category: \(selectedCategory?.name ?? "nil")")
-                        print("[DonationHomeView] 🔍 Should show pledge: \(categoryHasOpportunities)")
-                        
-                        if categoryHasOpportunities {
-                            print("[DonationHomeView] ✅ Showing pledge option for sponsor tier")
-                            showingPledgeOption = true
-                        } else {
-                            print("[DonationHomeView] ⏭️ Going directly to payment (pledge only available for sponsor tiers)")
-                        showingPayment = true
-                        }
-                        donorName = name
-                        donorPhone = phone
-                        donorEmail = email
-                        donorAddress = address
-                    },
-                    onCancel: {
-                        showingDetails = false
-                        // Just dismiss the details view, don't go all the way back to home
-                    }
-                )
-            }
-            .sheet(isPresented: $showingPledgeOption) {
-                PledgeOptionViewWrapper(
-                    amount: currentAmount,
-                    category: selectedCategory,
-                    donorName: donorName,
-                    donorPhone: donorPhone,
-                    donorEmail: donorEmail,
-                    onPayNow: {
-                        showingPledgeOption = false
-                        showingPayment = true
-                    },
-                    onPledge: {
-                        Task {
-                            await createPledge()
-                        }
-                    },
-                    onCancel: {
-                        showingPledgeOption = false
-                    }
-                )
-            }
-            .fullScreenCover(isPresented: $showingPayment) {
-            ModernPaymentView(
-                    amount: currentAmount,
-                    category: selectedCategory,
-                    donorName: donorName,
-                    donorPhone: donorPhone,
-                    donorEmail: donorEmail,
-                    donorAddress: donorAddress,
-                    onComplete: {
-                    withAnimation {
-                        showingPayment = false
-                        selectedAmount = nil
-                        customAmount = ""
-                        selectedCategory = nil
-                        quantity = 1
-                        donorName = nil
-                        donorPhone = nil
-                        donorEmail = nil
-                    }
-                    // Also dismiss the donation flow to go back to home screen
-                    onDismiss()
-                },
-                    onCancel: {
-                    // When payment is canceled, go back to review donation screen
-                    // First dismiss payment view, then show details view after a brief delay
-                    // This prevents SwiftUI sheet conflict warning
-                    showingPayment = false
-                    // Wait for payment view to fully dismiss before showing details view
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        showingDetails = true
-                    }
-                }
+    }
+    
+    @ViewBuilder
+    private var yajmanOpportunitiesSheetContent: some View {
+        if let category = selectedCategory, let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
+            YajmanOpportunitiesView(
+                category: category,
+                opportunities: opportunities,
+                onDismiss: { showingYajmanOpportunities = false }
             )
         }
-        .task {
-            // Only refresh if categories are empty to avoid unnecessary refreshes
-            if appState.categories.isEmpty {
-                await appState.refreshCategories()
+    }
+    
+    private var reviewDonationFullScreenCover: some View {
+        ModernDonationDetailsView(
+            donationLines: $reviewDonationLines,
+            category: selectedCategory,
+            initialDonorName: donorName,
+            initialDonorPhone: donorPhone,
+            initialDonorEmail: donorEmail,
+            initialDonorAddress: donorAddress,
+            onConfirm: { name, phone, email, address in
+                showingDetails = false
+                let categoryHasOpportunities = selectedCategory?.yajmanOpportunities != nil && !(selectedCategory?.yajmanOpportunities?.isEmpty ?? true)
+                print("[DonationHomeView] 🔍 Category has opportunities: \(categoryHasOpportunities)")
+                print("[DonationHomeView] 🔍 Selected category: \(selectedCategory?.name ?? "nil")")
+                print("[DonationHomeView] 🔍 Should show pledge: \(categoryHasOpportunities)")
+                if categoryHasOpportunities {
+                    print("[DonationHomeView] ✅ Showing pledge option for sponsor tier")
+                    showingPledgeOption = true
+                } else {
+                    print("[DonationHomeView] ⏭️ Going directly to payment (pledge only available for sponsor tiers)")
+                    showingPayment = true
+                }
+                donorName = name
+                donorPhone = phone
+                donorEmail = email
+                donorAddress = address
+            },
+            onCancel: {
+                showingDetails = false
+            },
+            onAddAdditionalSeva: {
+                showingAdditionalSevaPicker = true
             }
-            
-            // Refresh temple config to get latest theme settings
-            await appState.refreshKioskConfig()
-        }
-        .onChange(of: appState.temple?.kioskTheme) { _ in
-            // Theme was updated, view will automatically refresh due to @EnvironmentObject
-            print("[DonationHomeView] Theme updated, view will refresh")
-        }
-        .detectTouches() // Detect all user interactions to reset idle timer
-        .onChange(of: customAmount) { _ in
-            // User is typing in custom amount field - reset idle timer
-            IdleTimer.shared.userDidInteract()
-        }
-        .onChange(of: selectedCategory) { _ in
-            // User selected a category - reset idle timer
-            IdleTimer.shared.userDidInteract()
-        }
-        .onChange(of: selectedAmount) { _ in
-            // User selected an amount - reset idle timer
-            IdleTimer.shared.userDidInteract()
-        }
-        .onChange(of: quantity) { _ in
-            // User changed quantity - reset idle timer
-            IdleTimer.shared.userDidInteract()
-        }
+        )
+    }
+    
+    private var pledgeOptionSheetContent: some View {
+        PledgeOptionViewWrapper(
+            amount: checkoutTotalAmount,
+            category: selectedCategory,
+            donorName: donorName,
+            donorPhone: donorPhone,
+            donorEmail: donorEmail,
+            onPayNow: {
+                showingPledgeOption = false
+                showingPayment = true
+            },
+            onPledge: {
+                Task {
+                    await createPledge()
+                }
+            },
+            onCancel: {
+                showingPledgeOption = false
+            }
+        )
+    }
+    
+    private var paymentFullScreenCover: some View {
+        ModernPaymentView(
+            amount: checkoutTotalAmount,
+            category: selectedCategory,
+            lineItems: checkoutLineItemsForAPI,
+            donationRecordCategoryId: reviewDonationLines.first?.categoryId ?? selectedCategory?.id,
+            donorName: donorName,
+            donorPhone: donorPhone,
+            donorEmail: donorEmail,
+            donorAddress: donorAddress,
+            onComplete: {
+                withAnimation {
+                    showingPayment = false
+                    selectedAmount = nil
+                    customAmount = ""
+                    selectedCategory = nil
+                    quantity = 1
+                    donorName = nil
+                    donorPhone = nil
+                    donorEmail = nil
+                    reviewDonationLines = []
+                }
+                onDismiss()
+            },
+            onCancel: {
+                showingPayment = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showingDetails = true
+                }
+            }
+        )
     }
     
     // Background view using GeometryReader for consistent sizing
@@ -453,82 +482,126 @@ struct DonationHomeView: View {
     
     @ViewBuilder
     private func mainContent(geometry: GeometryProxy) -> some View {
-        ZStack {
-            // Use reduced spacing when keypad is showing; otherwise use generous section spacing
-            HStack(alignment: .top, spacing: showingCustomAmountKeypad ? geometry.scale(DesignSystem.Components.sectionSpacing) : geometry.scale(categoryAmountSectionSpacing)) {
-                // Show keypad in place of category section when active
-                if showingCustomAmountKeypad {
-                    VStack(spacing: 0) {
-                        // Match the same top padding as category section header
-                        Spacer()
-                            .frame(height: categoryHeaderTopPadding)
-                        
-                        // Match the header height and bottom padding exactly
-                        // Heading size + body size + spacing 6pt + bottom padding 12pt
-                        Spacer()
-                            .frame(height: headingSize + bodySize + 6 + 12)
-                        
-                        // Keypad aligned to start where category buttons start
-                        // Match the exact padding used by category buttons (16pt)
-                        HStack {
-                            CustomNumericKeypad(
-                                amount: $customAmount,
-                                onDismiss: {
-                                    showingCustomAmountKeypad = false
-                                    customAmountFocused = false
-                                },
-                                theme: keypadTheme
-                            )
-                            Spacer()
-                        }
-                        .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
-                        
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.97)),
-                        removal: .opacity.combined(with: .scale(scale: 0.97))
-                    ))
-                } else {
-                    categorySection(geometry: geometry)
-                        .frame(maxWidth: .infinity)
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 0.97)),
-                            removal: .opacity.combined(with: .scale(scale: 0.97))
-                        ))
-                }
-                
-                // Always use VStack layout for amount section (no absolute positioning)
-                amountSection(geometry: geometry)
-                    .frame(maxWidth: .infinity)
-            }
-            .padding(.leading, geometry.scale(donationSelectionPageLeftPadding))
-            .padding(.trailing, geometry.scale(donationSelectionPageRightPadding))
-            .animation(.spring(response: DesignSystem.Components.modalSpringResponse, dampingFraction: DesignSystem.Components.modalSpringDamping), value: showingCustomAmountKeypad)
-            
-            // Overlay to detect taps outside keypad
-            // Only close when tapping on the amount section, not on the keypad itself
+        let panelMaxWidth = min(geometry.size.width * glassPanelMaxWidthFraction, glassPanelMaxWidthPoints)
+        let columnSpacing = geometry.scale(max(glassPanelColumnSpacing, categoryAmountSectionSpacing))
+        
+        ZStack(alignment: .top) {
             if showingCustomAmountKeypad {
-                HStack(spacing: 0) {
-                    // Left side - keypad area, allow taps to pass through to buttons
-                    Color.clear
-                        .frame(maxWidth: .infinity)
-                        .allowsHitTesting(false)
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        showingCustomAmountKeypad = false
+                        customAmountFocused = false
+                    }
+            }
+            VStack(spacing: 0) {
+                // Step header — centered above panel with decorative lines
+                stepHeaderView(geometry: geometry)
+                    .padding(.top, geometry.scale(78))
+                    .padding(.bottom, geometry.scale(20))
+                    .onTapGesture {
+                        guard showingCustomAmountKeypad else { return }
+                        showingCustomAmountKeypad = false
+                        customAmountFocused = false
+                    }
+                
+                // Glass panel — shifted down for breathing room above
+                VStack(spacing: 0) {
+                HStack(alignment: .top, spacing: columnSpacing) {
+                    if showingCustomAmountKeypad {
+                        keypadPlaceholderSection(geometry: geometry)
+                            .frame(maxWidth: .infinity)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.97)),
+                                removal: .opacity.combined(with: .scale(scale: 0.97))
+                            ))
+                    } else {
+                        categorySection(geometry: geometry)
+                            .frame(maxWidth: .infinity)
+                    }
                     
-                    // Right side - amount section, close on tap
-                    Color.clear
-                        .frame(maxWidth: .infinity)
+                    Rectangle()
+                        .fill(Color.black.opacity(0.06))
+                        .frame(width: 1)
+                        .padding(.vertical, geometry.scale(8))
                         .contentShape(Rectangle())
                         .onTapGesture {
+                            guard showingCustomAmountKeypad else { return }
                             showingCustomAmountKeypad = false
                             customAmountFocused = false
                         }
+                    
+                    amountSection(geometry: geometry)
+                        .frame(maxWidth: .infinity)
                 }
+                .padding(.horizontal, geometry.scale(glassPanelInternalPadding))
+                .padding(.top, geometry.scale(glassPanelVerticalPadding))
+                .padding(.bottom, geometry.scale(28))
             }
+            .frame(maxWidth: panelMaxWidth, maxHeight: geometry.size.height * 0.76)
+            .background(
+                RoundedRectangle(cornerRadius: geometry.scale(glassPanelCornerRadius))
+                    .fill(Color.white.opacity(0.15))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: geometry.scale(glassPanelCornerRadius))
+                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.09), radius: geometry.scale(40), x: 0, y: geometry.scale(16))
+            .padding(.horizontal, geometry.scale(glassPanelHorizontalPadding))
+            .animation(.spring(response: DesignSystem.Components.modalSpringResponse, dampingFraction: DesignSystem.Components.modalSpringDamping), value: showingCustomAmountKeypad)
+            }
+            .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
     
+    @ViewBuilder
+    private func stepHeaderView(geometry: GeometryProxy) -> some View {
+        let lineColor = Color(red: 0.42, green: 0.32, blue: 0.32).opacity(0.4)
+        HStack(spacing: geometry.scale(16)) {
+            Rectangle()
+                .fill(lineColor)
+                .frame(height: 1)
+            Text("step2DonationSelection".localized)
+                .font(.custom("Georgia", size: geometry.scale(20)))
+                .foregroundColor(Color(red: 0.42, green: 0.32, blue: 0.32))
+            Rectangle()
+                .fill(lineColor)
+                .frame(height: 1)
+        }
+        .padding(.horizontal, geometry.scale(40))
+    }
+    
+    @ViewBuilder
+    private func keypadPlaceholderSection(geometry: GeometryProxy) -> some View {
+        let dismissKeypad = {
+            showingCustomAmountKeypad = false
+            customAmountFocused = false
+        }
+        VStack(spacing: 0) {
+            Spacer().frame(height: geometry.scale(8))
+            // Match category section header: top + single line (Georgia 28pt) + bottom
+            Spacer().frame(height: geometry.scale(8 + 32 + 21))
+            HStack(spacing: 0) {
+                CustomNumericKeypad(
+                    amount: $customAmount,
+                    onDismiss: dismissKeypad,
+                    theme: keypadTheme
+                )
+                Color.clear
+                    .contentShape(Rectangle())
+                    .frame(maxWidth: .infinity)
+                    .onTapGesture(perform: dismissKeypad)
+            }
+            .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onTapGesture(perform: dismissKeypad)
+        }
+        .frame(maxWidth: .infinity)
+    }
     
     // Check if any categories have yajman opportunities (sponsorship tiers)
     private var hasSponsorshipTiers: Bool {
@@ -541,11 +614,12 @@ struct DonationHomeView: View {
     @ViewBuilder
     private func categorySection(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // Header — clear hierarchy
-            VStack(alignment: .leading, spacing: geometry.scale(DesignSystem.Spacing.xs)) {
+            // Header — clear hierarchy, centered
+            VStack(alignment: .center, spacing: geometry.scale(6)) {
                 Text("selectCategory".localized)
-                    .font(.custom(headingFont, size: geometry.scale(headingSize)))
+                    .font(.custom("Georgia", size: geometry.scale(28)))
                     .foregroundColor(headingColor)
+                    .multilineTextAlignment(.center)
                 
                 if hasSponsorshipTiers {
                     HStack(spacing: geometry.scale(6)) {
@@ -557,20 +631,14 @@ struct DonationHomeView: View {
                             .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
                     }
                     .padding(.top, geometry.scale(2))
-                } else {
-                    Text("Choose your donation category")
-                        .font(.custom(bodyFont, size: geometry.scale(bodySize)))
-                        .foregroundColor(subtitleColor)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, geometry.scale(categoryHeaderTopPadding))
-            .padding(.bottom, geometry.scale(DesignSystem.Components.inlineSpacing))
+            .frame(maxWidth: .infinity)
+            .padding(.top, geometry.scale(8))
+            .padding(.bottom, geometry.scale(21))
             
             categoryContent(geometry: geometry)
-                .frame(maxWidth: .infinity)
-            
-            Spacer()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity)
     }
@@ -579,14 +647,16 @@ struct DonationHomeView: View {
     private func categoryContent(geometry: GeometryProxy) -> some View {
         VStack(spacing: geometry.scale(DesignSystem.Components.inlineSpacing)) {
             if !appState.categories.isEmpty {
-                ScrollView {
-                    VStack(spacing: geometry.scale(10)) {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: geometry.scale(14)) {
                         ForEach(appState.categories) { category in
                             CleanCategoryButton(
                                 category: category,
                                 isSelected: selectedCategory?.id == category.id,
                                 selectedColor: categorySelectedColorValue,
                                 unselectedColor: categoryUnselectedColorValue,
+                                height: geometry.scale(categoryButtonHeight),
+                                horizontalPadding: geometry.scale(20),
                                 action: {
                                     // Use simpler animation for better performance
                                     if selectedCategory?.id == category.id {
@@ -613,9 +683,9 @@ struct DonationHomeView: View {
                         }
                     }
                     .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
-                    .frame(maxWidth: .infinity)
-                    .frame(alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 emptyCategoriesView(geometry: geometry)
             }
@@ -665,38 +735,40 @@ struct DonationHomeView: View {
     @ViewBuilder
     private func amountSection(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // Header — matches category section hierarchy
-            VStack(alignment: .leading, spacing: geometry.scale(DesignSystem.Spacing.xs)) {
+            VStack(alignment: .center, spacing: geometry.scale(6)) {
                 Text("selectAmount".localized)
-                    .font(.custom(headingFont, size: geometry.scale(headingSize)))
+                    .font(.custom("Georgia", size: geometry.scale(28)))
                     .foregroundColor(headingColor)
-                
-                Text("Choose a preset amount or enter custom")
-                    .font(.custom(bodyFont, size: geometry.scale(bodySize)))
-                    .foregroundColor(subtitleColor)
+                    .multilineTextAlignment(.center)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, geometry.scale(headerTopPadding))
-            .padding(.bottom, geometry.scale(DesignSystem.Components.inlineSpacing))
+            .frame(maxWidth: .infinity)
+            .padding(.top, geometry.scale(8))
+            .padding(.bottom, geometry.scale(21))
+            .onTapGesture {
+                guard showingCustomAmountKeypad else { return }
+                showingCustomAmountKeypad = false
+                customAmountFocused = false
+            }
             
             amountContent(geometry: geometry)
                 .frame(maxWidth: .infinity)
             
-            Spacer()
+            Spacer(minLength: 0)
             
-            continueButton(geometry: geometry)
+            actionButtonsRow(geometry: geometry)
+                .padding(.top, geometry.scale(12))
         }
         .frame(maxWidth: .infinity)
     }
     
     @ViewBuilder
     private func amountContent(geometry: GeometryProxy) -> some View {
-        VStack(spacing: geometry.scale(8)) {
+        VStack(spacing: geometry.scale(12)) {
             presetAmountButtons(geometry: geometry)
             
             CleanCustomAmountField(
                 text: $customAmount,
-                isActive: selectedCategory == nil && selectedAmount == nil && (!customAmount.isEmpty || customAmountFocused),
+                isActive: selectedCategory == nil && selectedAmount == nil && (!customAmount.isEmpty || customAmountFocused || showingCustomAmountKeypad),
                 isFocused: $customAmountFocused,
                 showingKeypad: $showingCustomAmountKeypad,
                 onTap: {
@@ -708,7 +780,8 @@ struct DonationHomeView: View {
                     showingCustomAmountKeypad = true
                     customAmountFocused = true
                 },
-                headingColor: headingColor
+                selectedColor: amountSelectedColorValue,
+                height: geometry.scale(amountButtonHeight)
             )
         }
         .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
@@ -718,7 +791,7 @@ struct DonationHomeView: View {
     private func presetAmountButtons(geometry: GeometryProxy) -> some View {
         let buttonCount = presetAmounts.count
         if buttonCount > 0 {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: geometry.scale(10)) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: geometry.scale(14)) {
                 ForEach(presetAmounts, id: \.self) { amount in
                     amountButton(amount: amount, geometry: geometry)
                 }
@@ -732,6 +805,7 @@ struct DonationHomeView: View {
             isSelected: selectedAmount == amount && selectedCategory == nil,
             selectedColor: amountSelectedColorValue,
             unselectedColor: amountUnselectedColorValue,
+            height: geometry.scale(amountButtonHeight),
             action: {
                 // Toggle selection: if already selected, unselect it; otherwise select it
                 if selectedAmount == amount && selectedCategory == nil {
@@ -752,140 +826,13 @@ struct DonationHomeView: View {
     }
     
     @ViewBuilder
-    private func continueButton(geometry: GeometryProxy) -> some View {
-        VStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
-            // Show quantity and total side by side when category with quantity is selected
-            if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                HStack(spacing: geometry.scale(quantityTotalSpacing)) {
-                    // Quantity selector
-                    VStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
-                        Text("quantity".localized)
-                            .font(.custom(bodyFont, size: geometry.scale(bodySize)))
-                            .foregroundColor(subtitleColor)
-                        
-                        HStack(spacing: geometry.scale(DesignSystem.Components.inlineSpacing)) {
-                            Button(action: {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                if quantity > 1 {
-                                    quantity -= 1
-                                }
-                            }) {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: geometry.scale(24)))
-                                    .foregroundColor(quantity > 1 ? Color(red: 0.2, green: 0.4, blue: 0.8) : Color.gray)
-                            }
-                            .disabled(quantity <= 1)
-                            
-                            Text("\(quantity)")
-                                .font(.custom(headingFont, size: geometry.scale(24)))
-                                .foregroundColor(quantityTotalColor)
-                                .frame(minWidth: geometry.scale(40))
-                            
-                            Button(action: {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                quantity += 1
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: geometry.scale(24)))
-                                    .foregroundColor(Color(red: 0.2, green: 0.4, blue: 0.8))
-                            }
-                        }
-                        .padding(.vertical, geometry.scale(DesignSystem.Spacing.sm + 2))
-                        .padding(.horizontal, geometry.scale(DesignSystem.Components.sectionSpacing))
-                        .background(Color.white)
-                        .cornerRadius(geometry.scale(cornerRadius))
-                        .shadow(color: Color.black.opacity(0.1), radius: geometry.scale(4), x: 0, y: geometry.scale(2))
-                    }
-                    
-                    // Total display - liquid glass styling
-                    HStack {
-                        Text("total".localized)
-                            .font(.custom(bodyFont, size: geometry.scale(bodySize)))
-                            .foregroundColor(subtitleColor)
-                            .frame(minWidth: geometry.scale(60), alignment: .leading)
-                        
-                        Spacer()
-                        
-                        Text((defaultAmount * Double(quantity)).formattedCurrency())
-                            .font(.custom(headingFont, size: geometry.scale(32)))
-                            .foregroundColor(quantityTotalColor)
-                            .fontWeight(.semibold)
-                            .monospacedDigit()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, geometry.scale(DesignSystem.Components.inlineSpacing))
-                    .padding(.horizontal, geometry.scale(DesignSystem.Layout.screenPadding))
-                    .background(
-                        RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
-                                    .stroke(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.white.opacity(0.6),
-                                                Color.white.opacity(0.1)
-                                            ]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: geometry.scale(1)
-                                    )
-                            )
-                            .shadow(color: Color.black.opacity(0.15), radius: geometry.scale(8), x: 0, y: geometry.scale(4))
-                    )
-                }
-                .transition(.scale.combined(with: .opacity))
-            } else if hasValidAmount {
-                // Show total only when amount is selected (no quantity) - liquid glass styling
-                HStack {
-                    Spacer()
-                    HStack {
-                        Text("total".localized)
-                            .font(.custom(bodyFont, size: geometry.scale(bodySize)))
-                            .foregroundColor(subtitleColor)
-                            .frame(minWidth: geometry.scale(60), alignment: .leading)
-                        
-                        Spacer()
-                        
-                        Text(currentAmount.formattedCurrency())
-                            .font(.custom(headingFont, size: geometry.scale(32)))
-                            .foregroundColor(quantityTotalColor)
-                            .fontWeight(.semibold)
-                            .monospacedDigit()
-                    }
-                    .padding(.vertical, geometry.scale(DesignSystem.Components.inlineSpacing))
-                    .padding(.horizontal, geometry.scale(DesignSystem.Spacing.xl))
-                    .background(
-                        RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: geometry.scale(cornerRadius))
-                                    .stroke(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.white.opacity(0.6),
-                                                Color.white.opacity(0.1)
-                                            ]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: geometry.scale(1)
-                                    )
-                            )
-                            .shadow(color: Color.black.opacity(0.15), radius: geometry.scale(8), x: 0, y: geometry.scale(4))
-                    )
-                    Spacer()
-                }
-                .transition(.scale.combined(with: .opacity))
-            }
-            
-            // Buttons: Home and Review Donation — single decision area
-            HStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
-                // Home button - uses returnToHomeButtonColor from theme
+    private func actionButtonsRow(geometry: GeometryProxy) -> some View {
+        let actionCorner = geometry.scale(12)
+        let creamFill = Color(red: 242.0/255.0, green: 235.0/255.0, blue: 224.0/255.0)
+        let reviewFill = Color(red: 147.0/255.0, green: 22.0/255.0, blue: 19.0/255.0)
+        HStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
                 Button(action: {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    // Clear donor details when returning to home
                     donorName = nil
                     donorPhone = nil
                     donorEmail = nil
@@ -896,60 +843,53 @@ struct DonationHomeView: View {
                         Image(systemName: "house.fill")
                         Text("returnToHome".localized)
                     }
-                    .font(.custom("Inter-Medium", size: geometry.scale(18)))
-                    .foregroundColor(.white)
+                    .font(.custom("Inter-Regular", size: geometry.scale(18)))
+                    .foregroundColor(headingColor)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, geometry.scale(18))
                     .background(
-                        Group {
-                            let buttonColor = colorFromHex(
-                                appState.temple?.kioskTheme?.colors?.returnToHomeButtonColor,
-                                defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
+                        RoundedRectangle(cornerRadius: actionCorner)
+                            .fill(creamFill)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: actionCorner)
+                                    .fill(Color.white.opacity(0.15))
                             )
-                            if appState.temple?.kioskTheme?.colors?.returnToHomeButtonGradient == true {
-                                gradientFromColor(buttonColor)
-                            } else {
-                                buttonColor
-                            }
-                        }
                     )
-                    .cornerRadius(geometry.scale(12))
+                    .cornerRadius(actionCorner)
                 }
+                .overlay(
+                    DonationGoldRingBorder(cornerRadius: actionCorner)
+                        .allowsHitTesting(false)
+                )
+                .buttonStyle(.plain)
                 
-                // Review Donation button — clean disabled state when no amount selected
                 Button(action: {
                     guard hasValidAmount else { return }
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    reviewDonationLines = [CheckoutDonationLine.primary(amount: currentAmount, category: selectedCategory)]
                     showingDetails = true
                 }) {
-                    Text("Review Donation")
+                    Text("reviewDonation".localized)
                         .font(.custom("Inter-Medium", size: geometry.scale(18)))
-                        .foregroundColor(hasValidAmount ? .white : Color(white: DesignSystem.Components.disabledTextGray))
+                        .foregroundColor(hasValidAmount ? Color.white : headingColor)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, geometry.scale(18))
                         .background(
-                            Group {
-                                if hasValidAmount {
-                                    let buttonColor = colorFromHex(
-                                        appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonColor,
-                                        defaultColor: Color(red: 1.0, green: 0.58, blue: 0.0)
-                                    )
-                                    if appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonGradient == true {
-                                        gradientFromColor(buttonColor)
-                                    } else {
-                                        buttonColor
-                                    }
-                                } else {
-                                    Color(white: DesignSystem.Components.disabledBackgroundGray)
-                                }
-                            }
+                            RoundedRectangle(cornerRadius: actionCorner)
+                                .fill(hasValidAmount ? reviewFill : creamFill)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: actionCorner)
+                                        .fill(hasValidAmount ? Color.clear : Color.white.opacity(0.15))
+                                )
                         )
-                        .cornerRadius(geometry.scale(12))
+                        .cornerRadius(actionCorner)
                 }
-                .disabled(!hasValidAmount)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.bottom, geometry.scale(DesignSystem.Layout.actionBottomPadding))
+                .buttonStyle(.plain)
+                .overlay(
+                    DonationGoldRingBorder(cornerRadius: actionCorner)
+                        .allowsHitTesting(false)
+                )
+                .allowsHitTesting(hasValidAmount)
         }
         .frame(maxWidth: .infinity)
     }
@@ -981,6 +921,17 @@ struct DonationHomeView: View {
         return Double(customAmount) ?? 0
     }
     
+    /// Total charged at checkout (sum of review lines, or step-2 selection before review opens).
+    private var checkoutTotalAmount: Double {
+        let sum = reviewDonationLines.reduce(0) { $0 + $1.amount }
+        return sum > 0 ? sum : currentAmount
+    }
+    
+    private var checkoutLineItemsForAPI: [DonationLineItemBody]? {
+        guard !reviewDonationLines.isEmpty else { return nil }
+        return reviewDonationLines.map { DonationLineItemBody(label: $0.label, amount: $0.amount) }
+    }
+    
     private func createPledge() async {
         guard let templeId = appState.temple?.id,
               let deviceId = appState.deviceId else {
@@ -995,7 +946,7 @@ struct DonationHomeView: View {
             let pledge = try await APIService.shared.createPledge(
                 templeId: templeId,
                 deviceId: deviceId,
-                amount: currentAmount,
+                amount: checkoutTotalAmount,
                 categoryId: selectedCategory?.id,
                 donorName: donorName ?? "",
                 donorPhone: donorPhone ?? "",
@@ -1015,6 +966,7 @@ struct DonationHomeView: View {
                 donorName = nil
                 donorPhone = nil
                 donorEmail = nil
+                reviewDonationLines = []
                 
                 // Show success message or navigate back
                 onDismiss()
@@ -1059,7 +1011,13 @@ struct CleanAmountButton: View {
     let isSelected: Bool
     let selectedColor: Color
     let unselectedColor: Color
+    var height: CGFloat = 64
+    var unselectedTextColor: Color = Color(red: 0.22, green: 0.18, blue: 0.16)
     let action: () -> Void
+    
+    private var textColor: Color {
+        isSelected ? .white : unselectedTextColor
+    }
     
     var body: some View {
         Button(action: {
@@ -1068,62 +1026,67 @@ struct CleanAmountButton: View {
         }) {
             Text(amount.formattedCurrencyWhole())
                 .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
-                .foregroundColor(.white)
+                .foregroundColor(textColor)
                 .frame(maxWidth: .infinity)
-                .frame(height: DesignSystem.Components.buttonHeight)
-                .background(isSelected ? selectedColor : unselectedColor)
+                .frame(height: height)
+                .background(
+                    RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                        .fill(isSelected ? selectedColor : Color(red: 242.0/255.0, green: 235.0/255.0, blue: 224.0/255.0))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                                .fill(isSelected ? Color.clear : Color.white.opacity(0.15))
+                        )
+                        .shadow(color: isSelected ? .black.opacity(0.0) : .black.opacity(0.08), radius: isSelected ? 0 : 6, y: isSelected ? 0 : 3)
+                )
                 .cornerRadius(DesignSystem.Components.buttonCornerRadius)
         }
         .overlay(
-            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
-                .stroke(isSelected ? Color.white.opacity(0.35) : Color.clear, lineWidth: 1.5)
+            DonationGoldRingBorder(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                .allowsHitTesting(false)
         )
         .scaleEffect(isSelected ? 1.01 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
 }
 
-// Custom amount — integrates with amount grid (same height, spacing, styling)
+// Custom amount — same fill, shadow, and gold ring as CleanAmountButton
 struct CleanCustomAmountField: View {
     @Binding var text: String
     let isActive: Bool
     @FocusState.Binding var isFocused: Bool
     @Binding var showingKeypad: Bool
     let onTap: () -> Void
-    let headingColor: Color
+    let selectedColor: Color
+    var height: CGFloat = 64
+    var unselectedTextColor: Color = Color(red: 0.22, green: 0.18, blue: 0.16)
+    
+    private var textColor: Color {
+        isActive ? .white : unselectedTextColor
+    }
     
     var body: some View {
         HStack(spacing: DesignSystem.Components.inlineSpacing) {
             Text("customAmount".localized)
-                .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.bodySize))
-                .foregroundColor(headingColor)
+                .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
+                .foregroundColor(textColor)
             Spacer()
             Image(systemName: "square.and.pencil")
                 .font(.system(size: DesignSystem.Typography.secondarySize))
-                .foregroundColor(headingColor.opacity(0.6))
+                .foregroundColor(isActive ? Color.white.opacity(0.92) : unselectedTextColor.opacity(0.7))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: DesignSystem.Components.buttonHeight)
+        .frame(height: height)
         .padding(.horizontal, DesignSystem.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
-                .fill(.ultraThinMaterial)
+                .fill(isActive ? selectedColor : Color(red: 242.0/255.0, green: 235.0/255.0, blue: 224.0/255.0))
                 .overlay(
                     RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
-                        .stroke(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.white.opacity(0.6),
-                                    Color.white.opacity(0.1)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
+                        .fill(isActive ? Color.clear : Color.white.opacity(0.15))
                 )
-                .shadow(color: Color.black.opacity(0.1), radius: DesignSystem.Spacing.xs, x: 0, y: 1)
+                .shadow(color: isActive ? .black.opacity(0.0) : .black.opacity(0.08), radius: isActive ? 0 : 6, y: isActive ? 0 : 3)
         )
+        .cornerRadius(DesignSystem.Components.buttonCornerRadius)
         .contentShape(Rectangle())
         .onTapGesture {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -1140,8 +1103,8 @@ struct CleanCustomAmountField: View {
             }
         }
         .overlay(
-            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
-                .stroke(isActive ? Color.white.opacity(0.4) : Color.clear, lineWidth: 1.5)
+            DonationGoldRingBorder(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                .allowsHitTesting(false)
         )
         .scaleEffect(isActive ? 1.01 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isActive)
@@ -1154,6 +1117,9 @@ struct CleanCategoryButton: View {
     let isSelected: Bool
     let selectedColor: Color
     let unselectedColor: Color
+    var height: CGFloat = 64
+    var horizontalPadding: CGFloat = 20
+    var unselectedTextColor: Color = Color(red: 0.22, green: 0.18, blue: 0.16)
     let action: () -> Void
     
     private var hasSelectedImage: Bool {
@@ -1162,6 +1128,14 @@ struct CleanCategoryButton: View {
     
     private var hasUnselectedImage: Bool {
         UIImage(named: "CategoryButtonUnselected") != nil
+    }
+    
+    private var textColor: Color {
+        isSelected ? .white : unselectedTextColor
+    }
+    
+    private var secondaryTextColor: Color {
+        isSelected ? Color.white.opacity(0.92) : unselectedTextColor.opacity(0.85)
     }
     
     var body: some View {
@@ -1173,13 +1147,13 @@ struct CleanCategoryButton: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(category.name)
                         .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
-                        .foregroundColor(.white)
+                        .foregroundColor(textColor)
                         .lineLimit(1)
                     
                     if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
                         Text(defaultAmount.formattedCurrencyWhole())
                             .font(.custom(DesignSystem.Typography.secondaryFont, size: DesignSystem.Typography.secondarySize))
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(secondaryTextColor)
                     }
                     
                     if let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
@@ -1189,7 +1163,7 @@ struct CleanCategoryButton: View {
                                 .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
                             Text("Includes \(opportunities.count) yajman \(opportunities.count == 1 ? "opportunity" : "opportunities")")
                                 .font(.custom(DesignSystem.Typography.secondaryFont, size: 11))
-                                .foregroundColor(.white.opacity(0.9))
+                                .foregroundColor(secondaryTextColor)
                         }
                     }
                 }
@@ -1197,18 +1171,19 @@ struct CleanCategoryButton: View {
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: DesignSystem.Typography.secondarySize, weight: .medium))
-                    .foregroundColor(.white.opacity(isSelected ? 1.0 : 0.7))
+                    .foregroundColor(isSelected ? .white.opacity(0.95) : unselectedTextColor.opacity(0.7))
             }
-            .padding(.horizontal, DesignSystem.Spacing.md)
+            .padding(.horizontal, horizontalPadding)
             .frame(maxWidth: .infinity)
-            .frame(height: DesignSystem.Components.buttonHeight)
+            .frame(height: height)
             .background(buttonBackground)
             .cornerRadius(DesignSystem.Components.buttonCornerRadius)
         }
         .overlay(
-            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
-                .stroke(isSelected ? Color.white.opacity(0.3) : Color.clear, lineWidth: 1.5)
+            DonationGoldRingBorder(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                .allowsHitTesting(false)
         )
+        .shadow(color: isSelected ? .black.opacity(0.0) : .black.opacity(0.08), radius: isSelected ? 0 : 6, y: isSelected ? 0 : 3)
         .scaleEffect(isSelected ? 1.01 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
@@ -1225,21 +1200,15 @@ struct CleanCategoryButton: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else {
-                // Fall back to color
                 selectedColor
             }
         } else {
-            if hasUnselectedImage {
-                // Use custom unselected background image
-                Image("CategoryButtonUnselected")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-            } else {
-                // Fall back to color
-                unselectedColor
-            }
+            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                .fill(Color(red: 242.0/255.0, green: 235.0/255.0, blue: 224.0/255.0))
+                .overlay(
+                    RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                        .fill(Color.white.opacity(0.15))
+                )
         }
     }
 }

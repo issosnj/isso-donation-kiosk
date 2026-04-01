@@ -50,6 +50,10 @@ export class Donation {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount: number;
 
+  /** Optional breakdown (e.g. additional seva lines); amounts should sum to `amount`. */
+  @Column({ type: 'json', nullable: true })
+  lineItems: { label: string; amount: number }[] | null;
+
   @Column({ default: 'USD' })
   currency: string;
 

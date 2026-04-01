@@ -172,6 +172,13 @@ extension GeometryProxy {
         ResponsiveLayoutHelper.scale(value, for: self)
     }
     
+    /// Width-only scaling. Use for full-screen scroll content when the keyboard is visible:
+    /// `scale(_:)` uses `min(width,height)` against the reference screen, so a shorter
+    /// `geometry.size.height` (space above the keyboard) shrinks fonts and padding for the whole page.
+    func scaleWidthStable(_ value: CGFloat) -> CGFloat {
+        ResponsiveLayoutHelper.scaleWidth(value, for: self)
+    }
+    
     /// Scale an X coordinate from base reference
     func scaleX(_ x: CGFloat) -> CGFloat {
         ResponsiveLayoutHelper.scaleX(x, for: self)

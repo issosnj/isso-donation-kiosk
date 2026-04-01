@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Donation } from './entities/donation.entity';
 import { Temple } from '../temples/entities/temple.entity';
 import { formatAmountInWords } from './receipt-helpers';
+import { getReceiptLineItems } from './receipt-line-items.util';
 
 @Injectable()
 export class ReceiptGeneratorService {
@@ -11,6 +12,7 @@ export class ReceiptGeneratorService {
   generateReceiptHtml(donation: Donation, temple: Temple): string {
     const receiptConfig = temple.receiptConfig || {};
     const amount = Number(donation.amount);
+    const receiptRows = getReceiptLineItems(donation);
     const amountInWords = formatAmountInWords(amount, receiptConfig.showAmountInWords !== false);
     const receiptNumber = donation.receiptNumber || donation.id.substring(0, 8).toUpperCase();
     const donationDate = new Date(donation.createdAt).toLocaleDateString('en-US', {
@@ -130,10 +132,15 @@ export class ReceiptGeneratorService {
               </tr>
             </thead>
             <tbody>
+              ${receiptRows
+                .map(
+                  (row) => `
               <tr>
-                <td>${this.escapeHtml(donation.category?.name || 'Donation')}</td>
-                <td class="amount-cell">${amount.toFixed(2)}</td>
-              </tr>
+                <td>${this.escapeHtml(row.label)}</td>
+                <td class="amount-cell">${Number(row.amount).toFixed(2)}</td>
+              </tr>`,
+                )
+                .join('')}
               <tr class="total-row">
                 <td>Total</td>
                 <td class="amount-cell">$${amount.toFixed(2)}</td>

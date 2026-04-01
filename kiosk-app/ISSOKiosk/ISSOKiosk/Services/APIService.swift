@@ -235,7 +235,8 @@ class APIService {
         templeId: String,
         deviceId: String,
         amount: Double,
-        categoryId: String?
+        categoryId: String?,
+        lineItems: [DonationLineItemBody]? = nil
     ) async throws -> Donation {
         struct Request: Codable {
             let templeId: String
@@ -243,6 +244,7 @@ class APIService {
             let amount: Double
             let currency: String
             let categoryId: String?
+            let lineItems: [DonationLineItemBody]?
         }
         
         let body = Request(
@@ -250,7 +252,8 @@ class APIService {
             deviceId: deviceId,
             amount: amount,
             currency: "USD",
-            categoryId: categoryId
+            categoryId: categoryId,
+            lineItems: (lineItems?.isEmpty == false) ? lineItems : nil
         )
         
         return try await request(
@@ -600,6 +603,12 @@ enum APIError: LocalizedError {
             return "Please try again. If the problem persists, contact support."
         }
     }
+}
+
+/// Sent with `initiateDonation` for receipt breakdown (additional seva lines).
+struct DonationLineItemBody: Codable, Equatable {
+    let label: String
+    let amount: Double
 }
 
 struct Donation: Codable {

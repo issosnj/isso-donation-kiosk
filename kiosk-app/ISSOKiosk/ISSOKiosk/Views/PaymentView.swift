@@ -13,6 +13,10 @@ enum PaymentStatus: Equatable {
 struct ModernPaymentView: View {
     let amount: Double
     let category: DonationCategory?
+    /// When set, persisted on the donation and shown on email/PDF receipts as line items.
+    let lineItems: [DonationLineItemBody]?
+    /// Primary `categoryId` on the donation record; defaults to `category?.id` when nil.
+    let donationRecordCategoryId: String?
     let donorName: String?
     let donorPhone: String?
     let donorEmail: String?
@@ -305,7 +309,8 @@ struct ModernPaymentView: View {
                     templeId: templeId,
                     deviceId: deviceId,
                     amount: amount,
-                    categoryId: category?.id
+                    categoryId: donationRecordCategoryId ?? category?.id,
+                    lineItems: lineItems
                 )
                 
                 // Store donation ID for potential cancellation
@@ -1136,11 +1141,15 @@ struct PaymentView: View {
     let donorAddress: String?
     let onComplete: () -> Void
     let onCancel: (() -> Void)? = nil
+    var lineItems: [DonationLineItemBody]? = nil
+    var donationRecordCategoryId: String? = nil
     
     var body: some View {
         ModernPaymentView(
             amount: amount,
             category: category,
+            lineItems: lineItems,
+            donationRecordCategoryId: donationRecordCategoryId,
             donorName: donorName,
             donorPhone: donorPhone,
             donorEmail: donorEmail,

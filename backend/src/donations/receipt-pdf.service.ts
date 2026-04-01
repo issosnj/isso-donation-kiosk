@@ -4,6 +4,7 @@ import { Donation } from './entities/donation.entity';
 import { Temple } from '../temples/entities/temple.entity';
 import { formatAmountInWords } from './receipt-helpers';
 import { ReceiptGeneratorService } from './receipt-generator.service';
+import { getReceiptLineItems } from './receipt-line-items.util';
 import axios from 'axios';
 
 interface ReceiptData {
@@ -114,16 +115,16 @@ export class ReceiptPdfService {
     doc.font('Helvetica').text(donation.id);
     doc.moveDown(0.3);
 
-    // Category
-    if (donation.category) {
-      doc.fontSize(12).font('Helvetica-Bold').text('Category:', { continued: true });
-      doc.font('Helvetica').text(donation.category.name);
-      doc.moveDown(0.3);
+    const syncLineRows = getReceiptLineItems(donation);
+    doc.moveDown(0.3);
+    doc.fontSize(12).font('Helvetica-Bold').text('Details:', { align: 'left' });
+    doc.moveDown(0.2);
+    doc.fontSize(11).font('Helvetica');
+    for (const row of syncLineRows) {
+      doc.text(`${row.label}: $${Number(row.amount).toFixed(2)}`, { align: 'left' });
+      doc.moveDown(0.15);
     }
-
-    // Amount
-    doc.moveDown(0.5);
-    doc.fontSize(16).font('Helvetica-Bold').text('Amount:', { continued: true });
+    doc.fontSize(16).font('Helvetica-Bold').text('Total:', { continued: true });
     doc.font('Helvetica-Bold').text(`$${Number(donation.amount).toFixed(2)}`, { align: 'right' });
     doc.moveDown(0.5);
 
@@ -185,6 +186,7 @@ export class ReceiptPdfService {
         // This ensures PDF matches HTML receipt exactly
         const receiptData = this.getReceiptData(donation, temple);
         const { receiptConfig, amount, amountInWords, receiptNumber, donationDate } = receiptData;
+        const pdfLineRows = getReceiptLineItems(donation);
 
         const pageWidth = 612; // Letter size width in points
         const pageHeight = 792; // Letter size height in points
@@ -317,8 +319,8 @@ export class ReceiptPdfService {
         // Calculate estimated remaining height to determine if we need scaling
         let estimatedRemainingHeight = 0;
         
-        // Transaction table
-        estimatedRemainingHeight += 25;
+        // Transaction table (extra height per line beyond the first)
+        estimatedRemainingHeight += 25 + Math.max(0, pdfLineRows.length - 1) * 14;
         // Amount in words
         if (amountInWords) estimatedRemainingHeight += 26;
         // Payment method
@@ -357,16 +359,16 @@ export class ReceiptPdfService {
         doc.moveTo(tableLeft, headerLineY).lineTo(tableLeft + tableWidth, headerLineY).lineWidth(2).stroke();
         currentY = headerLineY + (4 * scaleFactor);
         
-        // Table Row - Larger fonts for donation type and amount
+        // Table rows — one per line item
         doc.fontSize(11 * scaleFactor).font('Helvetica').fillColor('#000000');
-        // Show category name if category was selected, otherwise show "Donation" for preset amounts
-        doc.text(donation.category?.name || 'Donation', tableLeft, currentY);
-        doc.text(amount.toFixed(2), tableLeft + col1Width, currentY, { width: col2Width, align: 'right' });
-        currentY += (16 * scaleFactor);
-        
-        // Draw row line
-        doc.moveTo(tableLeft, currentY).lineTo(tableLeft + tableWidth, currentY).stroke();
-        currentY += (4 * scaleFactor);
+        for (let i = 0; i < pdfLineRows.length; i++) {
+          const row = pdfLineRows[i];
+          doc.text(row.label, tableLeft, currentY);
+          doc.text(Number(row.amount).toFixed(2), tableLeft + col1Width, currentY, { width: col2Width, align: 'right' });
+          currentY += (16 * scaleFactor);
+          doc.moveTo(tableLeft, currentY).lineTo(tableLeft + tableWidth, currentY).stroke();
+          currentY += (4 * scaleFactor);
+        }
         
         // Total Row - Larger and more prominent
         doc.fontSize(12 * scaleFactor).font('Helvetica-Bold').fillColor('#000000');

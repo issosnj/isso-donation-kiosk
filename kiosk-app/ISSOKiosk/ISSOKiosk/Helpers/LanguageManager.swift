@@ -73,6 +73,7 @@ class LanguageManager: ObservableObject {
             "customAmount": "Custom Amount",
             "reviewDonation": "Review Donation",
             "donorInformation": "Donor Information",
+            "donorInfo": "Donor Info",
             "phoneNumber": "Phone Number",
             "phoneOptional": "Phone (Optional)",
             "name": "Name",
@@ -109,11 +110,24 @@ class LanguageManager: ObservableObject {
             "submit": "Submit",
             
             // Donation Selection Page (additional keys)
+            "step2DonationSelection": "Step 2 of 3 • Donation Selection",
+            "step3ReviewPayment": "Step 3 of 3 • Review & Payment",
+            "donationSummary": "Donation Summary",
+            "thankYouForYourSeva": "Thank you for your seva",
+            "addDonorDetailsTitle": "Add Donor Details",
+            "addDonorDetailsTitleOptional": "Add Donor Details (Optional)",
+            "secureFastEncrypted": "Secure • Fast • Encrypted",
+            "donationColon": "Donation:",
             "enterAmount": "Enter Amount",
             "quantity": "Quantity",
             "total": "Total",
             "yajmanOpportunities": "Yajman Opportunities",
-            "pledgeOption": "Pledge Option"
+            "pledgeOption": "Pledge Option",
+            "clickToDoAdditionalSeva": "Click to Do Additional Seva",
+            "generalDonationLineLabel": "Donation",
+            "additionalSevaTitle": "Additional seva",
+            "additionalSevaInstructions": "Choose another category and amount. Your receipt will list each seva and the total.",
+            "addToDonation": "Add to donation"
         ],
         .gujarati: [
             // Home Screen
@@ -143,6 +157,7 @@ class LanguageManager: ObservableObject {
             "customAmount": "કસ્ટમ રકમ",
             "reviewDonation": "દાનની સમીક્ષા કરો",
             "donorInformation": "દાતાની માહિતી",
+            "donorInfo": "દાતા માહિતી",
             "phoneNumber": "ફોન નંબર",
             "phoneOptional": "ફોન (વૈકલ્પિક)",
             "name": "નામ",
@@ -179,11 +194,24 @@ class LanguageManager: ObservableObject {
             "submit": "સબમિટ કરો",
             
             // Donation Selection Page (additional keys)
+            "step2DonationSelection": "પગલું ૨/૩ • દાન પસંદગી",
+            "step3ReviewPayment": "પગલું ૩/૩ • સમીક્ષા અને ચુકવણી",
+            "donationSummary": "દાન સારાંશ",
+            "thankYouForYourSeva": "તમારી સેવા બદલ આભાર",
+            "addDonorDetailsTitle": "દાતા વિગતો ઉમેરો",
+            "addDonorDetailsTitleOptional": "દાતા વિગતો ઉમેરો (વૈકલ્પિક)",
+            "secureFastEncrypted": "સુરક્ષિત • ઝડપી • એન્ક્રિપ્ટેડ",
+            "donationColon": "દાન:",
             "enterAmount": "રકમ દાખલ કરો",
             "quantity": "પ્રમાણ",
             "total": "કુલ",
             "yajmanOpportunities": "યજમાન તકો",
-            "pledgeOption": "વચન વિકલ્પ"
+            "pledgeOption": "વચન વિકલ્પ",
+            "clickToDoAdditionalSeva": "વધારાની સેવા કરવા અહીં ટેપ કરો",
+            "generalDonationLineLabel": "દાન",
+            "additionalSevaTitle": "વધારાની સેવા",
+            "additionalSevaInstructions": "બીજી કેટેગરી અને રકમ પસંદ કરો. તમારી રસીદમાં દરેક સેવા અને કુલ દર્શાવશે.",
+            "addToDonation": "દાનમાં ઉમેરો"
         ],
         .hindi: [
             // Home Screen
@@ -213,6 +241,7 @@ class LanguageManager: ObservableObject {
             "customAmount": "कस्टम राशि",
             "reviewDonation": "दान की समीक्षा करें",
             "donorInformation": "दाता की जानकारी",
+            "donorInfo": "दाता जानकारी",
             "phoneNumber": "फोन नंबर",
             "phoneOptional": "फोन (वैकल्पिक)",
             "name": "नाम",
@@ -249,11 +278,24 @@ class LanguageManager: ObservableObject {
             "submit": "सबमिट करें",
             
             // Donation Selection Page (additional keys)
+            "step2DonationSelection": "चरण २ of ३ • दान चयन",
+            "step3ReviewPayment": "चरण ३ of ३ • समीक्षा और भुगतान",
+            "donationSummary": "दान सारांश",
+            "thankYouForYourSeva": "आपकी सेवा के लिए धन्यवाद",
+            "addDonorDetailsTitle": "दाता विवरण जोड़ें",
+            "addDonorDetailsTitleOptional": "दाता विवरण जोड़ें (वैकल्पिक)",
+            "secureFastEncrypted": "सुरक्षित • तेज़ • एन्क्रिप्टेड",
+            "donationColon": "दान:",
             "enterAmount": "राशि दर्ज करें",
             "quantity": "मात्रा",
             "total": "कुल",
             "yajmanOpportunities": "यजमान अवसर",
-            "pledgeOption": "प्रतिज्ञा विकल्प"
+            "pledgeOption": "प्रतिज्ञा विकल्प",
+            "clickToDoAdditionalSeva": "अतिरिक्त सेवा करने के लिए टैप करें",
+            "generalDonationLineLabel": "दान",
+            "additionalSevaTitle": "अतिरिक्त सेवा",
+            "additionalSevaInstructions": "दूसरी श्रेणी और राशि चुनें। आपकी रसीद में प्रत्येक सेवा और कुल दिखेगा।",
+            "addToDonation": "दान में जोड़ें"
         ]
     ]
     

@@ -1,5 +1,7 @@
-import { IsUUID, IsNumber, IsString, IsOptional, Min, Max, Length } from 'class-validator';
+import { IsUUID, IsNumber, IsString, IsOptional, Min, Max, Length, IsArray, ValidateNested, ArrayMaxSize } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { DonationLineItemDto } from './donation-line-item.dto';
 
 export class InitiateDonationDto {
   @ApiProperty()
@@ -21,6 +23,14 @@ export class InitiateDonationDto {
   @Min(0.01)
   @Max(999999.99)
   amount: number;
+
+  @ApiProperty({ required: false, type: [DonationLineItemDto], description: 'Optional line breakdown; amounts must sum to total amount' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(30)
+  @ValidateNested({ each: true })
+  @Type(() => DonationLineItemDto)
+  lineItems?: DonationLineItemDto[];
 
   @ApiProperty({ default: 'USD' })
   @IsString()

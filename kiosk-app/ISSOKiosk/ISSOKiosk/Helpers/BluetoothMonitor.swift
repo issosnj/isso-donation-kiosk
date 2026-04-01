@@ -32,14 +32,14 @@ extension BluetoothMonitor: CBCentralManagerDelegate {
             stateDescription = "Off"
         case .resetting:
             stateDescription = "Resetting"
-        case .unauthorized, .denied:
+        case .unauthorized:
             stateDescription = "Unauthorized"
         case .unsupported:
             stateDescription = "Unsupported"
         case .unknown:
             stateDescription = "Unknown"
         @unknown default:
-            stateDescription = "Unknown"
+            stateDescription = "Unauthorized"
         }
     }
 }

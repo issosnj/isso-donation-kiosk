@@ -69,6 +69,17 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
 
   const config = receiptConfig || {}
   const amount = Number(donation.amount)
+
+  const receiptRows: { label: string; amount: number }[] = (() => {
+    const raw = donation.lineItems
+    if (Array.isArray(raw) && raw.length > 0) {
+      return raw.map((row: any) => ({
+        label: String(row?.label ?? 'Donation'),
+        amount: Number(row?.amount) || 0,
+      }))
+    }
+    return [{ label: donation.category?.name || 'Donation', amount }]
+  })()
   const amountInWords = config.showAmountInWords !== false 
     ? `${numberToWords(Math.floor(amount))} dollars${amount % 1 > 0 ? ` and ${Math.floor((amount % 1) * 100)} cents` : ''} only.`
     : ''
@@ -169,10 +180,12 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-gray-300">
-                <td className="py-2 px-4">{donation.category?.name || 'Donation'}</td>
-                <td className="py-2 px-4 text-right">{amount.toFixed(2)}</td>
-              </tr>
+              {receiptRows.map((row, idx) => (
+                <tr key={idx} className="border-b border-gray-300">
+                  <td className="py-2 px-4">{row.label}</td>
+                  <td className="py-2 px-4 text-right">{Number(row.amount).toFixed(2)}</td>
+                </tr>
+              ))}
               <tr className="border-t-2 border-gray-800 font-semibold">
                 <td className="py-2 px-4">Total</td>
                 <td className="py-2 px-4 text-right">${amount.toFixed(2)}</td>
