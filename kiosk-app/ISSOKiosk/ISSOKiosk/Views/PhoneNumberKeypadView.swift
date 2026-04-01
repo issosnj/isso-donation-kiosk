@@ -9,7 +9,7 @@ struct PhoneNumberKeypadView: View {
         KeyboardModal(
             title: "Phone Number",
             inputDisplay: enteredPhone,
-            placeholder: "(000) 000-0000",
+            placeholder: "(000) - 000 - 0000",
             canContinue: enteredPhone.filter { $0.isNumber }.count >= 10,
             onCancel: onDismiss,
             onContinue: {
@@ -67,14 +67,15 @@ struct PhoneNumberKeypadView: View {
     }
 
     private func formatPhoneFromDigits(_ digits: String) -> String {
-        if digits.isEmpty { return "" }
-        if digits.count <= 3 { return "(\(digits)" }
-        if digits.count <= 6 {
-            return "(\(String(digits.prefix(3)))) \(String(digits.dropFirst(3)))"
+        let d = String(digits.prefix(10).filter { $0.isNumber })
+        guard !d.isEmpty else { return "" }
+        if d.count <= 3 { return "(\(d)" }
+        if d.count <= 6 {
+            return "(\(String(d.prefix(3)))) - \(String(d.dropFirst(3)))"
         }
-        let areaCode = String(digits.prefix(3))
-        let firstPart = String(digits.dropFirst(3).prefix(3))
-        let lastPart = String(digits.dropFirst(6))
-        return "(\(areaCode)) \(firstPart)-\(lastPart)"
+        let a = String(d.prefix(3))
+        let m = String(d.dropFirst(3).prefix(3))
+        let l = String(d.dropFirst(6))
+        return "(\(a)) - \(m) - \(l)"
     }
 }

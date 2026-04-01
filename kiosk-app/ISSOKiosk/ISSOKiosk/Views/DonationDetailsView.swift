@@ -36,7 +36,6 @@ struct ModernDonationDetailsView: View {
     @State private var showingYajmanOpportunities = false
     @State private var isLookingUpDonor = false
     @State private var addressSuggestions: [AddressPrediction] = []
-    @State private var showAddressSuggestions = false
     @State private var addressSessionToken: String? = nil
     @State private var activeDonorFieldEditor: DonorFieldEditor?
     @Environment(\.dismiss) var dismiss
@@ -711,7 +710,6 @@ struct ModernDonationDetailsView: View {
                 burgundyBrand: burgundyBrand,
                 goldAccent: goldAccent,
                 addressSuggestions: $addressSuggestions,
-                showAddressSuggestions: $showAddressSuggestions,
                 onAddressQuery: { input in
                     await searchAddresses(input: input)
                 },
@@ -720,7 +718,7 @@ struct ModernDonationDetailsView: View {
                 },
                 onDone: {
                     activeDonorFieldEditor = nil
-                    showAddressSuggestions = false
+                    addressSuggestions = []
                 }
             )
         }
@@ -782,13 +780,9 @@ struct ModernDonationDetailsView: View {
             // User is typing in email field - reset idle timer
             IdleTimer.shared.userDidInteract()
         }
-        .onChange(of: donorAddress) { newValue in
+        .onChange(of: donorAddress) { _ in
+            // Address autocomplete runs from `DonorFieldFullScreenCover` on text change (avoids double API calls).
             IdleTimer.shared.userDidInteract()
-            if activeDonorFieldEditor == .address {
-                Task {
-                    await searchAddresses(input: newValue)
-                }
-            }
         }
     }
     
@@ -824,23 +818,7 @@ struct ModernDonationDetailsView: View {
     }
     
     private func formatPhoneDisplay(_ phone: String) -> String {
-        let digits = phone.filter { $0.isNumber }
-        if digits.isEmpty {
-            return ""
-        }
-        
-        if digits.count <= 3 {
-            return "(\(digits)"
-        } else if digits.count <= 6 {
-            let areaCode = String(digits.prefix(3))
-            let firstPart = String(digits.dropFirst(3))
-            return "(\(areaCode)) \(firstPart)"
-        } else {
-            let areaCode = String(digits.prefix(3))
-            let firstPart = String(digits.dropFirst(3).prefix(3))
-            let lastPart = String(digits.dropFirst(6))
-            return "(\(areaCode)) \(firstPart)-\(lastPart)"
-        }
+        DonorUSPhoneFormatting.display(phone)
     }
     
     private func lookupDonorInfo(phone: String) async {
@@ -877,7 +855,6 @@ struct ModernDonationDetailsView: View {
         guard input.count >= 3 else {
             await MainActor.run {
                 addressSuggestions = []
-                showAddressSuggestions = false
             }
             return
         }
@@ -894,14 +871,12 @@ struct ModernDonationDetailsView: View {
             )
             await MainActor.run {
                 addressSuggestions = response.predictions
-                showAddressSuggestions = !response.predictions.isEmpty
             }
         } catch {
             // Silently fail - don't show error for autocomplete failures
             print("[DonationDetailsView] Failed to autocomplete address: \(error.localizedDescription)")
             await MainActor.run {
                 addressSuggestions = []
-                showAddressSuggestions = false
             }
         }
     }
@@ -919,7 +894,7 @@ struct ModernDonationDetailsView: View {
                 } else {
                     donorAddress = suggestion.description
                 }
-                showAddressSuggestions = false
+                addressSuggestions = []
                 addressSessionToken = nil
                 activeDonorFieldEditor = nil
             }
@@ -927,7 +902,7 @@ struct ModernDonationDetailsView: View {
             // Fallback to description if details fetch fails
             await MainActor.run {
                 donorAddress = suggestion.description
-                showAddressSuggestions = false
+                addressSuggestions = []
                 addressSessionToken = nil
                 activeDonorFieldEditor = nil
             }
@@ -935,7 +910,31 @@ struct ModernDonationDetailsView: View {
     }
 }
 
-// MARK: - UIKit-backed large Georgia input (SwiftUI TextField ignores custom font sizes)
+// MARK: - US phone display: (215) - 520 - 0565 (binding stores digits only)
+private enum DonorUSPhoneFormatting {
+    static func digitsOnly(_ string: String) -> String {
+        String(string.filter { $0.isNumber }.prefix(10))
+    }
+
+    static func display(_ raw: String) -> String {
+        displayDigits(digitsOnly(raw))
+    }
+
+    static func displayDigits(_ digits: String) -> String {
+        let d = String(digits.prefix(10))
+        guard !d.isEmpty else { return "" }
+        if d.count <= 3 { return "(\(d)" }
+        if d.count <= 6 {
+            return "(\(String(d.prefix(3)))) - \(String(d.dropFirst(3)))"
+        }
+        let a = String(d.prefix(3))
+        let m = String(d.dropFirst(3).prefix(3))
+        let l = String(d.dropFirst(6))
+        return "(\(a)) - \(m) - \(l)"
+    }
+}
+
+// MARK: - UIKit-backed Georgia input (SwiftUI TextField ignores custom font sizes)
 private struct DonorSingleLineUIKitField: UIViewRepresentable {
     @Binding var text: String
     var placeholder: String
@@ -946,14 +945,19 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
     var textContentType: UITextContentType?
     var autocapitalization: UITextAutocapitalizationType
     var disableAutocorrect: Bool
-    
+    /// Called when the user taps Return/Done on the keyboard or the accessory Done button (same as nav Done).
+    var onEditingDone: (() -> Void)?
+    /// When true, `text` binding holds digits only; the field shows formatted `(###) - ### - ####`.
+    var isPhoneField: Bool = false
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-    
+
     func makeUIView(context: Context) -> UITextField {
         let tf = UITextField()
         context.coordinator.parent = self
+        context.coordinator.textField = tf
         tf.delegate = context.coordinator
         tf.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
         tf.textColor = textUIColor
@@ -971,16 +975,35 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
         tf.adjustsFontSizeToFitWidth = false
         tf.minimumFontSize = fontSize * 0.85
         tf.returnKeyType = .done
-        tf.text = text
-        tf.addTarget(context.coordinator, action: #selector(Coordinator.textChanged), for: .editingChanged)
+        tf.text = isPhoneField ? DonorUSPhoneFormatting.displayDigits(text) : text
+        if !isPhoneField {
+            tf.addTarget(context.coordinator, action: #selector(Coordinator.textChanged), for: .editingChanged)
+        }
+        if keyboardType == .phonePad || keyboardType == .emailAddress {
+            tf.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator)
+        }
         DispatchQueue.main.async {
             tf.becomeFirstResponder()
         }
         return tf
     }
-    
+
+    private func makeAccessoryToolbar(coordinator: Coordinator) -> UIToolbar {
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let done = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: coordinator,
+            action: #selector(Coordinator.accessoryDoneTapped)
+        )
+        toolbar.items = [flex, done]
+        return toolbar
+    }
+
     func updateUIView(_ uiView: UITextField, context: Context) {
         context.coordinator.parent = self
+        context.coordinator.textField = uiView
         uiView.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
         uiView.textColor = textUIColor
         uiView.attributedPlaceholder = NSAttributedString(
@@ -990,25 +1013,56 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
                 .font: UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
             ]
         )
-        if uiView.text != text {
-            uiView.text = text
+        let displayText = isPhoneField ? DonorUSPhoneFormatting.displayDigits(text) : text
+        if uiView.text != displayText {
+            uiView.text = displayText
+        }
+        if keyboardType == .phonePad || keyboardType == .emailAddress {
+            if uiView.inputAccessoryView == nil {
+                uiView.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator)
+            }
+        } else {
+            uiView.inputAccessoryView = nil
         }
     }
-    
+
     final class Coordinator: NSObject, UITextFieldDelegate {
         var parent: DonorSingleLineUIKitField
-        
+        weak var textField: UITextField?
+
         init(_ parent: DonorSingleLineUIKitField) {
             self.parent = parent
         }
-        
+
         @objc func textChanged(_ sender: UITextField) {
+            guard !parent.isPhoneField else { return }
             parent.text = sender.text ?? ""
         }
-        
+
+        @objc func accessoryDoneTapped() {
+            textField?.resignFirstResponder()
+            parent.onEditingDone?()
+        }
+
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
             textField.resignFirstResponder()
+            parent.onEditingDone?()
             return true
+        }
+
+        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+            guard parent.isPhoneField else { return true }
+            let current = textField.text ?? ""
+            guard let swiftRange = Range(range, in: current) else { return false }
+            let updated = current.replacingCharacters(in: swiftRange, with: string)
+            let digits = DonorUSPhoneFormatting.digitsOnly(updated)
+            parent.text = digits
+            let formatted = DonorUSPhoneFormatting.displayDigits(digits)
+            textField.text = formatted
+            if let end = textField.position(from: textField.beginningOfDocument, offset: formatted.count) {
+                textField.selectedTextRange = textField.textRange(from: end, to: end)
+            }
+            return false
         }
     }
 }
@@ -1019,14 +1073,16 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
     var textUIColor: UIColor
     var autocapitalization: UITextAutocapitalizationType
     var disableAutocorrect: Bool
-    
+    var onEditingDone: (() -> Void)?
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-    
+
     func makeUIView(context: Context) -> UITextView {
         let tv = UITextView()
         context.coordinator.parent = self
+        context.coordinator.textView = tv
         tv.delegate = context.coordinator
         tv.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
         tv.textColor = textUIColor
@@ -1037,31 +1093,90 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
         tv.keyboardType = .default
         tv.textContentType = .fullStreetAddress
         tv.text = text
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let done = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: context.coordinator,
+            action: #selector(Coordinator.accessoryDoneTapped)
+        )
+        toolbar.items = [flex, done]
+        tv.inputAccessoryView = toolbar
         DispatchQueue.main.async {
             tv.becomeFirstResponder()
         }
         return tv
     }
-    
+
     func updateUIView(_ uiView: UITextView, context: Context) {
         context.coordinator.parent = self
+        context.coordinator.textView = uiView
         uiView.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
         uiView.textColor = textUIColor
         if uiView.text != text {
             uiView.text = text
         }
     }
-    
+
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: DonorMultilineUIKitTextView
-        
+        weak var textView: UITextView?
+
         init(_ parent: DonorMultilineUIKitTextView) {
             self.parent = parent
         }
-        
+
+        @objc func accessoryDoneTapped() {
+            textView?.resignFirstResponder()
+            parent.onEditingDone?()
+        }
+
         func textViewDidChange(_ textView: UITextView) {
             parent.text = textView.text ?? ""
         }
+    }
+}
+
+// MARK: - Quick email domain chips (full-screen email editor)
+private enum DonorEmailQuickDomains {
+    /// Common consumer / ISP domains shown under the email field while typing.
+    static let domains: [String] = [
+        "gmail.com",
+        "yahoo.com",
+        "hotmail.com",
+        "outlook.com",
+        "icloud.com",
+        "aol.com",
+        "live.com",
+        "msn.com",
+        "protonmail.com",
+        "me.com",
+        "comcast.net",
+        "verizon.net",
+        "att.net",
+    ]
+
+    /// Builds `local@domain` rows: before `@`, offers each domain; after `@`, filters domains by the fragment.
+    static func suggestions(for raw: String, maxCount: Int = 8) -> [String] {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        let fullLower = trimmed.lowercased()
+
+        if let atRaw = trimmed.firstIndex(of: "@") {
+            let localDisplay = String(trimmed[..<atRaw])
+            guard !localDisplay.isEmpty else { return [] }
+            let domainFrag = String(trimmed[trimmed.index(after: atRaw)...]).lowercased()
+            let matched: [String] = domainFrag.isEmpty
+                ? domains
+                : domains.filter { $0.hasPrefix(domainFrag) }
+            return matched.prefix(maxCount).map { "\(localDisplay)@\($0)" }
+                .filter { $0.lowercased() != fullLower }
+        }
+
+        let local = trimmed
+        return domains.prefix(maxCount).map { "\(local)@\($0)" }
     }
 }
 
@@ -1076,16 +1191,21 @@ private struct DonorFieldFullScreenCover: View {
     let burgundyBrand: Color
     let goldAccent: Color
     @Binding var addressSuggestions: [AddressPrediction]
-    @Binding var showAddressSuggestions: Bool
     let onAddressQuery: (String) async -> Void
     let onPickAddress: (AddressPrediction) async -> Void
     let onDone: () -> Void
-    
+
+    private var emailQuickSuggestions: [String] {
+        guard field == .email else { return [] }
+        return DonorEmailQuickDomains.suggestions(for: text)
+    }
+
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
                 let sc = geo.scaleWidthStable
-                let inputFont = max(sc(36), min(sc(52), geo.size.width * 0.028 + sc(28))) + 10
+                // Readable but not oversized in the gold-bordered field (was ~+10pt too large).
+                let inputFont = max(sc(22), min(sc(30), geo.size.width * 0.018 + sc(16)))
                 ZStack {
                     Group {
                         if UIImage(named: "KioskBackground") != nil {
@@ -1119,7 +1239,7 @@ private struct DonorFieldFullScreenCover: View {
                                 ZStack(alignment: .topLeading) {
                                     if text.isEmpty {
                                         Text(prompt)
-                                            .font(.custom("Georgia", size: inputFont * 0.92))
+                                            .font(.custom("Georgia", size: inputFont * 0.88))
                                             .foregroundColor(headingColor.opacity(0.38))
                                             .padding(.horizontal, sc(20))
                                             .padding(.vertical, sc(10))
@@ -1130,7 +1250,8 @@ private struct DonorFieldFullScreenCover: View {
                                         fontSize: inputFont,
                                         textUIColor: UIColor(headingColor),
                                         autocapitalization: .words,
-                                        disableAutocorrect: false
+                                        disableAutocorrect: false,
+                                        onEditingDone: onDone
                                     )
                                     .frame(minHeight: sc(132))
                                 }
@@ -1144,7 +1265,9 @@ private struct DonorFieldFullScreenCover: View {
                                     keyboardType: keyboardType,
                                     textContentType: textContentType,
                                     autocapitalization: uiAutocapitalization,
-                                    disableAutocorrect: field == .email || field == .phone
+                                    disableAutocorrect: field == .email || field == .phone,
+                                    onEditingDone: onDone,
+                                    isPhoneField: field == .phone
                                 )
                                 .frame(minHeight: sc(56))
                             }
@@ -1167,44 +1290,85 @@ private struct DonorFieldFullScreenCover: View {
                         )
                         .padding(.horizontal, sc(36))
                         
-                        if field == .address && showAddressSuggestions && !addressSuggestions.isEmpty {
+                        if field == .address && !addressSuggestions.isEmpty {
                             ScrollView {
                                 VStack(spacing: 0) {
-                                    ForEach(addressSuggestions.prefix(5)) { suggestion in
-                                        Button(action: {
+                                    ForEach(Array(addressSuggestions.prefix(8).enumerated()), id: \.element.id) { index, suggestion in
+                                        Button {
+                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                             Task {
                                                 await onPickAddress(suggestion)
                                             }
-                                        }) {
-                                            HStack(alignment: .top, spacing: 12) {
+                                        } label: {
+                                            HStack(alignment: .top, spacing: sc(12)) {
                                                 Image(systemName: "mappin.circle.fill")
-                                                    .font(.system(size: 18))
+                                                    .font(.system(size: sc(20)))
                                                     .foregroundColor(goldAccent)
-                                                    .padding(.top, 2)
-                                                VStack(alignment: .leading, spacing: 4) {
+                                                    .padding(.top, sc(2))
+                                                VStack(alignment: .leading, spacing: sc(4)) {
                                                     Text(suggestion.structured_formatting.main_text)
-                                                        .font(.custom("Inter-Medium", size: 17))
+                                                        .font(.custom("Georgia", size: sc(17)))
                                                         .foregroundColor(headingColor)
                                                         .lineLimit(2)
+                                                        .multilineTextAlignment(.leading)
                                                     Text(suggestion.structured_formatting.secondary_text)
-                                                        .font(.custom("Inter-Regular", size: 14))
+                                                        .font(.custom("Georgia", size: sc(14)))
                                                         .foregroundColor(headingColor.opacity(0.55))
                                                         .lineLimit(2)
+                                                        .multilineTextAlignment(.leading)
                                                 }
                                                 .frame(maxWidth: .infinity, alignment: .leading)
                                             }
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, sc(16))
+                                            .padding(.vertical, sc(12))
                                             .background(Color.white)
                                         }
                                         .buttonStyle(.plain)
-                                        if suggestion.id != addressSuggestions.prefix(5).last?.id {
-                                            Divider().padding(.horizontal, 16)
+                                        if index < min(addressSuggestions.count, 8) - 1 {
+                                            Divider().padding(.leading, sc(48))
                                         }
                                     }
                                 }
                             }
-                            .frame(maxHeight: sc(260))
+                            .frame(maxHeight: sc(280))
+                            .background(Color.white)
+                            .cornerRadius(DesignSystem.Components.buttonCornerRadius)
+                            .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
+                            .padding(.horizontal, sc(36))
+                            .padding(.top, sc(16))
+                        }
+
+                        if field == .email && !emailQuickSuggestions.isEmpty {
+                            ScrollView {
+                                VStack(spacing: 0) {
+                                    ForEach(Array(emailQuickSuggestions.enumerated()), id: \.offset) { index, suggested in
+                                        Button {
+                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                            text = suggested
+                                        } label: {
+                                            HStack(alignment: .center, spacing: sc(12)) {
+                                                Image(systemName: "at.circle.fill")
+                                                    .font(.system(size: sc(20)))
+                                                    .foregroundColor(goldAccent)
+                                                Text(suggested)
+                                                    .font(.custom("Georgia", size: sc(17)))
+                                                    .foregroundColor(headingColor)
+                                                    .lineLimit(1)
+                                                    .minimumScaleFactor(0.75)
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                            }
+                                            .padding(.horizontal, sc(16))
+                                            .padding(.vertical, sc(12))
+                                            .background(Color.white)
+                                        }
+                                        .buttonStyle(.plain)
+                                        if index < emailQuickSuggestions.count - 1 {
+                                            Divider().padding(.leading, sc(48))
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(maxHeight: sc(240))
                             .background(Color.white)
                             .cornerRadius(DesignSystem.Components.buttonCornerRadius)
                             .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
@@ -1242,6 +1406,13 @@ private struct DonorFieldFullScreenCover: View {
             if field == .address {
                 Task {
                     await onAddressQuery(newValue)
+                }
+            }
+        }
+        .onAppear {
+            if field == .address, text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3 {
+                Task {
+                    await onAddressQuery(text)
                 }
             }
         }
