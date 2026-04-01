@@ -138,6 +138,7 @@ export class DevicesService {
         id: cat.id,
         name: cat.name,
         defaultAmount: cat.defaultAmount,
+        quantityEnabled: !!cat.quantityEnabled,
       })),
     };
   }

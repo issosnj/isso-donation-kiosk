@@ -26,5 +26,6 @@ struct DonationGoldRingBorder: View {
                     lineWidth: lineWidth
                 )
         }
+        .allowsHitTesting(false)
     }
 }

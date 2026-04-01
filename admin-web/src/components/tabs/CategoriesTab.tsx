@@ -14,6 +14,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   const [newShowStartDate, setNewShowStartDate] = useState('')
   const [newShowEndDate, setNewShowEndDate] = useState('')
   const [newUseDateRange, setNewUseDateRange] = useState(false)
+  const [newQuantityEnabled, setNewQuantityEnabled] = useState(false)
   
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -23,6 +24,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   const [editShowStartDate, setEditShowStartDate] = useState('')
   const [editShowEndDate, setEditShowEndDate] = useState('')
   const [editUseDateRange, setEditUseDateRange] = useState(false)
+  const [editQuantityEnabled, setEditQuantityEnabled] = useState(false)
   const [editYajmanOpportunities, setEditYajmanOpportunities] = useState<Array<{ id: string; name: string; description?: string }>>([])
   const [newYajmanOpportunityName, setNewYajmanOpportunityName] = useState('')
   const [newYajmanOpportunityDescription, setNewYajmanOpportunityDescription] = useState('')
@@ -63,6 +65,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
         defaultAmount: data.defaultAmount || null,
         showStartDate: data.showStartDate || null,
         showEndDate: data.showEndDate || null,
+        quantityEnabled: !!data.quantityEnabled,
       })
       return response.data
     },
@@ -73,6 +76,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
       setNewShowStartDate('')
       setNewShowEndDate('')
       setNewUseDateRange(false)
+      setNewQuantityEnabled(false)
     },
   })
 
@@ -175,6 +179,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     setEditName(category.name)
     setEditIsActive(category.isActive)
     setEditShowOnKiosk(category.showOnKiosk)
+    setEditQuantityEnabled(!!category.quantityEnabled)
     setEditDefaultAmount(category.defaultAmount || '')
     setEditYajmanOpportunities(category.yajmanOpportunities || [])
     
@@ -207,6 +212,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     setEditShowStartDate('')
     setEditShowEndDate('')
     setEditUseDateRange(false)
+    setEditQuantityEnabled(false)
     setEditYajmanOpportunities([])
     setNewYajmanOpportunityName('')
     setNewYajmanOpportunityDescription('')
@@ -247,6 +253,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
         name: editName,
         isActive: editIsActive,
         showOnKiosk: editShowOnKiosk,
+        quantityEnabled: editQuantityEnabled,
       };
       
       if (defaultAmountValue !== undefined) {
@@ -294,6 +301,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
       defaultAmount: defaultAmountValue,
       showStartDate: newUseDateRange && newShowStartDate ? new Date(newShowStartDate).toISOString() : null,
       showEndDate: newUseDateRange && newShowEndDate ? new Date(newShowEndDate).toISOString() : null,
+      quantityEnabled: newQuantityEnabled,
     })
   }
 
@@ -332,17 +340,31 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
             />
           </div>
           
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="newUseDateRange"
-              checked={newUseDateRange}
-              onChange={(e) => setNewUseDateRange(e.target.checked)}
-              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-            />
-            <label htmlFor="newUseDateRange" className="text-sm text-gray-700">
-              Set date/time range for when this category appears on kiosk
-            </label>
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="newQuantityEnabled"
+                checked={newQuantityEnabled}
+                onChange={(e) => setNewQuantityEnabled(e.target.checked)}
+                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <label htmlFor="newQuantityEnabled" className="text-sm text-gray-700">
+                Enable quantity selector on kiosk (× default amount; appears under Custom Amount)
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="newUseDateRange"
+                checked={newUseDateRange}
+                onChange={(e) => setNewUseDateRange(e.target.checked)}
+                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <label htmlFor="newUseDateRange" className="text-sm text-gray-700">
+                Set date/time range for when this category appears on kiosk
+              </label>
+            </div>
           </div>
           
           {newUseDateRange && (
@@ -403,6 +425,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Default Amount</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Active</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Show on Kiosk</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Qty</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Range</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -411,7 +434,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                 {categories?.map((category: any, index: number) => (
                   <tr key={category.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
                     {editingCategory === category.id ? (
-                      <td colSpan={7} className="px-6 py-4">
+                      <td colSpan={8} className="px-6 py-4">
                         <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -455,6 +478,15 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                 className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                               />
                               <span className="text-sm text-gray-700">Show on Kiosk</span>
+                            </label>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={editQuantityEnabled}
+                                onChange={(e) => setEditQuantityEnabled(e.target.checked)}
+                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span className="text-sm text-gray-700">Qty on kiosk</span>
                             </label>
                             <label className="flex items-center space-x-2">
                               <input
@@ -639,6 +671,15 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                               : 'bg-gray-100 text-gray-700 border-gray-200'
                           }`}>
                             {category.showOnKiosk ? 'Yes' : 'No'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
+                            category.quantityEnabled
+                              ? 'bg-amber-100 text-amber-800 border-amber-200'
+                              : 'bg-gray-100 text-gray-700 border-gray-200'
+                          }`}>
+                            {category.quantityEnabled ? 'Yes' : 'No'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

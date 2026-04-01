@@ -609,6 +609,34 @@ enum APIError: LocalizedError {
 struct DonationLineItemBody: Codable, Equatable {
     let label: String
     let amount: Double
+    /// Omitted when 1; included for category lines with quantity > 1.
+    let quantity: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case label, amount, quantity
+    }
+    
+    init(label: String, amount: Double, quantity: Int? = nil) {
+        self.label = label
+        self.amount = amount
+        self.quantity = quantity
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        label = try c.decode(String.self, forKey: .label)
+        amount = try c.decode(Double.self, forKey: .amount)
+        quantity = try c.decodeIfPresent(Int.self, forKey: .quantity)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(label, forKey: .label)
+        try c.encode(amount, forKey: .amount)
+        if let q = quantity, q > 1 {
+            try c.encode(q, forKey: .quantity)
+        }
+    }
 }
 
 struct Donation: Codable {

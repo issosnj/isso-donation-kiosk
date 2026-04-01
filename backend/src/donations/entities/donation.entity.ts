@@ -52,7 +52,7 @@ export class Donation {
 
   /** Optional breakdown (e.g. additional seva lines); amounts should sum to `amount`. */
   @Column({ type: 'json', nullable: true })
-  lineItems: { label: string; amount: number }[] | null;
+  lineItems: { label: string; amount: number; quantity?: number }[] | null;
 
   @Column({ default: 'USD' })
   currency: string;

@@ -51,9 +51,7 @@ struct TouchDetector: ViewModifier {
                         IdleTimer.shared.userDidInteract()
                     }
             )
-            .onTapGesture {
-                IdleTimer.shared.userDidInteract()
-            }
+            // Avoid `.onTapGesture` here — it competes with `Button` taps inside the hierarchy (e.g. Additional seva).
             // Listen for keyboard notifications to detect when user starts typing
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
                 IdleTimer.shared.userDidInteract()

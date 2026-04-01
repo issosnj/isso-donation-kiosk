@@ -843,6 +843,8 @@ struct DonationCategory: Codable, Identifiable, Equatable {
     let id: String
     let name: String
     let defaultAmount: Double?
+    /// When true, kiosk shows +/- quantity under Custom Amount (default amount × qty).
+    let quantityEnabled: Bool
     let showStartDate: String? // ISO date string (optional, for future use)
     let showEndDate: String? // ISO date string (optional, for future use)
     let yajmanOpportunities: [YajmanOpportunity]? // Included yajman opportunities for sponsorship tiers
@@ -851,6 +853,7 @@ struct DonationCategory: Codable, Identifiable, Equatable {
         case id
         case name
         case defaultAmount
+        case quantityEnabled
         case showStartDate
         case showEndDate
         case yajmanOpportunities
@@ -860,6 +863,7 @@ struct DonationCategory: Codable, Identifiable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
+        quantityEnabled = try container.decodeIfPresent(Bool.self, forKey: .quantityEnabled) ?? false
         
         // Handle defaultAmount as either String or Double
         if let amountString = try? container.decode(String.self, forKey: .defaultAmount) {
@@ -880,6 +884,7 @@ struct DonationCategory: Codable, Identifiable, Equatable {
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encodeIfPresent(defaultAmount, forKey: .defaultAmount)
+        try container.encode(quantityEnabled, forKey: .quantityEnabled)
         try container.encodeIfPresent(showStartDate, forKey: .showStartDate)
         try container.encodeIfPresent(showEndDate, forKey: .showEndDate)
         try container.encodeIfPresent(yajmanOpportunities, forKey: .yajmanOpportunities)

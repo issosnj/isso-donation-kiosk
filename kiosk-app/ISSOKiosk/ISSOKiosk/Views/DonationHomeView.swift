@@ -21,7 +21,8 @@ struct DonationHomeView: View {
     @State private var donorAddress: String?
     /// Line items for Step 3 review + payment (primary row + optional additional seva).
     @State private var reviewDonationLines: [CheckoutDonationLine] = []
-    @State private var showingAdditionalSevaPicker = false
+    /// After "Additional seva", next "Review donation" appends step-2 selection instead of replacing lines.
+    @State private var appendSevaOnNextReview = false
     @FocusState private var customAmountFocused: Bool
     
     // Preset amounts from backend config, fallback to defaults
@@ -43,6 +44,7 @@ struct DonationHomeView: View {
     private static let defaultBlue = Color(red: 0.2, green: 0.4, blue: 0.8) // Vibrant blue matching image
     /// Selected category / amount buttons (always #931613 on this screen).
     private static let donationSelectedButtonColor = Color(red: 147/255, green: 22/255, blue: 19/255)
+    private static let maxCategoryQuantity = 99
     
     // Helper to convert hex string to Color - optimized
     func colorFromHex(_ hex: String?, defaultColor: Color = Self.defaultBlue) -> Color {
@@ -311,16 +313,6 @@ struct DonationHomeView: View {
             .onChange(of: quantity) { _ in
                 IdleTimer.shared.userDidInteract()
             }
-            .sheet(isPresented: $showingAdditionalSevaPicker) {
-                AdditionalSevaPickerView(
-                    onAdd: { line in
-                        reviewDonationLines.append(line)
-                        showingAdditionalSevaPicker = false
-                    },
-                    onCancel: { showingAdditionalSevaPicker = false }
-                )
-                .environmentObject(appState)
-            }
     }
     
     /// Split from `body` so the compiler can type-check the main screen and flow modifiers separately.
@@ -390,10 +382,18 @@ struct DonationHomeView: View {
                 donorAddress = address
             },
             onCancel: {
+                appendSevaOnNextReview = false
                 showingDetails = false
             },
             onAddAdditionalSeva: {
-                showingAdditionalSevaPicker = true
+                appendSevaOnNextReview = true
+                showingDetails = false
+                selectedCategory = nil
+                selectedAmount = nil
+                customAmount = ""
+                quantity = 1
+                showingCustomAmountKeypad = false
+                customAmountFocused = false
             }
         )
     }
@@ -441,6 +441,7 @@ struct DonationHomeView: View {
                     donorPhone = nil
                     donorEmail = nil
                     reviewDonationLines = []
+                    appendSevaOnNextReview = false
                 }
                 onDismiss()
             },
@@ -738,7 +739,7 @@ struct DonationHomeView: View {
             VStack(alignment: .center, spacing: geometry.scale(6)) {
                 Text("selectAmount".localized)
                     .font(.custom("Georgia", size: geometry.scale(28)))
-                    .foregroundColor(headingColor)
+                    .foregroundColor(amountSelectedColorValue)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
@@ -783,8 +784,77 @@ struct DonationHomeView: View {
                 selectedColor: amountSelectedColorValue,
                 height: geometry.scale(amountButtonHeight)
             )
+            
+            categoryQuantityStepper(geometry: geometry)
         }
         .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
+    }
+    
+    /// Quantity applies only when a category with `quantityEnabled` and a default unit price is selected.
+    private var effectiveQuantity: Int {
+        guard let cat = selectedCategory,
+              cat.quantityEnabled,
+              let u = cat.defaultAmount, u > 0 else { return 1 }
+        return min(max(quantity, 1), Self.maxCategoryQuantity)
+    }
+    
+    @ViewBuilder
+    private func categoryQuantityStepper(geometry: GeometryProxy) -> some View {
+        let s = geometry.scale
+        let creamFill = Color(red: 242.0/255.0, green: 235.0/255.0, blue: 224.0/255.0)
+        let h = geometry.scale(amountButtonHeight)
+        if (selectedCategory?.quantityEnabled == true) && ((selectedCategory?.defaultAmount ?? 0) > 0) {
+            HStack(spacing: s(14)) {
+                Text("quantity".localized)
+                    .font(.custom("Georgia", size: 19))
+                    .foregroundColor(headingColor)
+                Spacer(minLength: s(8))
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    quantity = max(1, quantity - 1)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: s(32)))
+                        .foregroundColor(quantity <= 1 ? headingColor.opacity(0.35) : Self.donationSelectedButtonColor)
+                }
+                .disabled(quantity <= 1)
+                .buttonStyle(.plain)
+                
+                Text("\(quantity)")
+                    .font(.system(size: s(22), weight: .medium, design: .serif))
+                    .foregroundColor(headingColor)
+                    .monospacedDigit()
+                    .frame(minWidth: s(44))
+                
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    quantity = min(quantity + 1, Self.maxCategoryQuantity)
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: s(32)))
+                        .foregroundColor(quantity >= Self.maxCategoryQuantity ? headingColor.opacity(0.35) : Self.donationSelectedButtonColor)
+                }
+                .disabled(quantity >= Self.maxCategoryQuantity)
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, DesignSystem.Spacing.lg)
+            .frame(height: h)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                    .fill(creamFill)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                            .fill(Color.white.opacity(0.15))
+                    )
+                    .shadow(color: Color.black.opacity(0.08), radius: 6, y: 3)
+            )
+            .cornerRadius(DesignSystem.Components.buttonCornerRadius)
+            .overlay(
+                DonationGoldRingBorder(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                    .allowsHitTesting(false)
+            )
+        }
     }
     
     @ViewBuilder
@@ -837,6 +907,8 @@ struct DonationHomeView: View {
                     donorPhone = nil
                     donorEmail = nil
                     donorAddress = nil
+                    reviewDonationLines = []
+                    appendSevaOnNextReview = false
                     onDismiss()
                 }) {
                     HStack(spacing: geometry.scale(DesignSystem.Spacing.sm)) {
@@ -866,7 +938,17 @@ struct DonationHomeView: View {
                 Button(action: {
                     guard hasValidAmount else { return }
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    reviewDonationLines = [CheckoutDonationLine.primary(amount: currentAmount, category: selectedCategory)]
+                    let nextLine = CheckoutDonationLine.primary(
+                        amount: currentAmount,
+                        category: selectedCategory,
+                        quantity: effectiveQuantity
+                    )
+                    if appendSevaOnNextReview {
+                        reviewDonationLines.append(nextLine)
+                        appendSevaOnNextReview = false
+                    } else {
+                        reviewDonationLines = [nextLine]
+                    }
                     showingDetails = true
                 }) {
                     Text("reviewDonation".localized)
@@ -897,7 +979,7 @@ struct DonationHomeView: View {
     private var hasValidAmount: Bool {
         // Check if category with defaultAmount is selected
         if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-            return defaultAmount * Double(quantity) > 0
+            return defaultAmount * Double(effectiveQuantity) > 0
         }
         // Otherwise check preset amount or custom amount
         if let amount = selectedAmount {
@@ -912,7 +994,7 @@ struct DonationHomeView: View {
     private var currentAmount: Double {
         // If category with defaultAmount is selected, multiply by quantity
         if let category = selectedCategory, let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-            return defaultAmount * Double(quantity)
+            return defaultAmount * Double(effectiveQuantity)
         }
         // Otherwise use selected amount or custom amount
         if let amount = selectedAmount {
@@ -929,7 +1011,13 @@ struct DonationHomeView: View {
     
     private var checkoutLineItemsForAPI: [DonationLineItemBody]? {
         guard !reviewDonationLines.isEmpty else { return nil }
-        return reviewDonationLines.map { DonationLineItemBody(label: $0.label, amount: $0.amount) }
+        return reviewDonationLines.map {
+            DonationLineItemBody(
+                label: $0.label,
+                amount: $0.amount,
+                quantity: $0.quantity > 1 ? $0.quantity : nil
+            )
+        }
     }
     
     private func createPledge() async {
@@ -967,6 +1055,7 @@ struct DonationHomeView: View {
                 donorPhone = nil
                 donorEmail = nil
                 reviewDonationLines = []
+                appendSevaOnNextReview = false
                 
                 // Show success message or navigate back
                 onDismiss()
@@ -1025,7 +1114,8 @@ struct CleanAmountButton: View {
             action()
         }) {
             Text(amount.formattedCurrencyWhole())
-                .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
+                .font(.system(size: 19, weight: .regular, design: .serif))
+                .monospacedDigit()
                 .foregroundColor(textColor)
                 .frame(maxWidth: .infinity)
                 .frame(height: height)
@@ -1067,7 +1157,7 @@ struct CleanCustomAmountField: View {
     var body: some View {
         HStack(spacing: DesignSystem.Components.inlineSpacing) {
             Text("customAmount".localized)
-                .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
+                .font(.custom("Georgia", size: 19))
                 .foregroundColor(textColor)
             Spacer()
             Image(systemName: "square.and.pencil")
@@ -1138,23 +1228,24 @@ struct CleanCategoryButton: View {
         isSelected ? Color.white.opacity(0.92) : unselectedTextColor.opacity(0.85)
     }
     
+    /// Default category amount on the trailing edge (matches kiosk burgundy accent).
+    private var categoryAmountAccent: Color {
+        Color(red: 147.0 / 255.0, green: 22.0 / 255.0, blue: 19.0 / 255.0)
+    }
+    
     var body: some View {
         Button(action: {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             action()
         }) {
-            HStack(spacing: DesignSystem.Spacing.sm) {
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .center, spacing: DesignSystem.Spacing.sm) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(category.name)
-                        .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
+                        .font(.custom("Georgia", size: 19))
                         .foregroundColor(textColor)
-                        .lineLimit(1)
-                    
-                    if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
-                        Text(defaultAmount.formattedCurrencyWhole())
-                            .font(.custom(DesignSystem.Typography.secondaryFont, size: DesignSystem.Typography.secondarySize))
-                            .foregroundColor(secondaryTextColor)
-                    }
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
                     
                     if let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
                         HStack(spacing: 4) {
@@ -1169,9 +1260,20 @@ struct CleanCategoryButton: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: DesignSystem.Typography.secondarySize, weight: .medium))
-                    .foregroundColor(isSelected ? .white.opacity(0.95) : unselectedTextColor.opacity(0.7))
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    if let defaultAmount = category.defaultAmount, defaultAmount > 0 {
+                        Text(defaultAmount.formattedCurrencyWhole())
+                            .font(.system(size: 19, weight: .regular, design: .serif))
+                            .foregroundColor(isSelected ? .white : categoryAmountAccent)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: DesignSystem.Typography.secondarySize, weight: .medium))
+                        .foregroundColor(isSelected ? .white.opacity(0.95) : unselectedTextColor.opacity(0.7))
+                }
             }
             .padding(.horizontal, horizontalPadding)
             .frame(maxWidth: .infinity)

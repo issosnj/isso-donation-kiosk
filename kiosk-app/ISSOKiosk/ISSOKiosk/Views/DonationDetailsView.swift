@@ -238,24 +238,25 @@ struct ModernDonationDetailsView: View {
                     .padding(.top, s(78))
                     .padding(.bottom, s(20))
                 
-                // Same shell as Step 2: inner `VStack(spacing: 0)` then padded content. Actions sit under the summary column only.
+                // Summary column stretches to donor height; actions sit under the summary card only.
                 VStack(spacing: 0) {
-                    VStack(spacing: 0) {
-                        HStack(alignment: .top, spacing: columnSpacing) {
-                            donorDetailsCard(geometry: geometry, cardCorner: cardCorner)
-                                .frame(maxWidth: .infinity, alignment: .top)
-                            
-                            Rectangle()
-                                .fill(Color.black.opacity(0.06))
-                                .frame(width: 1)
-                                .frame(maxHeight: .infinity)
-                            
-                            VStack(alignment: .center, spacing: s(12)) {
-                                donationSummaryCard(geometry: geometry, cardCorner: cardCorner)
-                                summaryActionButtonsRow(geometry: geometry)
-                            }
+                    HStack(alignment: .top, spacing: columnSpacing) {
+                        donorDetailsCard(geometry: geometry, cardCorner: cardCorner)
                             .frame(maxWidth: .infinity, alignment: .top)
+                        
+                        Rectangle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: 1)
+                            .frame(maxHeight: .infinity)
+                        
+                        VStack(alignment: .center, spacing: s(12)) {
+                            donationSummaryCard(geometry: geometry, cardCorner: cardCorner)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            
+                            summaryActionButtonsRow(geometry: geometry)
+                                .frame(maxWidth: .infinity)
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .padding(.horizontal, s(glassPanelInternalPadding))
@@ -280,11 +281,18 @@ struct ModernDonationDetailsView: View {
     }
     
     @ViewBuilder
-    private func creamGoldCard<Content: View>(geometry: GeometryProxy, cornerRadius: CGFloat, @ViewBuilder content: () -> Content) -> some View {
+    private func creamGoldCard<Content: View>(geometry: GeometryProxy, cornerRadius: CGFloat, expandVerticalFill: Bool = false, @ViewBuilder content: () -> Content) -> some View {
         let s = geometry.scale
-        content()
+        let padded = content()
             .padding(s(detailsCardPadding))
             .frame(maxWidth: .infinity, alignment: .leading)
+        Group {
+            if expandVerticalFill {
+                padded.frame(maxHeight: .infinity, alignment: .top)
+            } else {
+                padded
+            }
+        }
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(creamFill)
@@ -301,10 +309,64 @@ struct ModernDonationDetailsView: View {
             )
     }
     
+    private func removeDonationLine(id: UUID) {
+        guard donationLines.count > 1 else { return }
+        var next = donationLines
+        next.removeAll { $0.id == id }
+        donationLines = next
+    }
+    
+    @ViewBuilder
+    private func donationSummaryLineRow(geometry: GeometryProxy, line: CheckoutDonationLine, showDelete: Bool) -> some View {
+        let s = geometry.scale
+        let trashRed = Color(red: 0.85, green: 0.18, blue: 0.14)
+        HStack(alignment: .center, spacing: s(10)) {
+            VStack(alignment: .leading, spacing: s(4)) {
+                Text(line.label)
+                    .font(.system(size: s(17), weight: .medium, design: .serif))
+                    .foregroundColor(headingColor.opacity(0.92))
+                    .multilineTextAlignment(.leading)
+                if line.quantity > 1 {
+                    Text("\("qtyLabel".localized): \(line.quantity)")
+                        .font(.system(size: s(14), weight: .regular, design: .serif))
+                        .foregroundColor(headingColor.opacity(0.78))
+                        .monospacedDigit()
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            HStack(spacing: s(8)) {
+                Text(line.amount.formattedCurrency())
+                    .font(.system(size: s(17), weight: .semibold, design: .serif))
+                    .foregroundColor(headingColor)
+                    .monospacedDigit()
+                    .frame(minWidth: s(92), alignment: .trailing)
+                
+                if showDelete {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        removeDonationLine(id: line.id)
+                    } label: {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: s(15), weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: s(40), height: s(36))
+                            .background(
+                                RoundedRectangle(cornerRadius: s(8))
+                                    .fill(trashRed)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                }
+            }
+        }
+    }
+    
     @ViewBuilder
     private func donationSummaryCard(geometry: GeometryProxy, cardCorner: CGFloat) -> some View {
         let s = geometry.scale
-        creamGoldCard(geometry: geometry, cornerRadius: cardCorner) {
+        creamGoldCard(geometry: geometry, cornerRadius: cardCorner, expandVerticalFill: true) {
             VStack(alignment: .center, spacing: 0) {
                 // Match `categorySection` / `amountSection` on DonationHomeView (Select Category / Select Amount).
                 VStack(alignment: .center, spacing: s(6)) {
@@ -317,64 +379,48 @@ struct ModernDonationDetailsView: View {
                 .padding(.top, s(8))
                 .padding(.bottom, s(21))
                 
-                VStack(alignment: .center, spacing: s(14)) {
-                    VStack(alignment: .leading, spacing: s(8)) {
-                        ForEach(donationLines) { line in
-                            HStack(alignment: .top, spacing: s(8)) {
-                                Text(line.label)
-                                    .font(.system(size: s(16), weight: .medium, design: .serif))
-                                    .foregroundColor(headingColor.opacity(0.9))
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Text(line.amount.formattedCurrency())
-                                    .font(.system(size: s(16), weight: .semibold, design: .serif))
-                                    .foregroundColor(headingColor)
-                                    .monospacedDigit()
-                                    .multilineTextAlignment(.trailing)
-                            }
+                VStack(alignment: .leading, spacing: s(10)) {
+                    ForEach(donationLines) { line in
+                        donationSummaryLineRow(geometry: geometry, line: line, showDelete: donationLines.count > 1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Spacer(minLength: s(16))
+                
+                VStack(alignment: .center, spacing: s(12)) {
+                    VStack(alignment: .leading, spacing: s(10)) {
+                        Rectangle()
+                            .fill(stepLineBrown.opacity(0.28))
+                            .frame(height: 2)
+                        
+                        HStack(alignment: .firstTextBaseline, spacing: s(12)) {
+                            Text("total".localized)
+                                .font(.system(size: s(24), weight: .semibold, design: .serif))
+                                .foregroundColor(headingColor)
+                            Spacer(minLength: s(8))
+                            Text(totalDonationAmount.formattedCurrency())
+                                .font(.system(size: s(30), weight: .bold, design: .serif))
+                                .foregroundColor(burgundyBrand)
+                                .monospacedDigit()
                         }
+                        .padding(.top, s(4))
+                        .padding(.bottom, s(2))
                     }
                     .frame(maxWidth: .infinity)
-                    
-                    Text(totalDonationAmount.formattedCurrency())
-                        .font(.system(size: s(min(detailsAmountFontSize, 56)), weight: .bold, design: .serif))
-                        .foregroundColor(burgundyBrand)
-                        .monospacedDigit()
-                        .multilineTextAlignment(.center)
-                        .padding(.top, s(4))
-                    
-                    Text("thankYouForYourSeva".localized)
-                        .font(.system(size: s(17), weight: .regular, design: .serif))
-                        .italic()
-                        .foregroundColor(goldAccent)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, s(4))
-                    
-                    HStack {
-                        Text("donationColon".localized)
-                            .font(.system(size: s(18), weight: .medium, design: .serif))
-                            .foregroundColor(headingColor)
-                        Spacer()
-                        Text(totalDonationAmount.formattedCurrency())
-                            .font(.system(size: s(18), weight: .semibold, design: .serif))
-                            .foregroundColor(headingColor)
-                            .monospacedDigit()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, s(8))
                     
                     if onAddAdditionalSeva != nil {
                         additionalSevaButton(geometry: geometry)
-                            .padding(.top, s(6))
+                            .zIndex(2)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .top)
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
     
-    /// Back + Proceed under the donation summary column: two columns of equal width, narrower than full panel.
+    /// Back + Proceed under the donation summary column only.
     @ViewBuilder
     private func summaryActionButtonsRow(geometry: GeometryProxy) -> some View {
         let s = geometry.scale
@@ -413,6 +459,7 @@ struct ModernDonationDetailsView: View {
                 )
         }
         .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
     
     @ViewBuilder
@@ -527,7 +574,6 @@ struct ModernDonationDetailsView: View {
         let actionButtonHeight = compact ? s(58) : s(72)
         let titleFont = compact ? s(13) : s(17)
         let arrowSize = compact ? s(13) : s(16)
-        let subtitleFont = compact ? s(9) : s(11)
         Button(action: {
             guard canProceed else { return }
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -540,34 +586,25 @@ struct ModernDonationDetailsView: View {
                 )
             }
         }) {
-            VStack(spacing: compact ? s(1) : s(2)) {
-                HStack(spacing: compact ? s(4) : s(6)) {
-                    Text("proceedToPayment".localized)
-                        .font(.custom("Georgia", size: titleFont))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.78)
-                        .multilineTextAlignment(.center)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: arrowSize, weight: .semibold))
-                }
-                if canProceed {
-                    Text("secureFastEncrypted".localized)
-                        .font(.custom("Georgia", size: subtitleFont))
-                        .opacity(compact ? 0.92 : 0.95)
-                        .lineLimit(1)
-                        .minimumScaleFactor(compact ? 0.7 : 0.8)
-                }
+            HStack(spacing: compact ? s(4) : s(6)) {
+                Text("proceedToPayment".localized)
+                    .font(.custom("Georgia", size: titleFont))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+                    .multilineTextAlignment(.center)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: arrowSize, weight: .semibold))
             }
-            .foregroundColor(canProceed ? Color.white : headingColor)
+            .foregroundColor(headingColor.opacity(canProceed ? 1 : 0.45))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, compact ? s(4) : s(8))
             .padding(.vertical, compact ? s(4) : s(6))
             .background(
                 RoundedRectangle(cornerRadius: actionCorner)
-                    .fill(canProceed ? burgundyBrand : creamFill)
+                    .fill(creamFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: actionCorner)
-                            .fill(canProceed ? Color.clear : Color.white.opacity(0.15))
+                            .fill(Color.white.opacity(0.15))
                     )
             )
             .cornerRadius(actionCorner)

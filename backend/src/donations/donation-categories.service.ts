@@ -31,6 +31,7 @@ export class DonationCategoriesService {
       ...createCategoryDto,
       isActive: createCategoryDto.isActive ?? true,
       showOnKiosk: createCategoryDto.showOnKiosk ?? true, // Default to true for new categories
+      quantityEnabled: createCategoryDto.quantityEnabled ?? false,
       displayOrder: nextDisplayOrder,
     };
     

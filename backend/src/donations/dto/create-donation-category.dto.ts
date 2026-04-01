@@ -21,6 +21,14 @@ export class CreateDonationCategoryDto {
   @IsBoolean()
   showOnKiosk?: boolean;
 
+  @ApiProperty({
+    default: false,
+    description: 'When true, kiosk shows quantity +/- for this category (default amount × qty).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  quantityEnabled?: boolean;
+
   @ApiProperty({ required: false, nullable: true, type: Number })
   @IsOptional()
   @ValidateIf((o) => o.defaultAmount !== null && o.defaultAmount !== undefined)

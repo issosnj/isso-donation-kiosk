@@ -179,6 +179,7 @@ export class DonationCategoriesController {
         id: cat.id,
         name: cat.name,
         defaultAmount: defaultAmount,
+        quantityEnabled: !!cat.quantityEnabled,
         // Convert Date objects to ISO strings for iOS compatibility
         showStartDate: cat.showStartDate ? cat.showStartDate.toISOString() : null,
         showEndDate: cat.showEndDate ? cat.showEndDate.toISOString() : null,

@@ -72,9 +72,16 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
 
   const receiptRows: { label: string; amount: number }[] = (() => {
     const raw = donation.lineItems
+    const withQty = (label: string, quantity: unknown) => {
+      const q = Number(quantity)
+      if (Number.isFinite(q) && q > 1) {
+        return `${label} (×${q})`
+      }
+      return label
+    }
     if (Array.isArray(raw) && raw.length > 0) {
       return raw.map((row: any) => ({
-        label: String(row?.label ?? 'Donation'),
+        label: withQty(String(row?.label ?? 'Donation'), row?.quantity),
         amount: Number(row?.amount) || 0,
       }))
     }

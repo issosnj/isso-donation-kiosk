@@ -30,6 +30,10 @@ export class DonationCategory {
   @Column({ default: false })
   showOnKiosk: boolean;
 
+  /** When true, kiosk shows +/- quantity under Custom Amount for this category. */
+  @Column({ default: false })
+  quantityEnabled: boolean;
+
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   defaultAmount: number;
 
