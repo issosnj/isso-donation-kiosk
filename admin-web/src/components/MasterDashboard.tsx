@@ -8,7 +8,6 @@ import TemplesTab from './tabs/TemplesTab'
 import DonationsTab from './tabs/DonationsTab'
 import DonorsTab from './tabs/DonorsTab'
 import UsersTab from './tabs/UsersTab'
-import KioskBehaviorTab from './tabs/KioskBehaviorTab'
 import MasterReceiptsTab from './tabs/MasterReceiptsTab'
 import ReligiousEventsTab from './tabs/ReligiousEventsTab'
 import MasterDevicesTab from './tabs/MasterDevicesTab'
@@ -35,8 +34,6 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
         return <DonorsTab isMasterAdmin={true} templeId={templeId} />
       case 'users':
         return <UsersTab />
-      case 'kiosk-behavior':
-        return <KioskBehaviorTab />
       case 'receipts':
         return <MasterReceiptsTab />
       case 'religious-events':

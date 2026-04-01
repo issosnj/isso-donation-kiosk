@@ -61,6 +61,15 @@ export default function Dashboard({ user }: DashboardProps) {
       setActiveTab(tabFromUrl)
     }
   }, [tabFromUrl]) // Removed deviceIdFromUrl since we redirect now
+
+  // Kiosk Behavior admin page removed — observances always on; normalize old links/bookmarks
+  useEffect(() => {
+    if (tabFromUrl !== 'kiosk-behavior') return
+    const urlParams = new URLSearchParams(window.location.search)
+    urlParams.set('tab', 'overview')
+    router.replace(`${window.location.pathname}?${urlParams.toString()}`)
+    setActiveTab('overview')
+  }, [tabFromUrl, router])
   
   // Handle tab changes while preserving deviceId if present
   const handleTabChange = (tab: string) => {

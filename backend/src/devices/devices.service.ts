@@ -11,8 +11,6 @@ import { CreateDeviceTelemetryDto } from './dto/create-device-telemetry.dto';
 import { TemplesService } from '../temples/temples.service';
 import { DonationCategoriesService } from '../donations/donation-categories.service';
 import { StripeService } from '../stripe/stripe.service';
-import { GlobalSettingsService } from '../global-settings/global-settings.service';
-
 @Injectable()
 export class DevicesService {
   constructor(
@@ -22,7 +20,6 @@ export class DevicesService {
     private telemetryRepository: Repository<DeviceTelemetry>,
     private jwtService: JwtService,
     private templesService: TemplesService,
-    private globalSettingsService: GlobalSettingsService,
     private logger: AppLogger,
     @Inject(forwardRef(() => DonationCategoriesService))
     private donationCategoriesService: DonationCategoriesService,
@@ -127,8 +124,8 @@ export class DevicesService {
       device.templeId,
       true, // forKiosk = true to filter by date/time
     );
-    const globalSettings = await this.globalSettingsService.getSettings();
-    const showObservances = globalSettings.kioskBehavior?.showObservances ?? true;
+    // Religious observances are always shown on kiosks (admin toggle removed).
+    const showObservances = true;
 
     return {
       deviceToken,
@@ -162,8 +159,7 @@ export class DevicesService {
   }> {
     const device = await this.findOne(deviceId);
     const temple = await this.templesService.findOne(device.templeId);
-    const globalSettings = await this.globalSettingsService.getSettings();
-    const showObservances = globalSettings.kioskBehavior?.showObservances ?? true;
+    const showObservances = true;
     return {
       showObservances,
       temple: this.toKioskSafeTemple(temple),

@@ -6,6 +6,13 @@ private enum DonorFieldEditor: String, Identifiable, Hashable {
     var id: String { rawValue }
 }
 
+private struct DonorFormSnapshot {
+    let name: String
+    let phone: String
+    let email: String
+    let address: String
+}
+
 struct ModernDonationDetailsView: View {
     @Binding var donationLines: [CheckoutDonationLine]
     let category: DonationCategory?
@@ -23,6 +30,8 @@ struct ModernDonationDetailsView: View {
     @State private var donorPhone = ""
     @State private var donorEmail = ""
     @State private var donorAddress = ""
+    @State private var anonymousSeva = false
+    @State private var donorSnapshotBeforeAnonymous: DonorFormSnapshot?
     @State private var appearAnimation = false
     @State private var showingYajmanOpportunities = false
     @State private var isLookingUpDonor = false
@@ -37,25 +46,27 @@ struct ModernDonationDetailsView: View {
         donationLines.reduce(0) { $0 + $1.amount }
     }
     
-    // If category is selected, name and phone are required
     private var isNameRequired: Bool {
-        category != nil
+        category != nil && !anonymousSeva
     }
     
     private var isPhoneRequired: Bool {
-        category != nil
+        category != nil && !anonymousSeva
     }
     
     private var canProceed: Bool {
+        if anonymousSeva { return true }
         if category != nil {
-            // For category donations, name and phone are required
             return !donorName.trimmingCharacters(in: .whitespaces).isEmpty &&
                    !donorPhone.trimmingCharacters(in: .whitespaces).isEmpty
-        } else {
-            // For preset amounts, all fields are optional
-            return true
         }
+        return true
     }
+    
+    /// Placeholder donor record when Anonymous Seva is on (receipt / backend).
+    private static let anonymousPlaceholderName = "Ek Hari Bhagat"
+    private static let anonymousPlaceholderPhoneDigits = "8568294776"
+    private static let anonymousPlaceholderAddress = "2101 Garry Rd, Cinnaminson, NJ 08077"
     
     // Theme layout helpers
     private var theme: KioskTheme? {
@@ -390,6 +401,10 @@ struct ModernDonationDetailsView: View {
                 
                 VStack(alignment: .center, spacing: s(12)) {
                     VStack(alignment: .leading, spacing: s(10)) {
+                        if category != nil {
+                            anonymousSevaToggleRow(geometry: geometry)
+                        }
+                        
                         Rectangle()
                             .fill(stepLineBrown.opacity(0.28))
                             .frame(height: 2)
@@ -432,6 +447,43 @@ struct ModernDonationDetailsView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, s(4))
+    }
+    
+    @ViewBuilder
+    private func anonymousSevaToggleRow(geometry: GeometryProxy) -> some View {
+        let s = geometry.scale
+        Toggle(isOn: $anonymousSeva) {
+            Text("anonymousSeva".localized)
+                .font(.custom("Georgia", size: s(18)))
+                .foregroundColor(headingColor)
+                .multilineTextAlignment(.leading)
+        }
+        .tint(burgundyBrand)
+        .padding(.vertical, s(4))
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private func handleAnonymousSevaChange(enabled: Bool) {
+        if enabled {
+            donorSnapshotBeforeAnonymous = DonorFormSnapshot(
+                name: donorName,
+                phone: donorPhone,
+                email: donorEmail,
+                address: donorAddress
+            )
+            donorName = Self.anonymousPlaceholderName
+            donorPhone = Self.anonymousPlaceholderPhoneDigits
+            donorEmail = ""
+            donorAddress = Self.anonymousPlaceholderAddress
+        } else {
+            if let snap = donorSnapshotBeforeAnonymous {
+                donorName = snap.name
+                donorPhone = snap.phone
+                donorEmail = snap.email
+                donorAddress = snap.address
+            }
+            donorSnapshotBeforeAnonymous = nil
+        }
     }
     
     @ViewBuilder
@@ -485,8 +537,8 @@ struct ModernDonationDetailsView: View {
                         icon: "person.fill",
                         value: donorName.isEmpty ? "enterYourName".localized : donorName,
                         isEmpty: donorName.isEmpty,
-                        hasError: category != nil && donorName.trimmingCharacters(in: .whitespaces).isEmpty,
-                        onTap: { activeDonorFieldEditor = .name }
+                        hasError: isNameRequired && donorName.trimmingCharacters(in: .whitespaces).isEmpty,
+                        onTap: { if !anonymousSeva { activeDonorFieldEditor = .name } }
                     )
                     donorInputRow(
                         geometry: geometry,
@@ -494,8 +546,8 @@ struct ModernDonationDetailsView: View {
                         icon: "phone.fill",
                         value: donorPhone.isEmpty ? "enterYourPhone".localized : formatPhoneDisplay(donorPhone),
                         isEmpty: donorPhone.isEmpty,
-                        hasError: category != nil && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty,
-                        onTap: { activeDonorFieldEditor = .phone }
+                        hasError: isPhoneRequired && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty,
+                        onTap: { if !anonymousSeva { activeDonorFieldEditor = .phone } }
                     )
                     donorInputRow(
                         geometry: geometry,
@@ -504,7 +556,7 @@ struct ModernDonationDetailsView: View {
                         value: donorEmail.isEmpty ? "enterYourEmail".localized : donorEmail,
                         isEmpty: donorEmail.isEmpty,
                         hasError: false,
-                        onTap: { activeDonorFieldEditor = .email }
+                        onTap: { if !anonymousSeva { activeDonorFieldEditor = .email } }
                     )
                     donorInputRow(
                         geometry: geometry,
@@ -513,7 +565,7 @@ struct ModernDonationDetailsView: View {
                         value: donorAddress.isEmpty ? "enterYourAddress".localized : donorAddress,
                         isEmpty: donorAddress.isEmpty,
                         hasError: false,
-                        onTap: { activeDonorFieldEditor = .address }
+                        onTap: { if !anonymousSeva { activeDonorFieldEditor = .address } }
                     )
                 }
             }
@@ -709,15 +761,21 @@ struct ModernDonationDetailsView: View {
             IdleTimer.shared.userDidInteract()
         }
         .onChange(of: donorPhone) { newPhone in
-            // User is typing in phone field - reset idle timer
             IdleTimer.shared.userDidInteract()
-            
-            // Auto-populate donor info if phone number is complete (10+ digits)
+            guard !anonymousSeva else { return }
             let digitsOnly = newPhone.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
             if digitsOnly.count >= 10 && !isLookingUpDonor {
                 Task {
                     await lookupDonorInfo(phone: digitsOnly)
                 }
+            }
+        }
+        .onChange(of: anonymousSeva) { newValue in
+            handleAnonymousSevaChange(enabled: newValue)
+        }
+        .onChange(of: category?.id) { _ in
+            if category == nil && anonymousSeva {
+                anonymousSeva = false
             }
         }
         .onChange(of: donorEmail) { _ in

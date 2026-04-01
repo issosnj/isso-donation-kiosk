@@ -774,33 +774,23 @@ export class DonationsService {
         });
       }
 
-      // Get all succeeded donations matching criteria
-      const donations = await queryBuilder
-        .select(['donation.amount'])
-        .getMany();
+      // Aggregate in the database (avoids loading every row — was causing overview KPI timeouts)
+      const raw = await queryBuilder
+        .select('COALESCE(SUM(donation.amount), 0)', 'total')
+        .addSelect('COUNT(donation.id)', 'count')
+        .getRawOne<{ total: string | number | null; count: string | number | null }>();
 
-      console.log('[Donations Service] Found donations:', donations.length);
+      const totalAmount = raw?.total != null ? Number(raw.total) : 0;
+      const count = raw?.count != null ? parseInt(String(raw.count), 10) : 0;
 
-      // Calculate total and count in JavaScript
-      const count = donations.length;
-      let totalAmount = 0;
-
-      for (const donation of donations) {
-        if (donation.amount != null) {
-          const amount = typeof donation.amount === 'string' 
-            ? parseFloat(donation.amount) 
-            : Number(donation.amount);
-          if (!isNaN(amount) && isFinite(amount)) {
-            totalAmount += amount;
-          }
-        }
-      }
-
-      console.log('[Donations Service] Returning stats:', { total: totalAmount, count });
+      console.log('[Donations Service] Returning stats (aggregated):', {
+        total: totalAmount,
+        count,
+      });
 
       return {
-        total: Math.round(totalAmount * 100) / 100, // Round to 2 decimal places
-        count: count || 0,
+        total: Math.round((Number.isFinite(totalAmount) ? totalAmount : 0) * 100) / 100,
+        count: Number.isFinite(count) ? count : 0,
       };
     } catch (error: any) {
       console.error('[Donations Service] Error in getStats:', error);

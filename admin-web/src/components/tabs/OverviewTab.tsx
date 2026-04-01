@@ -30,7 +30,8 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
     deviceSummary,
     alertSummary,
     alerts,
-    isLoading,
+    statsLoading,
+    donationsLoading,
     devicesLoading,
     statsError,
     donationsError,
@@ -67,7 +68,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
         totalYtd={stats.totalYtd}
         trendDirection={stats.trendDirection}
         countYtd={stats.countYtd}
-        isLoading={isLoading}
+        isLoading={statsLoading}
         isError={statsError}
       />
 
@@ -98,7 +99,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
           totalYtd={stats.totalYtd}
           countYtd={stats.countYtd}
           avgGift={stats.avgGift}
-          isLoading={isLoading}
+          isLoading={statsLoading}
           isError={statsError}
         />
       </section>
@@ -110,7 +111,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
             data={trendData}
             granularity={chartGranularity}
             onGranularityChange={setChartGranularity}
-            isLoading={isLoading}
+            isLoading={donationsLoading}
             isError={donationsError}
           />
         </div>
@@ -126,7 +127,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
           />
           <TemplePerformanceSection
             temples={templePerformance}
-            isLoading={isLoading}
+            isLoading={donationsLoading}
             isError={donationsError}
           />
         </div>

@@ -18,22 +18,28 @@ struct KeypadTheme {
     let cornerRadius: CGFloat
     
     static let `default` = KeypadTheme(
-        width: 320,
-        buttonHeight: DesignSystem.Components.buttonHeight,
-        buttonSpacing: DesignSystem.Components.inlineSpacing,
+        width: 340,
+        buttonHeight: 64,
+        buttonSpacing: 12,
         buttonCornerRadius: DesignSystem.Components.buttonCornerRadius,
-        backgroundColor: Color(red: 135/255.0, green: 81/255.0, blue: 43/255.0),
-        borderColor: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0),
-        borderWidth: 3,
-        glowColor: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0),
-        glowRadius: 15,
-        buttonColor: Color(red: 248/255.0, green: 216/255.0, blue: 161/255.0),
-        buttonTextColor: Color(red: 0.2, green: 0.2, blue: 0.3),
-        numberFontSize: 32,
-        letterFontSize: 10,
+        backgroundColor: Color(red: 242.0/255.0, green: 235.0/255.0, blue: 224.0/255.0),
+        borderColor: Color(red: 0.72, green: 0.50, blue: 0.08).opacity(0.42),
+        borderWidth: 1.5,
+        glowColor: Color.black.opacity(0.07),
+        glowRadius: 14,
+        buttonColor: Color.white.opacity(0.42),
+        buttonTextColor: Color(red: 0.22, green: 0.18, blue: 0.16),
+        numberFontSize: 28,
+        letterFontSize: 9,
         padding: DesignSystem.Spacing.md,
         cornerRadius: DesignSystem.Components.cardCornerRadius
     )
+    
+    /// Outer height of `CustomNumericKeypad` (4 rows + padding).
+    var totalKeypadOuterHeight: CGFloat {
+        let rows: CGFloat = 4
+        return rows * buttonHeight + CGFloat(rows - 1) * buttonSpacing + 2 * padding
+    }
 }
 
 struct CustomNumericKeypad: View {
@@ -84,10 +90,13 @@ struct CustomNumericKeypad: View {
                 .fill(theme.backgroundColor)
                 .overlay(
                     RoundedRectangle(cornerRadius: theme.cornerRadius)
-                        .stroke(theme.borderColor, lineWidth: theme.borderWidth)
+                        .fill(Color.white.opacity(0.15))
                 )
-                .shadow(color: theme.glowColor.opacity(0.6), radius: theme.glowRadius, x: 0, y: 0)
-                .shadow(color: theme.glowColor.opacity(0.4), radius: theme.glowRadius * 1.67, x: 0, y: 0)
+                .shadow(color: theme.glowColor, radius: theme.glowRadius, x: 0, y: theme.glowRadius * 0.5)
+        )
+        .overlay(
+            DonationGoldRingBorder(cornerRadius: theme.cornerRadius)
+                .allowsHitTesting(false)
         )
         .allowsHitTesting(true)
         .contentShape(Rectangle())
@@ -145,15 +154,16 @@ struct KeypadButton: View {
                 amount += number
             }
         }) {
-            VStack(spacing: 4) {
+            VStack(spacing: 3) {
                 Text(number)
-                    .font(.system(size: theme.numberFontSize, weight: .semibold, design: .rounded))
+                    .font(.system(size: theme.numberFontSize, weight: .medium, design: .serif))
                     .foregroundColor(theme.buttonTextColor)
+                    .monospacedDigit()
                 
                 if showLetters && !letters.isEmpty {
                     Text(letters)
-                        .font(.system(size: theme.letterFontSize, weight: .regular))
-                        .foregroundColor(theme.buttonTextColor.opacity(0.7))
+                        .font(.system(size: theme.letterFontSize, weight: .regular, design: .default))
+                        .foregroundColor(theme.buttonTextColor.opacity(0.62))
                 }
             }
             .frame(maxWidth: .infinity)
@@ -161,13 +171,19 @@ struct KeypadButton: View {
             .background(
                 RoundedRectangle(cornerRadius: theme.buttonCornerRadius)
                     .fill(theme.buttonColor)
-                    .shadow(color: isPressed ? Color.black.opacity(0.1) : Color.black.opacity(0.2), 
-                           radius: isPressed ? 2 : 4, 
-                           x: 0, 
-                           y: isPressed ? 1 : 3)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: theme.buttonCornerRadius)
+                            .fill(Color.white.opacity(0.15))
+                    )
+                    .shadow(color: Color.black.opacity(0.08), radius: isPressed ? 3 : 6, x: 0, y: isPressed ? 1 : 3)
             )
+            .cornerRadius(theme.buttonCornerRadius)
         }
         .buttonStyle(PlainButtonStyle())
+        .overlay(
+            DonationGoldRingBorder(cornerRadius: theme.buttonCornerRadius)
+                .allowsHitTesting(false)
+        )
         .scaleEffect(isPressed ? DesignSystem.Components.keyPressScale : 1.0)
         .animation(.easeOut(duration: 0.12), value: isPressed)
         .simultaneousGesture(
@@ -196,20 +212,26 @@ struct KeypadDeleteButton: View {
             }
         }) {
             Image(systemName: "delete.backward.fill")
-                .font(.system(size: theme.numberFontSize * 0.75, weight: .semibold))
-                .foregroundColor(theme.buttonTextColor)
+                .font(.system(size: theme.numberFontSize * 0.72, weight: .medium))
+                .foregroundColor(theme.buttonTextColor.opacity(0.9))
                 .frame(maxWidth: .infinity)
                 .frame(height: theme.buttonHeight)
                 .background(
                     RoundedRectangle(cornerRadius: theme.buttonCornerRadius)
                         .fill(theme.buttonColor)
-                        .shadow(color: isPressed ? Color.black.opacity(0.1) : Color.black.opacity(0.2), 
-                               radius: isPressed ? 2 : 4, 
-                               x: 0, 
-                               y: isPressed ? 1 : 3)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: theme.buttonCornerRadius)
+                                .fill(Color.white.opacity(0.15))
+                        )
+                        .shadow(color: Color.black.opacity(0.08), radius: isPressed ? 3 : 6, x: 0, y: isPressed ? 1 : 3)
                 )
+                .cornerRadius(theme.buttonCornerRadius)
         }
         .buttonStyle(PlainButtonStyle())
+        .overlay(
+            DonationGoldRingBorder(cornerRadius: theme.buttonCornerRadius)
+                .allowsHitTesting(false)
+        )
         .scaleEffect(isPressed ? DesignSystem.Components.keyPressScale : 1.0)
         .animation(.easeOut(duration: 0.12), value: isPressed)
         .simultaneousGesture(

@@ -235,24 +235,28 @@ struct DonationHomeView: View {
     }
     
     
-    var keypadTheme: KeypadTheme {
+    /// Donation-step keypad: always cream/gold like preset amount buttons. Ignores legacy theme hex
+    /// (`customAmountKeypad*Color`) so admin “phone” colors cannot override this screen.
+    private func donationKeypadTheme(for geometry: GeometryProxy) -> KeypadTheme {
         let layout = theme?.layout
+        let s = geometry.scale
+        let cream = Color(red: 242.0/255.0, green: 235.0/255.0, blue: 224.0/255.0)
         return KeypadTheme(
-            width: CGFloat(layout?.customAmountKeypadWidth ?? 320),
-            buttonHeight: CGFloat(layout?.customAmountKeypadButtonHeight ?? 70),
-            buttonSpacing: CGFloat(layout?.customAmountKeypadButtonSpacing ?? DesignSystem.Components.inlineSpacing),
-            buttonCornerRadius: CGFloat(layout?.customAmountKeypadButtonCornerRadius ?? DesignSystem.Components.buttonCornerRadius),
-            backgroundColor: colorFromHex(layout?.customAmountKeypadBackgroundColor, defaultColor: Color(red: 135/255.0, green: 81/255.0, blue: 43/255.0)),
-            borderColor: colorFromHex(layout?.customAmountKeypadBorderColor, defaultColor: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0)),
-            borderWidth: CGFloat(layout?.customAmountKeypadBorderWidth ?? 3),
-            glowColor: colorFromHex(layout?.customAmountKeypadGlowColor, defaultColor: Color(red: 244/255.0, green: 164/255.0, blue: 78/255.0)),
-            glowRadius: CGFloat(layout?.customAmountKeypadGlowRadius ?? 15),
-            buttonColor: colorFromHex(layout?.customAmountKeypadButtonColor, defaultColor: Color(red: 248/255.0, green: 216/255.0, blue: 161/255.0)),
-            buttonTextColor: colorFromHex(layout?.customAmountKeypadButtonTextColor, defaultColor: Color(red: 0.2, green: 0.2, blue: 0.3)),
-            numberFontSize: CGFloat(layout?.customAmountKeypadNumberFontSize ?? 32),
-            letterFontSize: CGFloat(layout?.customAmountKeypadLetterFontSize ?? 10),
-            padding: CGFloat(layout?.customAmountKeypadPadding ?? DesignSystem.Spacing.md),
-            cornerRadius: CGFloat(layout?.customAmountKeypadCornerRadius ?? DesignSystem.Components.cardCornerRadius)
+            width: s(CGFloat(layout?.customAmountKeypadWidth ?? 360)),
+            buttonHeight: s(CGFloat(layout?.customAmountKeypadButtonHeight ?? 62)),
+            buttonSpacing: s(CGFloat(layout?.customAmountKeypadButtonSpacing ?? 12)),
+            buttonCornerRadius: s(CGFloat(layout?.customAmountKeypadButtonCornerRadius ?? DesignSystem.Components.buttonCornerRadius)),
+            backgroundColor: cream,
+            borderColor: .clear,
+            borderWidth: 0,
+            glowColor: Color.black.opacity(0.08),
+            glowRadius: s(10),
+            buttonColor: cream,
+            buttonTextColor: headingColor,
+            numberFontSize: s(CGFloat(layout?.customAmountKeypadNumberFontSize ?? 26)),
+            letterFontSize: s(CGFloat(layout?.customAmountKeypadLetterFontSize ?? 8)),
+            padding: s(CGFloat(layout?.customAmountKeypadPadding ?? Double(DesignSystem.Spacing.md))),
+            cornerRadius: s(CGFloat(layout?.customAmountKeypadCornerRadius ?? DesignSystem.Components.cardCornerRadius))
         )
     }
     
@@ -574,34 +578,102 @@ struct DonationHomeView: View {
         .padding(.horizontal, geometry.scale(40))
     }
     
+    /// Preset grid height on the right — matches `presetAmountButtons` LazyVGrid.
+    private func presetGridBlockHeight(geometry: GeometryProxy) -> CGFloat {
+        guard !presetAmounts.isEmpty else { return 0 }
+        let rows = Int(ceil(Double(presetAmounts.count) / 2.0))
+        let h = geometry.scale(amountButtonHeight)
+        let sp = geometry.scale(14)
+        return CGFloat(rows) * h + CGFloat(max(0, rows - 1)) * sp
+    }
+    
+    /// Readout above numeric keypad — cream tile + gold ring (same language as amount buttons).
+    @ViewBuilder
+    private func customAmountKeypadPreviewBox(geometry: GeometryProxy, displayText: String, keypadWidth: CGFloat) -> some View {
+        let s = geometry.scale
+        let corner = s(DesignSystem.Components.buttonCornerRadius)
+        let cream = Color(red: 242.0/255.0, green: 235.0/255.0, blue: 224.0/255.0)
+        Text(displayText)
+            .font(.system(size: s(26), weight: .semibold, design: .serif))
+            .foregroundColor(headingColor)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.45)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, s(14))
+            .padding(.horizontal, s(16))
+            .background(
+                RoundedRectangle(cornerRadius: corner)
+                    .fill(cream)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: corner)
+                            .fill(Color.white.opacity(0.18))
+                    )
+                    .shadow(color: Color.black.opacity(0.08), radius: s(6), x: 0, y: s(3))
+            )
+            .cornerRadius(corner)
+            .overlay(
+                DonationGoldRingBorder(cornerRadius: corner)
+                    .allowsHitTesting(false)
+            )
+            .frame(width: keypadWidth)
+            .allowsHitTesting(false)
+    }
+    
     @ViewBuilder
     private func keypadPlaceholderSection(geometry: GeometryProxy) -> some View {
         let dismissKeypad = {
             showingCustomAmountKeypad = false
             customAmountFocused = false
         }
-        VStack(spacing: 0) {
-            Spacer().frame(height: geometry.scale(8))
-            // Match category section header: top + single line (Georgia 28pt) + bottom
-            Spacer().frame(height: geometry.scale(8 + 32 + 21))
-            HStack(spacing: 0) {
-                CustomNumericKeypad(
-                    amount: $customAmount,
-                    onDismiss: dismissKeypad,
-                    theme: keypadTheme
-                )
-                Color.clear
-                    .contentShape(Rectangle())
-                    .frame(maxWidth: .infinity)
-                    .onTapGesture(perform: dismissKeypad)
-            }
-            .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
+        let s = geometry.scale
+        // Match category/amount header: 16pt top + title (~32) + 21pt bottom (was 8+8+32+21 before +8pt shift)
+        let headerTop = s(16)
+        let headerTitle = s(32 + 21)
+        let gridH = presetGridBlockHeight(geometry: geometry)
+        let rowH = s(amountButtonHeight)
+        let gap = s(12)
+        /// Vertical distance from below column headers to bottom of Custom Amount row on the right.
+        let depthToCustomAmountBottom = gridH + gap + rowH
+        let previewString = customAmount.isEmpty ? "$0" : "$" + customAmount
+        let keypadSkin = donationKeypadTheme(for: geometry)
+        let previewGap = s(12)
+        // Preview box outer height ≈ vertical padding + one line (matches `customAmountKeypadPreviewBox`).
+        let previewBoxOuterH = s(14 + 14) + s(32)
+        let stackH = previewBoxOuterH + previewGap + keypadSkin.totalKeypadOuterHeight
+        let topPad = depthToCustomAmountBottom - stackH
+        
+        ZStack {
             Color.clear
                 .contentShape(Rectangle())
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onTapGesture(perform: dismissKeypad)
+            
+            VStack(spacing: 0) {
+                Spacer().frame(height: headerTop + headerTitle + max(0, topPad))
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    VStack(spacing: previewGap) {
+                        customAmountKeypadPreviewBox(
+                            geometry: geometry,
+                            displayText: previewString,
+                            keypadWidth: keypadSkin.width
+                        )
+                        CustomNumericKeypad(
+                            amount: $customAmount,
+                            onDismiss: dismissKeypad,
+                            theme: keypadSkin
+                        )
+                    }
+                    .offset(y: min(0, topPad))
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, s(DesignSystem.Spacing.md))
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // Check if any categories have yajman opportunities (sponsorship tiers)
@@ -635,7 +707,7 @@ struct DonationHomeView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, geometry.scale(8))
+            .padding(.top, geometry.scale(16))
             .padding(.bottom, geometry.scale(21))
             
             categoryContent(geometry: geometry)
@@ -739,11 +811,11 @@ struct DonationHomeView: View {
             VStack(alignment: .center, spacing: geometry.scale(6)) {
                 Text("selectAmount".localized)
                     .font(.custom("Georgia", size: geometry.scale(28)))
-                    .foregroundColor(amountSelectedColorValue)
+                    .foregroundColor(headingColor)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, geometry.scale(8))
+            .padding(.top, geometry.scale(16))
             .padding(.bottom, geometry.scale(21))
             .onTapGesture {
                 guard showingCustomAmountKeypad else { return }
@@ -757,7 +829,7 @@ struct DonationHomeView: View {
             Spacer(minLength: 0)
             
             actionButtonsRow(geometry: geometry)
-                .padding(.top, geometry.scale(12))
+                .padding(.top, geometry.scale(20))
         }
         .frame(maxWidth: .infinity)
     }
@@ -785,7 +857,7 @@ struct DonationHomeView: View {
                 height: geometry.scale(amountButtonHeight)
             )
             
-            categoryQuantityStepper(geometry: geometry)
+            categoryQuantityRow(geometry: geometry)
         }
         .padding(.horizontal, geometry.scale(DesignSystem.Spacing.md))
     }
@@ -796,6 +868,16 @@ struct DonationHomeView: View {
               cat.quantityEnabled,
               let u = cat.defaultAmount, u > 0 else { return 1 }
         return min(max(quantity, 1), Self.maxCategoryQuantity)
+    }
+    
+    /// Fixed-height row so footer buttons do not jump when quantity UI appears.
+    @ViewBuilder
+    private func categoryQuantityRow(geometry: GeometryProxy) -> some View {
+        ZStack {
+            categoryQuantityStepper(geometry: geometry)
+        }
+        .frame(height: geometry.scale(amountButtonHeight))
+        .frame(maxWidth: .infinity)
     }
     
     @ViewBuilder
@@ -1154,12 +1236,25 @@ struct CleanCustomAmountField: View {
         isActive ? .white : unselectedTextColor
     }
     
+    private var enteredAmountDisplay: String {
+        if text.isEmpty { return isActive ? "$0" : "" }
+        return "$" + text
+    }
+    
     var body: some View {
         HStack(spacing: DesignSystem.Components.inlineSpacing) {
             Text("customAmount".localized)
                 .font(.custom("Georgia", size: 19))
                 .foregroundColor(textColor)
-            Spacer()
+            Spacer(minLength: 8)
+            if isActive || !text.isEmpty {
+                Text(enteredAmountDisplay)
+                    .font(.system(size: 19, weight: .medium, design: .serif))
+                    .foregroundColor(textColor)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
             Image(systemName: "square.and.pencil")
                 .font(.system(size: DesignSystem.Typography.secondarySize))
                 .foregroundColor(isActive ? Color.white.opacity(0.92) : unselectedTextColor.opacity(0.7))

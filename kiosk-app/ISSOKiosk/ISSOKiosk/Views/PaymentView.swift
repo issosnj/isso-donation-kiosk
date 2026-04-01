@@ -719,15 +719,109 @@ struct ModernPaymentProcessingView: View {
     }
 }
 
-// Modern processing view
+// MARK: - Card tap processing (brands + trust row)
+
+private struct PaymentProcessingCardBrandStrip: View {
+    let geometry: GeometryProxy
+    
+    private func s(_ v: CGFloat) -> CGFloat { geometry.scale(v) }
+    
+    var body: some View {
+        HStack(spacing: s(10)) {
+            visaMark
+            mastercardMark
+            amexMark
+            discoverMark
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Visa, Mastercard, American Express, Discover")
+    }
+    
+    private var visaMark: some View {
+        Text("VISA")
+            .font(.system(size: s(11), weight: .heavy))
+            .foregroundStyle(.white)
+            .padding(.horizontal, s(10))
+            .padding(.vertical, s(6))
+            .background(RoundedRectangle(cornerRadius: s(4), style: .continuous).fill(Color(red: 0.05, green: 0.20, blue: 0.65)))
+    }
+    
+    private var mastercardMark: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: s(5), style: .continuous)
+                .fill(Color.white)
+            ZStack {
+                Circle()
+                    .fill(Color(red: 235 / 255, green: 0 / 255, blue: 27 / 255))
+                    .frame(width: s(20), height: s(20))
+                    .offset(x: -s(6))
+                Circle()
+                    .fill(Color(red: 247 / 255, green: 158 / 255, blue: 27 / 255))
+                    .frame(width: s(20), height: s(20))
+                    .offset(x: s(6))
+            }
+        }
+        .frame(width: s(46), height: s(28))
+        .clipShape(RoundedRectangle(cornerRadius: s(5), style: .continuous))
+    }
+    
+    private var amexMark: some View {
+        Text("AMEX")
+            .font(.system(size: s(9), weight: .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, s(7))
+            .padding(.vertical, s(7))
+            .background(RoundedRectangle(cornerRadius: s(4), style: .continuous).fill(Color(red: 0, green: 0.44, blue: 0.76)))
+    }
+    
+    private var discoverMark: some View {
+        Text("DISC")
+            .font(.system(size: s(10), weight: .heavy))
+            .foregroundStyle(.white)
+            .padding(.horizontal, s(8))
+            .padding(.vertical, s(6))
+            .background(RoundedRectangle(cornerRadius: s(4), style: .continuous).fill(Color(red: 1.0, green: 0.38, blue: 0.0)))
+    }
+}
+
+private struct PaymentProcessingSecureBadge: View {
+    let geometry: GeometryProxy
+    let headingColor: Color
+    let accentColor: Color
+    
+    private func s(_ v: CGFloat) -> CGFloat { geometry.scale(v) }
+    
+    var body: some View {
+        HStack(spacing: s(10)) {
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: s(20), weight: .semibold))
+                .foregroundStyle(accentColor)
+            Text("secureEncrypted".localized)
+                .font(.custom("Georgia", size: s(17)))
+                .foregroundStyle(headingColor.opacity(0.92))
+        }
+        .padding(.horizontal, s(18))
+        .padding(.vertical, s(12))
+        .background(
+            RoundedRectangle(cornerRadius: s(14), style: .continuous)
+                .fill(Color(red: 1, green: 0.99, blue: 0.96).opacity(0.94))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: s(14), style: .continuous)
+                .stroke(headingColor.opacity(0.14), lineWidth: 1)
+        )
+    }
+}
+
+// Modern processing view — themed glass panel, clear card instructions, brands + secure badge
 struct ModernProcessingView: View {
     let amount: Double
     let onCancel: () -> Void
     @EnvironmentObject var appState: AppState
     @State private var rotationAngle: Double = 0
     @State private var appearAnimation = false
+    @State private var pulseGlow = false
     
-    // Helper to convert hex string to Color
     private func colorFromHex(_ hex: String?, defaultColor: Color = Color(red: 0.26, green: 0.20, blue: 0.20)) -> Color {
         guard let hex = hex, !hex.isEmpty else {
             return defaultColor
@@ -754,10 +848,8 @@ struct ModernProcessingView: View {
         return Color(red: red, green: green, blue: blue)
     }
     
-    // Background view matching theme
     @ViewBuilder
     private func backgroundView(geometry: GeometryProxy) -> some View {
-        // First try to use asset (local, no network needed)
         if UIImage(named: "KioskBackground") != nil {
             Image("KioskBackground")
                 .resizable()
@@ -765,7 +857,6 @@ struct ModernProcessingView: View {
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
         } else {
-            // Final fallback to default gradient
             LinearGradient(
                 gradient: Gradient(colors: [
                     Color.white,
@@ -777,107 +868,195 @@ struct ModernProcessingView: View {
         }
     }
     
-    // Theme colors
     private var headingColor: Color {
-        if let theme = appState.temple?.kioskTheme,
-           let hex = theme.colors?.headingColor {
+        if let hex = appState.temple?.kioskTheme?.colors?.headingColor {
             return colorFromHex(hex)
         }
-        return Color(red: 0.26, green: 0.20, blue: 0.20) // #423232
+        return Color(red: 0.26, green: 0.20, blue: 0.20)
     }
     
-    private var bodyTextColor: Color {
-        Color(red: 0.5, green: 0.5, blue: 0.6)
+    private var secondaryTextColor: Color {
+        if let hex = appState.temple?.kioskTheme?.colors?.bodyTextColor, !hex.isEmpty {
+            return colorFromHex(hex)
+        }
+        return Color(red: 0.38, green: 0.34, blue: 0.32)
     }
     
-    private var buttonColor: Color {
-        Color(red: 1.0, green: 0.58, blue: 0.0) // Orange matching theme
+    private var accentBrandColor: Color {
+        if let hex = appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonColor, !hex.isEmpty {
+            return colorFromHex(hex, defaultColor: Color(red: 147 / 255, green: 22 / 255, blue: 19 / 255))
+        }
+        return Color(red: 147 / 255, green: 22 / 255, blue: 19 / 255)
+    }
+    
+    private var creamPanelFill: Color {
+        Color(red: 242 / 255, green: 235 / 255, blue: 224 / 255)
+    }
+    
+    private var goldAccent: Color {
+        Color(red: 0.78, green: 0.58, blue: 0.16)
     }
     
     var body: some View {
         ZStack {
             GeometryReader { geometry in
-                backgroundView(geometry: geometry)
+                let s: (CGFloat) -> CGFloat = { geometry.scale($0) }
+                
+                ZStack {
+                    backgroundView(geometry: geometry)
+                    
+                    RadialGradient(
+                        colors: [
+                            Color.white.opacity(0.94),
+                            Color.white.opacity(0.72),
+                            Color.white.opacity(0.28),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: geometry.size.width * 0.08,
+                        endRadius: geometry.size.width * 0.72
+                    )
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                
+                VStack(spacing: 0) {
+                    Spacer(minLength: s(20))
+                    
+                    VStack(spacing: s(22)) {
+                        ZStack {
+                            Circle()
+                                .fill(accentBrandColor.opacity(pulseGlow ? 0.14 : 0.22))
+                                .frame(width: s(152), height: s(152))
+                                .blur(radius: s(12))
+                            
+                            Circle()
+                                .stroke(headingColor.opacity(0.12), lineWidth: s(7))
+                                .frame(width: s(118), height: s(118))
+                            
+                            Circle()
+                                .trim(from: 0, to: 0.78)
+                                .stroke(
+                                    AngularGradient(
+                                        colors: [goldAccent, accentBrandColor, goldAccent.opacity(0.6)],
+                                        center: .center
+                                    ),
+                                    style: StrokeStyle(lineWidth: s(7), lineCap: .round)
+                                )
+                                .frame(width: s(118), height: s(118))
+                                .rotationEffect(.degrees(rotationAngle))
+                            
+                            ZStack {
+                                Image(systemName: "wave.3.right.circle.fill")
+                                    .font(.system(size: s(26)))
+                                    .foregroundStyle(accentBrandColor.opacity(0.35))
+                                    .offset(x: -s(34), y: -s(28))
+                                Image(systemName: "creditcard.fill")
+                                    .font(.system(size: s(40), weight: .medium))
+                                    .foregroundStyle(accentBrandColor)
+                            }
+                        }
+                        .scaleEffect(appearAnimation ? 1.0 : 0.88)
+                        .opacity(appearAnimation ? 1.0 : 0.0)
+                        
+                        VStack(spacing: s(12)) {
+                            Text("processingHeading".localized)
+                                .font(.custom("Georgia", size: s(30)))
+                                .foregroundStyle(headingColor)
+                                .multilineTextAlignment(.center)
+                            
+                            Text(amount.formattedCurrency())
+                                .font(.system(size: s(52), weight: .bold, design: .serif))
+                                .foregroundStyle(accentBrandColor)
+                                .monospacedDigit()
+                            
+                            Text("processingHoldNearReader".localized)
+                                .font(.custom("Georgia", size: s(20)))
+                                .foregroundStyle(headingColor.opacity(0.95))
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                            
+                            Text("processingPayment".localized)
+                                .font(.system(size: s(21), weight: .semibold))
+                                .foregroundStyle(headingColor)
+                                .multilineTextAlignment(.center)
+                            
+                            Text("processingSubtext".localized)
+                                .font(.system(size: s(17), weight: .medium))
+                                .foregroundStyle(secondaryTextColor)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, s(14))
+                                .padding(.vertical, s(14))
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: s(16), style: .continuous)
+                                        .fill(creamPanelFill.opacity(0.98))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: s(16), style: .continuous)
+                                        .stroke(goldAccent.opacity(0.45), lineWidth: s(1.5))
+                                )
+                        }
+                        .padding(.horizontal, s(8))
+                        
+                        PaymentProcessingCardBrandStrip(geometry: geometry)
+                            .padding(.top, s(4))
+                        
+                        PaymentProcessingSecureBadge(geometry: geometry, headingColor: headingColor, accentColor: accentBrandColor)
+                    }
+                    .padding(.horizontal, s(36))
+                    .padding(.vertical, s(32))
+                    .frame(maxWidth: min(geometry.size.width * 0.9, s(820)))
+                    .background(
+                        RoundedRectangle(cornerRadius: s(32), style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .background(
+                                RoundedRectangle(cornerRadius: s(32), style: .continuous)
+                                    .fill(creamPanelFill.opacity(0.35))
+                            )
+                            .shadow(color: headingColor.opacity(0.2), radius: s(28), x: 0, y: s(14))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: s(32), style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [goldAccent.opacity(0.55), headingColor.opacity(0.1)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: s(1.5)
+                            )
+                    )
+                    .opacity(appearAnimation ? 1.0 : 0.0)
+                    .offset(y: appearAnimation ? 0 : s(16))
+                    
+                    Spacer(minLength: s(12))
+                    
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onCancel()
+                    }) {
+                        Text("cancel".localized)
+                            .font(.custom("Georgia", size: s(18)))
+                            .foregroundStyle(accentBrandColor)
+                            .padding(.horizontal, s(36))
+                            .padding(.vertical, s(14))
+                            .background(
+                                RoundedRectangle(cornerRadius: s(16), style: .continuous)
+                                    .fill(Color.white.opacity(0.55))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: s(16), style: .continuous)
+                                    .stroke(accentBrandColor.opacity(0.85), lineWidth: s(2))
+                            )
+                    }
+                    .padding(.bottom, s(28))
+                    .opacity(appearAnimation ? 1.0 : 0.0)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .ignoresSafeArea(.all, edges: .all)
             
-            VStack(spacing: 0) {
-                Spacer()
-
-                // Loader — integrated, gentle animation
-                ZStack {
-                    Circle()
-                        .stroke(headingColor.opacity(0.12), lineWidth: 8)
-                        .frame(width: 120, height: 120)
-                    Circle()
-                        .trim(from: 0, to: 0.75)
-                        .stroke(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    buttonColor.opacity(0.9),
-                                    buttonColor.opacity(0.5)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        .frame(width: 120, height: 120)
-                        .rotationEffect(.degrees(rotationAngle))
-                    Image(systemName: "creditcard.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(buttonColor.opacity(0.95))
-                }
-                .scaleEffect(appearAnimation ? 1.0 : 0.9)
-                .opacity(appearAnimation ? 1.0 : 0.0)
-
-                // Text hierarchy: heading → amount → instruction → subtext (trust + clarity)
-                VStack(spacing: DesignSystem.Spacing.lg) {
-                    Text("processingHeading".localized)
-                        .font(.custom(DesignSystem.Typography.sectionTitleFont, size: DesignSystem.Typography.sectionTitleSize + 4))
-                        .foregroundColor(headingColor)
-                        .multilineTextAlignment(.center)
-
-                    Text(amount.formattedCurrency())
-                        .font(.custom("Inter-SemiBold", size: DesignSystem.Typography.amountDisplaySize + 20))
-                        .foregroundColor(buttonColor)
-                        .monospacedDigit()
-
-                    Text("processingPayment".localized)
-                        .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.bodySize))
-                        .foregroundColor(headingColor.opacity(0.9))
-                        .multilineTextAlignment(.center)
-
-                    Text("processingSubtext".localized)
-                        .font(.custom(DesignSystem.Typography.bodyFont, size: DesignSystem.Typography.secondarySize))
-                        .foregroundColor(bodyTextColor)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, DesignSystem.Spacing.xl + DesignSystem.Spacing.md)
-                .opacity(appearAnimation ? 1.0 : 0.0)
-                .offset(y: appearAnimation ? 0 : 12)
-
-                Spacer()
-
-                // Cancel — visible but secondary, structured tap target with haptic
-                Button(action: {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    onCancel()
-                }) {
-                    Text("cancel".localized)
-                        .font(.custom(DesignSystem.Typography.buttonFont, size: DesignSystem.Typography.bodySize))
-                        .foregroundColor(bodyTextColor)
-                        .padding(.horizontal, DesignSystem.Spacing.xl)
-                        .padding(.vertical, DesignSystem.Spacing.md + 4)
-                }
-                .padding(.top, DesignSystem.Spacing.md)
-                .padding(.bottom, DesignSystem.Spacing.xl)
-                .opacity(appearAnimation ? 1.0 : 0.0)
-            }
-            .padding(DesignSystem.Spacing.xl + DesignSystem.Spacing.sm)
-            
-            // Time and Network Status in top right
-            // Reader Battery Status in top left
             VStack {
                 HStack {
                     ReaderBatteryStatusView()
@@ -888,7 +1067,6 @@ struct ModernProcessingView: View {
                 Spacer()
             }
             
-            // Time and Network Status in top right
             VStack {
                 HStack {
                     Spacer()
@@ -900,11 +1078,14 @@ struct ModernProcessingView: View {
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.85).delay(0.1)) {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.86).delay(0.08)) {
                 appearAnimation = true
             }
-            withAnimation(.linear(duration: 2.5).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: 2.4).repeatForever(autoreverses: false)) {
                 rotationAngle = 360
+            }
+            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                pulseGlow = true
             }
         }
     }

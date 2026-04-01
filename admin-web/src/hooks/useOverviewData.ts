@@ -121,7 +121,11 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     },
   })
 
-  const { data: donations = [], isLoading: donationsLoading, isError: donationsError } = useQuery({
+  const {
+    data: donations = [],
+    isLoading: donationsLoading,
+    isError: donationsError,
+  } = useQuery({
     queryKey: ['overview-donations', ninetyDaysAgo.toISOString(), endOfToday.toISOString()],
     queryFn: async () => {
       const res = await api.get('/donations', {
@@ -182,7 +186,12 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     deviceSummary,
     alertSummary,
     alerts,
+    /** True while either stats or donations query has no data yet (first load). */
     isLoading: statsLoading || donationsLoading,
+    /** KPI hero + stat cards: only wait on `/donations/stats`, not the heavy donations list. */
+    statsLoading,
+    /** Charts + temple table: driven by donations list. */
+    donationsLoading,
     devicesLoading,
     statsError: !!statsError,
     donationsError: !!donationsError,
