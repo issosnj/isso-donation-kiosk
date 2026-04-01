@@ -77,7 +77,12 @@ export class GlobalSettingsController {
   }
 
   @Patch('kiosk-behavior')
-  @ApiOperation({ summary: 'Update kiosk behavior (Master Admin only)' })
+  @ApiOperation({
+    summary: 'Update kiosk behavior (deprecated)',
+    description:
+      'Deprecated: kiosk behavior is configured per temple or elsewhere. Kept for backward compatibility only.',
+    deprecated: true,
+  })
   @Roles(UserRole.MASTER_ADMIN)
   async updateKioskBehavior(@Body() body: { showObservances?: boolean }) {
     return this.globalSettingsService.updateKioskBehavior(body);

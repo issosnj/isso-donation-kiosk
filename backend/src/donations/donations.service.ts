@@ -704,8 +704,7 @@ export class DonationsService {
       return result || [];
     } catch (error) {
       console.error('Error in findAll donations:', error);
-      // Return empty array instead of throwing to prevent 500 errors
-      return [];
+      throw error;
     }
   }
 
@@ -754,62 +753,110 @@ export class DonationsService {
   }
 
   async getStats(templeId?: string, startDate?: Date, endDate?: Date) {
-    try {
-      console.log('[Donations Service] getStats called with:', { templeId, startDate, endDate });
+    console.log('[Donations Service] getStats called with:', { templeId, startDate, endDate });
 
-      // Build query builder for more control
-      const queryBuilder = this.donationsRepository.createQueryBuilder('donation')
-        .where('donation.status = :status', { status: DonationStatus.SUCCEEDED });
+    const queryBuilder = this.donationsRepository
+      .createQueryBuilder('donation')
+      .where('donation.status = :status', { status: DonationStatus.SUCCEEDED });
 
-      // Add temple filter if provided
-      if (templeId) {
-        queryBuilder.andWhere('donation.templeId = :templeId', { templeId });
-      }
+    if (templeId) {
+      queryBuilder.andWhere('donation.templeId = :templeId', { templeId });
+    }
 
-      // Add date filter if both dates are provided and valid
-      if (startDate && endDate && !isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-        queryBuilder.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
-          startDate,
-          endDate,
-        });
-      }
-
-      // Aggregate in the database (avoids loading every row — was causing overview KPI timeouts)
-      const raw = await queryBuilder
-        .select('COALESCE(SUM(donation.amount), 0)', 'total')
-        .addSelect('COUNT(donation.id)', 'count')
-        .getRawOne<{ total: string | number | null; count: string | number | null }>();
-
-      const totalAmount = raw?.total != null ? Number(raw.total) : 0;
-      const count = raw?.count != null ? parseInt(String(raw.count), 10) : 0;
-
-      console.log('[Donations Service] Returning stats (aggregated):', {
-        total: totalAmount,
-        count,
-      });
-
-      return {
-        total: Math.round((Number.isFinite(totalAmount) ? totalAmount : 0) * 100) / 100,
-        count: Number.isFinite(count) ? count : 0,
-      };
-    } catch (error: any) {
-      console.error('[Donations Service] Error in getStats:', error);
-      console.error('[Donations Service] Error message:', error?.message);
-      console.error('[Donations Service] Error stack:', error?.stack);
-      console.error('[Donations Service] Error details:', {
-        templeId,
+    if (startDate && endDate && !isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+      queryBuilder.andWhere('donation.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
-        errorName: error?.name,
-        errorCode: error?.code,
       });
-      
-      // Return default stats instead of throwing
-      return {
-        total: 0,
-        count: 0,
-      };
     }
+
+    const raw = await queryBuilder
+      .select('COALESCE(SUM(donation.amount), 0)', 'total')
+      .addSelect('COUNT(donation.id)', 'count')
+      .getRawOne<{ total: string | number | null; count: string | number | null }>();
+
+    const totalAmount = raw?.total != null ? Number(raw.total) : 0;
+    const count = raw?.count != null ? parseInt(String(raw.count), 10) : 0;
+
+    console.log('[Donations Service] Returning stats (aggregated):', {
+      total: totalAmount,
+      count,
+    });
+
+    return {
+      total: Math.round((Number.isFinite(totalAmount) ? totalAmount : 0) * 100) / 100,
+      count: Number.isFinite(count) ? count : 0,
+    };
+  }
+
+  /**
+   * SQL aggregates for admin overview (trends + per-temple). Avoids loading full donation rows.
+   */
+  async getOverviewMetrics(
+    templeId: string | undefined,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{
+    daily: { date: string; amount: number; count: number }[];
+    byTemple: { templeId: string; templeName: string; total: number; count: number }[];
+  }> {
+    let dailyQb = this.donationsRepository
+      .createQueryBuilder('donation')
+      .where('donation.status = :status', { status: DonationStatus.SUCCEEDED })
+      .andWhere('donation.createdAt BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      });
+
+    if (templeId) {
+      dailyQb = dailyQb.andWhere('donation.templeId = :templeId', { templeId });
+    }
+
+    const dailyRaw = await dailyQb
+      .select(`TO_CHAR(DATE_TRUNC('day', donation.createdAt), 'YYYY-MM-DD')`, 'date')
+      .addSelect('COALESCE(SUM(donation.amount), 0)', 'total')
+      .addSelect('COUNT(donation.id)', 'count')
+      .groupBy(`DATE_TRUNC('day', donation.createdAt)`)
+      .orderBy(`DATE_TRUNC('day', donation.createdAt)`, 'ASC')
+      .getRawMany();
+
+    let templeQb = this.donationsRepository
+      .createQueryBuilder('donation')
+      .leftJoin('donation.temple', 'temple')
+      .where('donation.status = :status', { status: DonationStatus.SUCCEEDED })
+      .andWhere('donation.createdAt BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      });
+
+    if (templeId) {
+      templeQb = templeQb.andWhere('donation.templeId = :templeId', { templeId });
+    }
+
+    const templeRaw = await templeQb
+      .select('donation.templeId', 'templeId')
+      .addSelect('COALESCE(MAX(temple.name), :unk)', 'templeName')
+      .setParameter('unk', 'Unknown')
+      .addSelect('COALESCE(SUM(donation.amount), 0)', 'total')
+      .addSelect('COUNT(donation.id)', 'count')
+      .groupBy('donation.templeId')
+      .orderBy('SUM(donation.amount)', 'DESC')
+      .getRawMany();
+
+    const daily = (dailyRaw as any[]).map((row) => ({
+      date: String(row.date ?? ''),
+      amount: Math.round(Number(row.total) * 100) / 100,
+      count: parseInt(String(row.count), 10) || 0,
+    }));
+
+    const byTemple = (templeRaw as any[]).map((row) => ({
+      templeId: String(row.templeId ?? 'unknown'),
+      templeName: String(row.templeName ?? 'Unknown'),
+      total: Math.round(Number(row.total) * 100) / 100,
+      count: parseInt(String(row.count), 10) || 0,
+    }));
+
+    return { daily, byTemple };
   }
 
   // Simple encryption/decryption helpers (should match GmailController)

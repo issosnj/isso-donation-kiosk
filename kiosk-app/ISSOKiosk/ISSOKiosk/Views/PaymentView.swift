@@ -804,11 +804,11 @@ private struct PaymentProcessingSecureBadge: View {
         .padding(.vertical, s(12))
         .background(
             RoundedRectangle(cornerRadius: s(14), style: .continuous)
-                .fill(Color(red: 1, green: 0.99, blue: 0.96).opacity(0.94))
+                .fill(Color.white.opacity(0.2))
         )
         .overlay(
             RoundedRectangle(cornerRadius: s(14), style: .continuous)
-                .stroke(headingColor.opacity(0.14), lineWidth: 1)
+                .stroke(Color.black.opacity(0.08), lineWidth: 1)
         )
     }
 }
@@ -875,185 +875,180 @@ struct ModernProcessingView: View {
         return Color(red: 0.26, green: 0.20, blue: 0.20)
     }
     
-    private var secondaryTextColor: Color {
-        if let hex = appState.temple?.kioskTheme?.colors?.bodyTextColor, !hex.isEmpty {
-            return colorFromHex(hex)
+    /// Same fixed red as donation summary **Total** (`DonationDetailsView`) — do not use theme proceed button color (often orange).
+    private var burgundyBrand: Color {
+        Color(red: 147.0 / 255.0, green: 22.0 / 255.0, blue: 19.0 / 255.0)
+    }
+    
+    private var creamFill: Color {
+        Color(red: 242.0 / 255.0, green: 235.0 / 255.0, blue: 224.0 / 255.0)
+    }
+    
+    /// Matches `DonationHomeView` / `DonationDetailsView` glass panel (Step 2 & 3).
+    private let glassPanelCorner: CGFloat = 28
+    private let glassPanelMaxWidthFraction: CGFloat = 0.94
+    private let glassPanelMaxWidthPoints: CGFloat = 1400
+    private let glassPanelHorizontalPadding: CGFloat = 56
+    private let glassPanelVerticalPadding: CGFloat = 8
+    private let glassPanelInternalPadding: CGFloat = 44
+    /// Same as `DonationDetailsView` Step 3 panel content top inset.
+    private let step3PanelContentTopInset: CGFloat = 20
+    
+    private var stepLineBrown: Color {
+        Color(red: 0.42, green: 0.32, blue: 0.32)
+    }
+    
+    @ViewBuilder
+    private func paymentStepHeader(geometry: GeometryProxy) -> some View {
+        let s = geometry.scale
+        let lineColor = stepLineBrown.opacity(0.4)
+        HStack(spacing: s(16)) {
+            Rectangle()
+                .fill(lineColor)
+                .frame(height: 1)
+            Text("processingHeading".localized)
+                .font(.custom("Georgia", size: s(20)))
+                .foregroundColor(stepLineBrown)
+            Rectangle()
+                .fill(lineColor)
+                .frame(height: 1)
         }
-        return Color(red: 0.38, green: 0.34, blue: 0.32)
-    }
-    
-    private var accentBrandColor: Color {
-        if let hex = appState.temple?.kioskTheme?.colors?.proceedToPaymentButtonColor, !hex.isEmpty {
-            return colorFromHex(hex, defaultColor: Color(red: 147 / 255, green: 22 / 255, blue: 19 / 255))
-        }
-        return Color(red: 147 / 255, green: 22 / 255, blue: 19 / 255)
-    }
-    
-    private var creamPanelFill: Color {
-        Color(red: 242 / 255, green: 235 / 255, blue: 224 / 255)
-    }
-    
-    private var goldAccent: Color {
-        Color(red: 0.78, green: 0.58, blue: 0.16)
+        .padding(.horizontal, s(40))
     }
     
     var body: some View {
         ZStack {
             GeometryReader { geometry in
                 let s: (CGFloat) -> CGFloat = { geometry.scale($0) }
+                let panelMaxWidth = min(geometry.size.width * glassPanelMaxWidthFraction, glassPanelMaxWidthPoints)
+                let cancelCorner = s(DesignSystem.Components.buttonCornerRadius)
                 
                 ZStack {
                     backgroundView(geometry: geometry)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                     
-                    RadialGradient(
-                        colors: [
-                            Color.white.opacity(0.94),
-                            Color.white.opacity(0.72),
-                            Color.white.opacity(0.28),
-                            Color.clear
-                        ],
-                        center: .center,
-                        startRadius: geometry.size.width * 0.08,
-                        endRadius: geometry.size.width * 0.72
-                    )
-                }
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                
-                VStack(spacing: 0) {
-                    Spacer(minLength: s(20))
-                    
-                    VStack(spacing: s(22)) {
-                        ZStack {
-                            Circle()
-                                .fill(accentBrandColor.opacity(pulseGlow ? 0.14 : 0.22))
-                                .frame(width: s(152), height: s(152))
-                                .blur(radius: s(12))
+                    // Same top alignment & glass panel placement as Step 2 / Step 3 (`DonationHomeView` / `DonationDetailsView`).
+                    ZStack(alignment: .top) {
+                        VStack(spacing: 0) {
+                            paymentStepHeader(geometry: geometry)
+                                .padding(.top, s(78))
+                                .padding(.bottom, s(20))
                             
-                            Circle()
-                                .stroke(headingColor.opacity(0.12), lineWidth: s(7))
-                                .frame(width: s(118), height: s(118))
-                            
-                            Circle()
-                                .trim(from: 0, to: 0.78)
-                                .stroke(
-                                    AngularGradient(
-                                        colors: [goldAccent, accentBrandColor, goldAccent.opacity(0.6)],
-                                        center: .center
-                                    ),
-                                    style: StrokeStyle(lineWidth: s(7), lineCap: .round)
-                                )
-                                .frame(width: s(118), height: s(118))
-                                .rotationEffect(.degrees(rotationAngle))
-                            
-                            ZStack {
-                                Image(systemName: "wave.3.right.circle.fill")
-                                    .font(.system(size: s(26)))
-                                    .foregroundStyle(accentBrandColor.opacity(0.35))
-                                    .offset(x: -s(34), y: -s(28))
-                                Image(systemName: "creditcard.fill")
-                                    .font(.system(size: s(40), weight: .medium))
-                                    .foregroundStyle(accentBrandColor)
-                            }
-                        }
-                        .scaleEffect(appearAnimation ? 1.0 : 0.88)
-                        .opacity(appearAnimation ? 1.0 : 0.0)
-                        
-                        VStack(spacing: s(12)) {
-                            Text("processingHeading".localized)
-                                .font(.custom("Georgia", size: s(30)))
-                                .foregroundStyle(headingColor)
-                                .multilineTextAlignment(.center)
-                            
-                            Text(amount.formattedCurrency())
-                                .font(.system(size: s(52), weight: .bold, design: .serif))
-                                .foregroundStyle(accentBrandColor)
-                                .monospacedDigit()
-                            
-                            Text("processingHoldNearReader".localized)
-                                .font(.custom("Georgia", size: s(20)))
-                                .foregroundStyle(headingColor.opacity(0.95))
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                            
-                            Text("processingPayment".localized)
-                                .font(.system(size: s(21), weight: .semibold))
-                                .foregroundStyle(headingColor)
-                                .multilineTextAlignment(.center)
-                            
-                            Text("processingSubtext".localized)
-                                .font(.system(size: s(17), weight: .medium))
-                                .foregroundStyle(secondaryTextColor)
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.horizontal, s(14))
-                                .padding(.vertical, s(14))
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: s(16), style: .continuous)
-                                        .fill(creamPanelFill.opacity(0.98))
-                                )
+                            VStack(spacing: 0) {
+                                VStack(spacing: s(26)) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(burgundyBrand.opacity(pulseGlow ? 0.12 : 0.18))
+                                            .frame(width: s(152), height: s(152))
+                                            .blur(radius: s(12))
+                                        
+                                        Circle()
+                                            .stroke(headingColor.opacity(0.12), lineWidth: s(7))
+                                            .frame(width: s(118), height: s(118))
+                                        
+                                        Circle()
+                                            .trim(from: 0, to: 0.78)
+                                            .stroke(
+                                                AngularGradient(
+                                                    colors: [
+                                                        burgundyBrand.opacity(0.55),
+                                                        burgundyBrand,
+                                                        burgundyBrand.opacity(0.72),
+                                                    ],
+                                                    center: .center
+                                                ),
+                                                style: StrokeStyle(lineWidth: s(7), lineCap: .round)
+                                            )
+                                            .frame(width: s(118), height: s(118))
+                                            .rotationEffect(.degrees(rotationAngle))
+                                        
+                                        Image(systemName: "creditcard.fill")
+                                            .font(.system(size: s(40), weight: .medium))
+                                            .foregroundStyle(burgundyBrand)
+                                    }
+                                    .scaleEffect(appearAnimation ? 1.0 : 0.88)
+                                    .opacity(appearAnimation ? 1.0 : 0.0)
+                                    .padding(.top, s(4))
+                                    
+                                    // Same visual rhythm as donation summary **Total** row (`DonationDetailsView`).
+                                    HStack(alignment: .firstTextBaseline, spacing: s(12)) {
+                                        Text("totalSevaLabel".localized)
+                                            .font(.system(size: s(24), weight: .semibold, design: .serif))
+                                            .foregroundStyle(headingColor)
+                                        Spacer(minLength: s(8))
+                                        Text(amount.formattedCurrency())
+                                            .font(.system(size: s(30), weight: .bold, design: .serif))
+                                            .foregroundStyle(burgundyBrand)
+                                            .monospacedDigit()
+                                    }
+                                    .opacity(appearAnimation ? 1.0 : 0.0)
+                                    
+                                    Text("processingInstructionsSimple".localized)
+                                        .font(.custom("Georgia", size: s(23)))
+                                        .foregroundStyle(headingColor.opacity(0.92))
+                                        .multilineTextAlignment(.center)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .padding(.horizontal, s(8))
+                                        .padding(.top, s(4))
+                                        .opacity(appearAnimation ? 1.0 : 0.0)
+                                    
+                                    VStack(spacing: s(18)) {
+                                        PaymentProcessingCardBrandStrip(geometry: geometry)
+                                        PaymentProcessingSecureBadge(geometry: geometry, headingColor: headingColor, accentColor: burgundyBrand)
+                                    }
+                                    .opacity(appearAnimation ? 1.0 : 0.0)
+                                }
+                                
+                                Spacer(minLength: s(28))
+                                
+                                // Pinned to bottom of glass panel — aligns with action row on Step 3 review.
+                                Button(action: {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    onCancel()
+                                }) {
+                                    Text("cancel".localized)
+                                        .font(.custom("Georgia", size: s(16)))
+                                        .foregroundColor(headingColor)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(minHeight: s(58), maxHeight: s(58))
+                                        .background(
+                                            RoundedRectangle(cornerRadius: cancelCorner)
+                                                .fill(creamFill)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: cancelCorner)
+                                                        .fill(Color.white.opacity(0.15))
+                                                )
+                                        )
+                                        .cornerRadius(cancelCorner)
+                                }
+                                .buttonStyle(.plain)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: s(16), style: .continuous)
-                                        .stroke(goldAccent.opacity(0.45), lineWidth: s(1.5))
+                                    DonationGoldRingBorder(cornerRadius: cancelCorner)
+                                        .allowsHitTesting(false)
                                 )
+                                .opacity(appearAnimation ? 1.0 : 0.0)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            .padding(.horizontal, s(glassPanelInternalPadding))
+                            .padding(.top, s(glassPanelVerticalPadding + step3PanelContentTopInset))
+                            .padding(.bottom, s(28))
+                            .frame(maxWidth: panelMaxWidth, maxHeight: geometry.size.height * 0.76, alignment: .top)
+                            .background(
+                                RoundedRectangle(cornerRadius: s(glassPanelCorner))
+                                    .fill(Color.white.opacity(0.15))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: s(glassPanelCorner))
+                                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                                    )
+                            )
+                            .shadow(color: Color.black.opacity(0.09), radius: s(40), x: 0, y: s(16))
+                            .padding(.horizontal, s(glassPanelHorizontalPadding))
+                            .offset(y: appearAnimation ? 0 : s(12))
                         }
-                        .padding(.horizontal, s(8))
-                        
-                        PaymentProcessingCardBrandStrip(geometry: geometry)
-                            .padding(.top, s(4))
-                        
-                        PaymentProcessingSecureBadge(geometry: geometry, headingColor: headingColor, accentColor: accentBrandColor)
+                        .frame(maxWidth: .infinity)
                     }
-                    .padding(.horizontal, s(36))
-                    .padding(.vertical, s(32))
-                    .frame(maxWidth: min(geometry.size.width * 0.9, s(820)))
-                    .background(
-                        RoundedRectangle(cornerRadius: s(32), style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .background(
-                                RoundedRectangle(cornerRadius: s(32), style: .continuous)
-                                    .fill(creamPanelFill.opacity(0.35))
-                            )
-                            .shadow(color: headingColor.opacity(0.2), radius: s(28), x: 0, y: s(14))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: s(32), style: .continuous)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [goldAccent.opacity(0.55), headingColor.opacity(0.1)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: s(1.5)
-                            )
-                    )
-                    .opacity(appearAnimation ? 1.0 : 0.0)
-                    .offset(y: appearAnimation ? 0 : s(16))
-                    
-                    Spacer(minLength: s(12))
-                    
-                    Button(action: {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        onCancel()
-                    }) {
-                        Text("cancel".localized)
-                            .font(.custom("Georgia", size: s(18)))
-                            .foregroundStyle(accentBrandColor)
-                            .padding(.horizontal, s(36))
-                            .padding(.vertical, s(14))
-                            .background(
-                                RoundedRectangle(cornerRadius: s(16), style: .continuous)
-                                    .fill(Color.white.opacity(0.55))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: s(16), style: .continuous)
-                                    .stroke(accentBrandColor.opacity(0.85), lineWidth: s(2))
-                            )
-                    }
-                    .padding(.bottom, s(28))
-                    .opacity(appearAnimation ? 1.0 : 0.0)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .ignoresSafeArea(.all, edges: .all)
             

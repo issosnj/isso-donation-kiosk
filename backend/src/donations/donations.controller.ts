@@ -243,6 +243,35 @@ export class DonationsController {
     return this.donationsService.findAll(user.templeId, filters);
   }
 
+  @Get('overview')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Aggregated overview metrics (daily trends + per-temple)' })
+  async getOverview(
+    @CurrentUser() user: any,
+    @Query('templeId') templeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    if (!startDate || !endDate) {
+      throw new BadRequestException('startDate and endDate query parameters are required');
+    }
+    const parsedStart = new Date(startDate);
+    const parsedEnd = new Date(endDate);
+    if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
+      throw new BadRequestException('Invalid startDate or endDate');
+    }
+
+    let filterTempleId: string | undefined;
+    if (user.role === UserRole.MASTER_ADMIN) {
+      filterTempleId = templeId || undefined;
+    } else {
+      filterTempleId = user.templeId;
+    }
+
+    return this.donationsService.getOverviewMetrics(filterTempleId, parsedStart, parsedEnd);
+  }
+
   @Get('stats')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
@@ -252,51 +281,39 @@ export class DonationsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    try {
-      console.log('[Donations Controller] getStats called by user:', user.email, user.role);
-      console.log('[Donations Controller] Query params:', { startDate, endDate });
-      
-      const templeId = user.role === UserRole.MASTER_ADMIN ? undefined : user.templeId;
-      console.log('[Donations Controller] Using templeId:', templeId);
-      
-      let parsedStartDate: Date | undefined;
-      let parsedEndDate: Date | undefined;
-      
-      if (startDate) {
-        parsedStartDate = new Date(startDate);
-        if (isNaN(parsedStartDate.getTime())) {
-          console.warn('[Donations Controller] Invalid startDate:', startDate);
-          parsedStartDate = undefined;
-        }
+    console.log('[Donations Controller] getStats called by user:', user.email, user.role);
+    console.log('[Donations Controller] Query params:', { startDate, endDate });
+
+    const filterTempleId = user.role === UserRole.MASTER_ADMIN ? undefined : user.templeId;
+    console.log('[Donations Controller] Using templeId:', filterTempleId);
+
+    let parsedStartDate: Date | undefined;
+    let parsedEndDate: Date | undefined;
+
+    if (startDate) {
+      parsedStartDate = new Date(startDate);
+      if (isNaN(parsedStartDate.getTime())) {
+        console.warn('[Donations Controller] Invalid startDate:', startDate);
+        parsedStartDate = undefined;
       }
-      
-      if (endDate) {
-        parsedEndDate = new Date(endDate);
-        if (isNaN(parsedEndDate.getTime())) {
-          console.warn('[Donations Controller] Invalid endDate:', endDate);
-          parsedEndDate = undefined;
-        }
-      }
-      
-      const stats = await this.donationsService.getStats(
-        templeId,
-        parsedStartDate,
-        parsedEndDate,
-      );
-      
-      console.log('[Donations Controller] Returning stats:', stats);
-      return stats;
-    } catch (error: any) {
-      console.error('[Donations Controller] Error in getStats:', error);
-      console.error('[Donations Controller] Error message:', error?.message);
-      console.error('[Donations Controller] Error stack:', error?.stack);
-      
-      // Return default stats on error
-      return {
-        total: 0,
-        count: 0,
-      };
     }
+
+    if (endDate) {
+      parsedEndDate = new Date(endDate);
+      if (isNaN(parsedEndDate.getTime())) {
+        console.warn('[Donations Controller] Invalid endDate:', endDate);
+        parsedEndDate = undefined;
+      }
+    }
+
+    const stats = await this.donationsService.getStats(
+      filterTempleId,
+      parsedStartDate,
+      parsedEndDate,
+    );
+
+    console.log('[Donations Controller] Returning stats:', stats);
+    return stats;
   }
 
   @Get(':id')

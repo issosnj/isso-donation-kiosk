@@ -212,7 +212,7 @@ You'll be prompted for email, password, name, and role.
 ### iOS App (TestFlight/MDM)
 
 1. **Build for Distribution**
-   - Open `kiosk-app/ISSOKiosk.xcodeproj` in Xcode
+   - Open `kiosk-app/ISSOKiosk/ISSOKiosk.xcodeproj` in Xcode
    - Configure signing with your Apple Developer account
    - Archive and upload to App Store Connect
 

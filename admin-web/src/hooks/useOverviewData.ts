@@ -3,8 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { useDevices } from '@/hooks/useDevices'
-import { useAlerts } from '@/hooks/useAlerts'
-import { format, subDays, startOfDay } from 'date-fns'
+import { format, subDays, startOfDay, parseISO } from 'date-fns'
 
 export interface TemplePerformance {
   templeId: string
@@ -21,19 +20,27 @@ export interface TrendDataPoint {
   count: number
 }
 
-function groupDonationsByDate(
-  donations: { createdAt: string; amount: number }[],
+interface OverviewApiResponse {
+  daily: { date: string; amount: number; count: number }[]
+  byTemple: { templeId: string; templeName: string; total: number; count: number }[]
+}
+
+function bucketDailyMetrics(
+  daily: { date: string; amount: number; count: number }[],
   granularity: ChartGranularity
 ): TrendDataPoint[] {
-  const succeeded = donations.filter((d: any) => d.status === 'SUCCEEDED')
+  if (granularity === 'day') {
+    return [...daily]
+      .map((d) => ({ date: d.date, amount: d.amount, count: d.count }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+  }
+
   const map = new Map<string, { amount: number; count: number }>()
 
-  for (const d of succeeded) {
-    const date = new Date(d.createdAt)
+  for (const row of daily) {
+    const date = parseISO(row.date)
     let key: string
-    if (granularity === 'day') {
-      key = format(startOfDay(date), 'yyyy-MM-dd')
-    } else if (granularity === 'week') {
+    if (granularity === 'week') {
       const weekStart = startOfDay(date)
       weekStart.setDate(weekStart.getDate() - weekStart.getDay())
       key = format(weekStart, 'yyyy-MM-dd')
@@ -41,39 +48,15 @@ function groupDonationsByDate(
       key = format(date, 'yyyy-MM')
     }
     const existing = map.get(key) || { amount: 0, count: 0 }
-    const amt = Number(d.amount) || 0
-    map.set(key, { amount: existing.amount + amt, count: existing.count + 1 })
+    map.set(key, {
+      amount: existing.amount + row.amount,
+      count: existing.count + row.count,
+    })
   }
 
   return Array.from(map.entries())
     .map(([date, { amount, count }]) => ({ date, amount, count }))
     .sort((a, b) => a.date.localeCompare(b.date))
-}
-
-function aggregateByTemple(donations: any[]): TemplePerformance[] {
-  const succeeded = donations.filter((d: any) => d.status === 'SUCCEEDED')
-  const map = new Map<string, { name: string; amount: number; count: number }>()
-
-  for (const d of succeeded) {
-    const tid = d.templeId || 'unknown'
-    const name = d.temple?.name || 'Unknown'
-    const existing = map.get(tid) || { name, amount: 0, count: 0 }
-    const amt = Number(d.amount) || 0
-    map.set(tid, {
-      name,
-      amount: existing.amount + amt,
-      count: existing.count + 1,
-    })
-  }
-
-  return Array.from(map.entries())
-    .map(([templeId, { name, amount, count }]) => ({
-      templeId,
-      templeName: name,
-      total: amount,
-      count,
-    }))
-    .sort((a, b) => b.total - a.total)
 }
 
 export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
@@ -122,19 +105,23 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
   })
 
   const {
-    data: donations = [],
-    isLoading: donationsLoading,
-    isError: donationsError,
+    data: overview,
+    isLoading: overviewLoading,
+    isError: overviewError,
   } = useQuery({
-    queryKey: ['overview-donations', ninetyDaysAgo.toISOString(), endOfToday.toISOString()],
+    queryKey: [
+      'donations-overview',
+      ninetyDaysAgo.toISOString(),
+      endOfToday.toISOString(),
+    ],
     queryFn: async () => {
-      const res = await api.get('/donations', {
+      const res = await api.get<OverviewApiResponse>('/donations/overview', {
         params: {
           startDate: ninetyDaysAgo.toISOString(),
           endDate: endOfToday.toISOString(),
         },
       })
-      return Array.isArray(res.data) ? res.data : []
+      return res.data
     },
     retry: 1,
   })
@@ -147,14 +134,15 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     },
   })
 
-  const { summary: deviceSummary, isLoading: devicesLoading, isError: devicesError } = useDevices()
-  const { summary: alertSummary, alerts } = useAlerts()
+  const { summary: deviceSummary, isLoading: devicesLoading, isError: devicesError } =
+    useDevices()
 
-  const trendData = groupDonationsByDate(donations, chartGranularity)
-  const templePerformance = aggregateByTemple(donations)
+  const daily = overview?.daily ?? []
+  const byTemple = overview?.byTemple ?? []
 
-  // Merge in temples with zero donations
-  const allTempleIds = new Set(templePerformance.map((t) => t.templeId))
+  const trendData = bucketDailyMetrics(daily, chartGranularity)
+
+  const allTempleIds = new Set(byTemple.map((t) => t.templeId))
   const templesWithZero = (temples as { id: string; name: string }[])
     .filter((t) => !allTempleIds.has(t.id))
     .map((t) => ({
@@ -163,7 +151,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       total: 0,
       count: 0,
     }))
-  const templePerformanceFull = [...templePerformance, ...templesWithZero].sort(
+  const templePerformanceFull = [...byTemple, ...templesWithZero].sort(
     (a, b) => b.total - a.total
   )
 
@@ -184,17 +172,14 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     trendData,
     templePerformance: templePerformanceFull,
     deviceSummary,
-    alertSummary,
-    alerts,
-    /** True while either stats or donations query has no data yet (first load). */
-    isLoading: statsLoading || donationsLoading,
-    /** KPI hero + stat cards: only wait on `/donations/stats`, not the heavy donations list. */
+    /** True while either stats or overview query has no data yet (first load). */
+    isLoading: statsLoading || overviewLoading,
     statsLoading,
-    /** Charts + temple table: driven by donations list. */
-    donationsLoading,
+    /** Charts + temple table: driven by `/donations/overview`. */
+    donationsLoading: overviewLoading,
     devicesLoading,
     statsError: !!statsError,
-    donationsError: !!donationsError,
+    donationsError: !!overviewError,
     devicesError: !!devicesError,
   }
 }

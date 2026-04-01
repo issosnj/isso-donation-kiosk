@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api, { apiBaseURL } from '@/lib/api'
-import { AlertCenter } from '@/components/alerts'
 import { useOverviewData } from '@/hooks/useOverviewData'
 import {
   ExecutiveHero,
@@ -28,8 +27,6 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
     trendData,
     templePerformance,
     deviceSummary,
-    alertSummary,
-    alerts,
     statsLoading,
     donationsLoading,
     devicesLoading,
@@ -72,27 +69,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
         isError={statsError}
       />
 
-      {/* 2. Operational alerts */}
-      {alertSummary.total > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">
-            What needs attention
-          </h2>
-          <AlertCenter
-            alerts={alerts}
-            isLoading={false}
-            emptyMessage="All systems normal"
-          />
-        </section>
-      )}
-
-      {alertSummary.total === 0 && (
-        <section>
-          <AlertCenter alerts={[]} isLoading={false} emptyMessage="All systems normal" />
-        </section>
-      )}
-
-      {/* 3. Key metrics row */}
+      {/* 2. Key metrics row */}
       <section>
         <h2 className="text-sm font-semibold text-gray-900 mb-3">Key metrics</h2>
         <OverviewStatCards
@@ -104,7 +81,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
         />
       </section>
 
-      {/* 4. Donation trends + Temple performance + Device health */}
+      {/* 3. Donation trends + Temple performance + Device health */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7">
           <DonationTrendsChart
@@ -121,7 +98,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
             online={deviceSummary.online}
             offline={deviceSummary.offline}
             needingAttention={deviceSummary.needingAttention}
-            setupIssuesCount={alertSummary.warning + alertSummary.critical}
+            setupIssuesCount={0}
             isLoading={devicesLoading}
             isError={devicesError}
           />

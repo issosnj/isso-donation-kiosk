@@ -52,6 +52,7 @@ backend/.env
 # Admin Web
 admin-web/.next/
 admin-web/out/
+*.tsbuildinfo
 
 # Database
 *.db

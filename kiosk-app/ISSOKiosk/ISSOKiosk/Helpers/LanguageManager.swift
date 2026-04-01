@@ -98,9 +98,8 @@ class LanguageManager: ObservableObject {
             
             // Payment
             "processingHeading": "Processing your payment",
-            "processingHoldNearReader": "Hold your card flat on or near the reader",
-            "processingPayment": "Tap your card once",
-            "processingSubtext": "If you hear a beep, please wait — do not tap again",
+            "totalSevaLabel": "Total Seva:",
+            "processingInstructionsSimple": "Tap & hold your card on the reader. Hear one beep, then wait — do not tap again.",
             "secureEncrypted": "Secure & encrypted",
             "paymentSuccessful": "Payment Successful",
             "paymentFailed": "Payment Failed",
@@ -186,9 +185,8 @@ class LanguageManager: ObservableObject {
             
             // Payment
             "processingHeading": "તમારું ભુગતાન પ્રક્રિયામાં છે",
-            "processingHoldNearReader": "તમારું કાર્ડ રીડર પર અથવા નજીક સપાટ પકડી રાખો",
-            "processingPayment": "તમારી કાર્ડ પર એક વાર ટેપ કરો",
-            "processingSubtext": "જો તમે બીપ સાંભળો તો કૃપા કરીને રાહ જુઓ — ફરીથી ટેપ કરશો નહીં",
+            "totalSevaLabel": "કુલ સેવા:",
+            "processingInstructionsSimple": "રીડર પર કાર્ડ ટેપ કરીને પકડી રાખો. એક બીપ સાંભળો, પછી રાહ જુઓ — ફરીથી ટેપ કરશો નહીં.",
             "secureEncrypted": "સુરક્ષિત અને એન્ક્રિપ્ટેડ",
             "paymentSuccessful": "પેમેન્ટ સફળ",
             "paymentFailed": "પેમેન્ટ નિષ્ફળ",
@@ -274,9 +272,8 @@ class LanguageManager: ObservableObject {
             
             // Payment
             "processingHeading": "आपका भुगतान प्रक्रिया में है",
-            "processingHoldNearReader": "कार्ड को रीडर पर या उसके पास समतल रखें",
-            "processingPayment": "अपना कार्ड एक बार टैप करें",
-            "processingSubtext": "बीप सुनने पर कृपया प्रतीक्षा करें — दोबारा टैप न करें",
+            "totalSevaLabel": "कुल सेवा:",
+            "processingInstructionsSimple": "रीडर पर कार्ड टैप करके पकड़कर रखें। एक बीप सुनें, फिर प्रतीक्षा करें — दोबारा टैप न करें।",
             "secureEncrypted": "सुरक्षित और एन्क्रिप्टेड",
             "paymentSuccessful": "भुगतान सफल",
             "paymentFailed": "भुगतान विफल",
