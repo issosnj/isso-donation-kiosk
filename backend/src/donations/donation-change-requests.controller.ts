@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -11,6 +12,7 @@ import { RejectDonationChangeRequestDto } from './dto/reject-donation-change-req
 import { DonationChangeRequestStatus } from './entities/donation-change-request.entity';
 
 @ApiTags('donation-change-requests')
+@SkipThrottle()
 @Controller('donation-change-requests')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()

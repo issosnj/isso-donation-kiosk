@@ -19,5 +19,15 @@ export const overviewQueryDefaults = {
   staleTime: 5 * 60_000,
   gcTime: 30 * 60_000,
   refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+  refetchOnMount: false,
+  retry: false,
+} as const
+
+export const dashboardQueryDefaults = {
+  staleTime: 60_000,
+  gcTime: 10 * 60_000,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
   retry: shouldRetryQuery,
 } as const

@@ -22,7 +22,8 @@ import { typeOrmConfig } from './config/typeorm.config';
 @Module({
   imports: [
     LoggerModule,
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    // Dashboard loads many parallel authenticated reads; 100/min caused 429 storms.
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 300 }]),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

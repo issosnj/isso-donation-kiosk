@@ -12,6 +12,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { DonationsService } from './donations.service';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
@@ -216,6 +217,7 @@ export class DonationsController {
     return this.donationsService.complete(id, completeDonationDto, req.device ? 'device' : 'user');
   }
 
+  @SkipThrottle()
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
@@ -243,6 +245,7 @@ export class DonationsController {
     return this.donationsService.findAll(user.templeId, filters);
   }
 
+  @SkipThrottle()
   @Get('overview')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
@@ -272,6 +275,7 @@ export class DonationsController {
     return this.donationsService.getOverviewMetrics(filterTempleId, parsedStart, parsedEnd);
   }
 
+  @SkipThrottle()
   @Get('stats')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()

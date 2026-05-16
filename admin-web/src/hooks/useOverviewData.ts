@@ -5,9 +5,9 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { useDevices } from '@/hooks/useDevices'
 import {
+  dashboardQueryDefaults,
   getOverviewTrendRange,
   overviewQueryDefaults,
-  shouldRetryQuery,
 } from '@/lib/queryHelpers'
 import { format, subDays, startOfDay, parseISO, isValid } from 'date-fns'
 import { safeNumber, sanitizeSparkline } from '@/lib/formatters'
@@ -147,11 +147,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     endOfPrevMonth,
   } = dateRanges
 
-  const statsQueryOpts = {
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-    retry: shouldRetryQuery,
-  } as const
+  const statsQueryOpts = dashboardQueryDefaults
 
   const { data: statsYtd, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['overview-stats-ytd'],
@@ -217,9 +213,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       const res = await api.get('/temples')
       return Array.isArray(res.data) ? res.data : []
     },
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-    retry: shouldRetryQuery,
+    ...dashboardQueryDefaults,
   })
 
   const { data: statsToday } = useQuery({
@@ -269,9 +263,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       })
       return Array.isArray(res.data) ? res.data : []
     },
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-    retry: shouldRetryQuery,
+    ...dashboardQueryDefaults,
   })
 
   const {

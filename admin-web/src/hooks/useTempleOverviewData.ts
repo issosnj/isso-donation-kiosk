@@ -5,9 +5,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { startOfDay, subDays } from 'date-fns'
 import api from '@/lib/api'
 import {
+  dashboardQueryDefaults,
   getOverviewTrendRange,
   overviewQueryDefaults,
-  shouldRetryQuery,
 } from '@/lib/queryHelpers'
 import { useDevices } from '@/hooks/useDevices'
 import type { Donation } from '@/types/donation'
@@ -74,6 +74,7 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
       const res = await api.get<TempleRecord>(`/temples/${templeId}`)
       return res.data
     },
+    ...dashboardQueryDefaults,
   })
 
   const {
@@ -86,11 +87,7 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
     last30Start,
   } = dateRanges
 
-  const statsQueryOpts = {
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-    retry: shouldRetryQuery,
-  } as const
+  const statsQueryOpts = dashboardQueryDefaults
 
   const { data: statsYtd, isLoading: statsYtdLoading, isError: statsYtdError } = useQuery({
     queryKey: ['temple-overview-stats-ytd', templeId],
@@ -171,9 +168,7 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
         })
         return Array.isArray(res.data) ? res.data : []
       },
-      staleTime: 60_000,
-      refetchOnWindowFocus: false,
-      retry: shouldRetryQuery,
+      ...dashboardQueryDefaults,
     })
 
   const { data: donorStats, isLoading: donorStatsLoading, isError: donorStatsError } = useQuery({
@@ -182,9 +177,7 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
       const res = await api.get<DonorStats>(`/donors/temple/${templeId}/stats`)
       return res.data
     },
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-    retry: shouldRetryQuery,
+    ...dashboardQueryDefaults,
   })
 
   const { data: changeRequests = [] } = useQuery({
@@ -193,9 +186,7 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
       const res = await api.get<ChangeRequest[]>('/donation-change-requests/my-temple')
       return Array.isArray(res.data) ? res.data : []
     },
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-    retry: shouldRetryQuery,
+    ...dashboardQueryDefaults,
   })
 
   const {

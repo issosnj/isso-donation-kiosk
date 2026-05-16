@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { TemplesService } from './temples.service';
 import { CreateTempleDto } from './dto/create-temple.dto';
 import { UpdateTempleDto } from './dto/update-temple.dto';
@@ -25,6 +26,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('temples')
+@SkipThrottle()
 @Controller('temples')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
