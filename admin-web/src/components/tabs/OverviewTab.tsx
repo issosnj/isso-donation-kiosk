@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import api, { apiBaseURL } from '@/lib/api'
+import { apiBaseURL } from '@/lib/api'
 import { TempleOverviewDashboard } from '@/components/temple-overview'
 import { useLastUpdated } from '@/hooks/useLastUpdated'
 import { useOverviewData, type ChartGranularity } from '@/hooks/useOverviewData'
@@ -21,7 +21,14 @@ interface OverviewTabProps {
 }
 
 export default function OverviewTab({ templeId }: OverviewTabProps) {
-  const isMasterAdmin = !templeId
+  if (templeId) {
+    return <TempleOverviewDashboard templeId={templeId} />
+  }
+
+  return <MasterOverviewTab />
+}
+
+function MasterOverviewTab() {
   const [chartGranularity, setChartGranularity] = useState<ChartGranularity>('day')
   const [alertFilter, setAlertFilter] = useState<'all' | 'critical' | 'warning' | 'info'>('all')
   const lastUpdated = useLastUpdated()
@@ -48,10 +55,6 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
     failedCount: executiveKpis.failedTransactions,
     offlineCount: deviceSummary.offline,
   })
-
-  if (!isMasterAdmin && templeId) {
-    return <TempleOverviewDashboard templeId={templeId} />
-  }
 
   const apiMayBeMisconfigured =
     typeof window !== 'undefined' &&

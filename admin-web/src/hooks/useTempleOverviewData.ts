@@ -2,8 +2,13 @@
 
 import { useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { subDays, startOfDay } from 'date-fns'
+import { startOfDay, subDays } from 'date-fns'
 import api from '@/lib/api'
+import {
+  getOverviewTrendRange,
+  overviewQueryDefaults,
+  shouldRetryQuery,
+} from '@/lib/queryHelpers'
 import { useDevices } from '@/hooks/useDevices'
 import type { Donation } from '@/types/donation'
 import type { DonorStats } from '@/types/donor'
@@ -48,15 +53,20 @@ interface ChangeRequest {
 
 export function useTempleOverviewData(templeId: string, chartPeriod: TempleChartPeriod) {
   const queryClient = useQueryClient()
-  const today = new Date()
-  const startOfYear = new Date(today.getFullYear(), 0, 1)
-  const endOfToday = new Date()
-  const ninetyDaysAgo = subDays(today, 90)
-  const startOfToday = startOfDay(today)
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-  const startOfPrevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-  const endOfPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59)
-  const last30Start = subDays(today, 30)
+
+  const dateRanges = useMemo(() => {
+    const now = new Date()
+    const endOfToday = startOfDay(now)
+    return {
+      startOfYear: new Date(now.getFullYear(), 0, 1),
+      endOfToday,
+      startOfToday: startOfDay(now),
+      startOfMonth: new Date(now.getFullYear(), now.getMonth(), 1),
+      startOfPrevMonth: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      endOfPrevMonth: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59),
+      last30Start: subDays(endOfToday, 30),
+    }
+  }, [])
 
   const { data: temple, isLoading: templeLoading, isError: templeError } = useQuery({
     queryKey: ['temple', templeId],
@@ -66,6 +76,22 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
     },
   })
 
+  const {
+    startOfYear,
+    endOfToday,
+    startOfToday,
+    startOfMonth,
+    startOfPrevMonth,
+    endOfPrevMonth,
+    last30Start,
+  } = dateRanges
+
+  const statsQueryOpts = {
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: shouldRetryQuery,
+  } as const
+
   const { data: statsYtd, isLoading: statsYtdLoading, isError: statsYtdError } = useQuery({
     queryKey: ['temple-overview-stats-ytd', templeId],
     queryFn: async () => {
@@ -74,7 +100,7 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
       })
       return res.data
     },
-    retry: 1,
+    ...statsQueryOpts,
   })
 
   const { data: statsMonth, isLoading: statsMonthLoading } = useQuery({
@@ -85,6 +111,7 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
       })
       return res.data
     },
+    ...statsQueryOpts,
   })
 
   const { data: statsToday, isLoading: statsTodayLoading } = useQuery({
@@ -95,6 +122,7 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
       })
       return res.data
     },
+    ...statsQueryOpts,
   })
 
   const { data: statsPrevMonth } = useQuery({
@@ -108,6 +136,7 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
       })
       return res.data
     },
+    ...statsQueryOpts,
   })
 
   const {
@@ -116,17 +145,18 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
     isError: overviewError,
     dataUpdatedAt: overviewUpdatedAt,
   } = useQuery({
-    queryKey: ['temple-donations-overview', templeId, ninetyDaysAgo.toISOString()],
+    queryKey: ['temple-donations-overview', templeId],
     queryFn: async () => {
+      const { start, end } = getOverviewTrendRange()
       const res = await api.get<OverviewApiResponse>('/donations/overview', {
         params: {
-          startDate: ninetyDaysAgo.toISOString(),
-          endDate: endOfToday.toISOString(),
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
         },
       })
       return res.data
     },
-    retry: 1,
+    ...overviewQueryDefaults,
   })
 
   const { data: recentDonations = [], isLoading: donationsLoading, isError: donationsError } =
@@ -142,6 +172,8 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
         return Array.isArray(res.data) ? res.data : []
       },
       staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      retry: shouldRetryQuery,
     })
 
   const { data: donorStats, isLoading: donorStatsLoading, isError: donorStatsError } = useQuery({
@@ -150,6 +182,9 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
       const res = await api.get<DonorStats>(`/donors/temple/${templeId}/stats`)
       return res.data
     },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: shouldRetryQuery,
   })
 
   const { data: changeRequests = [] } = useQuery({
@@ -158,6 +193,9 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
       const res = await api.get<ChangeRequest[]>('/donation-change-requests/my-temple')
       return Array.isArray(res.data) ? res.data : []
     },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: shouldRetryQuery,
   })
 
   const {
@@ -178,8 +216,8 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
   )
 
   const chartData = useMemo(
-    () => filterDailyByPeriod(daily, chartPeriod, today),
-    [daily, chartPeriod, today],
+    () => filterDailyByPeriod(daily, chartPeriod),
+    [daily, chartPeriod],
   )
 
   const metrics = useMemo(

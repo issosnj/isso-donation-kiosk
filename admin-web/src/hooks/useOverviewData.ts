@@ -1,8 +1,14 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { useDevices } from '@/hooks/useDevices'
+import {
+  getOverviewTrendRange,
+  overviewQueryDefaults,
+  shouldRetryQuery,
+} from '@/lib/queryHelpers'
 import { format, subDays, startOfDay, parseISO, isValid } from 'date-fns'
 import { safeNumber, sanitizeSparkline } from '@/lib/formatters'
 
@@ -115,16 +121,37 @@ function bucketDailyMetrics(
 }
 
 export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
-  const today = new Date()
-  const startOfYear = new Date(today.getFullYear(), 0, 1)
-  const endOfToday = new Date()
-  const ninetyDaysAgo = subDays(today, 90)
-  const last30Start = subDays(today, 30)
-  const prev30Start = subDays(today, 60)
-  const startOfToday = startOfDay(today)
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-  const startOfPrevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-  const endOfPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59)
+  const dateRanges = useMemo(() => {
+    const now = new Date()
+    const endOfToday = startOfDay(now)
+    return {
+      startOfYear: new Date(now.getFullYear(), 0, 1),
+      endOfToday,
+      last30Start: subDays(endOfToday, 30),
+      prev30Start: subDays(endOfToday, 60),
+      startOfToday: startOfDay(now),
+      startOfMonth: new Date(now.getFullYear(), now.getMonth(), 1),
+      startOfPrevMonth: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      endOfPrevMonth: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59),
+    }
+  }, [])
+
+  const {
+    startOfYear,
+    endOfToday,
+    last30Start,
+    prev30Start,
+    startOfToday,
+    startOfMonth,
+    startOfPrevMonth,
+    endOfPrevMonth,
+  } = dateRanges
+
+  const statsQueryOpts = {
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: shouldRetryQuery,
+  } as const
 
   const { data: statsYtd, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['overview-stats-ytd'],
@@ -134,7 +161,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       })
       return res.data
     },
-    retry: 1,
+    ...statsQueryOpts,
   })
 
   const { data: statsLast30 } = useQuery({
@@ -143,11 +170,12 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       const res = await api.get('/donations/stats', {
         params: {
           startDate: last30Start.toISOString(),
-          endDate: today.toISOString(),
+          endDate: endOfToday.toISOString(),
         },
       })
       return res.data
     },
+    ...statsQueryOpts,
   })
 
   const { data: statsPrev30 } = useQuery({
@@ -161,6 +189,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       })
       return res.data
     },
+    ...statsQueryOpts,
   })
 
   const {
@@ -168,21 +197,18 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     isLoading: overviewLoading,
     isError: overviewError,
   } = useQuery({
-    queryKey: [
-      'donations-overview',
-      ninetyDaysAgo.toISOString(),
-      endOfToday.toISOString(),
-    ],
+    queryKey: ['donations-overview'],
     queryFn: async () => {
+      const { start, end } = getOverviewTrendRange()
       const res = await api.get<OverviewApiResponse>('/donations/overview', {
         params: {
-          startDate: ninetyDaysAgo.toISOString(),
-          endDate: endOfToday.toISOString(),
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
         },
       })
       return res.data
     },
-    retry: 1,
+    ...overviewQueryDefaults,
   })
 
   const { data: temples = [] } = useQuery({
@@ -191,6 +217,9 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       const res = await api.get('/temples')
       return Array.isArray(res.data) ? res.data : []
     },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: shouldRetryQuery,
   })
 
   const { data: statsToday } = useQuery({
@@ -201,6 +230,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       })
       return res.data
     },
+    ...statsQueryOpts,
   })
 
   const { data: statsMonth } = useQuery({
@@ -211,6 +241,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       })
       return res.data
     },
+    ...statsQueryOpts,
   })
 
   const { data: statsPrevMonth } = useQuery({
@@ -224,6 +255,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       })
       return res.data
     },
+    ...statsQueryOpts,
   })
 
   const { data: recentDonations = [] } = useQuery({
@@ -238,6 +270,8 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
       return Array.isArray(res.data) ? res.data : []
     },
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: shouldRetryQuery,
   })
 
   const {
