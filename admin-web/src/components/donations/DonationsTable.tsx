@@ -109,7 +109,7 @@ export default function DonationsTable({
     'px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50/95'
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto custom-scrollbar max-w-full">
       <table className="min-w-[960px] w-full">
         <thead className="sticky top-0 z-[1]">
           <tr className="border-b border-gray-200">

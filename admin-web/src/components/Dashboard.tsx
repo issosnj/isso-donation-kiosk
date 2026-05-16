@@ -138,14 +138,21 @@ export default function Dashboard({ user }: DashboardProps) {
         ? 'outage'
         : 'operational'
 
-  const mainMargin = isMasterAdmin
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  const sidebarSpacerWidth = isMasterAdmin
     ? sidebarCollapsed
-      ? 'ml-0 lg:ml-[72px]'
-      : 'ml-0 lg:ml-64'
-    : 'ml-64'
+      ? 'lg:w-[72px]'
+      : 'lg:w-64'
+    : 'lg:w-64'
+
+  const handleTempleTabChange = (tab: string) => {
+    setMobileNavOpen(false)
+    handleTabChange(tab)
+  }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--background)] flex overflow-x-hidden">
       {isMasterAdmin ? (
         <>
           <EnterpriseSidebar
@@ -166,12 +173,38 @@ export default function Dashboard({ user }: DashboardProps) {
           />
         </>
       ) : (
-        <Sidebar user={user} activeTab={activeTab} setActiveTab={handleTabChange} onLogout={logout} />
+        <Sidebar
+          user={user}
+          activeTab={activeTab}
+          setActiveTab={handleTempleTabChange}
+          onLogout={logout}
+          isMobileOpen={mobileNavOpen}
+          onMobileClose={() => setMobileNavOpen(false)}
+        />
       )}
 
-      <div
-        className={`${mainMargin} min-h-screen flex flex-col transition-[margin] duration-300 ease-out w-full min-w-0`}
-      >
+      <div className={`hidden shrink-0 ${sidebarSpacerWidth} lg:block`} aria-hidden />
+
+      <div className="flex-1 min-w-0 min-h-screen flex flex-col">
+        {!isMasterAdmin && (
+          <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 h-14 bg-white/95 backdrop-blur border-b border-gray-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="p-2 -ml-1 rounded-lg text-gray-600 hover:bg-gray-100"
+              aria-label="Open navigation menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900 truncate">ISSO Kiosk</p>
+              <p className="text-xs text-gray-500 truncate">{user.name}</p>
+            </div>
+          </header>
+        )}
+
         {isMasterAdmin && (
           <TopHeaderBar
             user={user}
@@ -183,7 +216,7 @@ export default function Dashboard({ user }: DashboardProps) {
           />
         )}
 
-        <main className="flex-1 p-4 sm:p-6 max-w-[1600px] w-full min-w-0 mx-auto">
+        <main className="flex-1 p-4 sm:p-6 max-w-[1600px] w-full min-w-0 mx-auto box-border">
           {paymentMessage && (
             <div
               className={`mb-4 p-4 rounded-xl border flex items-center justify-between gap-3 ${

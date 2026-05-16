@@ -10,6 +10,8 @@ interface SidebarProps {
   activeTab: string
   setActiveTab: (tab: string) => void
   onLogout: () => void
+  isMobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
 const iconMap: Record<string, () => JSX.Element> = {
@@ -25,7 +27,14 @@ const iconMap: Record<string, () => JSX.Element> = {
   'religious-events': ReligiousEventsIcon,
 }
 
-export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: SidebarProps) {
+export default function Sidebar({
+  user,
+  activeTab,
+  setActiveTab,
+  onLogout,
+  isMobileOpen = false,
+  onMobileClose,
+}: SidebarProps) {
   const isMasterAdmin = user.role === 'MASTER_ADMIN'
 
   const templeTabs = [
@@ -53,7 +62,20 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
   const tabs = isMasterAdmin ? masterTabs : templeTabs
 
   return (
-    <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm">
+    <>
+      {isMobileOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          aria-label="Close navigation menu"
+          onClick={onMobileClose}
+        />
+      )}
+      <aside
+        className={`fixed left-0 top-0 z-50 flex h-full w-64 flex-col bg-white border-r border-gray-200 shadow-sm transition-transform duration-300 ease-out lg:translate-x-0 ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
       <div className="p-5 border-b border-gray-200">
         <div className="flex items-center space-x-3 mb-5">
           <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center shadow-sm">
@@ -72,7 +94,7 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
         </div>
       </div>
       
-      <nav className="mt-1 px-2 py-3">
+      <nav className="mt-1 flex-1 overflow-y-auto px-2 py-3 custom-scrollbar">
         {tabs.map((tab) => {
           const Icon = iconMap[tab.id] || OverviewIcon
           const isActive = activeTab === tab.id
@@ -93,7 +115,7 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
         })}
       </nav>
       
-      <div className="absolute bottom-0 w-full p-4 border-t border-gray-200 bg-white">
+      <div className="mt-auto w-full shrink-0 p-4 border-t border-gray-200 bg-white">
         <button
           onClick={onLogout}
           className="w-full px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 rounded-md text-gray-700 font-medium flex items-center justify-center space-x-2 transition-all duration-150 text-sm"
@@ -102,7 +124,8 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout }: Sid
           <span>Logout</span>
         </button>
       </div>
-    </div>
+    </aside>
+    </>
   )
 }
 

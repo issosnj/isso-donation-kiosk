@@ -22,11 +22,17 @@
   --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 24px rgba(124, 58, 237, 0.06);
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   color: var(--text-primary);
   background: var(--background);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 @layer components {

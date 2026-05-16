@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import Sidebar from '@/components/Sidebar'
+import AdminShell from '@/components/layout/AdminShell'
 
 function DeviceLogsContent() {
   const router = useRouter()
@@ -101,18 +101,16 @@ function DeviceLogsContent() {
     return null
   }
 
+  const shellProps = {
+    user,
+    activeTab: 'devices',
+    onTabChange: (tab: string) => router.push(`/dashboard?tab=${tab}`),
+    onLogout: () => router.push('/'),
+  }
+
   if (!deviceId) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar
-          user={user}
-          activeTab="devices"
-          setActiveTab={(tab) => router.push(`/dashboard?tab=${tab}`)}
-          onLogout={() => {
-            router.push('/')
-          }}
-        />
-        <div className="ml-64 min-h-screen">
+      <AdminShell {...shellProps} className="bg-gray-50">
           <div className="p-6">
             <div className="max-w-7xl mx-auto">
               <div className="bg-white rounded-lg shadow p-8">
@@ -128,22 +126,12 @@ function DeviceLogsContent() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+      </AdminShell>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar
-        user={user}
-        activeTab="devices"
-        setActiveTab={(tab) => router.push(`/dashboard?tab=${tab}`)}
-        onLogout={() => {
-          router.push('/')
-        }}
-      />
-      <div className="ml-64 min-h-screen">
+    <AdminShell {...shellProps} className="bg-gray-50">
         <div className="p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
@@ -279,8 +267,7 @@ function DeviceLogsContent() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </AdminShell>
   )
 }
 

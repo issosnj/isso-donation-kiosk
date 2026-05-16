@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import api, { apiBaseURL } from '@/lib/api'
+import { TempleOverviewDashboard } from '@/components/temple-overview'
 import { useLastUpdated } from '@/hooks/useLastUpdated'
 import { useOverviewData, type ChartGranularity } from '@/hooks/useOverviewData'
 import { useLiveActivity } from '@/hooks/useLiveActivity'
@@ -15,7 +15,6 @@ import {
   PlatformAlertsPanel,
 } from '@/components/ops-dashboard'
 import { DonationTrendsChart, TemplePerformanceSection } from '@/components/overview'
-import { formatCurrency, safeNumber } from '@/lib/formatters'
 
 interface OverviewTabProps {
   templeId?: string
@@ -51,7 +50,7 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
   })
 
   if (!isMasterAdmin && templeId) {
-    return <TempleAdminOverview templeId={templeId} />
+    return <TempleOverviewDashboard templeId={templeId} />
   }
 
   const apiMayBeMisconfigured =
@@ -125,65 +124,6 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
           onFilterChange={setAlertFilter}
           isLoading={devicesLoading}
         />
-      </div>
-    </div>
-  )
-}
-
-function TempleAdminOverview({ templeId }: { templeId: string }) {
-  const { data: stats, isLoading, isError: statsError } = useQuery({
-    queryKey: ['donation-stats', templeId],
-    queryFn: async () => {
-      const today = new Date()
-      const startOfYear = new Date(today.getFullYear(), 0, 1)
-      const response = await api.get('/donations/stats', {
-        params: {
-          startDate: startOfYear.toISOString(),
-          endDate: today.toISOString(),
-        },
-      })
-      return response.data
-    },
-  })
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="dashboard-card p-5 animate-pulse h-28" />
-        ))}
-      </div>
-    )
-  }
-
-  if (statsError || !stats) {
-    return (
-      <div className="dashboard-card p-12 text-center text-gray-500">
-        Unable to load temple overview.
-      </div>
-    )
-  }
-
-  const total = safeNumber(stats.total)
-  const count = safeNumber(stats.count)
-
-  return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="dashboard-card p-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Raised YTD</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(total)}</p>
-        </div>
-        <div className="dashboard-card p-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Donations</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{count.toLocaleString()}</p>
-        </div>
-        <div className="dashboard-card p-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Average gift</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">
-            {count > 0 ? formatCurrency(total / count) : formatCurrency(0)}
-          </p>
-        </div>
       </div>
     </div>
   )

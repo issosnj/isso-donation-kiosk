@@ -65,8 +65,8 @@ export default function TempleDashboard({ activeTab, templeId, deviceId }: Templ
   }
 
   return (
-    <div>
-      {activeTab !== 'donations' && (
+    <div className="min-w-0 max-w-full">
+      {activeTab !== 'donations' && activeTab !== 'overview' && (
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">{temple?.name || 'Temple Dashboard'}</h1>
           <p className="text-sm text-gray-600">Manage your temple&apos;s donations, devices, and Stripe integration</p>

@@ -47,7 +47,7 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
   const showPageHeader = activeTab !== 'overview'
 
   return (
-    <div>
+    <div className="min-w-0 max-w-full">
       {showPageHeader && (
         <div className="mb-5">
           <h1 className="text-xl font-bold text-gray-900 tracking-tight">{pageTitle(activeTab)}</h1>

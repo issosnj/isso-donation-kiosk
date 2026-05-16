@@ -26,7 +26,7 @@ export default function TempleFilter({
           value={selectedTempleId ?? ''}
           onChange={(e) => onSelect(e.target.value || undefined)}
           disabled={isLoading}
-          className="w-full min-w-[220px] px-4 py-2.5 pr-10 appearance-none bg-white border border-gray-300 rounded-lg text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full min-w-0 max-w-full px-4 py-2.5 pr-10 appearance-none bg-white border border-gray-300 rounded-lg text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="">Select a temple to view donors</option>
           {temples.map((t) => (

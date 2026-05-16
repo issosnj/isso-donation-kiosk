@@ -260,7 +260,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
         : null
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8 min-w-0 max-w-full">
       <DonorsPageHeader
         templeLabel={selectedTemple?.name}
         onAddDonor={() => setShowAddDonor(true)}

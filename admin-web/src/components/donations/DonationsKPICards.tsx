@@ -40,7 +40,7 @@ interface DonationsKPICardsProps {
 export default function DonationsKPICards({ kpis, isLoading }: DonationsKPICardsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-4 min-w-0">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
@@ -96,7 +96,7 @@ export default function DonationsKPICards({ kpis, isLoading }: DonationsKPICards
   ]
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-4 min-w-0">
       {cards.map((c) => (
         <KpiCard key={c.label} {...c} />
       ))}

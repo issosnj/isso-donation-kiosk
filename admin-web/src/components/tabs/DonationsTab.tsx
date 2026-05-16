@@ -619,7 +619,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   ) : undefined
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8 min-w-0 max-w-full">
       <DonationsPageHeader
         templeLabel={templeLabel}
         isMasterAdmin={isMasterAdmin}
@@ -670,7 +670,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
         masterAdminActions={masterAdminActions}
       />
 
-      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm min-w-0 max-w-full">
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-100 bg-gray-50/50">
           <label className="inline-flex items-center gap-2 cursor-pointer select-none">
             <input
