@@ -9,6 +9,7 @@ import UsersTab from './tabs/UsersTab'
 import MasterReceiptsTab from './tabs/MasterReceiptsTab'
 import ReligiousEventsTab from './tabs/ReligiousEventsTab'
 import MasterDevicesTab from './tabs/MasterDevicesTab'
+import DonationChangeRequestsTab from './tabs/DonationChangeRequestsTab'
 
 interface MasterDashboardProps {
   activeTab: string
@@ -34,6 +35,8 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
         return <UsersTab />
       case 'receipts':
         return <MasterReceiptsTab />
+      case 'donation-change-requests':
+        return <DonationChangeRequestsTab />
       case 'religious-events':
         return <ReligiousEventsTab />
       default:

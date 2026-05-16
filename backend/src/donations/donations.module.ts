@@ -4,7 +4,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DonationsService } from './donations.service';
 import { DonationsController } from './donations.controller';
+import { DonationChangeRequestsService } from './donation-change-requests.service';
+import { DonationChangeRequestsController } from './donation-change-requests.controller';
 import { Donation } from './entities/donation.entity';
+import { DonationChangeRequest } from './entities/donation-change-request.entity';
+import { AuditLog } from '../audit/entities/audit-log.entity';
 import { DonationCategory } from './entities/donation-category.entity';
 import { DonationCategoriesService } from './donation-categories.service';
 import { DonationCategoriesController } from './donation-categories.controller';
@@ -20,7 +24,7 @@ import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Donation, DonationCategory, Temple]),
+    TypeOrmModule.forFeature([Donation, DonationCategory, Temple, DonationChangeRequest, AuditLog]),
     TemplesModule,
     forwardRef(() => DevicesModule),
     forwardRef(() => StripeModule),
@@ -38,8 +42,14 @@ import { AuthModule } from '../auth/auth.module';
       inject: [ConfigService],
     }),
   ],
-  controllers: [DonationsController, DonationCategoriesController],
-  providers: [DonationsService, DonationCategoriesService, ReceiptPdfService, ReceiptGeneratorService],
+  controllers: [DonationsController, DonationCategoriesController, DonationChangeRequestsController],
+  providers: [
+    DonationsService,
+    DonationCategoriesService,
+    ReceiptPdfService,
+    ReceiptGeneratorService,
+    DonationChangeRequestsService,
+  ],
   exports: [DonationsService, DonationCategoriesService],
 })
 export class DonationsModule {}

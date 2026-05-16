@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { useState } from 'react'
 import DonorInfoPopup from '../DonorInfoPopup'
 import { DonationStatusBadge, PendingDonationsAlert } from '@/components/donations'
+import { isAnonymousForAssign } from '@/lib/donationDisplay'
 
 interface DonationsTabProps {
   templeId?: string
@@ -35,6 +36,15 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   const [newDonorForm, setNewDonorForm] = useState({ name: '', phone: '', email: '', address: '' })
   const [sendReceiptEmail, setSendReceiptEmail] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [changeRequestDonation, setChangeRequestDonation] = useState<any | null>(null)
+  const [changeRequestForm, setChangeRequestForm] = useState({
+    donorName: '',
+    donorPhone: '',
+    donorEmail: '',
+    donorAddress: '',
+    donorId: '',
+  })
+  const [changeRequestTempleNote, setChangeRequestTempleNote] = useState('')
 
   // Fetch temples for master admin filter
   const { data: temples } = useQuery({
@@ -63,6 +73,38 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
         params: queryParams,
       })
       return response.data
+    },
+  })
+
+  const { data: myChangeRequests } = useQuery({
+    queryKey: ['donation-change-requests', 'my-temple'],
+    queryFn: async () => {
+      const response = await api.get('/donation-change-requests/my-temple')
+      return response.data as any[]
+    },
+    enabled: !isMasterAdmin,
+  })
+
+  const pendingMyChangeCount =
+    myChangeRequests?.filter((r: any) => r.status === 'PENDING').length ?? 0
+
+  const createChangeRequestMutation = useMutation({
+    mutationFn: async (body: {
+      donationId: string
+      templeNote?: string
+      proposed: Record<string, string | undefined>
+    }) => {
+      const response = await api.post('/donation-change-requests', body)
+      return response.data
+    },
+    onSuccess: () => {
+      alert('Change request submitted for master admin approval.')
+      setChangeRequestDonation(null)
+      setChangeRequestTempleNote('')
+      queryClient.invalidateQueries({ queryKey: ['donation-change-requests'] })
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to submit request')
     },
   })
 
@@ -472,6 +514,13 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
         />
       )}
 
+      {!isMasterAdmin && pendingMyChangeCount > 0 && (
+        <div className="mx-4 mt-3 mb-1 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          You have {pendingMyChangeCount} receipt / donor change request
+          {pendingMyChangeCount === 1 ? '' : 's'} waiting for master admin approval.
+        </div>
+      )}
+
       {/* Sticky filters */}
       <div className="sticky top-0 z-10 p-4 border-b border-gray-200 bg-gray-50 shadow-sm">
         <div className="flex flex-wrap gap-4 items-end justify-between">
@@ -684,7 +733,22 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   <DonationStatusBadge status={donation.status} size="sm" />
                 </td>
                 <td className="px-6 py-4 align-top">
-                  {donation.donorPhone || donation.donorId ? (
+                  {isAnonymousForAssign(donation) ? (
+                    <div className="space-y-1">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                        Anonymous
+                      </span>
+                      {donation.status === 'SUCCEEDED' && (
+                        <button
+                          type="button"
+                          onClick={() => setAssigningDonationId(donation.id)}
+                          className="block text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline"
+                        >
+                          Assign to donor
+                        </button>
+                      )}
+                    </div>
+                  ) : donation.donorPhone || donation.donorId ? (
                     <div className="space-y-0.5">
                       <div className="font-medium text-gray-900 text-sm">
                         {donation.donorName || 'Unknown'}
@@ -693,6 +757,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                         <div className="text-xs text-gray-600">{donation.donorPhone}</div>
                       )}
                       <button
+                        type="button"
                         onClick={() => setViewingDonorInfo({
                           phone: donation.donorPhone,
                           name: donation.donorName,
@@ -711,15 +776,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      <span className="text-sm text-gray-500">Anonymous</span>
-                      {donation.status === 'SUCCEEDED' && (
-                        <button
-                          onClick={() => setAssigningDonationId(donation.id)}
-                          className="block text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline"
-                        >
-                          Assign to Donor
-                        </button>
-                      )}
+                      <span className="text-sm text-gray-500">—</span>
                     </div>
                   )}
                 </td>
@@ -742,6 +799,25 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                         className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {resendingId === donation.id ? 'Sending...' : 'Resend Receipt'}
+                      </button>
+                    )}
+                    {!isMasterAdmin && donation.status === 'SUCCEEDED' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChangeRequestDonation(donation)
+                          setChangeRequestForm({
+                            donorName: donation.donorName || '',
+                            donorPhone: donation.donorPhone || '',
+                            donorEmail: donation.donorEmail || '',
+                            donorAddress: donation.donorAddress || '',
+                            donorId: donation.donorId || '',
+                          })
+                          setChangeRequestTempleNote('')
+                        }}
+                        className="px-3 py-1 text-xs font-medium text-amber-800 hover:text-amber-950 hover:underline text-left"
+                      >
+                        Request receipt / name change
                       </button>
                     )}
                     {donation.status === 'SUCCEEDED' && (donation.stripePaymentIntentId || donation.squarePaymentId) && (
@@ -846,6 +922,107 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
         />
       )}
 
+      {/* Temple: request donor/receipt change (master approval) */}
+      {changeRequestDonation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Request receipt / name change</h2>
+                <button
+                  type="button"
+                  onClick={() => setChangeRequestDonation(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Proposed values are sent to a master admin for approval. After approval, the donation record and receipts will use the new donor information.
+              </p>
+            </div>
+            <div className="p-6 space-y-3">
+              <label className="block text-xs font-medium text-gray-600">Name</label>
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                value={changeRequestForm.donorName}
+                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorName: e.target.value }))}
+              />
+              <label className="block text-xs font-medium text-gray-600">Phone</label>
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                value={changeRequestForm.donorPhone}
+                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorPhone: e.target.value }))}
+              />
+              <label className="block text-xs font-medium text-gray-600">Email</label>
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                value={changeRequestForm.donorEmail}
+                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorEmail: e.target.value }))}
+              />
+              <label className="block text-xs font-medium text-gray-600">Mailing address</label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm min-h-[72px]"
+                value={changeRequestForm.donorAddress}
+                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorAddress: e.target.value }))}
+              />
+              <label className="block text-xs font-medium text-gray-600">Donor profile ID (optional UUID)</label>
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono text-xs"
+                placeholder="Leave blank if not linking to CRM donor"
+                value={changeRequestForm.donorId}
+                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorId: e.target.value }))}
+              />
+              <label className="block text-xs font-medium text-gray-600">Note to master admin</label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm min-h-[64px]"
+                placeholder="Why is this change needed?"
+                value={changeRequestTempleNote}
+                onChange={(e) => setChangeRequestTempleNote(e.target.value)}
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setChangeRequestDonation(null)}
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={createChangeRequestMutation.isPending}
+                  onClick={() => {
+                    if (!changeRequestDonation) return
+                    const proposed: Record<string, string | undefined> = {
+                      donorName: changeRequestForm.donorName,
+                      donorPhone: changeRequestForm.donorPhone,
+                      donorEmail: changeRequestForm.donorEmail,
+                      donorAddress: changeRequestForm.donorAddress,
+                    }
+                    const idTrim = changeRequestForm.donorId.trim()
+                    if (idTrim) proposed.donorId = idTrim
+                    createChangeRequestMutation.mutate({
+                      donationId: changeRequestDonation.id,
+                      templeNote: changeRequestTempleNote.trim() || undefined,
+                      proposed,
+                    })
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg disabled:opacity-50"
+                >
+                  {createChangeRequestMutation.isPending ? 'Submitting…' : 'Submit request'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Assign Donation to Donor Modal */}
       {assigningDonationId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -870,7 +1047,8 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 </button>
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                Search for a donor to assign this donation. The donation will be linked to the donor and their statistics will be updated.
+                For anonymous donations only: link this gift to a donor profile so receipts and reports show their name.
+                Statistics will be updated; you can optionally send a receipt email.
               </p>
               {assigningDonation && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">

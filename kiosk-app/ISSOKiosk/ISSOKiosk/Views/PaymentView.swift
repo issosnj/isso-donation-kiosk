@@ -21,6 +21,8 @@ struct ModernPaymentView: View {
     let donorPhone: String?
     let donorEmail: String?
     let donorAddress: String?
+    /// When true, backend marks donation anonymous and skips donor CRM profile from placeholder phone.
+    let submittedAsAnonymous: Bool
     let onComplete: () -> Void
     let onCancel: (() -> Void)? // Optional callback for cancel action
     @ObservedObject private var languageManager = LanguageManager.shared
@@ -216,7 +218,8 @@ struct ModernPaymentView: View {
                             donorName: donorName,
                             donorPhone: donorPhone,
                             donorEmail: donorEmail,
-                            donorAddress: donorAddress
+                            donorAddress: donorAddress,
+                            submittedAsAnonymous: nil
                         )
                         appLog("✅ Donation confirmed as FAILED", category: "PaymentView")
                     } catch {
@@ -397,7 +400,8 @@ struct ModernPaymentView: View {
                                             donorName: donorName,
                                             donorPhone: donorPhone,
                                             donorEmail: donorEmail,
-                                            donorAddress: donorAddress
+                                            donorAddress: donorAddress,
+                                            submittedAsAnonymous: nil
                                         )
                                     } catch {}
                                     await MainActor.run {
@@ -439,7 +443,8 @@ struct ModernPaymentView: View {
                                         donorName: donorName,
                                         donorPhone: donorPhone,
                                         donorEmail: donorEmail,
-                                        donorAddress: donorAddress
+                                        donorAddress: donorAddress,
+                                        submittedAsAnonymous: result.success ? submittedAsAnonymous : nil
                                     )
                                 } catch {
                                     // Backend completion failed, but payment already succeeded on device
@@ -721,20 +726,196 @@ struct ModernPaymentProcessingView: View {
 
 // MARK: - Card tap processing (brands + trust row)
 
+/// Stylized wallet labels (not official trademark artwork). Matches common on-screen presentation.
+private struct PaymentProcessingDigitalWalletStrip: View {
+    let geometry: GeometryProxy
+    
+    private func s(_ v: CGFloat) -> CGFloat { geometry.scale(v) }
+    
+    var body: some View {
+        HStack(spacing: s(8)) {
+            applePayMark
+            googlePayMark
+            samsungPayMark
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Apple Pay, Google Pay, Samsung Pay")
+    }
+    
+    private var applePayMark: some View {
+        Group {
+            if #available(iOS 17.0, *) {
+                HStack(spacing: s(5)) {
+                    Image(systemName: "apple.logo")
+                        .font(.system(size: s(13), weight: .semibold))
+                    Text("Pay")
+                        .font(.system(size: s(11), weight: .semibold))
+                }
+                .foregroundStyle(.white)
+            } else {
+                Text("Apple Pay")
+                    .font(.system(size: s(10), weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .padding(.horizontal, s(10))
+        .padding(.vertical, s(6))
+        .background(RoundedRectangle(cornerRadius: s(5), style: .continuous).fill(Color.black))
+        .accessibilityLabel("Apple Pay")
+    }
+    
+    private var googlePayMark: some View {
+        HStack(spacing: s(5)) {
+            googlePayGlyph
+            Text("Pay")
+                .font(.system(size: s(11), weight: .semibold))
+                .foregroundStyle(Color(red: 0.26, green: 0.32, blue: 0.38))
+        }
+        .padding(.horizontal, s(9))
+        .padding(.vertical, s(6))
+        .background(
+            RoundedRectangle(cornerRadius: s(5), style: .continuous)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.08), radius: s(2), x: 0, y: s(1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: s(5), style: .continuous)
+                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+        )
+    }
+    
+    private var googlePayGlyph: some View {
+        ZStack {
+            Text("G")
+                .font(.system(size: s(14), weight: .bold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.26, green: 0.52, blue: 0.96),
+                            Color(red: 0.13, green: 0.59, blue: 0.95),
+                            Color(red: 0.16, green: 0.69, blue: 0.38),
+                            Color(red: 0.98, green: 0.75, blue: 0.18),
+                            Color(red: 0.92, green: 0.25, blue: 0.21),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .frame(width: s(18), height: s(18))
+    }
+    
+    private var samsungPayMark: some View {
+        Text("Samsung Pay")
+            .font(.system(size: s(10), weight: .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, s(9))
+            .padding(.vertical, s(7))
+            .background(
+                RoundedRectangle(cornerRadius: s(5), style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.04, green: 0.09, blue: 0.45),
+                                Color(red: 0.09, green: 0.22, blue: 0.72),
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+            )
+    }
+}
+
+/// Animated card tapping a reader — replaces a static spinner for clearer “tap the terminal” guidance.
+private struct PaymentProcessingTapAnimation: View {
+    let geometry: GeometryProxy
+    let burgundy: Color
+    let heading: Color
+    @State private var cardPressed = false
+    
+    private func s(_ v: CGFloat) -> CGFloat { geometry.scale(v) }
+    
+    var body: some View {
+        ZStack {
+            // Terminal body
+            RoundedRectangle(cornerRadius: s(14), style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.38, green: 0.40, blue: 0.44),
+                            Color(red: 0.22, green: 0.24, blue: 0.28),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: s(210), height: s(102))
+                .overlay(
+                    RoundedRectangle(cornerRadius: s(14), style: .continuous)
+                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.22), radius: s(12), x: 0, y: s(6))
+            
+            // Contactless / tap target + LED
+            VStack(spacing: s(8)) {
+                RoundedRectangle(cornerRadius: s(3), style: .continuous)
+                    .fill(Color.black.opacity(0.35))
+                    .frame(width: s(120), height: s(5))
+                HStack(spacing: s(6)) {
+                    Image(systemName: "wave.3.right.circle.fill")
+                        .font(.system(size: s(22), weight: .medium))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(burgundy, heading.opacity(0.35))
+                    Circle()
+                        .fill(cardPressed ? Color.green.opacity(0.95) : Color.orange.opacity(0.55))
+                        .frame(width: s(8), height: s(8))
+                        .shadow(color: cardPressed ? Color.green.opacity(0.5) : .clear, radius: s(4))
+                }
+            }
+            .offset(y: -s(8))
+            
+            // Card moves down to “tap” the reader
+            Image(systemName: "creditcard.fill")
+                .font(.system(size: s(52), weight: .medium))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [burgundy, burgundy.opacity(0.82)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: burgundy.opacity(0.35), radius: s(10), x: 0, y: s(4))
+                .rotation3DEffect(.degrees(-8), axis: (x: 1, y: 0, z: 0))
+                .offset(y: cardPressed ? s(6) : -s(38))
+                .scaleEffect(cardPressed ? 0.94 : 1.0)
+        }
+        .frame(width: s(240), height: s(168))
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                cardPressed = true
+            }
+        }
+    }
+}
+
 private struct PaymentProcessingCardBrandStrip: View {
     let geometry: GeometryProxy
     
     private func s(_ v: CGFloat) -> CGFloat { geometry.scale(v) }
     
     var body: some View {
-        HStack(spacing: s(10)) {
-            visaMark
-            mastercardMark
-            amexMark
-            discoverMark
+        VStack(spacing: s(12)) {
+            HStack(spacing: s(10)) {
+                visaMark
+                mastercardMark
+                amexMark
+                discoverMark
+            }
+            PaymentProcessingDigitalWalletStrip(geometry: geometry)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Visa, Mastercard, American Express, Discover")
+        .accessibilityLabel("Visa, Mastercard, American Express, Discover, Apple Pay, Google Pay, Samsung Pay")
     }
     
     private var visaMark: some View {
@@ -818,9 +999,7 @@ struct ModernProcessingView: View {
     let amount: Double
     let onCancel: () -> Void
     @EnvironmentObject var appState: AppState
-    @State private var rotationAngle: Double = 0
     @State private var appearAnimation = false
-    @State private var pulseGlow = false
     
     private func colorFromHex(_ hex: String?, defaultColor: Color = Color(red: 0.26, green: 0.20, blue: 0.20)) -> Color {
         guard let hex = hex, !hex.isEmpty else {
@@ -935,98 +1114,100 @@ struct ModernProcessingView: View {
                                 .padding(.bottom, s(20))
                             
                             VStack(spacing: 0) {
-                                VStack(spacing: s(26)) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(burgundyBrand.opacity(pulseGlow ? 0.12 : 0.18))
-                                            .frame(width: s(152), height: s(152))
-                                            .blur(radius: s(12))
-                                        
-                                        Circle()
-                                            .stroke(headingColor.opacity(0.12), lineWidth: s(7))
-                                            .frame(width: s(118), height: s(118))
-                                        
-                                        Circle()
-                                            .trim(from: 0, to: 0.78)
-                                            .stroke(
-                                                AngularGradient(
-                                                    colors: [
-                                                        burgundyBrand.opacity(0.55),
-                                                        burgundyBrand,
-                                                        burgundyBrand.opacity(0.72),
-                                                    ],
-                                                    center: .center
-                                                ),
-                                                style: StrokeStyle(lineWidth: s(7), lineCap: .round)
-                                            )
-                                            .frame(width: s(118), height: s(118))
-                                            .rotationEffect(.degrees(rotationAngle))
-                                        
-                                        Image(systemName: "creditcard.fill")
-                                            .font(.system(size: s(40), weight: .medium))
-                                            .foregroundStyle(burgundyBrand)
-                                    }
-                                    .scaleEffect(appearAnimation ? 1.0 : 0.88)
-                                    .opacity(appearAnimation ? 1.0 : 0.0)
-                                    .padding(.top, s(4))
+                                // Center: reader animation + prominent total
+                                VStack(spacing: 0) {
+                                    Spacer(minLength: s(6))
                                     
-                                    // Same visual rhythm as donation summary **Total** row (`DonationDetailsView`).
-                                    HStack(alignment: .firstTextBaseline, spacing: s(12)) {
-                                        Text("totalSevaLabel".localized)
-                                            .font(.system(size: s(24), weight: .semibold, design: .serif))
-                                            .foregroundStyle(headingColor)
-                                        Spacer(minLength: s(8))
-                                        Text(amount.formattedCurrency())
-                                            .font(.system(size: s(30), weight: .bold, design: .serif))
-                                            .foregroundStyle(burgundyBrand)
-                                            .monospacedDigit()
+                                    VStack(spacing: s(22)) {
+                                        PaymentProcessingTapAnimation(
+                                            geometry: geometry,
+                                            burgundy: burgundyBrand,
+                                            heading: headingColor
+                                        )
+                                        .scaleEffect(appearAnimation ? 1.0 : 0.88)
+                                        .opacity(appearAnimation ? 1.0 : 0.0)
+                                        
+                                        VStack(spacing: s(14)) {
+                                            Text("totalSevaLabel".localized)
+                                                .font(.custom("Georgia", size: s(32)))
+                                                .fontWeight(.semibold)
+                                                .foregroundStyle(headingColor)
+                                                .multilineTextAlignment(.center)
+                                            Text(amount.formattedCurrency())
+                                                .font(.system(size: s(58), weight: .bold, design: .serif))
+                                                .foregroundStyle(burgundyBrand)
+                                                .monospacedDigit()
+                                                .multilineTextAlignment(.center)
+                                                .minimumScaleFactor(0.65)
+                                                .lineLimit(1)
+                                        }
+                                        .padding(.vertical, s(30))
+                                        .padding(.horizontal, s(36))
+                                        .frame(maxWidth: .infinity)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: s(22), style: .continuous)
+                                                .fill(Color.white.opacity(0.5))
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: s(22), style: .continuous)
+                                                        .fill(creamFill.opacity(0.35))
+                                                )
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: s(22), style: .continuous)
+                                                .stroke(burgundyBrand.opacity(0.35), lineWidth: s(2))
+                                        )
+                                        .shadow(color: burgundyBrand.opacity(0.18), radius: s(20), x: 0, y: s(10))
+                                        .padding(.horizontal, s(4))
+                                        .opacity(appearAnimation ? 1.0 : 0.0)
                                     }
-                                    .opacity(appearAnimation ? 1.0 : 0.0)
                                     
+                                    Spacer(minLength: s(6))
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                
+                                // Bottom: instructions, payment marks, secure badge, cancel
+                                VStack(spacing: s(16)) {
                                     Text("processingInstructionsSimple".localized)
-                                        .font(.custom("Georgia", size: s(23)))
-                                        .foregroundStyle(headingColor.opacity(0.92))
+                                        .font(.custom("Georgia", size: s(20)))
+                                        .foregroundStyle(headingColor.opacity(0.9))
                                         .multilineTextAlignment(.center)
                                         .fixedSize(horizontal: false, vertical: true)
-                                        .padding(.horizontal, s(8))
-                                        .padding(.top, s(4))
+                                        .padding(.horizontal, s(4))
                                         .opacity(appearAnimation ? 1.0 : 0.0)
                                     
-                                    VStack(spacing: s(18)) {
+                                    VStack(spacing: s(14)) {
                                         PaymentProcessingCardBrandStrip(geometry: geometry)
                                         PaymentProcessingSecureBadge(geometry: geometry, headingColor: headingColor, accentColor: burgundyBrand)
                                     }
                                     .opacity(appearAnimation ? 1.0 : 0.0)
+                                    
+                                    Button(action: {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        onCancel()
+                                    }) {
+                                        Text("cancel".localized)
+                                            .font(.custom("Georgia", size: s(16)))
+                                            .foregroundColor(headingColor)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(minHeight: s(58), maxHeight: s(58))
+                                            .background(
+                                                RoundedRectangle(cornerRadius: cancelCorner)
+                                                    .fill(creamFill)
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: cancelCorner)
+                                                            .fill(Color.white.opacity(0.15))
+                                                    )
+                                            )
+                                            .cornerRadius(cancelCorner)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .overlay(
+                                        DonationGoldRingBorder(cornerRadius: cancelCorner)
+                                            .allowsHitTesting(false)
+                                    )
+                                    .opacity(appearAnimation ? 1.0 : 0.0)
                                 }
-                                
-                                Spacer(minLength: s(28))
-                                
-                                // Pinned to bottom of glass panel — aligns with action row on Step 3 review.
-                                Button(action: {
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    onCancel()
-                                }) {
-                                    Text("cancel".localized)
-                                        .font(.custom("Georgia", size: s(16)))
-                                        .foregroundColor(headingColor)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(minHeight: s(58), maxHeight: s(58))
-                                        .background(
-                                            RoundedRectangle(cornerRadius: cancelCorner)
-                                                .fill(creamFill)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: cancelCorner)
-                                                        .fill(Color.white.opacity(0.15))
-                                                )
-                                        )
-                                        .cornerRadius(cancelCorner)
-                                }
-                                .buttonStyle(.plain)
-                                .overlay(
-                                    DonationGoldRingBorder(cornerRadius: cancelCorner)
-                                        .allowsHitTesting(false)
-                                )
-                                .opacity(appearAnimation ? 1.0 : 0.0)
+                                .padding(.top, s(8))
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                             .padding(.horizontal, s(glassPanelInternalPadding))
@@ -1075,12 +1256,6 @@ struct ModernProcessingView: View {
         .onAppear {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.86).delay(0.08)) {
                 appearAnimation = true
-            }
-            withAnimation(.linear(duration: 2.4).repeatForever(autoreverses: false)) {
-                rotationAngle = 360
-            }
-            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                pulseGlow = true
             }
         }
     }
@@ -1151,123 +1326,186 @@ struct ModernPaymentResultView: View {
            let hex = theme.colors?.headingColor {
             return colorFromHex(hex)
         }
-        return Color(red: 0.26, green: 0.20, blue: 0.20) // #423232
+        return Color(red: 0.26, green: 0.20, blue: 0.20)
     }
     
-    private var bodyTextColor: Color {
-        Color(red: 0.5, green: 0.5, blue: 0.6)
+    /// Same as `ModernProcessingView` / Step 3 review total accent.
+    private var burgundyBrand: Color {
+        Color(red: 147.0 / 255.0, green: 22.0 / 255.0, blue: 19.0 / 255.0)
     }
     
-    private var buttonColor: Color {
-        Color(red: 1.0, green: 0.58, blue: 0.0) // Orange matching theme
+    private var creamFill: Color {
+        Color(red: 242.0 / 255.0, green: 235.0 / 255.0, blue: 224.0 / 255.0)
+    }
+    
+    private var stepLineBrown: Color {
+        Color(red: 0.42, green: 0.32, blue: 0.32)
+    }
+    
+    private let glassPanelCorner: CGFloat = 28
+    private let glassPanelMaxWidthFraction: CGFloat = 0.94
+    private let glassPanelMaxWidthPoints: CGFloat = 1400
+    private let glassPanelHorizontalPadding: CGFloat = 56
+    private let glassPanelVerticalPadding: CGFloat = 8
+    private let glassPanelInternalPadding: CGFloat = 44
+    private let step3PanelContentTopInset: CGFloat = 20
+    
+    private var isSuccess: Bool {
+        if case .success = status { return true }
+        return false
+    }
+    
+    @ViewBuilder
+    private func resultStepHeader(geometry: GeometryProxy, titleKey: String) -> some View {
+        let s = geometry.scale
+        let lineColor = stepLineBrown.opacity(0.4)
+        HStack(spacing: s(16)) {
+            Rectangle()
+                .fill(lineColor)
+                .frame(height: 1)
+            Text(titleKey.localized)
+                .font(.custom("Georgia", size: s(20)))
+                .foregroundColor(stepLineBrown)
+            Rectangle()
+                .fill(lineColor)
+                .frame(height: 1)
+        }
+        .padding(.horizontal, s(40))
     }
     
     var body: some View {
         ZStack {
             GeometryReader { geometry in
-                backgroundView(geometry: geometry)
+                let s: (CGFloat) -> CGFloat = { geometry.scale($0) }
+                let panelMaxWidth = min(geometry.size.width * glassPanelMaxWidthFraction, glassPanelMaxWidthPoints)
+                let actionCorner = s(DesignSystem.Components.buttonCornerRadius)
+                
+                ZStack {
+                    backgroundView(geometry: geometry)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                    
+                    ZStack(alignment: .top) {
+                        VStack(spacing: 0) {
+                            resultStepHeader(geometry: geometry, titleKey: isSuccess ? "paymentCompleteHeading" : "paymentUnsuccessfulHeading")
+                                .padding(.top, s(78))
+                                .padding(.bottom, s(20))
+                            
+                            VStack(spacing: 0) {
+                                VStack(spacing: s(20)) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(burgundyBrand.opacity(0.14))
+                                            .frame(width: s(152), height: s(152))
+                                            .blur(radius: s(10))
+                                        Circle()
+                                            .stroke(headingColor.opacity(0.12), lineWidth: s(6))
+                                            .frame(width: s(118), height: s(118))
+                                        Image(systemName: isSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                            .font(.system(size: s(44), weight: .semibold))
+                                            .foregroundStyle(isSuccess ? burgundyBrand : Color(red: 0.72, green: 0.2, blue: 0.16))
+                                    }
+                                    .scaleEffect(appearAnimation ? 1.0 : 0.9)
+                                    .opacity(appearAnimation ? 1.0 : 0.0)
+                                    
+                                    Text(isSuccess ? "thankYouForYourSeva".localized : "paymentFailed".localized)
+                                        .font(.custom("Georgia", size: s(32)))
+                                        .foregroundStyle(headingColor)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, s(12))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .opacity(appearAnimation ? 1.0 : 0.0)
+                                    
+                                    if isSuccess {
+                                        VStack(spacing: s(12)) {
+                                            Text("donationApprovedMessage".localized)
+                                                .font(.custom("Georgia", size: s(22)))
+                                                .foregroundStyle(headingColor.opacity(0.95))
+                                                .multilineTextAlignment(.center)
+                                            Text("emailReceiptShortly".localized)
+                                                .font(.custom("Georgia", size: s(19)))
+                                                .foregroundStyle(headingColor.opacity(0.72))
+                                                .multilineTextAlignment(.center)
+                                            HStack(alignment: .firstTextBaseline, spacing: s(10)) {
+                                                Text("donationAmountLabel".localized)
+                                                    .font(.system(size: s(20), weight: .medium, design: .serif))
+                                                    .foregroundStyle(headingColor.opacity(0.78))
+                                                Text(amount.formattedCurrency())
+                                                    .font(.system(size: s(26), weight: .bold, design: .serif))
+                                                    .foregroundStyle(burgundyBrand)
+                                                    .monospacedDigit()
+                                            }
+                                            .padding(.top, s(6))
+                                        }
+                                        .padding(.horizontal, s(8))
+                                        .opacity(appearAnimation ? 1.0 : 0.0)
+                                    } else if case .failure(let error) = status {
+                                        Text(error)
+                                            .font(.custom("Georgia", size: s(19)))
+                                            .foregroundStyle(headingColor.opacity(0.9))
+                                            .multilineTextAlignment(.center)
+                                            .padding(.horizontal, s(10))
+                                            .fixedSize(horizontal: false, vertical: true)
+                                            .opacity(appearAnimation ? 1.0 : 0.0)
+                                    }
+                                }
+                                
+                                Spacer(minLength: s(28))
+                                
+                                Button(action: {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    autoDismissTimer?.invalidate()
+                                    onDismiss()
+                                }) {
+                                    HStack(spacing: s(10)) {
+                                        Image(systemName: isSuccess ? "checkmark.circle.fill" : "arrow.counterclockwise.circle.fill")
+                                            .font(.system(size: s(18), weight: .semibold))
+                                        Text(isSuccess ? "done".localized : "tryAgain".localized)
+                                            .font(.custom("Georgia", size: s(17)))
+                                    }
+                                    .foregroundColor(headingColor)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(minHeight: s(58), maxHeight: s(58))
+                                    .background(
+                                        RoundedRectangle(cornerRadius: actionCorner)
+                                            .fill(creamFill)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: actionCorner)
+                                                    .fill(Color.white.opacity(0.15))
+                                            )
+                                    )
+                                    .cornerRadius(actionCorner)
+                                }
+                                .buttonStyle(.plain)
+                                .overlay(
+                                    DonationGoldRingBorder(cornerRadius: actionCorner)
+                                        .allowsHitTesting(false)
+                                )
+                                .opacity(appearAnimation ? 1.0 : 0.0)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            .padding(.horizontal, s(glassPanelInternalPadding))
+                            .padding(.top, s(glassPanelVerticalPadding + step3PanelContentTopInset))
+                            .padding(.bottom, s(28))
+                            .frame(maxWidth: panelMaxWidth, maxHeight: geometry.size.height * 0.76, alignment: .top)
+                            .background(
+                                RoundedRectangle(cornerRadius: s(glassPanelCorner))
+                                    .fill(Color.white.opacity(0.15))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: s(glassPanelCorner))
+                                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                                    )
+                            )
+                            .shadow(color: Color.black.opacity(0.09), radius: s(40), x: 0, y: s(16))
+                            .padding(.horizontal, s(glassPanelHorizontalPadding))
+                            .offset(y: appearAnimation ? 0 : s(12))
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                }
             }
             .ignoresSafeArea(.all, edges: .all)
             
-            VStack(spacing: 40) {
-                Spacer()
-                
-                // Result icon with animation
-                ZStack {
-                    // Glow effect - subtle for theme
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                gradient: Gradient(colors: [
-                                    (status == .success ? Color.green : Color.red).opacity(0.2),
-                                    Color.clear
-                                ]),
-                                center: .center,
-                                startRadius: 20,
-                                endRadius: 120
-                            )
-                        )
-                        .frame(width: 240, height: 240)
-                        .scaleEffect(appearAnimation ? 1.1 : 0.8)
-                        .opacity(appearAnimation ? 0.5 : 0.0)
-                    
-                    Image(systemName: status == .success ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.system(size: 100))
-                        .foregroundColor(status == .success ? Color.green : Color.red)
-                        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-                }
-                .scaleEffect(appearAnimation ? 1.0 : 0.3)
-                .opacity(appearAnimation ? 1.0 : 0.0)
-                
-                VStack(spacing: 20) {
-                    Text(status == .success ? "thankYou".localized : "paymentFailed".localized)
-                        .font(.custom("Inter-SemiBold", size: 42))
-                        .foregroundColor(headingColor)
-                        .opacity(appearAnimation ? 1.0 : 0.0)
-                        .offset(y: appearAnimation ? 0 : 20)
-                    
-                    if case .success = status {
-                        VStack(spacing: 12) {
-                            Text("Your donation was approved!")
-                                .font(.custom("Inter-SemiBold", size: 24))
-                                .foregroundColor(headingColor)
-                                .multilineTextAlignment(.center)
-                            
-                            Text("You will receive an email receipt shortly.")
-                                .font(.custom("Inter-Regular", size: 20))
-                                .foregroundColor(bodyTextColor)
-                                .multilineTextAlignment(.center)
-                            
-                            Text("Donation amount: \(amount.formattedCurrency())")
-                                .font(.custom("Inter-Medium", size: 18))
-                                .foregroundColor(bodyTextColor.opacity(0.8))
-                                .multilineTextAlignment(.center)
-                                .padding(.top, 4)
-                        }
-                        .padding(.horizontal, 40)
-                        .opacity(appearAnimation ? 1.0 : 0.0)
-                        .offset(y: appearAnimation ? 0 : 20)
-                    } else if case .failure(let error) = status {
-                        Text(error)
-                            .font(.custom("Inter-Medium", size: 18))
-                            .foregroundColor(Color.red)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                            .opacity(appearAnimation ? 1.0 : 0.0)
-                            .offset(y: appearAnimation ? 0 : 20)
-                    }
-                }
-                
-                // Action button - matching theme orange
-                Button(action: onDismiss) {
-                    HStack(spacing: 12) {
-                        Image(systemName: status == .success ? "checkmark.circle.fill" : "arrow.clockwise")
-                            .font(.system(size: 22))
-                        Text(status == .success ? "Done" : "Try Again")
-                            .font(.custom("Inter-Medium", size: 20))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        status == .success 
-                            ? Color.green
-                            : buttonColor
-                    )
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
-                }
-                .padding(.horizontal, 40)
-                .scaleEffect(appearAnimation ? 1.0 : 0.9)
-                .opacity(appearAnimation ? 1.0 : 0.0)
-                .offset(y: appearAnimation ? 0 : 30)
-                
-                Spacer()
-            }
-            .padding(DesignSystem.Spacing.xl + DesignSystem.Spacing.sm)
-            
-            // Time and Network Status in top right
-            // Reader Battery Status in top left
             VStack {
                 HStack {
                     ReaderBatteryStatusView()
@@ -1278,7 +1516,6 @@ struct ModernPaymentResultView: View {
                 Spacer()
             }
             
-            // Time and Network Status in top right
             VStack {
                 HStack {
                     Spacer()
@@ -1290,11 +1527,10 @@ struct ModernPaymentResultView: View {
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.86).delay(0.08)) {
                 appearAnimation = true
             }
             
-            // Auto-dismiss after 5 seconds on success
             if case .success = status {
                 autoDismissTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
                     onDismiss()
@@ -1330,6 +1566,7 @@ struct PaymentView: View {
             donorPhone: donorPhone,
             donorEmail: donorEmail,
             donorAddress: donorAddress,
+            submittedAsAnonymous: false,
             onComplete: onComplete,
             onCancel: onCancel
         )

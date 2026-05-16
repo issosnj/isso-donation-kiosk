@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional, IsNumber, MaxLength, IsEmail } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsNumber, MaxLength, IsEmail, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { DonationStatus } from '../entities/donation.entity';
 
@@ -64,4 +64,9 @@ export class CompleteDonationDto {
   @IsString()
   @MaxLength(20)
   cardType?: string;
+
+  @ApiProperty({ required: false, description: 'True when checkout was anonymous (kiosk)' })
+  @IsOptional()
+  @IsBoolean()
+  submittedAsAnonymous?: boolean;
 }

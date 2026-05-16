@@ -295,7 +295,8 @@ class APIService {
         donorName: String? = nil,
         donorPhone: String? = nil,
         donorEmail: String? = nil,
-        donorAddress: String? = nil
+        donorAddress: String? = nil,
+        submittedAsAnonymous: Bool? = nil
     ) async throws -> Donation {
         struct Request: Codable {
             let stripePaymentIntentId: String?
@@ -304,6 +305,7 @@ class APIService {
             let donorPhone: String?
             let donorEmail: String?
             let donorAddress: String?
+            let submittedAsAnonymous: Bool?
         }
         
         let body = Request(
@@ -312,7 +314,8 @@ class APIService {
             donorName: donorName,
             donorPhone: donorPhone,
             donorEmail: donorEmail,
-            donorAddress: donorAddress
+            donorAddress: donorAddress,
+            submittedAsAnonymous: submittedAsAnonymous
         )
         
         return try await request(

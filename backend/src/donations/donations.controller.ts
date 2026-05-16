@@ -533,6 +533,7 @@ export class DonationsController {
     @Body() body: { donorId: string; sendReceiptEmail?: boolean },
     @CurrentUser() user: any,
   ) {
+    await this.donationsService.findOne(id, user);
     return this.donationsService.assignDonationToDonor(
       id,
       body.donorId,

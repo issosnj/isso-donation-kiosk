@@ -1,13 +1,18 @@
 import SwiftUI
 import UIKit
 
-private enum DonorFieldEditor: String, Identifiable, Hashable {
-    case name, phone, email, address
-    var id: String { rawValue }
+/// Field indices match `DonorAllFieldsFullScreenCover` / UIKit focus order (0…4).
+private enum DonorAllFieldsEditorFocus: Int {
+    case firstName = 0
+    case lastName = 1
+    case phone = 2
+    case email = 3
+    case address = 4
 }
 
 private struct DonorFormSnapshot {
-    let name: String
+    let firstName: String
+    let lastName: String
     let phone: String
     let email: String
     let address: String
@@ -16,28 +21,38 @@ private struct DonorFormSnapshot {
 struct ModernDonationDetailsView: View {
     @Binding var donationLines: [CheckoutDonationLine]
     let category: DonationCategory?
+    /// When true, first/last/phone/email/mailing address are required unless Anonymous Seva is on.
+    let requiresMandatoryDonorFields: Bool = false
+    /// Show the Anonymous Seva toggle on the review card and in the full-screen editor (independent of mandatory fields).
+    let showAnonymousSevaToggle: Bool = true
     let initialDonorName: String?
     let initialDonorPhone: String?
     let initialDonorEmail: String?
     let initialDonorAddress: String?
-    let onConfirm: (String?, String?, String?, String?) -> Void // name, phone, email, address
+    /// Restores Anonymous Seva after returning from payment (cancel / failure).
+    let initialAnonymousSeva: Bool
+    let onConfirm: (String?, String?, String?, String?, Bool) -> Void // name, phone, email, address, anonymousSeva
     let onCancel: (() -> Void)? // Optional callback to return to home
     /// When set, shows “additional seva” under the donation line; tap returns to donation selection (e.g. to pick another category).
     let onAddAdditionalSeva: (() -> Void)?
     @ObservedObject private var languageManager = LanguageManager.shared
     
-    @State private var donorName = ""
+    @State private var donorFirstName = ""
+    @State private var donorLastName = ""
     @State private var donorPhone = ""
     @State private var donorEmail = ""
     @State private var donorAddress = ""
     @State private var anonymousSeva = false
+    /// Skips `handleAnonymousSevaChange` once when applying `initialAnonymousSeva` from parent (avoids clobbering snapshot).
+    @State private var skipNextAnonymousSevaChangeHandler = false
     @State private var donorSnapshotBeforeAnonymous: DonorFormSnapshot?
     @State private var appearAnimation = false
     @State private var showingYajmanOpportunities = false
     @State private var isLookingUpDonor = false
     @State private var addressSuggestions: [AddressPrediction] = []
     @State private var addressSessionToken: String? = nil
-    @State private var activeDonorFieldEditor: DonorFieldEditor?
+    @State private var showDonorAllFieldsEditor = false
+    @State private var donorEditorInitialFocusIndex = 0
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
     
@@ -45,25 +60,62 @@ struct ModernDonationDetailsView: View {
         donationLines.reduce(0) { $0 + $1.amount }
     }
     
-    private var isNameRequired: Bool {
-        category != nil && !anonymousSeva
+    /// Donor contact rows must be filled (used for red borders on the review card).
+    private var donorFieldsStrict: Bool {
+        requiresMandatoryDonorFields && !anonymousSeva
     }
     
-    private var isPhoneRequired: Bool {
-        category != nil && !anonymousSeva
+    private func presentDonorAllFieldsEditor(focusAt index: DonorAllFieldsEditorFocus) {
+        donorEditorInitialFocusIndex = index.rawValue
+        showDonorAllFieldsEditor = true
     }
     
     private var canProceed: Bool {
         if anonymousSeva { return true }
-        if category != nil {
-            return !donorName.trimmingCharacters(in: .whitespaces).isEmpty &&
-                   !donorPhone.trimmingCharacters(in: .whitespaces).isEmpty
-        }
+        if !requiresMandatoryDonorFields { return true }
+        let firstOK = !donorFirstName.trimmingCharacters(in: .whitespaces).isEmpty
+        let lastOK = !donorLastName.trimmingCharacters(in: .whitespaces).isEmpty
+        let digitCount = donorPhone.filter(\.isNumber).count
+        let phoneOK = digitCount == 10
+        let emailOK = !donorEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let addressOK = !donorAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return firstOK && lastOK && phoneOK && emailOK && addressOK
+    }
+
+    /// No contact info entered (optional mode uses this to submit as anonymous with placeholders).
+    private var isDonorContactCompletelyEmpty: Bool {
+        let first = donorFirstName.trimmingCharacters(in: .whitespaces)
+        let last = donorLastName.trimmingCharacters(in: .whitespaces)
+        if !first.isEmpty || !last.isEmpty { return false }
+        if !donorPhone.filter(\.isNumber).isEmpty { return false }
+        if !donorEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return false }
+        if !donorAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return false }
         return true
+    }
+
+    /// Single-line name for payment / API (unchanged contract).
+    private func combinedDonorNameForSubmit() -> String {
+        let f = donorFirstName.trimmingCharacters(in: .whitespaces)
+        let l = donorLastName.trimmingCharacters(in: .whitespaces)
+        if f.isEmpty && l.isEmpty { return "" }
+        if l.isEmpty { return f }
+        if f.isEmpty { return l }
+        return "\(f) \(l)"
+    }
+
+    /// Split stored full name for display: last space separates last name (e.g. "Ek Hari Bhagat" → "Ek Hari" + "Bhagat").
+    private static func splitFullName(_ full: String) -> (first: String, last: String) {
+        let t = full.trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.isEmpty { return ("", "") }
+        guard let range = t.range(of: " ", options: .backwards) else { return (t, "") }
+        let first = String(t[..<range.lowerBound]).trimmingCharacters(in: .whitespaces)
+        let last = String(t[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+        return (first, last)
     }
     
     /// Placeholder donor record when Anonymous Seva is on (receipt / backend).
-    private static let anonymousPlaceholderName = "Ek Hari Bhagat"
+    private static let anonymousPlaceholderFirstName = "Ek Hari"
+    private static let anonymousPlaceholderLastName = "Bhagat"
     private static let anonymousPlaceholderPhoneDigits = "8568294776"
     private static let anonymousPlaceholderAddress = "2101 Garry Rd, Cinnaminson, NJ 08077"
     
@@ -160,6 +212,8 @@ struct ModernDonationDetailsView: View {
         onTap: @escaping () -> Void
     ) -> some View {
         let s = geometry.scale
+        let rowH = s(DesignSystem.Components.inputHeight)
+        let corner = s(DesignSystem.Components.buttonCornerRadius)
         VStack(alignment: .leading, spacing: s(6)) {
             Text(label)
                 .font(.custom("Georgia", size: s(16)))
@@ -173,23 +227,28 @@ struct ModernDonationDetailsView: View {
                     Text(value)
                         .font(.system(size: s(detailsInputFontSize), weight: .regular, design: .serif))
                         .foregroundColor(isEmpty ? headingColor.opacity(0.48) : headingColor)
-                        .lineLimit(2)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(minHeight: s(DesignSystem.Components.inputHeight))
+                .frame(maxWidth: .infinity)
+                .frame(height: rowH)
                 .padding(.horizontal, s(DesignSystem.Spacing.lg))
-                .padding(.vertical, s(DesignSystem.Spacing.md))
                 .background(
-                    RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                    RoundedRectangle(cornerRadius: corner)
                         .fill(Color.white.opacity(0.72))
                         .overlay(
-                            RoundedRectangle(cornerRadius: DesignSystem.Components.buttonCornerRadius)
+                            RoundedRectangle(cornerRadius: corner)
                                 .stroke(
                                     hasError ? Color.red.opacity(0.55) : Color.black.opacity(0.06),
                                     lineWidth: 1
                                 )
                         )
+                )
+                .overlay(
+                    DonationGoldRingBorder(cornerRadius: corner)
+                        .allowsHitTesting(false)
                 )
             }
             .buttonStyle(.plain)
@@ -248,11 +307,11 @@ struct ModernDonationDetailsView: View {
                     .padding(.top, s(78))
                     .padding(.bottom, s(20))
                 
-                // Summary column stretches to donor height; actions sit under the summary card only.
+                // Donor and summary columns share the same height; action buttons sit under the summary card only.
                 VStack(spacing: 0) {
                     HStack(alignment: .top, spacing: columnSpacing) {
                         donorDetailsCard(geometry: geometry, cardCorner: cardCorner)
-                            .frame(maxWidth: .infinity, alignment: .top)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         
                         Rectangle()
                             .fill(Color.black.opacity(0.06))
@@ -400,7 +459,7 @@ struct ModernDonationDetailsView: View {
                 
                 VStack(alignment: .center, spacing: s(12)) {
                     VStack(alignment: .leading, spacing: s(10)) {
-                        if category != nil {
+                        if showAnonymousSevaToggle {
                             anonymousSevaToggleRow(geometry: geometry)
                         }
                         
@@ -465,22 +524,25 @@ struct ModernDonationDetailsView: View {
     private func handleAnonymousSevaChange(enabled: Bool) {
         if enabled {
             donorSnapshotBeforeAnonymous = DonorFormSnapshot(
-                name: donorName,
+                firstName: donorFirstName,
+                lastName: donorLastName,
                 phone: donorPhone,
                 email: donorEmail,
                 address: donorAddress
             )
-            donorName = Self.anonymousPlaceholderName
+            donorFirstName = Self.anonymousPlaceholderFirstName
+            donorLastName = Self.anonymousPlaceholderLastName
             donorPhone = Self.anonymousPlaceholderPhoneDigits
             donorEmail = ""
             donorAddress = Self.anonymousPlaceholderAddress
         } else {
-            if let snap = donorSnapshotBeforeAnonymous {
-                donorName = snap.name
-                donorPhone = snap.phone
-                donorEmail = snap.email
-                donorAddress = snap.address
-            }
+            // Clear placeholder donor fields; keep only email the user had entered before turning anonymous on.
+            let preservedEmail = donorSnapshotBeforeAnonymous?.email.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            donorFirstName = ""
+            donorLastName = ""
+            donorPhone = ""
+            donorAddress = ""
+            donorEmail = preservedEmail
             donorSnapshotBeforeAnonymous = nil
         }
     }
@@ -516,7 +578,7 @@ struct ModernDonationDetailsView: View {
     @ViewBuilder
     private func donorDetailsCard(geometry: GeometryProxy, cardCorner: CGFloat) -> some View {
         let s = geometry.scale
-        creamGoldCard(geometry: geometry, cornerRadius: cardCorner) {
+        creamGoldCard(geometry: geometry, cornerRadius: cardCorner, expandVerticalFill: true) {
             VStack(alignment: .leading, spacing: 0) {
                 // Match `categorySection` / `amountSection` on DonationHomeView (Select Category / Select Amount).
                 VStack(alignment: .center, spacing: s(6)) {
@@ -530,32 +592,45 @@ struct ModernDonationDetailsView: View {
                 .padding(.bottom, s(21))
                 
                 VStack(alignment: .leading, spacing: geometry.scale(DesignSystem.Components.inlineSpacing)) {
-                    donorInputRow(
-                        geometry: geometry,
-                        label: "name".localized,
-                        icon: "person.fill",
-                        value: donorName.isEmpty ? "enterYourName".localized : donorName,
-                        isEmpty: donorName.isEmpty,
-                        hasError: isNameRequired && donorName.trimmingCharacters(in: .whitespaces).isEmpty,
-                        onTap: { if !anonymousSeva { activeDonorFieldEditor = .name } }
-                    )
+                    HStack(alignment: .top, spacing: s(12)) {
+                        donorInputRow(
+                            geometry: geometry,
+                            label: "firstName".localized,
+                            icon: "person.fill",
+                            value: donorFirstName.isEmpty ? "enterYourFirstName".localized : donorFirstName,
+                            isEmpty: donorFirstName.isEmpty,
+                            hasError: donorFieldsStrict && donorFirstName.trimmingCharacters(in: .whitespaces).isEmpty,
+                            onTap: { if !anonymousSeva { presentDonorAllFieldsEditor(focusAt: .firstName) } }
+                        )
+                        .frame(maxWidth: .infinity)
+                        donorInputRow(
+                            geometry: geometry,
+                            label: "lastName".localized,
+                            icon: "person.fill",
+                            value: donorLastName.isEmpty ? "enterYourLastName".localized : donorLastName,
+                            isEmpty: donorLastName.isEmpty,
+                            hasError: donorFieldsStrict && donorLastName.trimmingCharacters(in: .whitespaces).isEmpty,
+                            onTap: { if !anonymousSeva { presentDonorAllFieldsEditor(focusAt: .lastName) } }
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
                     donorInputRow(
                         geometry: geometry,
                         label: "phoneNumber".localized,
                         icon: "phone.fill",
                         value: donorPhone.isEmpty ? "enterYourPhone".localized : formatPhoneDisplay(donorPhone),
                         isEmpty: donorPhone.isEmpty,
-                        hasError: isPhoneRequired && donorPhone.trimmingCharacters(in: .whitespaces).isEmpty,
-                        onTap: { if !anonymousSeva { activeDonorFieldEditor = .phone } }
+                        hasError: donorFieldsStrict && donorPhone.filter(\.isNumber).count != 10,
+                        onTap: { if !anonymousSeva { presentDonorAllFieldsEditor(focusAt: .phone) } }
                     )
                     donorInputRow(
                         geometry: geometry,
-                        label: "emailForReceipt".localized,
+                        label: "emailAddress".localized,
                         icon: "envelope.fill",
                         value: donorEmail.isEmpty ? "enterYourEmail".localized : donorEmail,
                         isEmpty: donorEmail.isEmpty,
-                        hasError: false,
-                        onTap: { if !anonymousSeva { activeDonorFieldEditor = .email } }
+                        hasError: donorFieldsStrict && donorEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                        onTap: { if !anonymousSeva { presentDonorAllFieldsEditor(focusAt: .email) } }
                     )
                     donorInputRow(
                         geometry: geometry,
@@ -563,11 +638,14 @@ struct ModernDonationDetailsView: View {
                         icon: "mappin.circle.fill",
                         value: donorAddress.isEmpty ? "enterYourAddress".localized : donorAddress,
                         isEmpty: donorAddress.isEmpty,
-                        hasError: false,
-                        onTap: { if !anonymousSeva { activeDonorFieldEditor = .address } }
+                        hasError: donorFieldsStrict && donorAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                        onTap: { if !anonymousSeva { presentDonorAllFieldsEditor(focusAt: .address) } }
                     )
                 }
+                
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
     
@@ -628,13 +706,43 @@ struct ModernDonationDetailsView: View {
         Button(action: {
             guard canProceed else { return }
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            let autoAnonymous = !requiresMandatoryDonorFields && isDonorContactCompletelyEmpty && !anonymousSeva
+            let submitAsAnonymous = anonymousSeva || autoAnonymous
+            let placeholderFullName = "\(Self.anonymousPlaceholderFirstName) \(Self.anonymousPlaceholderLastName)"
             withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
-                onConfirm(
-                    donorName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorName.trimmingCharacters(in: .whitespaces),
-                    donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
-                    donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces),
-                    donorAddress.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorAddress.trimmingCharacters(in: .whitespaces)
-                )
+                if submitAsAnonymous {
+                    if anonymousSeva {
+                        let combinedName = combinedDonorNameForSubmit()
+                        let digits = donorPhone.filter { $0.isNumber }
+                        let phoneOut = digits.isEmpty ? Self.anonymousPlaceholderPhoneDigits : String(digits.prefix(10))
+                        let emailTrim = donorEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let addrTrim = donorAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                        onConfirm(
+                            combinedName.isEmpty ? placeholderFullName : combinedName,
+                            phoneOut,
+                            emailTrim.isEmpty ? nil : emailTrim,
+                            addrTrim.isEmpty ? nil : addrTrim,
+                            true
+                        )
+                    } else {
+                        onConfirm(
+                            placeholderFullName,
+                            Self.anonymousPlaceholderPhoneDigits,
+                            nil,
+                            Self.anonymousPlaceholderAddress,
+                            true
+                        )
+                    }
+                } else {
+                    let combinedName = combinedDonorNameForSubmit()
+                    onConfirm(
+                        combinedName.isEmpty ? nil : combinedName,
+                        donorPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorPhone.trimmingCharacters(in: .whitespaces),
+                        donorEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorEmail.trimmingCharacters(in: .whitespaces),
+                        donorAddress.trimmingCharacters(in: .whitespaces).isEmpty ? nil : donorAddress.trimmingCharacters(in: .whitespaces),
+                        false
+                    )
+                }
             }
         }) {
             HStack(spacing: compact ? s(4) : s(6)) {
@@ -699,12 +807,16 @@ struct ModernDonationDetailsView: View {
             }
         }
         .ignoresSafeArea(.all, edges: .all)
-        .fullScreenCover(item: $activeDonorFieldEditor) { field in
-            DonorFieldFullScreenCover(
-                field: field,
-                text: bindingForDonorField(field),
-                navTitle: navTitle(for: field),
-                prompt: promptForDonorField(field),
+        .fullScreenCover(isPresented: $showDonorAllFieldsEditor) {
+            DonorAllFieldsFullScreenCover(
+                donorFirstName: $donorFirstName,
+                donorLastName: $donorLastName,
+                donorPhone: $donorPhone,
+                donorEmail: $donorEmail,
+                donorAddress: $donorAddress,
+                anonymousSeva: $anonymousSeva,
+                initialFocusedFieldIndex: donorEditorInitialFocusIndex,
+                showAnonymousSevaToggle: showAnonymousSevaToggle,
                 headingColor: headingColor,
                 creamFill: creamFill,
                 burgundyBrand: burgundyBrand,
@@ -717,10 +829,22 @@ struct ModernDonationDetailsView: View {
                     await selectAddress(suggestion: prediction)
                 },
                 onDone: {
-                    activeDonorFieldEditor = nil
+                    showDonorAllFieldsEditor = false
                     addressSuggestions = []
+                },
+                onIdleTimeout: {
+                    showDonorAllFieldsEditor = false
+                    addressSuggestions = []
+                    NotificationCenter.default.post(name: .idleTimeoutReached, object: nil)
                 }
             )
+        }
+        .onChange(of: showDonorAllFieldsEditor) { isPresented in
+            if isPresented {
+                IdleTimer.shared.pause()
+            } else {
+                IdleTimer.shared.resume()
+            }
         }
         .sheet(isPresented: $showingYajmanOpportunities) {
             if let category = category, let opportunities = category.yajmanOpportunities, !opportunities.isEmpty {
@@ -734,28 +858,57 @@ struct ModernDonationDetailsView: View {
             }
         }
         .onAppear {
-            // Initialize fields with saved donor details if available
-            // Always restore from initial values when view appears (preserves data when returning from payment)
-            if let initialName = initialDonorName, !initialName.isEmpty {
-                donorName = initialName
+            // Initialize fields when view appears (e.g. returning from cancelled/failed payment).
+            if initialAnonymousSeva {
+                skipNextAnonymousSevaChangeHandler = true
+                donorSnapshotBeforeAnonymous = nil
+                if let initialName = initialDonorName, !initialName.isEmpty {
+                    let parts = Self.splitFullName(initialName)
+                    donorFirstName = parts.first
+                    donorLastName = parts.last
+                } else {
+                    donorFirstName = Self.anonymousPlaceholderFirstName
+                    donorLastName = Self.anonymousPlaceholderLastName
+                }
+                if let initialPhone = initialDonorPhone, !initialPhone.isEmpty {
+                    donorPhone = initialPhone
+                } else {
+                    donorPhone = Self.anonymousPlaceholderPhoneDigits
+                }
+                donorEmail = initialDonorEmail ?? ""
+                if let initialAddress = initialDonorAddress, !initialAddress.isEmpty {
+                    donorAddress = initialAddress
+                } else {
+                    donorAddress = Self.anonymousPlaceholderAddress
+                }
+                anonymousSeva = true
+            } else {
+                if let initialName = initialDonorName, !initialName.isEmpty {
+                    let parts = Self.splitFullName(initialName)
+                    donorFirstName = parts.first
+                    donorLastName = parts.last
+                }
+                if let initialPhone = initialDonorPhone, !initialPhone.isEmpty {
+                    donorPhone = initialPhone
+                }
+                if let initialEmail = initialDonorEmail, !initialEmail.isEmpty {
+                    donorEmail = initialEmail
+                }
+                if let initialAddress = initialDonorAddress, !initialAddress.isEmpty {
+                    donorAddress = initialAddress
+                }
+                anonymousSeva = false
             }
-            if let initialPhone = initialDonorPhone, !initialPhone.isEmpty {
-                donorPhone = initialPhone
-            }
-            if let initialEmail = initialDonorEmail, !initialEmail.isEmpty {
-                donorEmail = initialEmail
-            }
-            if let initialAddress = initialDonorAddress, !initialAddress.isEmpty {
-                donorAddress = initialAddress
-            }
-            
+
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
                 appearAnimation = true
             }
         }
         .detectTouches() // Detect all user interactions to reset idle timer
-        .onChange(of: donorName) { _ in
-            // User is typing in name field - reset idle timer
+        .onChange(of: donorFirstName) { _ in
+            IdleTimer.shared.userDidInteract()
+        }
+        .onChange(of: donorLastName) { _ in
             IdleTimer.shared.userDidInteract()
         }
         .onChange(of: donorPhone) { newPhone in
@@ -769,10 +922,14 @@ struct ModernDonationDetailsView: View {
             }
         }
         .onChange(of: anonymousSeva) { newValue in
+            if skipNextAnonymousSevaChangeHandler {
+                skipNextAnonymousSevaChangeHandler = false
+                return
+            }
             handleAnonymousSevaChange(enabled: newValue)
         }
         .onChange(of: category?.id) { _ in
-            if category == nil && anonymousSeva {
+            if category == nil && anonymousSeva && !requiresMandatoryDonorFields {
                 anonymousSeva = false
             }
         }
@@ -781,39 +938,7 @@ struct ModernDonationDetailsView: View {
             IdleTimer.shared.userDidInteract()
         }
         .onChange(of: donorAddress) { _ in
-            // Address autocomplete runs from `DonorFieldFullScreenCover` on text change (avoids double API calls).
             IdleTimer.shared.userDidInteract()
-        }
-    }
-    
-    private func bindingForDonorField(_ field: DonorFieldEditor) -> Binding<String> {
-        switch field {
-        case .name: return $donorName
-        case .phone: return $donorPhone
-        case .email: return $donorEmail
-        case .address: return $donorAddress
-        }
-    }
-    
-    private func navTitle(for field: DonorFieldEditor) -> String {
-        switch field {
-        case .name:
-            return "name".localized
-        case .phone:
-            return "phoneNumber".localized
-        case .email:
-            return "emailForReceipt".localized
-        case .address:
-            return "mailingAddress".localized
-        }
-    }
-    
-    private func promptForDonorField(_ field: DonorFieldEditor) -> String {
-        switch field {
-        case .name: return "enterYourName".localized
-        case .phone: return "enterYourPhone".localized
-        case .email: return "enterYourEmail".localized
-        case .address: return "enterYourAddress".localized
         }
     }
     
@@ -834,8 +959,12 @@ struct ModernDonationDetailsView: View {
             if response.found, let donor = response.donor {
                 await MainActor.run {
                     // Only auto-populate if fields are empty (don't overwrite user input)
-                    if donorName.trimmingCharacters(in: .whitespaces).isEmpty, let name = donor.name {
-                        donorName = name
+                    let firstEmpty = donorFirstName.trimmingCharacters(in: .whitespaces).isEmpty
+                    let lastEmpty = donorLastName.trimmingCharacters(in: .whitespaces).isEmpty
+                    if firstEmpty && lastEmpty, let name = donor.name {
+                        let parts = Self.splitFullName(name)
+                        donorFirstName = parts.first
+                        donorLastName = parts.last
                     }
                     if donorEmail.trimmingCharacters(in: .whitespaces).isEmpty, let email = donor.email {
                         donorEmail = email
@@ -896,7 +1025,6 @@ struct ModernDonationDetailsView: View {
                 }
                 addressSuggestions = []
                 addressSessionToken = nil
-                activeDonorFieldEditor = nil
             }
         } catch {
             // Fallback to description if details fetch fails
@@ -904,7 +1032,6 @@ struct ModernDonationDetailsView: View {
                 donorAddress = suggestion.description
                 addressSuggestions = []
                 addressSessionToken = nil
-                activeDonorFieldEditor = nil
             }
         }
     }
@@ -934,6 +1061,24 @@ private enum DonorUSPhoneFormatting {
     }
 }
 
+// MARK: - Themed keyboard accessory (matches kiosk cream / burgundy; avoids default white + blue bar)
+private enum DonorFormAccessoryToolbar {
+    static func applyAppearance(_ toolbar: UIToolbar, backgroundColor: UIColor) {
+        toolbar.isTranslucent = false
+        if #available(iOS 15.0, *) {
+            let appearance = UIToolbarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = backgroundColor
+            appearance.shadowColor = UIColor.black.withAlphaComponent(0.12)
+            toolbar.standardAppearance = appearance
+            toolbar.scrollEdgeAppearance = appearance
+            toolbar.compactAppearance = appearance
+        } else {
+            toolbar.barTintColor = backgroundColor
+        }
+    }
+}
+
 // MARK: - UIKit-backed Georgia input (SwiftUI TextField ignores custom font sizes)
 private struct DonorSingleLineUIKitField: UIViewRepresentable {
     @Binding var text: String
@@ -949,9 +1094,33 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
     var onEditingDone: (() -> Void)?
     /// When true, `text` binding holds digits only; the field shows formatted `(###) - ### - ####`.
     var isPhoneField: Bool = false
+    /// Single-field editors auto-focus; multi-field forms set false and drive focus via `isFocused`.
+    var autoFocusOnAppear: Bool = true
+    var fieldIndex: Int = 0
+    var isFocused: Bool = false
+    var onFieldBecameActive: ((Int) -> Void)?
+    var keyboardReturnKeyType: UIReturnKeyType = .done
+    var onAdvanceToNextField: (() -> Void)?
+    var accessoryNextTitle: String = "Next"
+    /// Hides inline QuickType predictions (e.g. domain completions) for sensitive fields like email.
+    var suppressKeyboardPredictions: Bool = false
+    /// Shows an input accessory with Done (and Next when `accessoryShowsNext`) on keyboards that do not include one (e.g. default name keyboard).
+    var addsDoneAccessoryBar: Bool = false
+    /// When set with `accessoryTintUIColor`, the accessory uses kiosk styling instead of the default white/blue toolbar.
+    var accessoryBackgroundUIColor: UIColor?
+    var accessoryTintUIColor: UIColor?
+    var accessoryDoneTitle: String = "Done"
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
+    }
+
+    private var needsInputAccessoryToolbar: Bool {
+        keyboardType == .phonePad || keyboardType == .emailAddress || addsDoneAccessoryBar
+    }
+
+    private var accessoryShowsNext: Bool {
+        onAdvanceToNextField != nil && (keyboardType == .phonePad || keyboardType == .emailAddress)
     }
 
     func makeUIView(context: Context) -> UITextField {
@@ -972,32 +1141,62 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
         tf.textContentType = textContentType
         tf.autocapitalizationType = autocapitalization
         tf.autocorrectionType = disableAutocorrect ? .no : .yes
+        tf.spellCheckingType = suppressKeyboardPredictions ? .no : .default
+        if #available(iOS 17.0, *) {
+            tf.inlinePredictionType = suppressKeyboardPredictions ? .no : .default
+        }
         tf.adjustsFontSizeToFitWidth = false
         tf.minimumFontSize = fontSize * 0.85
-        tf.returnKeyType = .done
+        tf.returnKeyType = keyboardReturnKeyType
         tf.text = isPhoneField ? DonorUSPhoneFormatting.displayDigits(text) : text
         if !isPhoneField {
             tf.addTarget(context.coordinator, action: #selector(Coordinator.textChanged), for: .editingChanged)
         }
-        if keyboardType == .phonePad || keyboardType == .emailAddress {
-            tf.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator)
+        if needsInputAccessoryToolbar {
+            let showNext = accessoryShowsNext
+            context.coordinator.cachedAccessoryShowNext = showNext
+            tf.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator, showNext: showNext)
         }
-        DispatchQueue.main.async {
-            tf.becomeFirstResponder()
+        if autoFocusOnAppear {
+            context.coordinator.scheduleBecomeFirstResponder(for: tf)
         }
         return tf
     }
 
-    private func makeAccessoryToolbar(coordinator: Coordinator) -> UIToolbar {
+    private func makeAccessoryToolbar(coordinator: Coordinator, showNext: Bool) -> UIToolbar {
         let toolbar = UIToolbar()
-        toolbar.sizeToFit()
         let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let done = UIBarButtonItem(
-            barButtonSystemItem: .done,
-            target: coordinator,
-            action: #selector(Coordinator.accessoryDoneTapped)
-        )
-        toolbar.items = [flex, done]
+        let themed = accessoryBackgroundUIColor != nil && accessoryTintUIColor != nil
+        if themed, let bg = accessoryBackgroundUIColor {
+            DonorFormAccessoryToolbar.applyAppearance(toolbar, backgroundColor: bg)
+        }
+        let tint = accessoryTintUIColor
+        let done: UIBarButtonItem
+        if themed, let t = tint {
+            done = UIBarButtonItem(
+                title: accessoryDoneTitle,
+                style: .plain,
+                target: coordinator,
+                action: #selector(Coordinator.accessoryDoneTapped)
+            )
+            done.tintColor = t
+        } else {
+            done = UIBarButtonItem(
+                barButtonSystemItem: .done,
+                target: coordinator,
+                action: #selector(Coordinator.accessoryDoneTapped)
+            )
+        }
+        if showNext {
+            let next = UIBarButtonItem(title: accessoryNextTitle, style: .plain, target: coordinator, action: #selector(Coordinator.accessoryNextTapped))
+            if let t = tint {
+                next.tintColor = t
+            }
+            toolbar.items = [next, flex, done]
+        } else {
+            toolbar.items = [flex, done]
+        }
+        toolbar.sizeToFit()
         return toolbar
     }
 
@@ -1006,6 +1205,11 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
         context.coordinator.textField = uiView
         uiView.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
         uiView.textColor = textUIColor
+        uiView.returnKeyType = keyboardReturnKeyType
+        uiView.spellCheckingType = suppressKeyboardPredictions ? .no : .default
+        if #available(iOS 17.0, *) {
+            uiView.inlinePredictionType = suppressKeyboardPredictions ? .no : .default
+        }
         uiView.attributedPlaceholder = NSAttributedString(
             string: placeholder,
             attributes: [
@@ -1017,21 +1221,44 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
         if uiView.text != displayText {
             uiView.text = displayText
         }
-        if keyboardType == .phonePad || keyboardType == .emailAddress {
-            if uiView.inputAccessoryView == nil {
-                uiView.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator)
+        if needsInputAccessoryToolbar {
+            let showNext = accessoryShowsNext
+            if context.coordinator.cachedAccessoryShowNext != showNext || uiView.inputAccessoryView == nil {
+                context.coordinator.cachedAccessoryShowNext = showNext
+                uiView.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator, showNext: showNext)
             }
         } else {
+            context.coordinator.cachedAccessoryShowNext = nil
             uiView.inputAccessoryView = nil
+        }
+        if isFocused, uiView.window != nil, !uiView.isFirstResponder {
+            context.coordinator.scheduleBecomeFirstResponder(for: uiView)
         }
     }
 
     final class Coordinator: NSObject, UITextFieldDelegate {
         var parent: DonorSingleLineUIKitField
         weak var textField: UITextField?
+        /// Avoid rebuilding the accessory view every SwiftUI frame (reduces keyboard chrome flicker).
+        var cachedAccessoryShowNext: Bool?
+        private var pendingFocusWorkItem: DispatchWorkItem?
 
         init(_ parent: DonorSingleLineUIKitField) {
             self.parent = parent
+        }
+
+        func scheduleBecomeFirstResponder(for field: UITextField) {
+            pendingFocusWorkItem?.cancel()
+            let item = DispatchWorkItem { [weak field] in
+                guard let field, field.window != nil, !field.isFirstResponder else { return }
+                field.becomeFirstResponder()
+            }
+            pendingFocusWorkItem = item
+            DispatchQueue.main.async(execute: item)
+        }
+
+        deinit {
+            pendingFocusWorkItem?.cancel()
         }
 
         @objc func textChanged(_ sender: UITextField) {
@@ -1044,7 +1271,19 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
             parent.onEditingDone?()
         }
 
+        @objc func accessoryNextTapped() {
+            parent.onAdvanceToNextField?()
+        }
+
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            parent.onFieldBecameActive?(parent.fieldIndex)
+        }
+
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            if parent.keyboardReturnKeyType == .next, parent.onAdvanceToNextField != nil {
+                parent.onAdvanceToNextField?()
+                return false
+            }
             textField.resignFirstResponder()
             parent.onEditingDone?()
             return true
@@ -1074,9 +1313,44 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
     var autocapitalization: UITextAutocapitalizationType
     var disableAutocorrect: Bool
     var onEditingDone: (() -> Void)?
+    var autoFocusOnAppear: Bool = true
+    var fieldIndex: Int = 0
+    var isFocused: Bool = false
+    var onFieldBecameActive: ((Int) -> Void)?
+    var accessoryBackgroundUIColor: UIColor?
+    var accessoryTintUIColor: UIColor?
+    var accessoryDoneTitle: String = "Done"
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
+    }
+
+    private func makeAccessoryToolbar(coordinator: Coordinator) -> UIToolbar {
+        let toolbar = UIToolbar()
+        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let themed = accessoryBackgroundUIColor != nil && accessoryTintUIColor != nil
+        if themed, let bg = accessoryBackgroundUIColor {
+            DonorFormAccessoryToolbar.applyAppearance(toolbar, backgroundColor: bg)
+        }
+        let done: UIBarButtonItem
+        if themed, let t = accessoryTintUIColor {
+            done = UIBarButtonItem(
+                title: accessoryDoneTitle,
+                style: .plain,
+                target: coordinator,
+                action: #selector(Coordinator.accessoryDoneTapped)
+            )
+            done.tintColor = t
+        } else {
+            done = UIBarButtonItem(
+                barButtonSystemItem: .done,
+                target: coordinator,
+                action: #selector(Coordinator.accessoryDoneTapped)
+            )
+        }
+        toolbar.items = [flex, done]
+        toolbar.sizeToFit()
+        return toolbar
     }
 
     func makeUIView(context: Context) -> UITextView {
@@ -1090,21 +1364,16 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
         tv.textContainerInset = UIEdgeInsets(top: 6, left: 4, bottom: 6, right: 4)
         tv.autocapitalizationType = autocapitalization
         tv.autocorrectionType = disableAutocorrect ? .no : .yes
+        tv.spellCheckingType = .no
+        if #available(iOS 17.0, *) {
+            tv.inlinePredictionType = .no
+        }
         tv.keyboardType = .default
         tv.textContentType = .fullStreetAddress
         tv.text = text
-        let toolbar = UIToolbar()
-        toolbar.sizeToFit()
-        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let done = UIBarButtonItem(
-            barButtonSystemItem: .done,
-            target: context.coordinator,
-            action: #selector(Coordinator.accessoryDoneTapped)
-        )
-        toolbar.items = [flex, done]
-        tv.inputAccessoryView = toolbar
-        DispatchQueue.main.async {
-            tv.becomeFirstResponder()
+        tv.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator)
+        if autoFocusOnAppear {
+            context.coordinator.scheduleBecomeFirstResponder(for: tv)
         }
         return tv
     }
@@ -1114,22 +1383,48 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
         context.coordinator.textView = uiView
         uiView.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
         uiView.textColor = textUIColor
+        uiView.spellCheckingType = .no
+        if #available(iOS 17.0, *) {
+            uiView.inlinePredictionType = .no
+        }
         if uiView.text != text {
             uiView.text = text
+        }
+        if isFocused, uiView.window != nil, !uiView.isFirstResponder {
+            context.coordinator.scheduleBecomeFirstResponder(for: uiView)
         }
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: DonorMultilineUIKitTextView
         weak var textView: UITextView?
+        private var pendingFocusWorkItem: DispatchWorkItem?
 
         init(_ parent: DonorMultilineUIKitTextView) {
             self.parent = parent
         }
 
+        func scheduleBecomeFirstResponder(for view: UITextView) {
+            pendingFocusWorkItem?.cancel()
+            let item = DispatchWorkItem { [weak view] in
+                guard let view, view.window != nil, !view.isFirstResponder else { return }
+                view.becomeFirstResponder()
+            }
+            pendingFocusWorkItem = item
+            DispatchQueue.main.async(execute: item)
+        }
+
+        deinit {
+            pendingFocusWorkItem?.cancel()
+        }
+
         @objc func accessoryDoneTapped() {
             textView?.resignFirstResponder()
             parent.onEditingDone?()
+        }
+
+        func textViewDidBeginEditing(_ textView: UITextView) {
+            parent.onFieldBecameActive?(parent.fieldIndex)
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -1138,46 +1433,35 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
     }
 }
 
-// MARK: - Quick email domain chips (full-screen email editor)
-private enum DonorEmailQuickDomains {
-    /// Common consumer / ISP domains shown under the email field while typing.
-    static let domains: [String] = [
-        "gmail.com",
-        "yahoo.com",
-        "hotmail.com",
-        "outlook.com",
-        "icloud.com",
-        "aol.com",
-        "live.com",
-        "msn.com",
-        "protonmail.com",
-        "me.com",
-        "comcast.net",
-        "verizon.net",
-        "att.net",
-    ]
+/// Keyboard overlap with the key window so scroll padding matches the visible keyboard (avoids a dead gap above it).
+private enum DonorFormKeyboardInsets {
+    static func overlapHeight(notification: Notification) -> CGFloat {
+        guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return 0 }
+        guard let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap(\.windows)
+            .first(where: { $0.isKeyWindow }) else {
+            return max(0, UIScreen.main.bounds.height - frame.minY)
+        }
+        let converted = window.convert(frame, from: UIScreen.main.coordinateSpace)
+        return max(0, window.bounds.maxY - converted.minY)
+    }
 
-    /// Preset chip row: `local` + tap `@domain`, or replace domain if `@` already present.
-    static func applyPresetDomain(_ raw: String, domain: String) -> String {
-        let d = domain.lowercased()
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let atIdx = trimmed.firstIndex(of: "@") {
-            let local = String(trimmed[..<atIdx])
-            return local + "@" + d
-        }
-        if trimmed.isEmpty {
-            return "@" + d
-        }
-        return trimmed + "@" + d
+    static func animationDuration(notification: Notification) -> Double {
+        (notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue ?? 0.25
     }
 }
 
-// MARK: - Full-screen donor field editor (system keyboard)
-private struct DonorFieldFullScreenCover: View {
-    let field: DonorFieldEditor
-    @Binding var text: String
-    let navTitle: String
-    let prompt: String
+// MARK: - Full-screen donor editor: all fields + one Done (tap between fields without dismissing keyboard)
+private struct DonorAllFieldsFullScreenCover: View {
+    @Binding var donorFirstName: String
+    @Binding var donorLastName: String
+    @Binding var donorPhone: String
+    @Binding var donorEmail: String
+    @Binding var donorAddress: String
+    @Binding var anonymousSeva: Bool
+    let initialFocusedFieldIndex: Int
+    let showAnonymousSevaToggle: Bool
     let headingColor: Color
     let creamFill: Color
     let burgundyBrand: Color
@@ -1186,198 +1470,212 @@ private struct DonorFieldFullScreenCover: View {
     let onAddressQuery: (String) async -> Void
     let onPickAddress: (AddressPrediction) async -> Void
     let onDone: () -> Void
+    let onIdleTimeout: () -> Void
+
+    @State private var focusedFieldIndex: Int = 0
+    @State private var donorFormIdleTimer: Timer?
+    @State private var keyboardBottomInset: CGFloat = 0
+    @State private var addressAutocompleteTask: Task<Void, Never>?
+
+    private static let donorFormIdleSeconds: TimeInterval = 120
+
+    private func scheduleDonorFormIdleTimer() {
+        donorFormIdleTimer?.invalidate()
+        donorFormIdleTimer = nil
+        donorFormIdleTimer = Timer.scheduledTimer(withTimeInterval: Self.donorFormIdleSeconds, repeats: false) { _ in
+            DispatchQueue.main.async {
+                onIdleTimeout()
+            }
+        }
+    }
+
+    private func recordDonorFormActivity() {
+        scheduleDonorFormIdleTimer()
+    }
+
+    private func focusNext(after index: Int) {
+        focusedFieldIndex = min(index + 1, 4)
+    }
+
+    /// Matches navigation Done: dismiss sheet (keyboard Return/Done and accessory Done).
+    private func finishFromKeyboard() {
+        recordDonorFormActivity()
+        onDone()
+    }
+
+    /// Precomputed layout so `body` stays small enough for the Swift type checker.
+    private struct EditorLayout {
+        let width: CGFloat
+        let height: CGFloat
+        let inputFont: CGFloat
+        let horizontalPad: CGFloat
+        let contentW: CGFloat
+        let colGap: CGFloat
+        let colW: CGFloat
+        let cellCorner: CGFloat
+        let singleLineInnerHeight: CGFloat
+        let singleLineFieldOuterHeight: CGFloat
+        let addressFieldOuterMinHeight: CGFloat
+        let labelFont: CGFloat
+        let labelBottomPadding: CGFloat
+        let toggleFont: CGFloat
+        let toggleBottomPadding: CGFloat
+        let nameRowBottomPadding: CGFloat
+        let emailSectionBottomPadding: CGFloat
+        let fieldHorizontalPadding: CGFloat
+        let fieldVerticalPadding: CGFloat
+        let formTopPadding: CGFloat
+        let formBottomPadding: CGFloat
+        /// Height available for the form below the nav bar and above the keyboard (no scrolling).
+        let maxFormContentHeight: CGFloat
+        let suggestionMaxHeight: CGFloat
+        /// Taller than `height` when the keyboard is up so the temple/gradient fills the gap above the keys (GeometryReader height shrinks).
+        let backgroundImageHeight: CGFloat
+
+        static func make(geo: GeometryProxy, keyboardBottomInset: CGFloat, showAnonymousToggle: Bool) -> (EditorLayout, (CGFloat) -> CGFloat) {
+            let sc = geo.scaleWidthStable
+            let horizontalPad = sc(28)
+            let contentW = max(geo.size.width - horizontalPad * 2, sc(200))
+            let colGap = sc(12)
+            let colW = (contentW - 2 * colGap) / 3
+            let cellCorner = sc(DesignSystem.Components.buttonCornerRadius)
+
+            let navReserve = geo.safeAreaInsets.top + sc(52)
+            let keyboardUp = keyboardBottomInset > 1
+            /// Input accessory sits above keys; overlap height usually includes it, keep a little margin.
+            let maxFormH = max(sc(120), geo.size.height - navReserve - keyboardBottomInset - sc(4))
+            let suggestionMax = keyboardUp ? sc(72) : sc(220)
+            let backgroundPaintH = geo.size.height + max(CGFloat(0), keyboardBottomInset)
+
+            let baseInputFont = max(sc(16), min(sc(24), geo.size.width * 0.012 + sc(13)))
+            var inputFont = baseInputFont
+            /// Extra touch height on all single-line fields (and drives address band via `singleOuter`).
+            let fieldBoost = CGFloat(15)
+            var innerH = sc(DesignSystem.Components.inputHeight) + fieldBoost
+            var fieldHPad = sc(10)
+            var fieldVPad = sc(10)
+            var labelFont = sc(14)
+            var labelBottom = sc(4)
+            var toggleFont = sc(16)
+            var toggleBottom = sc(12)
+            var nameRowBottom = sc(10)
+            var emailSectionBottom = sc(10)
+            var formTop = sc(4)
+            var formBottom = sc(8)
+
+            if keyboardUp {
+                innerH = sc(40) + fieldBoost
+                fieldHPad = sc(8)
+                fieldVPad = sc(6)
+                inputFont = max(sc(14), baseInputFont - sc(2.5))
+                labelFont = sc(13)
+                labelBottom = sc(3)
+                toggleFont = sc(15)
+                toggleBottom = sc(8)
+                nameRowBottom = sc(8)
+                emailSectionBottom = sc(8)
+                formTop = sc(2)
+                formBottom = sc(6)
+            }
+
+            let singleOuter = fieldVPad * 2 + innerH
+            /// One compact multiline band (~2 short lines), not a tall text panel.
+            let addressOuter = keyboardUp
+                ? max(sc(48), min(singleOuter + sc(28), singleOuter * 1.35))
+                : max(sc(56), singleOuter + sc(36))
+
+            var layout = EditorLayout(
+                width: geo.size.width,
+                height: geo.size.height,
+                inputFont: inputFont,
+                horizontalPad: horizontalPad,
+                contentW: contentW,
+                colGap: colGap,
+                colW: colW,
+                cellCorner: cellCorner,
+                singleLineInnerHeight: innerH,
+                singleLineFieldOuterHeight: singleOuter,
+                addressFieldOuterMinHeight: addressOuter,
+                labelFont: labelFont,
+                labelBottomPadding: labelBottom,
+                toggleFont: toggleFont,
+                toggleBottomPadding: toggleBottom,
+                nameRowBottomPadding: nameRowBottom,
+                emailSectionBottomPadding: emailSectionBottom,
+                fieldHorizontalPadding: fieldHPad,
+                fieldVerticalPadding: fieldVPad,
+                formTopPadding: formTop,
+                formBottomPadding: formBottom,
+                maxFormContentHeight: maxFormH,
+                suggestionMaxHeight: suggestionMax,
+                backgroundImageHeight: backgroundPaintH
+            )
+
+            // If still too tall, shrink address band and inner height one more step.
+            let est = layout.estimatedFormHeight(showAnonymousToggle: showAnonymousToggle)
+            if est > maxFormH && keyboardUp {
+                let delta = est - maxFormH + sc(8)
+                let newAddr = max(sc(44), layout.addressFieldOuterMinHeight - min(delta * 0.55, sc(36)))
+                let minInner = sc(34) + fieldBoost
+                let newInner = max(minInner, layout.singleLineInnerHeight - sc(4))
+                let newOuter = layout.fieldVerticalPadding * 2 + newInner
+                layout = EditorLayout(
+                    width: layout.width,
+                    height: layout.height,
+                    inputFont: max(sc(13), layout.inputFont - 1),
+                    horizontalPad: layout.horizontalPad,
+                    contentW: layout.contentW,
+                    colGap: layout.colGap,
+                    colW: layout.colW,
+                    cellCorner: layout.cellCorner,
+                    singleLineInnerHeight: newInner,
+                    singleLineFieldOuterHeight: newOuter,
+                    addressFieldOuterMinHeight: newAddr,
+                    labelFont: layout.labelFont,
+                    labelBottomPadding: layout.labelBottomPadding,
+                    toggleFont: layout.toggleFont,
+                    toggleBottomPadding: layout.toggleBottomPadding,
+                    nameRowBottomPadding: layout.nameRowBottomPadding,
+                    emailSectionBottomPadding: layout.emailSectionBottomPadding,
+                    fieldHorizontalPadding: layout.fieldHorizontalPadding,
+                    fieldVerticalPadding: layout.fieldVerticalPadding,
+                    formTopPadding: layout.formTopPadding,
+                    formBottomPadding: layout.formBottomPadding,
+                    maxFormContentHeight: maxFormH,
+                    suggestionMaxHeight: layout.suggestionMaxHeight,
+                    backgroundImageHeight: backgroundPaintH
+                )
+            }
+
+            return (layout, sc)
+        }
+
+        func estimatedFormHeight(showAnonymousToggle: Bool) -> CGFloat {
+            var h = formTopPadding + formBottomPadding
+            if showAnonymousToggle {
+                h += 36 + toggleBottomPadding
+            }
+            h += singleLineFieldOuterHeight + nameRowBottomPadding
+            h += labelFont + 4 + labelBottomPadding + singleLineFieldOuterHeight + emailSectionBottomPadding
+            h += labelFont + 4 + labelBottomPadding + addressFieldOuterMinHeight
+            return h
+        }
+    }
 
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
-                let sc = geo.scaleWidthStable
-                // Readable but not oversized in the gold-bordered field (was ~+10pt too large).
-                let inputFont = max(sc(22), min(sc(30), geo.size.width * 0.018 + sc(16)))
-                ZStack {
-                    Group {
-                        if UIImage(named: "KioskBackground") != nil {
-                            Image("KioskBackground")
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: geo.size.width, height: geo.size.height)
-                                .clipped()
-                                .blur(radius: 4)
-                        } else {
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.white,
-                                    Color(red: 0.95, green: 0.97, blue: 1.0)
-                                ]),
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        }
-                    }
-                    .ignoresSafeArea()
-                    
-                    creamFill.opacity(0.15)
-                        .ignoresSafeArea()
-                    
-                    VStack(spacing: 0) {
-                        Spacer(minLength: sc(28))
-                        
-                        VStack(alignment: .leading, spacing: 0) {
-                            if field == .address {
-                                ZStack(alignment: .topLeading) {
-                                    if text.isEmpty {
-                                        Text(prompt)
-                                            .font(.custom("Georgia", size: inputFont * 0.88))
-                                            .foregroundColor(headingColor.opacity(0.38))
-                                            .padding(.horizontal, sc(20))
-                                            .padding(.vertical, sc(10))
-                                            .allowsHitTesting(false)
-                                    }
-                                    DonorMultilineUIKitTextView(
-                                        text: $text,
-                                        fontSize: inputFont,
-                                        textUIColor: UIColor(headingColor),
-                                        autocapitalization: .words,
-                                        disableAutocorrect: false,
-                                        onEditingDone: onDone
-                                    )
-                                    .frame(minHeight: sc(132))
-                                }
-                            } else if field == .email {
-                                VStack(alignment: .leading, spacing: sc(10)) {
-                                    DonorSingleLineUIKitField(
-                                        text: $text,
-                                        placeholder: prompt,
-                                        fontSize: inputFont,
-                                        textUIColor: UIColor(headingColor),
-                                        placeholderUIColor: UIColor(headingColor.opacity(0.38)),
-                                        keyboardType: keyboardType,
-                                        textContentType: textContentType,
-                                        autocapitalization: uiAutocapitalization,
-                                        disableAutocorrect: true,
-                                        onEditingDone: onDone,
-                                        isPhoneField: false
-                                    )
-                                    .frame(minHeight: sc(56))
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: sc(10)) {
-                                            ForEach(DonorEmailQuickDomains.domains, id: \.self) { domain in
-                                                Button {
-                                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                                    text = DonorEmailQuickDomains.applyPresetDomain(text, domain: domain)
-                                                } label: {
-                                                    Text("@\(domain)")
-                                                        .font(.custom("Georgia", size: sc(15)))
-                                                        .foregroundColor(headingColor)
-                                                        .padding(.horizontal, sc(12))
-                                                        .padding(.vertical, sc(8))
-                                                        .background(
-                                                            Capsule()
-                                                                .fill(Color.white.opacity(0.65))
-                                                                .overlay(
-                                                                    Capsule()
-                                                                        .stroke(goldAccent.opacity(0.9), lineWidth: 1)
-                                                                )
-                                                        )
-                                                }
-                                                .buttonStyle(.plain)
-                                            }
-                                        }
-                                        .padding(.vertical, sc(2))
-                                        .padding(.trailing, sc(4))
-                                    }
-                                }
-                            } else {
-                                DonorSingleLineUIKitField(
-                                    text: $text,
-                                    placeholder: prompt,
-                                    fontSize: inputFont,
-                                    textUIColor: UIColor(headingColor),
-                                    placeholderUIColor: UIColor(headingColor.opacity(0.38)),
-                                    keyboardType: keyboardType,
-                                    textContentType: textContentType,
-                                    autocapitalization: uiAutocapitalization,
-                                    disableAutocorrect: field == .phone,
-                                    onEditingDone: onDone,
-                                    isPhoneField: field == .phone
-                                )
-                                .frame(minHeight: sc(56))
-                            }
-                        }
-                        .padding(.horizontal, sc(20))
-                        .padding(.vertical, sc(12))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: sc(20))
-                                .fill(Color.white.opacity(0.55))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: sc(20))
-                                        .fill(creamFill.opacity(0.45))
-                                )
-                                .shadow(color: Color.black.opacity(0.06), radius: sc(16), x: 0, y: sc(8))
-                        )
-                        .overlay(
-                            DonationGoldRingBorder(cornerRadius: sc(20))
-                                .allowsHitTesting(false)
-                        )
-                        .padding(.horizontal, sc(36))
-                        
-                        if field == .address && !addressSuggestions.isEmpty {
-                            ScrollView {
-                                VStack(spacing: 0) {
-                                    ForEach(Array(addressSuggestions.prefix(8).enumerated()), id: \.element.id) { index, suggestion in
-                                        Button {
-                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                            Task {
-                                                await onPickAddress(suggestion)
-                                            }
-                                        } label: {
-                                            HStack(alignment: .top, spacing: sc(12)) {
-                                                Image(systemName: "mappin.circle.fill")
-                                                    .font(.system(size: sc(20)))
-                                                    .foregroundColor(goldAccent)
-                                                    .padding(.top, sc(2))
-                                                VStack(alignment: .leading, spacing: sc(4)) {
-                                                    Text(suggestion.structured_formatting.main_text)
-                                                        .font(.custom("Georgia", size: sc(17)))
-                                                        .foregroundColor(headingColor)
-                                                        .lineLimit(2)
-                                                        .multilineTextAlignment(.leading)
-                                                    Text(suggestion.structured_formatting.secondary_text)
-                                                        .font(.custom("Georgia", size: sc(14)))
-                                                        .foregroundColor(headingColor.opacity(0.55))
-                                                        .lineLimit(2)
-                                                        .multilineTextAlignment(.leading)
-                                                }
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                            }
-                                            .padding(.horizontal, sc(16))
-                                            .padding(.vertical, sc(12))
-                                            .background(Color.white)
-                                        }
-                                        .buttonStyle(.plain)
-                                        if index < min(addressSuggestions.count, 8) - 1 {
-                                            Divider().padding(.leading, sc(48))
-                                        }
-                                    }
-                                }
-                            }
-                            .frame(maxHeight: sc(280))
-                            .background(Color.white)
-                            .cornerRadius(DesignSystem.Components.buttonCornerRadius)
-                            .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
-                            .padding(.horizontal, sc(36))
-                            .padding(.top, sc(16))
-                        }
-
-                        Spacer(minLength: sc(100))
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+                let pair = EditorLayout.make(
+                    geo: geo,
+                    keyboardBottomInset: keyboardBottomInset,
+                    showAnonymousToggle: showAnonymousSevaToggle
+                )
+                donorEditorRoot(layout: pair.0, sc: pair.1)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text(navTitle)
+                    Text("donorInfo".localized)
                         .font(.custom("Georgia", size: 18))
                         .foregroundColor(headingColor)
                         .lineLimit(2)
@@ -1385,7 +1683,9 @@ private struct DonorFieldFullScreenCover: View {
                         .multilineTextAlignment(.center)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onDone) {
+                    Button {
+                        finishFromKeyboard()
+                    } label: {
                         Text("done".localized)
                             .font(.custom("Georgia", size: 18))
                             .foregroundColor(burgundyBrand)
@@ -1394,45 +1694,462 @@ private struct DonorFieldFullScreenCover: View {
             }
             .toolbarBackground(creamFill.opacity(0.98), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-        }
-        .onChange(of: text) { newValue in
-            if field == .address {
-                Task {
-                    await onAddressQuery(newValue)
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+                let h = DonorFormKeyboardInsets.overlapHeight(notification: note)
+                let d = DonorFormKeyboardInsets.animationDuration(notification: note)
+                withAnimation(.easeOut(duration: d)) {
+                    keyboardBottomInset = h
                 }
             }
+            .background(creamFill.opacity(0.35).ignoresSafeArea())
         }
         .onAppear {
-            if field == .address, text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3 {
+            focusedFieldIndex = min(max(initialFocusedFieldIndex, 0), 4)
+            scheduleDonorFormIdleTimer()
+            let trimmed = donorAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.count >= 3 {
                 Task {
-                    await onAddressQuery(text)
+                    await onAddressQuery(trimmed)
                 }
             }
         }
-    }
-    
-    private var keyboardType: UIKeyboardType {
-        switch field {
-        case .phone: return .phonePad
-        case .email: return .emailAddress
-        case .name, .address: return .default
+        .onDisappear {
+            donorFormIdleTimer?.invalidate()
+            donorFormIdleTimer = nil
+            addressAutocompleteTask?.cancel()
+            addressAutocompleteTask = nil
+            keyboardBottomInset = 0
+        }
+        .onChange(of: donorFirstName) { _ in recordDonorFormActivity() }
+        .onChange(of: donorLastName) { _ in recordDonorFormActivity() }
+        .onChange(of: donorPhone) { _ in recordDonorFormActivity() }
+        .onChange(of: donorEmail) { _ in recordDonorFormActivity() }
+        .onChange(of: anonymousSeva) { _ in recordDonorFormActivity() }
+        .onChange(of: donorAddress) { newValue in
+            recordDonorFormActivity()
+            addressAutocompleteTask?.cancel()
+            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmed.count >= 3 else {
+                addressSuggestions = []
+                return
+            }
+            addressAutocompleteTask = Task {
+                try? await Task.sleep(nanoseconds: 380_000_000)
+                guard !Task.isCancelled else { return }
+                await onAddressQuery(trimmed)
+            }
         }
     }
-    
-    private var textContentType: UITextContentType {
-        switch field {
-        case .name: return .name
-        case .phone: return .telephoneNumber
-        case .email: return .emailAddress
-        case .address: return .fullStreetAddress
+
+    @ViewBuilder
+    private func donorEditorRoot(layout: EditorLayout, sc: @escaping (CGFloat) -> CGFloat) -> some View {
+        ZStack(alignment: .top) {
+            donorEditorBackgroundLayer(layout: layout)
+            creamFill.opacity(0.15)
+                .frame(maxWidth: .infinity, minHeight: layout.backgroundImageHeight, alignment: .top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea()
+                .ignoresSafeArea(.keyboard, edges: .bottom)
+            donorEditorFormContainer(layout: layout, sc: sc)
         }
     }
-    
-    private var uiAutocapitalization: UITextAutocapitalizationType {
-        switch field {
-        case .email, .phone: return .none
-        case .name, .address: return .words
+
+    @ViewBuilder
+    private func donorEditorBackgroundLayer(layout: EditorLayout) -> some View {
+        Group {
+            if UIImage(named: "KioskBackground") != nil {
+                Image("KioskBackground")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity, minHeight: layout.backgroundImageHeight)
+                    .clipped()
+            } else {
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.white,
+                        Color(red: 0.95, green: 0.97, blue: 1.0)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(maxWidth: .infinity, minHeight: layout.backgroundImageHeight)
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .ignoresSafeArea()
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+
+    /// Fixed-height column: no scrolling; metrics shrink when the keyboard is up so every field stays visible.
+    @ViewBuilder
+    private func donorEditorFormContainer(layout: EditorLayout, sc: @escaping (CGFloat) -> CGFloat) -> some View {
+        VStack(spacing: 0) {
+            donorEditorFormStack(layout: layout, sc: sc)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: layout.maxFormContentHeight, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 24)
+                .onChanged { _ in recordDonorFormActivity() }
+        )
+    }
+
+    @ViewBuilder
+    private func donorEditorFormStack(layout: EditorLayout, sc: @escaping (CGFloat) -> CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if showAnonymousSevaToggle {
+                Toggle(isOn: $anonymousSeva) {
+                    Text("anonymousSeva".localized)
+                        .font(.custom("Georgia", size: layout.toggleFont))
+                        .foregroundColor(headingColor)
+                }
+                .tint(burgundyBrand)
+                .padding(.bottom, layout.toggleBottomPadding)
+            }
+            donorEditorNameRow(layout: layout, sc: sc)
+            donorEditorEmailAddressRow(layout: layout, sc: sc)
+        }
+        .frame(width: layout.contentW, alignment: .leading)
+        .padding(.horizontal, layout.horizontalPad)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, layout.formTopPadding)
+        .padding(.bottom, layout.formBottomPadding)
+    }
+
+    @ViewBuilder
+    private func donorEditorNameRow(layout: EditorLayout, sc: @escaping (CGFloat) -> CGFloat) -> some View {
+        HStack(alignment: .top, spacing: layout.colGap) {
+            donorNamedCell(
+                sc: sc,
+                inputFont: layout.inputFont,
+                cellCorner: layout.cellCorner,
+                singleLineInnerHeight: layout.singleLineInnerHeight,
+                singleLineOuterHeight: layout.singleLineFieldOuterHeight,
+                fieldHorizontalPadding: layout.fieldHorizontalPadding,
+                fieldVerticalPadding: layout.fieldVerticalPadding,
+                placeholder: "firstName".localized,
+                binding: $donorFirstName,
+                fieldIndex: 0,
+                keyboard: .default,
+                textContent: .givenName,
+                autocap: .words,
+                disableCorrect: false,
+                isPhone: false,
+                fieldWidth: layout.colW,
+                addsDoneAccessoryBar: true,
+                onKeyboardDone: { finishFromKeyboard() },
+                recordActivity: { recordDonorFormActivity() },
+                accessoryBackground: UIColor(creamFill),
+                accessoryTint: UIColor(burgundyBrand),
+                accessoryDoneTitle: "done".localized
+            )
+            donorNamedCell(
+                sc: sc,
+                inputFont: layout.inputFont,
+                cellCorner: layout.cellCorner,
+                singleLineInnerHeight: layout.singleLineInnerHeight,
+                singleLineOuterHeight: layout.singleLineFieldOuterHeight,
+                fieldHorizontalPadding: layout.fieldHorizontalPadding,
+                fieldVerticalPadding: layout.fieldVerticalPadding,
+                placeholder: "lastName".localized,
+                binding: $donorLastName,
+                fieldIndex: 1,
+                keyboard: .default,
+                textContent: .familyName,
+                autocap: .words,
+                disableCorrect: false,
+                isPhone: false,
+                fieldWidth: layout.colW,
+                addsDoneAccessoryBar: true,
+                onKeyboardDone: { finishFromKeyboard() },
+                recordActivity: { recordDonorFormActivity() },
+                accessoryBackground: UIColor(creamFill),
+                accessoryTint: UIColor(burgundyBrand),
+                accessoryDoneTitle: "done".localized
+            )
+            donorNamedCell(
+                sc: sc,
+                inputFont: layout.inputFont,
+                cellCorner: layout.cellCorner,
+                singleLineInnerHeight: layout.singleLineInnerHeight,
+                singleLineOuterHeight: layout.singleLineFieldOuterHeight,
+                fieldHorizontalPadding: layout.fieldHorizontalPadding,
+                fieldVerticalPadding: layout.fieldVerticalPadding,
+                placeholder: "enterYourPhone".localized,
+                binding: $donorPhone,
+                fieldIndex: 2,
+                keyboard: .phonePad,
+                textContent: .telephoneNumber,
+                autocap: .none,
+                disableCorrect: true,
+                isPhone: true,
+                fieldWidth: layout.colW,
+                addsDoneAccessoryBar: false,
+                onKeyboardDone: { finishFromKeyboard() },
+                recordActivity: { recordDonorFormActivity() },
+                accessoryBackground: UIColor(creamFill),
+                accessoryTint: UIColor(burgundyBrand),
+                accessoryDoneTitle: "done".localized
+            )
+        }
+        .frame(width: layout.contentW, alignment: .leading)
+        .padding(.bottom, layout.nameRowBottomPadding)
+    }
+
+    @ViewBuilder
+    private func donorEditorEmailAddressRow(layout: EditorLayout, sc: @escaping (CGFloat) -> CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            editorFieldLabel("emailAddress".localized, layout: layout)
+            donorEditorEmailField(layout: layout, sc: sc)
+                .padding(.bottom, layout.emailSectionBottomPadding)
+            editorFieldLabel("mailingAddress".localized, layout: layout)
+            donorEditorAddressColumn(layout: layout, sc: sc)
+        }
+        .frame(width: layout.contentW, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func editorFieldLabel(_ title: String, layout: EditorLayout) -> some View {
+        Text(title)
+            .font(.custom("Georgia", size: layout.labelFont))
+            .foregroundColor(goldAccent)
+            .padding(.bottom, layout.labelBottomPadding)
+    }
+
+    @ViewBuilder
+    private func donorEditorEmailField(layout: EditorLayout, sc: @escaping (CGFloat) -> CGFloat) -> some View {
+        let cellCorner = layout.cellCorner
+        DonorSingleLineUIKitField(
+            text: $donorEmail,
+            placeholder: "enterYourEmail".localized,
+            fontSize: layout.inputFont,
+            textUIColor: UIColor(headingColor),
+            placeholderUIColor: UIColor(headingColor.opacity(0.38)),
+            keyboardType: .emailAddress,
+            textContentType: .emailAddress,
+            autocapitalization: .none,
+            disableAutocorrect: true,
+            onEditingDone: { finishFromKeyboard() },
+            isPhoneField: false,
+            autoFocusOnAppear: false,
+            fieldIndex: 3,
+            isFocused: focusedFieldIndex == 3,
+            onFieldBecameActive: { idx in
+                focusedFieldIndex = idx
+                recordDonorFormActivity()
+            },
+            keyboardReturnKeyType: .next,
+            onAdvanceToNextField: {
+                focusNext(after: 3)
+                recordDonorFormActivity()
+            },
+            accessoryNextTitle: "next".localized,
+            suppressKeyboardPredictions: true,
+            accessoryBackgroundUIColor: UIColor(creamFill),
+            accessoryTintUIColor: UIColor(burgundyBrand),
+            accessoryDoneTitle: "done".localized
+        )
+        .frame(height: layout.singleLineInnerHeight)
+        .padding(.horizontal, layout.fieldHorizontalPadding)
+        .padding(.vertical, layout.fieldVerticalPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: layout.singleLineFieldOuterHeight, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: cellCorner)
+                .fill(Color.white.opacity(0.72))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cellCorner)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                )
+        )
+        .overlay(DonationGoldRingBorder(cornerRadius: cellCorner).allowsHitTesting(false))
+    }
+
+    @ViewBuilder
+    private func donorEditorAddressColumn(layout: EditorLayout, sc: @escaping (CGFloat) -> CGFloat) -> some View {
+        let cellCorner = layout.cellCorner
+        let inputFont = layout.inputFont
+        let innerMinH = max(sc(36), layout.addressFieldOuterMinHeight - layout.fieldVerticalPadding * 2)
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                if donorAddress.isEmpty {
+                    Text("enterYourAddress".localized)
+                        .font(.custom("Georgia", size: inputFont * 0.88))
+                        .foregroundColor(headingColor.opacity(0.38))
+                        .padding(.horizontal, layout.fieldHorizontalPadding + sc(2))
+                        .padding(.vertical, layout.fieldVerticalPadding)
+                        .allowsHitTesting(false)
+                }
+                DonorMultilineUIKitTextView(
+                    text: $donorAddress,
+                    fontSize: inputFont,
+                    textUIColor: UIColor(headingColor),
+                    autocapitalization: .words,
+                    disableAutocorrect: false,
+                    onEditingDone: { finishFromKeyboard() },
+                    autoFocusOnAppear: false,
+                    fieldIndex: 4,
+                    isFocused: focusedFieldIndex == 4,
+                    onFieldBecameActive: { idx in
+                        focusedFieldIndex = idx
+                        recordDonorFormActivity()
+                    },
+                    accessoryBackgroundUIColor: UIColor(creamFill),
+                    accessoryTintUIColor: UIColor(burgundyBrand),
+                    accessoryDoneTitle: "done".localized
+                )
+                .frame(minHeight: innerMinH)
+            }
+            .padding(.horizontal, layout.fieldHorizontalPadding)
+            .padding(.vertical, layout.fieldVerticalPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: layout.addressFieldOuterMinHeight, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: cellCorner)
+                    .fill(Color.white.opacity(0.72))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cellCorner)
+                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                    )
+            )
+            .overlay(DonationGoldRingBorder(cornerRadius: cellCorner).allowsHitTesting(false))
+
+            if !addressSuggestions.isEmpty {
+                addressSuggestionList(sc: sc, inputFont: inputFont, maxHeight: layout.suggestionMaxHeight)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func donorNamedCell(
+        sc: @escaping (CGFloat) -> CGFloat,
+        inputFont: CGFloat,
+        cellCorner: CGFloat,
+        singleLineInnerHeight: CGFloat,
+        singleLineOuterHeight: CGFloat,
+        fieldHorizontalPadding: CGFloat,
+        fieldVerticalPadding: CGFloat,
+        placeholder: String,
+        binding: Binding<String>,
+        fieldIndex: Int,
+        keyboard: UIKeyboardType,
+        textContent: UITextContentType?,
+        autocap: UITextAutocapitalizationType,
+        disableCorrect: Bool,
+        isPhone: Bool,
+        fieldWidth: CGFloat,
+        addsDoneAccessoryBar: Bool,
+        onKeyboardDone: @escaping () -> Void,
+        recordActivity: @escaping () -> Void,
+        accessoryBackground: UIColor,
+        accessoryTint: UIColor,
+        accessoryDoneTitle: String
+    ) -> some View {
+        DonorSingleLineUIKitField(
+            text: binding,
+            placeholder: placeholder,
+            fontSize: inputFont,
+            textUIColor: UIColor(headingColor),
+            placeholderUIColor: UIColor(headingColor.opacity(0.38)),
+            keyboardType: keyboard,
+            textContentType: textContent,
+            autocapitalization: autocap,
+            disableAutocorrect: disableCorrect,
+            onEditingDone: onKeyboardDone,
+            isPhoneField: isPhone,
+            autoFocusOnAppear: false,
+            fieldIndex: fieldIndex,
+            isFocused: focusedFieldIndex == fieldIndex,
+            onFieldBecameActive: { idx in
+                focusedFieldIndex = idx
+                recordActivity()
+            },
+            keyboardReturnKeyType: isPhone ? .default : .next,
+            onAdvanceToNextField: {
+                focusNext(after: fieldIndex)
+                recordActivity()
+            },
+            accessoryNextTitle: "next".localized,
+            addsDoneAccessoryBar: addsDoneAccessoryBar,
+            accessoryBackgroundUIColor: accessoryBackground,
+            accessoryTintUIColor: accessoryTint,
+            accessoryDoneTitle: accessoryDoneTitle
+        )
+        .frame(height: singleLineInnerHeight)
+        .padding(.horizontal, fieldHorizontalPadding)
+        .padding(.vertical, fieldVerticalPadding)
+        .frame(width: fieldWidth, height: singleLineOuterHeight, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: cellCorner)
+                .fill(Color.white.opacity(0.72))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cellCorner)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                )
+        )
+        .overlay(DonationGoldRingBorder(cornerRadius: cellCorner).allowsHitTesting(false))
+    }
+
+    @ViewBuilder
+    private func addressSuggestionList(sc: @escaping (CGFloat) -> CGFloat, inputFont: CGFloat, maxHeight: CGFloat) -> some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(Array(addressSuggestions.prefix(8).enumerated()), id: \.element.id) { index, suggestion in
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        Task {
+                            await onPickAddress(suggestion)
+                        }
+                    } label: {
+                        HStack(alignment: .top, spacing: sc(12)) {
+                            Image(systemName: "mappin.circle.fill")
+                                .font(.system(size: sc(18)))
+                                .foregroundColor(goldAccent)
+                                .padding(.top, sc(2))
+                            VStack(alignment: .leading, spacing: sc(4)) {
+                                Text(suggestion.structured_formatting.main_text)
+                                    .font(.custom("Georgia", size: inputFont * 0.72))
+                                    .foregroundColor(headingColor)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                Text(suggestion.structured_formatting.secondary_text)
+                                    .font(.custom("Georgia", size: inputFont * 0.58))
+                                    .foregroundColor(headingColor.opacity(0.55))
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.horizontal, sc(12))
+                        .padding(.vertical, sc(10))
+                        .background(creamFill.opacity(0.55))
+                    }
+                    .buttonStyle(.plain)
+                    if index < min(addressSuggestions.count, 8) - 1 {
+                        Divider()
+                            .background(Color.black.opacity(0.06))
+                            .padding(.leading, sc(40))
+                    }
+                }
+            }
+        }
+        .frame(maxHeight: maxHeight)
+        .background(
+            RoundedRectangle(cornerRadius: sc(DesignSystem.Components.buttonCornerRadius))
+                .fill(Color.white.opacity(0.72))
+                .overlay(
+                    RoundedRectangle(cornerRadius: sc(DesignSystem.Components.buttonCornerRadius))
+                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                )
+        )
+        .overlay(
+            DonationGoldRingBorder(cornerRadius: sc(DesignSystem.Components.buttonCornerRadius))
+                .allowsHitTesting(false)
+        )
+        .shadow(color: Color.black.opacity(0.1), radius: sc(8), x: 0, y: sc(3))
+        .padding(.top, sc(8))
     }
 }
 
@@ -1451,7 +2168,10 @@ struct DonationDetailsView: View {
             initialDonorPhone: nil,
             initialDonorEmail: nil,
             initialDonorAddress: nil,
-            onConfirm: onConfirm,
+            initialAnonymousSeva: false,
+            onConfirm: { name, phone, email, address, _ in
+                onConfirm(name, phone, email, address)
+            },
             onCancel: nil,
             onAddAdditionalSeva: nil
         )

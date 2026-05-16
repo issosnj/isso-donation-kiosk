@@ -72,6 +72,10 @@ export class Donation {
   @Column({ nullable: true })
   donorId: string; // Link to Donor entity (for assigning anonymous donations)
 
+  /** Set at checkout when donor chose anonymous / auto-anonymous (kiosk). */
+  @Column({ default: false })
+  submittedAsAnonymous: boolean;
+
   @ManyToOne(() => Donor, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'donorId' })
   donor: Donor;

@@ -13,6 +13,7 @@ import { ReceiptGeneratorService } from './receipt-generator.service';
 import { DonorsService } from '../donors/donors.service';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
+import { isAnonymousForAttribution } from './donation-anonymity.util';
 
 @Injectable()
 export class DonationsService {
@@ -175,6 +176,14 @@ export class DonationsService {
     if (completeDonationDto.donorAddress) {
       donation.donorAddress = completeDonationDto.donorAddress;
     }
+
+    if (completeDonationDto.status === DonationStatus.SUCCEEDED) {
+      if (completeDonationDto.submittedAsAnonymous === true) {
+        donation.submittedAsAnonymous = true;
+      } else if (completeDonationDto.submittedAsAnonymous === false) {
+        donation.submittedAsAnonymous = false;
+      }
+    }
     
     // Automatically fetch payment details from payment provider API
     // Always fetch for SUCCEEDED donations with payment ID to ensure fees are always populated
@@ -270,8 +279,9 @@ export class DonationsService {
       }
     }
 
-    // Save/update donor information in Donor table if phone is provided (for both succeeded and other statuses to track all donors)
-    if (completeDonationDto.donorPhone) {
+    // Anonymous checkout uses placeholder phone/name — do not create a donor profile or update stats from it
+    const skipDonorProfile = completeDonationDto.submittedAsAnonymous === true;
+    if (!skipDonorProfile && completeDonationDto.donorPhone) {
       try {
         await this.donorsService.findOrCreateDonor(
           donation.templeId,
@@ -1122,6 +1132,12 @@ export class DonationsService {
       throw new NotFoundException(`Donation with ID ${donationId} not found`);
     }
 
+    if (!isAnonymousForAttribution(donation)) {
+      throw new BadRequestException(
+        'This donation is not eligible for anonymous assignment. Link a donor only when the gift was anonymous at checkout (or legacy placeholder donor). For other receipt corrections, use a name-change request for master approval.',
+      );
+    }
+
     // Get the donor
     const donor = await this.donorsService.getDonorById(donorId);
 
@@ -1161,6 +1177,7 @@ export class DonationsService {
       donation.assignedBy = assignedByUserId;
       donation.assignedAt = new Date();
     }
+    donation.submittedAsAnonymous = false;
 
     const savedDonation = await this.donationsRepository.save(donation);
 

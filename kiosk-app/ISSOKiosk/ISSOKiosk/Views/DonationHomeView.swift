@@ -19,6 +19,8 @@ struct DonationHomeView: View {
     @State private var donorPhone: String?
     @State private var donorEmail: String?
     @State private var donorAddress: String?
+    /// Persists Anonymous Seva across review → payment → back so the toggle stays on after a failed/cancelled payment.
+    @State private var reviewDonorAnonymousSeva = false
     /// Line items for Step 3 review + payment (primary row + optional additional seva).
     @State private var reviewDonationLines: [CheckoutDonationLine] = []
     /// After "Additional seva", next "Review donation" appends step-2 selection instead of replacing lines.
@@ -367,8 +369,10 @@ struct DonationHomeView: View {
             initialDonorPhone: donorPhone,
             initialDonorEmail: donorEmail,
             initialDonorAddress: donorAddress,
-            onConfirm: { name, phone, email, address in
+            initialAnonymousSeva: reviewDonorAnonymousSeva,
+            onConfirm: { name, phone, email, address, anonymousSeva in
                 showingDetails = false
+                reviewDonorAnonymousSeva = anonymousSeva
                 let categoryHasOpportunities = selectedCategory?.yajmanOpportunities != nil && !(selectedCategory?.yajmanOpportunities?.isEmpty ?? true)
                 print("[DonationHomeView] 🔍 Category has opportunities: \(categoryHasOpportunities)")
                 print("[DonationHomeView] 🔍 Selected category: \(selectedCategory?.name ?? "nil")")
@@ -392,6 +396,7 @@ struct DonationHomeView: View {
             onAddAdditionalSeva: {
                 appendSevaOnNextReview = true
                 showingDetails = false
+                reviewDonorAnonymousSeva = false
                 selectedCategory = nil
                 selectedAmount = nil
                 customAmount = ""
@@ -434,6 +439,7 @@ struct DonationHomeView: View {
             donorPhone: donorPhone,
             donorEmail: donorEmail,
             donorAddress: donorAddress,
+            submittedAsAnonymous: reviewDonorAnonymousSeva,
             onComplete: {
                 withAnimation {
                     showingPayment = false
@@ -444,6 +450,8 @@ struct DonationHomeView: View {
                     donorName = nil
                     donorPhone = nil
                     donorEmail = nil
+                    donorAddress = nil
+                    reviewDonorAnonymousSeva = false
                     reviewDonationLines = []
                     appendSevaOnNextReview = false
                 }
@@ -989,6 +997,7 @@ struct DonationHomeView: View {
                     donorPhone = nil
                     donorEmail = nil
                     donorAddress = nil
+                    reviewDonorAnonymousSeva = false
                     reviewDonationLines = []
                     appendSevaOnNextReview = false
                     onDismiss()
@@ -1136,6 +1145,8 @@ struct DonationHomeView: View {
                 donorName = nil
                 donorPhone = nil
                 donorEmail = nil
+                donorAddress = nil
+                reviewDonorAnonymousSeva = false
                 reviewDonationLines = []
                 appendSevaOnNextReview = false
                 

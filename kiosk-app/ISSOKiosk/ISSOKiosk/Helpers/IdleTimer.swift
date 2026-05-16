@@ -7,6 +7,8 @@ class IdleTimer: ObservableObject {
     @Published var isIdle = false
     private var idleTimer: Timer?
     private var idleTimeout: TimeInterval = 60.0 // Default 60 seconds
+    /// When true, the global idle countdown is suspended (e.g. donor full-screen editor uses its own 2-minute rule).
+    private var isPaused = false
     
     private init() {}
     
@@ -20,8 +22,23 @@ class IdleTimer: ObservableObject {
         resetTimer()
     }
     
+    /// Stops the global idle timer until `resume()` (e.g. while donor info sheet is open).
+    func pause() {
+        isPaused = true
+        idleTimer?.invalidate()
+        idleTimer = nil
+    }
+    
+    /// Restarts the global idle countdown from the configured timeout.
+    func resume() {
+        isPaused = false
+        resetTimer()
+    }
+    
     private func resetTimer() {
         idleTimer?.invalidate()
+        idleTimer = nil
+        guard !isPaused else { return }
         
         idleTimer = Timer.scheduledTimer(withTimeInterval: idleTimeout, repeats: false) { [weak self] _ in
             DispatchQueue.main.async {
@@ -33,6 +50,7 @@ class IdleTimer: ObservableObject {
     
     func stopMonitoring() {
         idleTimer?.invalidate()
+        idleTimer = nil
     }
 }
 

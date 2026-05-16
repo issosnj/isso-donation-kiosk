@@ -267,7 +267,7 @@ struct KioskHomeView: View {
                     }
             }
             .frame(maxWidth: geometry.scale(800)) // Limit width for better centering
-            .offset(y: -geometry.scale(30)) // Move Tap To Donate block up by 30pt
+            .offset(y: -geometry.scale(75)) // 60pt + 15pt more up (scaled)
             
             Spacer(minLength: geometry.scale(32))
         }
