@@ -66,10 +66,12 @@ export default function TempleDashboard({ activeTab, templeId, deviceId }: Templ
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">{temple?.name || 'Temple Dashboard'}</h1>
-        <p className="text-sm text-gray-600">Manage your temple's donations, devices, and Stripe integration</p>
-      </div>
+      {activeTab !== 'donations' && (
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">{temple?.name || 'Temple Dashboard'}</h1>
+          <p className="text-sm text-gray-600">Manage your temple&apos;s donations, devices, and Stripe integration</p>
+        </div>
+      )}
       {renderTab()}
     </div>
   )

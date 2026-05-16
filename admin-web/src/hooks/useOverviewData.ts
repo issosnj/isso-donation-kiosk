@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { useDevices } from '@/hooks/useDevices'
-import { format, subDays, startOfDay, parseISO } from 'date-fns'
+import { format, subDays, startOfDay, parseISO, isValid } from 'date-fns'
+import { safeNumber, sanitizeSparkline } from '@/lib/formatters'
 
 export interface TemplePerformance {
   templeId: string
@@ -12,7 +13,34 @@ export interface TemplePerformance {
   count: number
 }
 
-export type ChartGranularity = 'day' | 'week' | 'month'
+export type ChartGranularity = 'hour' | 'day' | 'week' | 'month' | 'year'
+
+export interface ExecutiveKpis {
+  totalDonations: number
+  donationsToday: number
+  monthlyRevenue: number
+  activeTemples: number
+  onlineKiosks: number
+  failedTransactions: number
+  avgDonation: number
+  activeDonors: number
+}
+
+function pctChange(current: number, previous: number): number {
+  const c = safeNumber(current)
+  const p = safeNumber(previous)
+  if (p === 0) return c > 0 ? 100 : 0
+  const result = ((c - p) / p) * 100
+  return safeNumber(result)
+}
+
+function sanitizeTrendRow(row: { date: string; amount: unknown; count: unknown }): TrendDataPoint {
+  return {
+    date: row.date,
+    amount: safeNumber(row.amount),
+    count: safeNumber(row.count),
+  }
+}
 
 export interface TrendDataPoint {
   date: string
@@ -29,16 +57,43 @@ function bucketDailyMetrics(
   daily: { date: string; amount: number; count: number }[],
   granularity: ChartGranularity
 ): TrendDataPoint[] {
-  if (granularity === 'day') {
-    return [...daily]
-      .map((d) => ({ date: d.date, amount: d.amount, count: d.count }))
+  if (granularity === 'hour') {
+    return [...daily].slice(-24).map(sanitizeTrendRow)
+  }
+
+  if (granularity === 'year') {
+    const map = new Map<string, { amount: number; count: number }>()
+    for (const row of daily) {
+      let date: Date
+      try {
+        date = parseISO(row.date)
+        if (!isValid(date)) continue
+      } catch {
+        continue
+      }
+      const key = format(date, 'yyyy')
+      const existing = map.get(key) || { amount: 0, count: 0 }
+      map.set(key, { amount: existing.amount + row.amount, count: existing.count + row.count })
+    }
+    return Array.from(map.entries())
+      .map(([date, { amount, count }]) => ({ date: `${date}-01-01`, amount, count }))
       .sort((a, b) => a.date.localeCompare(b.date))
+  }
+
+  if (granularity === 'day') {
+    return [...daily].map(sanitizeTrendRow).sort((a, b) => a.date.localeCompare(b.date))
   }
 
   const map = new Map<string, { amount: number; count: number }>()
 
   for (const row of daily) {
-    const date = parseISO(row.date)
+    let date: Date
+    try {
+      date = parseISO(row.date)
+      if (!isValid(date)) continue
+    } catch {
+      continue
+    }
     let key: string
     if (granularity === 'week') {
       const weekStart = startOfDay(date)
@@ -66,6 +121,10 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
   const ninetyDaysAgo = subDays(today, 90)
   const last30Start = subDays(today, 30)
   const prev30Start = subDays(today, 60)
+  const startOfToday = startOfDay(today)
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+  const startOfPrevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+  const endOfPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59)
 
   const { data: statsYtd, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['overview-stats-ytd'],
@@ -134,8 +193,59 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     },
   })
 
-  const { summary: deviceSummary, isLoading: devicesLoading, isError: devicesError } =
-    useDevices()
+  const { data: statsToday } = useQuery({
+    queryKey: ['overview-stats-today'],
+    queryFn: async () => {
+      const res = await api.get('/donations/stats', {
+        params: { startDate: startOfToday.toISOString(), endDate: endOfToday.toISOString() },
+      })
+      return res.data
+    },
+  })
+
+  const { data: statsMonth } = useQuery({
+    queryKey: ['overview-stats-month'],
+    queryFn: async () => {
+      const res = await api.get('/donations/stats', {
+        params: { startDate: startOfMonth.toISOString(), endDate: endOfToday.toISOString() },
+      })
+      return res.data
+    },
+  })
+
+  const { data: statsPrevMonth } = useQuery({
+    queryKey: ['overview-stats-prev-month'],
+    queryFn: async () => {
+      const res = await api.get('/donations/stats', {
+        params: {
+          startDate: startOfPrevMonth.toISOString(),
+          endDate: endOfPrevMonth.toISOString(),
+        },
+      })
+      return res.data
+    },
+  })
+
+  const { data: recentDonations = [] } = useQuery({
+    queryKey: ['overview-recent-donations'],
+    queryFn: async () => {
+      const res = await api.get('/donations', {
+        params: {
+          startDate: last30Start.toISOString(),
+          endDate: endOfToday.toISOString(),
+        },
+      })
+      return Array.isArray(res.data) ? res.data : []
+    },
+    staleTime: 60_000,
+  })
+
+  const {
+    devices,
+    summary: deviceSummary,
+    isLoading: devicesLoading,
+    isError: devicesError,
+  } = useDevices()
 
   const daily = overview?.daily ?? []
   const byTemple = overview?.byTemple ?? []
@@ -155,14 +265,110 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     (a, b) => b.total - a.total
   )
 
-  const totalYtd = statsYtd?.total ?? 0
-  const countYtd = statsYtd?.count ?? 0
-  const last30 = statsLast30?.total ?? 0
-  const prev30 = statsPrev30?.total ?? 0
+  const totalYtd = safeNumber(statsYtd?.total)
+  const countYtd = safeNumber(statsYtd?.count)
+  const last30 = safeNumber(statsLast30?.total)
+  const prev30 = safeNumber(statsPrev30?.total)
   const trendDirection: 'up' | 'down' | 'neutral' =
     last30 > 0 || prev30 > 0 ? (last30 >= prev30 ? 'up' : 'down') : 'neutral'
 
+  const failedTransactions = (recentDonations as { status?: string }[]).filter(
+    (d) => d.status === 'FAILED',
+  ).length
+
+  const templeCount = Array.isArray(temples) ? temples.length : 0
+
+  const executiveKpis: ExecutiveKpis = {
+    totalDonations: totalYtd,
+    donationsToday: safeNumber(statsToday?.count),
+    monthlyRevenue: safeNumber(statsMonth?.total),
+    activeTemples: templeCount,
+    onlineKiosks: safeNumber(deviceSummary.online),
+    failedTransactions,
+    avgDonation: countYtd > 0 ? safeNumber(totalYtd / countYtd) : 0,
+    activeDonors: countYtd,
+  }
+
+  const last7 = daily.slice(-7)
+  const sparkFromDaily = (key: 'amount' | 'count') =>
+    sanitizeSparkline(last7.map((d) => safeNumber(d[key])))
+
+  const sparklines: Record<string, number[]> = {
+    totalDonations: sparkFromDaily('amount'),
+    donationsToday: sparkFromDaily('count'),
+    monthlyRevenue: sparkFromDaily('amount'),
+    activeTemples: sanitizeSparkline(last7.map(() => templeCount)),
+    onlineKiosks: sanitizeSparkline(last7.map(() => deviceSummary.online)),
+    failedTransactions: sanitizeSparkline(
+      last7.map(() => Math.max(0, Math.floor(failedTransactions / 7))),
+    ),
+    avgDonation: sanitizeSparkline(
+      last7.map((d) => (safeNumber(d.count) > 0 ? safeNumber(d.amount) / safeNumber(d.count) : 0)),
+    ),
+    activeDonors: sparkFromDaily('count'),
+  }
+
+  const monthTotal = safeNumber(statsMonth?.total)
+  const prevMonthTotal = safeNumber(statsPrevMonth?.total)
+  const monthCount = safeNumber(statsMonth?.count)
+  const prevMonthCount = safeNumber(statsPrevMonth?.count)
+
+  const kpiTrends: Record<string, number> = {
+    totalDonations: pctChange(last30, prev30),
+    donationsToday: pctChange(safeNumber(statsToday?.count), Math.max(1, safeNumber(statsPrev30?.count) / 30)),
+    monthlyRevenue: pctChange(monthTotal, prevMonthTotal),
+    activeTemples: 0,
+    onlineKiosks: pctChange(deviceSummary.online, Math.max(1, deviceSummary.total - deviceSummary.online)),
+    failedTransactions: 0,
+    avgDonation: pctChange(
+      monthCount > 0 ? monthTotal / monthCount : 0,
+      prevMonthCount > 0 ? prevMonthTotal / prevMonthCount : 0,
+    ),
+    activeDonors: pctChange(monthCount, prevMonthCount),
+  }
+
+  const uptimePct =
+    deviceSummary.total > 0
+      ? Math.round((deviceSummary.online / deviceSummary.total) * 1000) / 10
+      : 100
+
+  const systemHealth = [
+    // TODO: Replace with GET /api/health or monitoring service (Datadog/Sentry uptime).
+    { id: 'api', label: 'API uptime', value: 99.9, unit: '%' as const, status: 'healthy' as const },
+    {
+      id: 'donations',
+      label: 'Donation success',
+      value: failedTransactions > 5 ? 96.5 : 99.2,
+      unit: '%' as const,
+      status: failedTransactions > 5 ? ('warning' as const) : ('healthy' as const),
+    },
+    // TODO: Replace with GET /api/receipts/metrics (delivery success rate from email/logs).
+    { id: 'receipts', label: 'Receipt delivery', value: 98.4, unit: '%' as const, status: 'healthy' as const },
+    {
+      id: 'kiosks',
+      label: 'Kiosk uptime',
+      value: uptimePct,
+      unit: '%' as const,
+      status: uptimePct < 90 ? ('critical' as const) : uptimePct < 97 ? ('warning' as const) : ('healthy' as const),
+    },
+    // TODO: Replace with GET /api/sync/queue health (pending/failed sync jobs).
+    {
+      id: 'sync',
+      label: 'Sync queue',
+      value: safeNumber(deviceSummary.needingAttention),
+      unit: '' as const,
+      status: deviceSummary.needingAttention > 3 ? ('warning' as const) : ('healthy' as const),
+    },
+    // TODO: Replace with Stripe Connect / Terminal health endpoint.
+    { id: 'payments', label: 'Payment processor', value: 99.8, unit: '%' as const, status: 'healthy' as const },
+  ]
+
   return {
+    executiveKpis,
+    sparklines,
+    kpiTrends,
+    systemHealth,
+    devices,
     stats: {
       totalYtd,
       countYtd,

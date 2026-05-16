@@ -72,11 +72,15 @@ function computeSummary(devices: DeviceListItem[]): DeviceSummary {
   }
 }
 
-export function useDevices(filters?: { templeId?: string; status?: string; operationalStatus?: string }) {
+export function useDevices(
+  filters?: { templeId?: string; status?: string; operationalStatus?: string },
+  options?: { enabled?: boolean },
+) {
   const queryClient = useQueryClient()
 
   const { data: devices = [], isLoading, isError: devicesError } = useQuery({
     queryKey: ['devices-all', filters?.templeId, filters?.status, filters?.operationalStatus],
+    enabled: options?.enabled !== false,
     queryFn: async (): Promise<DeviceListItem[]> => {
       const response = await api.get('/devices', {
         params: {

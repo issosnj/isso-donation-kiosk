@@ -19,8 +19,8 @@ export default function TemplePerformanceSection({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">Temple performance</h3>
+      <div className="dashboard-card p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Temple leaderboard</h3>
         <div className="space-y-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
@@ -32,9 +32,9 @@ export default function TemplePerformanceSection({
 
   if (isError) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="dashboard-card shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">Temple performance</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Temple leaderboard</h3>
         </div>
         <div className="px-6 py-12 flex items-center justify-center gap-2 text-gray-500">
           <svg className="w-10 h-10 flex-shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,10 +47,10 @@ export default function TemplePerformanceSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="dashboard-card shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900">Temple performance</h3>
-        <p className="text-xs text-gray-500 mt-0.5">By donation total · Last 90 days</p>
+        <h3 className="text-sm font-semibold text-gray-900">Temple leaderboard</h3>
+        <p className="text-xs text-gray-500 mt-0.5">Top performers · growth · last 90 days</p>
       </div>
       <div className="divide-y divide-gray-100">
         {temples.length === 0 ? (

@@ -58,7 +58,7 @@ export default function DonorInfoPopup({
       const response = await api.get(`/donations/by-donor/${encodeURIComponent(donorPhone)}?${params.toString()}`)
       return response.data
     },
-    enabled: !!donorPhone,
+    enabled: !!donorPhone || !!donorId,
   })
 
   // Fetch receipt data when viewing receipt
@@ -432,7 +432,7 @@ export default function DonorInfoPopup({
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Phone</label>
-                  <p className="text-base text-gray-900">{donorPhone}</p>
+                  <p className="text-base text-gray-900">{donorPhone || 'N/A'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Email</label>

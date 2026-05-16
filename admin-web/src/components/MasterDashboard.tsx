@@ -44,14 +44,46 @@ export default function MasterDashboard({ activeTab }: MasterDashboardProps) {
     }
   }
 
+  const showPageHeader = activeTab !== 'overview'
+
   return (
     <div>
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Master Admin Dashboard</h1>
-        <p className="text-sm text-gray-600">Manage temples, users, and view all donations across the platform</p>
-      </div>
+      {showPageHeader && (
+        <div className="mb-5">
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">{pageTitle(activeTab)}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{pageSubtitle(activeTab)}</p>
+        </div>
+      )}
       {renderTab()}
     </div>
   )
+}
+
+function pageTitle(tab: string): string {
+  const titles: Record<string, string> = {
+    temples: 'Temples',
+    devices: 'Device fleet',
+    donations: 'Donations',
+    donors: 'Donors',
+    users: 'Users & roles',
+    receipts: 'Receipts',
+    'donation-change-requests': 'Receipt changes',
+    'religious-events': 'Observances',
+  }
+  return titles[tab] ?? 'Platform'
+}
+
+function pageSubtitle(tab: string): string {
+  const subtitles: Record<string, string> = {
+    temples: 'Manage temple organizations and Stripe connections',
+    devices: 'Monitor and control kiosk devices nationwide',
+    donations: 'All donations across temples',
+    donors: 'Donor profiles and engagement',
+    users: 'Admin accounts and permissions',
+    receipts: 'Receipt templates and delivery',
+    'donation-change-requests': 'Pending receipt correction requests',
+    'religious-events': 'Global observance calendar',
+  }
+  return subtitles[tab] ?? ''
 }
 
