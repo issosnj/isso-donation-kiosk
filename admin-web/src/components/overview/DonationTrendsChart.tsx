@@ -51,7 +51,7 @@ export default function DonationTrendsChart({
   isError,
 }: DonationTrendsChartProps) {
   if (isLoading) {
-    return <WidgetSkeleton lines={1} height="h-80" className="!p-6" />
+    return <WidgetSkeleton lines={1} height="min-h-[var(--ops-chart-min-height)]" className="!p-6" />
   }
 
   if (isError) {
@@ -75,8 +75,8 @@ export default function DonationTrendsChart({
   }))
 
   return (
-    <div className="dashboard-card overflow-hidden">
-      <div className="px-5 pt-5 pb-2 flex flex-wrap items-center justify-between gap-3">
+    <div className="dashboard-card ops-chart-card overflow-hidden">
+      <div className="shrink-0 px-5 pt-5 pb-2 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Donation analytics</h3>
           <p className="text-xs text-gray-500 mt-0.5">Platform-wide trends · last 90 days</p>
@@ -98,7 +98,7 @@ export default function DonationTrendsChart({
           ))}
         </div>
       </div>
-      <div className="h-72 px-3 pb-4">
+      <div className="min-h-[14rem] flex-1 px-3 pb-4">
         {chartData.length === 0 ? (
           <div className="h-full flex items-center justify-center text-gray-500 text-sm">
             No donation data for this period

@@ -32,26 +32,26 @@ export default function TempleRecentActivity({
   const router = useRouter()
 
   if (isLoading) {
-    return <WidgetSkeleton lines={6} height="min-h-[360px]" />
+    return <WidgetSkeleton lines={6} height="h-[380px]" />
   }
 
   if (isError) {
     return (
-      <div className="dashboard-card p-8 text-center text-sm text-gray-500">
+      <div className="dashboard-card p-8 text-center text-sm text-gray-500 h-[380px] flex items-center justify-center">
         Unable to load recent activity.
       </div>
     )
   }
 
   return (
-    <div className="dashboard-card flex flex-col min-h-[360px] overflow-hidden">
-      <div className="px-5 pt-5 pb-3 border-b border-gray-100/90 flex items-center justify-between gap-2">
+    <div className="dashboard-card flex flex-col h-[380px] overflow-hidden">
+      <div className="px-5 pt-5 pb-3 border-b border-gray-100/90 flex items-center justify-between gap-2 shrink-0">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Recent donation activity</h3>
           <p className="text-xs text-gray-500 mt-0.5">Last 30 days</p>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-gray-100">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar divide-y divide-gray-100">
         {items.length === 0 ? (
           <WidgetEmptyState
             title="No recent donations"

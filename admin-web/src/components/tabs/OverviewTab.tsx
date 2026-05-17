@@ -94,8 +94,8 @@ function MasterOverviewTab() {
         isError={statsError}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 min-w-0">
-        <div className="xl:col-span-8 min-w-0">
+      <div className="ops-chart-row min-w-0">
+        <div className="min-w-0">
           <DonationTrendsChart
             data={trendData}
             granularity={chartGranularity}
@@ -104,7 +104,7 @@ function MasterOverviewTab() {
             isError={donationsError}
           />
         </div>
-        <div className="xl:col-span-4 min-w-0" id="live-activity">
+        <div className="min-w-0" id="live-activity">
           <LiveActivityFeed events={activityEvents} isLoading={donationsLoading || devicesLoading} />
         </div>
       </div>

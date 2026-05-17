@@ -51,7 +51,7 @@ export default function TempleDonationPerformanceChart({
   isError,
 }: TempleDonationPerformanceChartProps) {
   if (isLoading) {
-    return <WidgetSkeleton lines={1} height="h-[340px]" className="!p-6" />
+    return <WidgetSkeleton lines={1} height="h-[380px]" className="!p-6" />
   }
 
   if (isError) {
@@ -69,7 +69,7 @@ export default function TempleDonationPerformanceChart({
   }))
 
   return (
-    <div className="dashboard-card overflow-hidden flex flex-col min-h-[340px]">
+    <div className="dashboard-card overflow-hidden flex flex-col h-[380px]">
       <div className="px-5 pt-5 pb-2 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Donation Performance</h3>

@@ -71,9 +71,9 @@ export default function ExecutiveKPIGrid({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
+      <div className="ops-kpi-grid">
         {Array.from({ length: 8 }).map((_, i) => (
-          <WidgetSkeleton key={i} lines={2} height="h-[108px]" className="!p-4" />
+          <WidgetSkeleton key={i} lines={2} height="h-[112px]" className="!p-4" />
         ))}
       </div>
     )
@@ -88,7 +88,7 @@ export default function ExecutiveKPIGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
+    <div className="ops-kpi-grid">
       {KPI_DEFS.map((def) => {
         const value = safeNumber(kpis[def.key])
         const trend = safeNumber(trends[def.key])
@@ -100,13 +100,13 @@ export default function ExecutiveKPIGrid({
             key={def.key}
             type="button"
             onClick={() => router.push(`/dashboard?tab=${def.tab}`)}
-            className="dashboard-card dashboard-card-hover p-4 text-left group min-w-0"
+            className="dashboard-card dashboard-card-hover ops-kpi-card p-4 text-left group min-w-0"
           >
-            <div className="flex items-center justify-between gap-1 mb-2">
+            <div className="flex items-start justify-between gap-1 mb-2 min-h-[2rem]">
               <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide leading-tight line-clamp-2">
                 {def.label}
               </span>
-              <LivePulse className="opacity-40 group-hover:opacity-100 transition-opacity scale-75 shrink-0" />
+              <LivePulse className="opacity-40 group-hover:opacity-100 transition-opacity scale-75 shrink-0 mt-0.5" />
             </div>
             <p className="text-lg font-bold text-gray-900 tracking-tight leading-none truncate">
               {def.animate ? (
@@ -115,9 +115,9 @@ export default function ExecutiveKPIGrid({
                 def.format(value)
               )}
             </p>
-            <div className="flex items-end justify-between mt-2 gap-1">
+            <div className="mt-auto flex items-end justify-between gap-1 pt-2">
               <span
-                className={`text-[10px] font-semibold tabular-nums ${
+                className={`max-w-[55%] truncate text-[10px] font-semibold tabular-nums ${
                   trend === 0
                     ? 'text-gray-400'
                     : positive

@@ -140,11 +140,9 @@ export default function Dashboard({ user }: DashboardProps) {
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
-  const sidebarSpacerWidth = isMasterAdmin
-    ? sidebarCollapsed
-      ? 'lg:w-[72px]'
-      : 'lg:w-64'
-    : 'lg:w-64'
+  const sidebarSpacerClass = isMasterAdmin
+    ? `master-admin-sidebar-spacer hidden lg:block ${sidebarCollapsed ? 'is-collapsed' : ''}`
+    : 'hidden w-64 shrink-0 lg:block'
 
   const handleTempleTabChange = (tab: string) => {
     setMobileNavOpen(false)
@@ -152,7 +150,13 @@ export default function Dashboard({ user }: DashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex overflow-x-hidden">
+    <div
+      className={
+        isMasterAdmin
+          ? 'master-admin-layout flex bg-[var(--background)]'
+          : 'flex min-h-screen overflow-x-hidden bg-[var(--background)]'
+      }
+    >
       {isMasterAdmin ? (
         <>
           <EnterpriseSidebar
@@ -183,9 +187,15 @@ export default function Dashboard({ user }: DashboardProps) {
         />
       )}
 
-      <div className={`hidden shrink-0 ${sidebarSpacerWidth} lg:block`} aria-hidden />
+      <div className={sidebarSpacerClass} aria-hidden />
 
-      <div className="flex-1 min-w-0 min-h-screen flex flex-col">
+      <div
+        className={
+          isMasterAdmin
+            ? 'flex min-h-0 min-w-0 flex-1 flex-col'
+            : 'flex min-h-screen min-w-0 flex-1 flex-col'
+        }
+      >
         {!isMasterAdmin && (
           <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 h-14 bg-white/95 backdrop-blur border-b border-gray-200 shrink-0">
             <button
@@ -216,7 +226,8 @@ export default function Dashboard({ user }: DashboardProps) {
           />
         )}
 
-        <main className="flex-1 p-4 sm:p-6 max-w-[1600px] w-full min-w-0 mx-auto box-border">
+        <main className={isMasterAdmin ? 'master-admin-main custom-scrollbar' : 'min-w-0 flex-1'}>
+          <div className={isMasterAdmin ? 'master-admin-content' : 'mx-auto box-border w-full max-w-full p-4 sm:p-6'}>
           {paymentMessage && (
             <div
               className={`mb-4 p-4 rounded-xl border flex items-center justify-between gap-3 ${
@@ -251,6 +262,7 @@ export default function Dashboard({ user }: DashboardProps) {
               deviceId={deviceIdFromUrl || undefined}
             />
           )}
+          </div>
         </main>
       </div>
     </div>
