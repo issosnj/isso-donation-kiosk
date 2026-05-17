@@ -74,7 +74,7 @@ function computeSummary(devices: DeviceListItem[]): DeviceSummary {
 
 export function useDevices(
   filters?: { templeId?: string; status?: string; operationalStatus?: string },
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; refetchInterval?: number },
 ) {
   const queryClient = useQueryClient()
 
@@ -91,6 +91,7 @@ export function useDevices(
       return raw.map(mapApiDevice)
     },
     staleTime: 30 * 1000,
+    refetchInterval: options?.refetchInterval,
   })
 
   const filtered = devices.filter((d) => {

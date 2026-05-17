@@ -34,11 +34,14 @@ function MasterOverviewTab() {
     executiveKpis,
     sparklines,
     kpiTrends,
+    kpiPending,
+    recentDonations,
     systemHealth,
     devices,
     trendData,
     templePerformance,
     deviceSummary,
+    kpiGridLoading,
     statsLoading,
     donationsLoading,
     devicesLoading,
@@ -48,9 +51,8 @@ function MasterOverviewTab() {
   } = useOverviewData(chartGranularity)
 
   const { alerts, dismiss, snooze } = usePlatformAlerts(devices)
-  const activityEvents = useLiveActivity(devices, trendData, {
+  const activityEvents = useLiveActivity(devices, recentDonations, {
     failedCount: executiveKpis.failedTransactions,
-    offlineCount: deviceSummary.offline,
   })
 
   const apiMayBeMisconfigured =
@@ -75,22 +77,31 @@ function MasterOverviewTab() {
         kpis={executiveKpis}
         sparklines={sparklines}
         trends={kpiTrends}
-        isLoading={statsLoading}
+        kpiPending={kpiPending}
+        isLoading={kpiGridLoading}
         isError={statsError}
       />
 
       <div className="ops-chart-row min-w-0">
-        <div className="min-w-0">
+        <div className="flex min-h-[var(--ops-chart-min-height)] min-w-0 flex-col">
           <DonationTrendsChart
             data={trendData}
             granularity={chartGranularity}
             onGranularityChange={setChartGranularity}
             isLoading={donationsLoading}
             isError={donationsError}
+            className="h-full min-h-[var(--ops-chart-min-height)] flex-1"
           />
         </div>
-        <div className="min-w-0" id="live-activity">
-          <LiveActivityFeed events={activityEvents} isLoading={donationsLoading || devicesLoading} />
+        <div
+          className="flex min-h-[var(--ops-chart-min-height)] min-w-0 flex-col"
+          id="live-activity"
+        >
+          <LiveActivityFeed
+            events={activityEvents}
+            isLoading={donationsLoading || devicesLoading}
+            className="h-full min-h-[var(--ops-chart-min-height)] flex-1"
+          />
         </div>
       </div>
 

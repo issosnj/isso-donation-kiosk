@@ -29,9 +29,14 @@ export function formatPercent(value: unknown, decimals = 1): string {
 
 export function formatTrendPercent(value: unknown): string {
   const n = safeNumber(value)
-  if (n === 0) return '—'
+  if (n === 0) return 'No change'
   const sign = n > 0 ? '+' : ''
   return `${sign}${n.toFixed(1)}%`
+}
+
+/** Executive KPI primary value — always show a readable number (never empty). */
+export function formatKpiValue(value: unknown, format: (n: number) => string): string {
+  return format(safeNumber(value))
 }
 
 export function sanitizeSparkline(data: unknown): number[] {

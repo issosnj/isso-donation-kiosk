@@ -232,6 +232,10 @@ body {
   align-items: stretch;
 }
 
+.ops-chart-row > * {
+  min-height: var(--ops-chart-min-height);
+}
+
 @media (min-width: 1280px) {
   .ops-chart-row {
     grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);

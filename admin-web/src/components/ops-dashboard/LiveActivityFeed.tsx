@@ -43,18 +43,27 @@ function ActivityIcon({ type }: { type: string }) {
 interface LiveActivityFeedProps {
   events: (ActivityEvent & { timeAgo: string })[]
   isLoading?: boolean
+  className?: string
 }
 
-export default function LiveActivityFeed({ events, isLoading }: LiveActivityFeedProps) {
+export default function LiveActivityFeed({ events, isLoading, className = '' }: LiveActivityFeedProps) {
+  const cardClass = `dashboard-card ops-activity-card flex h-full flex-col overflow-hidden ${className}`.trim()
+
   if (isLoading) {
-    return <WidgetSkeleton lines={6} height="min-h-[var(--ops-chart-min-height)]" />
+    return (
+      <WidgetSkeleton
+        lines={6}
+        height="min-h-[var(--ops-chart-min-height)]"
+        className={className}
+      />
+    )
   }
 
   const isEmpty =
     events.length === 0 || (events.length === 1 && events[0].id === IDLE_EVENT_ID)
 
   return (
-    <div className="dashboard-card ops-activity-card h-full flex flex-col overflow-hidden">
+    <div className={cardClass}>
       <div className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-gray-100/90 shrink-0">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Live activity</h3>

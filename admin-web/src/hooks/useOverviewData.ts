@@ -3,7 +3,9 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { normalizeApiList } from '@/lib/apiHelpers'
 import { useDevices } from '@/hooks/useDevices'
+import type { Donation } from '@/types/donation'
 import {
   dashboardQueryDefaults,
   getOverviewTrendRange,
@@ -207,12 +209,13 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     ...overviewQueryDefaults,
   })
 
-  const { data: temples = [] } = useQuery({
+  const { data: temples = [], isLoading: templesLoading } = useQuery({
     queryKey: ['temples'],
     queryFn: async () => {
       const res = await api.get('/temples')
-      return Array.isArray(res.data) ? res.data : []
+      return normalizeApiList<{ id: string; name: string }>(res.data)
     },
+    refetchInterval: 60_000,
     ...dashboardQueryDefaults,
   })
 
@@ -252,7 +255,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     ...statsQueryOpts,
   })
 
-  const { data: recentDonations = [] } = useQuery({
+  const { data: recentDonations = [], isLoading: recentDonationsLoading } = useQuery({
     queryKey: ['overview-recent-donations'],
     queryFn: async () => {
       const res = await api.get('/donations', {
@@ -261,8 +264,9 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
           endDate: endOfToday.toISOString(),
         },
       })
-      return Array.isArray(res.data) ? res.data : []
+      return normalizeApiList<Donation>(res.data)
     },
+    refetchInterval: 30_000,
     ...dashboardQueryDefaults,
   })
 
@@ -271,7 +275,7 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     summary: deviceSummary,
     isLoading: devicesLoading,
     isError: devicesError,
-  } = useDevices()
+  } = useDevices(undefined, { refetchInterval: 60_000 })
 
   const daily = overview?.daily ?? []
   const byTemple = overview?.byTemple ?? []
@@ -298,17 +302,23 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
   const trendDirection: 'up' | 'down' | 'neutral' =
     last30 > 0 || prev30 > 0 ? (last30 >= prev30 ? 'up' : 'down') : 'neutral'
 
-  const failedTransactions = (recentDonations as { status?: string }[]).filter(
-    (d) => d.status === 'FAILED',
-  ).length
+  const failedTransactions = recentDonations.filter((d) => d.status === 'FAILED').length
 
-  const templeCount = Array.isArray(temples) ? temples.length : 0
+  const templeCount = temples.length
+  const templesWithDonations = new Set(
+    recentDonations
+      .filter((d) => d.status === 'SUCCEEDED' || d.status === 'COMPLETED')
+      .map((d) => d.templeId)
+      .filter(Boolean),
+  )
+  const activeTemples =
+    templesWithDonations.size > 0 ? templesWithDonations.size : templeCount
 
   const executiveKpis: ExecutiveKpis = {
     totalDonations: totalYtd,
     donationsToday: safeNumber(statsToday?.count),
     monthlyRevenue: safeNumber(statsMonth?.total),
-    activeTemples: templeCount,
+    activeTemples,
     onlineKiosks: safeNumber(deviceSummary.online),
     failedTransactions,
     avgDonation: countYtd > 0 ? safeNumber(totalYtd / countYtd) : 0,
@@ -323,8 +333,8 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     totalDonations: sparkFromDaily('amount'),
     donationsToday: sparkFromDaily('count'),
     monthlyRevenue: sparkFromDaily('amount'),
-    activeTemples: sanitizeSparkline(last7.map(() => templeCount)),
-    onlineKiosks: sanitizeSparkline(last7.map(() => deviceSummary.online)),
+    activeTemples: sanitizeSparkline(last7.map(() => activeTemples)),
+    onlineKiosks: sanitizeSparkline(last7.map(() => safeNumber(deviceSummary.online))),
     failedTransactions: sanitizeSparkline(
       last7.map(() => Math.max(0, Math.floor(failedTransactions / 7))),
     ),
@@ -389,10 +399,18 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     { id: 'payments', label: 'Payment processor', value: 99.8, unit: '%' as const, status: 'healthy' as const },
   ]
 
+  const kpiPending = {
+    activeTemples: templesLoading,
+    onlineKiosks: devicesLoading,
+    failedTransactions: recentDonationsLoading,
+  }
+
   return {
     executiveKpis,
     sparklines,
     kpiTrends,
+    kpiPending,
+    recentDonations,
     systemHealth,
     devices,
     stats: {
@@ -406,7 +424,10 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     deviceSummary,
     /** True while either stats or overview query has no data yet (first load). */
     isLoading: statsLoading || overviewLoading,
+    kpiGridLoading: statsLoading || templesLoading || devicesLoading,
     statsLoading,
+    templesLoading,
+    recentDonationsLoading,
     /** Charts + temple table: driven by `/donations/overview`. */
     donationsLoading: overviewLoading,
     devicesLoading,

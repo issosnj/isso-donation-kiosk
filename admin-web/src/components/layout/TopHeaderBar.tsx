@@ -69,12 +69,13 @@ export default function TopHeaderBar({
 
   return (
     <header className="master-admin-topbar">
-      <div className="mx-auto flex h-full max-w-[1600px] min-w-0 items-center gap-2 px-4 md:gap-3 md:px-6">
+      <div className="mx-auto flex h-full w-full max-w-[1600px] min-w-0 items-center justify-between gap-3 px-4 md:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
         <button
           type="button"
           onClick={onOpenCommandPalette}
           aria-label="Open command palette"
-          className="flex h-9 min-w-0 max-w-md flex-1 items-center gap-2 rounded-xl border border-gray-200/60 bg-gray-50/90 px-3 text-sm text-gray-500 transition-colors hover:border-violet-300/60 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+          className="flex h-9 min-w-0 max-w-md flex-1 items-center gap-2 rounded-xl border border-gray-200/60 bg-gray-50/90 px-3 text-sm text-gray-500 transition-colors hover:border-violet-300/60 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 lg:max-w-sm xl:max-w-md"
         >
           <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path
@@ -128,7 +129,9 @@ export default function TopHeaderBar({
             </div>
           )}
         </div>
+        </div>
 
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <div ref={notifRef} className="relative flex shrink-0 items-center">
           <button
             type="button"
@@ -213,6 +216,7 @@ export default function TopHeaderBar({
               </button>
             </div>
           )}
+        </div>
         </div>
       </div>
     </header>

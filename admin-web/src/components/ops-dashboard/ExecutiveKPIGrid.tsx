@@ -6,12 +6,13 @@ import DataSparkline from './DataSparkline'
 import LivePulse from './LivePulse'
 import { WidgetSkeleton } from './WidgetShell'
 import type { ExecutiveKpis } from '@/hooks/useOverviewData'
-import { formatCount, formatCurrency, formatTrendPercent, safeNumber } from '@/lib/formatters'
+import { formatCount, formatCurrency, formatKpiValue, formatTrendPercent, safeNumber } from '@/lib/formatters'
 
 interface ExecutiveKPIGridProps {
   kpis: ExecutiveKpis
   sparklines: Record<string, number[]>
   trends: Record<string, number>
+  kpiPending?: Partial<Record<keyof ExecutiveKpis, boolean>>
   isLoading?: boolean
   isError?: boolean
 }
@@ -64,6 +65,7 @@ export default function ExecutiveKPIGrid({
   kpis,
   sparklines,
   trends,
+  kpiPending = {},
   isLoading,
   isError,
 }: ExecutiveKPIGridProps) {
@@ -94,6 +96,7 @@ export default function ExecutiveKPIGrid({
         const trend = safeNumber(trends[def.key])
         const positive = def.invertTrend ? trend <= 0 : trend >= 0
         const spark = sparklines[def.key] ?? []
+        const pending = kpiPending[def.key]
 
         return (
           <button
@@ -108,11 +111,16 @@ export default function ExecutiveKPIGrid({
               </span>
               <LivePulse className="opacity-40 group-hover:opacity-100 transition-opacity scale-75 shrink-0 mt-0.5" />
             </div>
-            <p className="text-lg font-bold text-gray-900 tracking-tight leading-none truncate">
-              {def.animate ? (
+            <p className="text-lg font-bold text-gray-900 tracking-tight leading-tight tabular-nums">
+              {pending ? (
+                <span
+                  className="inline-block h-6 w-14 animate-pulse rounded-md bg-gray-200/90"
+                  aria-hidden
+                />
+              ) : def.animate ? (
                 <AnimatedCounter value={value} format={def.format} />
               ) : (
-                def.format(value)
+                formatKpiValue(value, def.format)
               )}
             </p>
             <div className="mt-auto flex items-end justify-between gap-1 pt-2">

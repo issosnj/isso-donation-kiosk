@@ -22,6 +22,7 @@ interface DonationTrendsChartProps {
   onGranularityChange: (g: ChartGranularity) => void
   isLoading?: boolean
   isError?: boolean
+  className?: string
 }
 
 function formatXAxis(dateStr: string, granularity: ChartGranularity) {
@@ -72,14 +73,23 @@ export default function DonationTrendsChart({
   onGranularityChange,
   isLoading,
   isError,
+  className = '',
 }: DonationTrendsChartProps) {
+  const cardClass = `dashboard-card ops-chart-card flex flex-col overflow-hidden ${className}`.trim()
+
   if (isLoading) {
-    return <WidgetSkeleton lines={1} height="min-h-[var(--ops-chart-min-height)]" className="!p-6" />
+    return (
+      <WidgetSkeleton
+        lines={1}
+        height="min-h-[var(--ops-chart-min-height)]"
+        className={`!p-6 ${className}`}
+      />
+    )
   }
 
   if (isError) {
     return (
-      <div className="dashboard-card ops-chart-card overflow-hidden">
+      <div className={cardClass}>
         <div className="px-6 pt-5 pb-2">
           <h3 className="text-sm font-semibold text-gray-900">Donation analytics</h3>
         </div>
@@ -103,7 +113,7 @@ export default function DonationTrendsChart({
   const hasPlottableData = chartData.some((d) => d.amount > 0 || d.count > 0)
 
   return (
-    <div className="dashboard-card ops-chart-card overflow-hidden">
+    <div className={cardClass}>
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 pb-2 pt-5">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Donation analytics</h3>
@@ -126,7 +136,7 @@ export default function DonationTrendsChart({
           ))}
         </div>
       </div>
-      <div className="px-3 pb-4" style={{ height: CHART_BODY_HEIGHT }}>
+      <div className="min-h-0 flex-1 px-3 pb-4" style={{ minHeight: CHART_BODY_HEIGHT }}>
         {!hasPlottableData ? (
           <ChartEmptyState />
         ) : (

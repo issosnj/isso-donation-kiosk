@@ -3,8 +3,8 @@
 import { useMemo } from 'react'
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns'
 import { formatCurrency, safeNumber } from '@/lib/formatters'
+import type { Donation } from '@/types/donation'
 import type { DeviceListItem } from '@/types/device'
-import type { TrendDataPoint } from '@/hooks/useOverviewData'
 
 export const IDLE_EVENT_ID = 'idle'
 
@@ -31,9 +31,9 @@ export function activitySeverityClass(s: ActivitySeverity) {
   return severityStyles[s]
 }
 
-function parseEventDate(dateStr: string): Date {
+function parseEventDate(iso: string): Date {
   try {
-    const d = parseISO(dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`)
+    const d = parseISO(iso)
     return isValid(d) ? d : new Date()
   } catch {
     return new Date()
@@ -47,10 +47,12 @@ export function activityTypeIcon(type: string): 'donation' | 'device' | 'payment
   return 'system'
 }
 
+const SUCCESS_STATUSES = new Set(['SUCCEEDED', 'COMPLETED'])
+
 export function useLiveActivity(
   devices: DeviceListItem[],
-  trendData: TrendDataPoint[],
-  options?: { failedCount?: number; offlineCount?: number },
+  recentDonations: Donation[],
+  options?: { failedCount?: number },
 ) {
   return useMemo(() => {
     const events: ActivityEvent[] = []
@@ -63,19 +65,21 @@ export function useLiveActivity(
       events.push(event)
     }
 
-    const recentTrend = [...(trendData ?? [])]
-      .filter((p) => safeNumber(p.count) > 0)
-      .slice(-5)
-      .reverse()
+    const donations = [...(recentDonations ?? [])]
+      .filter((d) => SUCCESS_STATUSES.has(String(d.status).toUpperCase()))
+      .sort((a, b) => parseEventDate(b.createdAt).getTime() - parseEventDate(a.createdAt).getTime())
+      .slice(0, 10)
 
-    recentTrend.forEach((point) => {
+    donations.forEach((d) => {
+      const anonymous = d.submittedAsAnonymous || !d.donorName?.trim()
       add({
-        id: `donation-${point.date}`,
+        id: `donation-${d.id}`,
         type: 'donation',
-        title: `${safeNumber(point.count)} donation${point.count !== 1 ? 's' : ''} · ${formatCurrency(point.amount, { compact: true })}`,
-        actor: 'Platform',
+        title: `Donation · ${formatCurrency(d.amount)}`,
+        actor: anonymous ? 'Anonymous donor' : (d.donorName?.trim() ?? 'Donor'),
+        temple: d.temple?.name,
         severity: 'success',
-        timestamp: parseEventDate(point.date),
+        timestamp: parseEventDate(d.createdAt),
       })
     })
 
@@ -102,7 +106,7 @@ export function useLiveActivity(
       add({
         id: 'failed-tx-summary',
         type: 'payment_failed',
-        title: `${failed} failed transaction${failed !== 1 ? 's' : ''} in recent period`,
+        title: `${failed} failed transaction${failed !== 1 ? 's' : ''} (last 30 days)`,
         actor: 'Payments',
         severity: 'error',
         timestamp: now,
@@ -113,7 +117,7 @@ export function useLiveActivity(
       add({
         id: IDLE_EVENT_ID,
         type: 'system',
-        title: 'No active alerts',
+        title: 'No recent activity',
         actor: 'Platform',
         severity: 'info',
         timestamp: now,
@@ -127,5 +131,5 @@ export function useLiveActivity(
         ...e,
         timeAgo: formatDistanceToNow(e.timestamp, { addSuffix: true }),
       }))
-  }, [devices, trendData, options?.failedCount])
+  }, [devices, recentDonations, options?.failedCount])
 }
