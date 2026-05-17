@@ -17,19 +17,21 @@ export default function DonationsPageHeader({
 }: DonationsPageHeaderProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
-        {templeLabel && (
-          <p className="text-xs font-semibold uppercase tracking-wider text-purple-600 mb-1">
-            {templeLabel}
+      {!isMasterAdmin ? (
+        <div className="min-w-0">
+          {templeLabel && (
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-purple-600">
+              {templeLabel}
+            </p>
+          )}
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Donations</h1>
+          <p className="mt-1 max-w-xl text-sm text-gray-600">
+            Track temple donations, receipts, refunds, and payment status.
           </p>
-        )}
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-          {isMasterAdmin ? 'All Donations' : 'Donations'}
-        </h1>
-        <p className="text-sm text-gray-600 mt-1 max-w-xl">
-          Track temple donations, receipts, refunds, and payment status.
-        </p>
-      </div>
+        </div>
+      ) : (
+        <div className="min-w-0 sm:flex-1" aria-hidden />
+      )}
       <div className="flex flex-wrap items-center gap-2 shrink-0">
         <button
           type="button"

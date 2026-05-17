@@ -146,7 +146,7 @@ export default function CommandPalette({
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search pages and actions…"
+            placeholder="Search temples, donors, donations, receipts…"
             className="flex-1 text-sm outline-none bg-transparent text-gray-900 placeholder:text-gray-400"
           />
           <kbd className="hidden sm:inline text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">

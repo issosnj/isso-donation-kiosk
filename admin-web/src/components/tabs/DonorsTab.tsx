@@ -230,6 +230,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
     return (
       <div className="space-y-6">
         <DonorsPageHeader
+          isMasterAdmin
           onAddDonor={() => {}}
           onExport={() => {}}
           onImport={() => {}}
@@ -262,6 +263,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
   return (
     <div className="space-y-6 pb-8 min-w-0 max-w-full">
       <DonorsPageHeader
+        isMasterAdmin={isMasterAdmin}
         templeLabel={selectedTemple?.name}
         onAddDonor={() => setShowAddDonor(true)}
         onExport={() => exportDonorsToCsv(displayedDonors.length ? displayedDonors : rawDonors)}

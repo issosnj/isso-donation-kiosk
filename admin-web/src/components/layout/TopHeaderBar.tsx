@@ -84,7 +84,9 @@ export default function TopHeaderBar({
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
           </svg>
-          <span className="hidden truncate sm:inline">Search platform…</span>
+          <span className="hidden truncate sm:inline">
+            Search temples, donors, donations, receipts…
+          </span>
           <span className="truncate sm:hidden">Search…</span>
           <kbd className="ml-auto hidden shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-400 sm:inline">
             ⌘K

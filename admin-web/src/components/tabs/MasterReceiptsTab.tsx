@@ -63,11 +63,6 @@ export default function MasterReceiptsTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Receipt Configuration</h2>
-        <p className="text-sm text-gray-600 mt-1">Manage receipt settings and Gmail connections for all temples</p>
-      </div>
-
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
         <div className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Select a Temple</h3>

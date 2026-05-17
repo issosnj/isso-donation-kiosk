@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 interface DonorsPageHeaderProps {
   templeLabel?: string
+  isMasterAdmin?: boolean
   onAddDonor: () => void
   onExport: () => void
   onImport: () => void
@@ -13,6 +14,7 @@ interface DonorsPageHeaderProps {
 
 export default function DonorsPageHeader({
   templeLabel,
+  isMasterAdmin = false,
   onAddDonor,
   onExport,
   onImport,
@@ -36,20 +38,24 @@ export default function DonorsPageHeader({
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-transparent pointer-events-none" />
       <div className="relative px-6 py-7 sm:px-8 sm:py-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 max-w-2xl">
-            {templeLabel && (
-              <p className="text-xs font-semibold uppercase tracking-wider text-purple-600 mb-2">
-                {templeLabel}
+          {!isMasterAdmin ? (
+            <div className="min-w-0 max-w-2xl">
+              {templeLabel && (
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-600">
+                  {templeLabel}
+                </p>
+              )}
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+                Donor Management
+              </h1>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600 sm:text-base">
+                Manage temple donor relationships, donation history, recurring contributions, and
+                engagement.
               </p>
-            )}
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-              Donor Management
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-2 leading-relaxed">
-              Manage temple donor relationships, donation history, recurring contributions, and
-              engagement.
-            </p>
-          </div>
+            </div>
+          ) : (
+            <div className="min-w-0 flex-1" aria-hidden />
+          )}
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button

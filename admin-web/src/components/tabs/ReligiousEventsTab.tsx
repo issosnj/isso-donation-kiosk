@@ -269,13 +269,7 @@ export default function ReligiousEventsTab() {
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Religious Observances</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage religious events like Poonam, Upvas, Ekadashi, etc. These are visible on all kiosks.
-          </p>
-        </div>
+      <div className="mb-6 flex items-center justify-end">
         <div className="flex space-x-3">
           <button
             onClick={() => {

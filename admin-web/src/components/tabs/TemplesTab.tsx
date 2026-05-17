@@ -113,11 +113,7 @@ export default function TemplesTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Temples</h2>
-          <p className="text-sm text-gray-600 mt-1">Manage all temples in the system</p>
-        </div>
+      <div className="flex items-center justify-end">
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
           className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors flex items-center space-x-2 text-sm"

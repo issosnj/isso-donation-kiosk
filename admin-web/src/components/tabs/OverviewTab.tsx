@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { apiBaseURL } from '@/lib/api'
 import { TempleOverviewDashboard } from '@/components/temple-overview'
-import { useLastUpdated } from '@/hooks/useLastUpdated'
 import { useOverviewData, type ChartGranularity } from '@/hooks/useOverviewData'
 import { useLiveActivity } from '@/hooks/useLiveActivity'
 import { usePlatformAlerts } from '@/hooks/usePlatformAlerts'
@@ -31,8 +30,6 @@ export default function OverviewTab({ templeId }: OverviewTabProps) {
 function MasterOverviewTab() {
   const [chartGranularity, setChartGranularity] = useState<ChartGranularity>('day')
   const [alertFilter, setAlertFilter] = useState<'all' | 'critical' | 'warning' | 'info'>('all')
-  const lastUpdated = useLastUpdated()
-
   const {
     executiveKpis,
     sparklines,
@@ -73,18 +70,6 @@ function MasterOverviewTab() {
           </p>
         </div>
       )}
-
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Operations dashboard</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Nationwide kiosk fleet · donations · platform health
-          </p>
-        </div>
-        {lastUpdated && (
-          <p className="text-xs text-gray-400 font-medium tabular-nums">Last updated {lastUpdated}</p>
-        )}
-      </div>
 
       <ExecutiveKPIGrid
         kpis={executiveKpis}

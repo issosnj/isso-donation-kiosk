@@ -67,7 +67,8 @@ export default function Dashboard({ user }: DashboardProps) {
   }, [tabFromUrl])
 
   useEffect(() => {
-    if (tabFromUrl !== 'kiosk-behavior') return
+    const legacyTabs = new Set(['kiosk-behavior', 'analytics', 'live-activity'])
+    if (!legacyTabs.has(tabFromUrl)) return
     const urlParams = new URLSearchParams(window.location.search)
     urlParams.set('tab', 'overview')
     router.replace(`${window.location.pathname}?${urlParams.toString()}`)

@@ -10,8 +10,6 @@ import {
 
 const NAV_ICON_MAP: Record<string, () => JSX.Element> = {
   overview: OverviewIcon,
-  analytics: OverviewIcon,
-  'live-activity': OverviewIcon,
   temples: TemplesIcon,
   devices: DevicesIcon,
   donations: DonationsIcon,
@@ -19,8 +17,13 @@ const NAV_ICON_MAP: Record<string, () => JSX.Element> = {
   receipts: ReceiptIcon,
   'donation-change-requests': ReceiptIcon,
   'religious-events': ReligiousEventsIcon,
-  transactions: DonationsIcon,
   users: UsersIcon,
+  reports: OverviewIcon,
+  refunds: OverviewIcon,
+  payouts: OverviewIcon,
+  settings: OverviewIcon,
+  branding: OverviewIcon,
+  'feature-flags': OverviewIcon,
 }
 
 export function NavItemIcon({ id }: { id: string }) {

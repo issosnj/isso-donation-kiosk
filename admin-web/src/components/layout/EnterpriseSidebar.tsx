@@ -14,10 +14,8 @@ interface EnterpriseSidebarProps {
   onToggleCollapse: () => void
 }
 
-function isNavItemActive(activeTab: string, itemTab: string | undefined, itemId: string): boolean {
-  if (!itemTab || activeTab !== itemTab) return false
-  if (itemTab === 'overview') return itemId === 'overview'
-  return itemId === itemTab
+function isNavItemActive(activeTab: string, itemTab: string | undefined): boolean {
+  return !!itemTab && activeTab === itemTab
 }
 
 export default function EnterpriseSidebar({
@@ -50,7 +48,7 @@ export default function EnterpriseSidebar({
 
   const renderNavItem = (item: (typeof MASTER_NAV_GROUPS)[0]['items'][0]) => {
     const tab = item.tab
-    const isActive = isNavItemActive(activeTab, tab, item.id)
+    const isActive = isNavItemActive(activeTab, tab)
 
     return (
       <li key={item.id}>

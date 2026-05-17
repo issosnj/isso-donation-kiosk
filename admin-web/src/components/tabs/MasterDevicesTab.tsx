@@ -92,13 +92,6 @@ export default function MasterDevicesTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900">Device Monitoring</h2>
-        <p className="text-sm text-gray-600 mt-0.5">
-          Monitor kiosk health across all temples. View status, troubleshoot, and manage devices.
-        </p>
-      </div>
-
       <DeviceSummaryCards summary={summary} isLoading={isLoading} />
 
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">

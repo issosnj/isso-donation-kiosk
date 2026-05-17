@@ -1,18 +1,20 @@
 'use client'
 
 import {
-  AreaChart,
   Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from 'recharts'
 import { format, parseISO } from 'date-fns'
 import type { TrendDataPoint, ChartGranularity } from '@/hooks/useOverviewData'
 import { formatCurrency, safeNumber } from '@/lib/formatters'
 import { WidgetSkeleton } from '@/components/ops-dashboard/WidgetShell'
+
+const CHART_BODY_HEIGHT = 280
 
 interface DonationTrendsChartProps {
   data: TrendDataPoint[]
@@ -43,6 +45,27 @@ const GRANULARITY_OPTIONS: { id: ChartGranularity; label: string }[] = [
   { id: 'year', label: 'Yearly' },
 ]
 
+function ChartEmptyState() {
+  return (
+    <div
+      className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center"
+      style={{ height: CHART_BODY_HEIGHT }}
+    >
+      <div className="flex h-16 items-end gap-1 opacity-30" aria-hidden>
+        {[35, 55, 40, 70, 50, 85, 60].map((h, i) => (
+          <div key={i} className="w-3 rounded-t bg-violet-300" style={{ height: `${h}%` }} />
+        ))}
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-700">No donation trend data yet</p>
+        <p className="mt-1 max-w-xs text-xs text-gray-500">
+          Donations will appear here once kiosks begin processing transactions.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function DonationTrendsChart({
   data,
   granularity,
@@ -56,12 +79,15 @@ export default function DonationTrendsChart({
 
   if (isError) {
     return (
-      <div className="dashboard-card overflow-hidden">
+      <div className="dashboard-card ops-chart-card overflow-hidden">
         <div className="px-6 pt-5 pb-2">
           <h3 className="text-sm font-semibold text-gray-900">Donation analytics</h3>
         </div>
-        <div className="h-72 px-4 pb-4 flex items-center justify-center text-gray-500 text-sm">
-          Unable to load chart data
+        <div
+          className="flex items-center justify-center px-4 pb-4 text-sm text-gray-500"
+          style={{ height: CHART_BODY_HEIGHT }}
+        >
+          Unable to load chart data. Try refreshing the page.
         </div>
       </div>
     )
@@ -74,20 +100,22 @@ export default function DonationTrendsChart({
     label: formatXAxis(d.date, granularity),
   }))
 
+  const hasPlottableData = chartData.some((d) => d.amount > 0 || d.count > 0)
+
   return (
     <div className="dashboard-card ops-chart-card overflow-hidden">
-      <div className="shrink-0 px-5 pt-5 pb-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 pb-2 pt-5">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Donation analytics</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Platform-wide trends · last 90 days</p>
+          <p className="mt-0.5 text-xs text-gray-500">Platform-wide trends · last 90 days</p>
         </div>
-        <div className="flex flex-wrap rounded-xl border border-gray-200/80 p-0.5 bg-gray-50/80 gap-0.5">
+        <div className="flex flex-wrap gap-0.5 rounded-xl border border-gray-200/80 bg-gray-50/80 p-0.5">
           {GRANULARITY_OPTIONS.map((g) => (
             <button
               key={g.id}
               type="button"
               onClick={() => onGranularityChange(g.id)}
-              className={`px-2.5 py-1 text-[10px] font-semibold rounded-lg transition-all ${
+              className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-all ${
                 granularity === g.id
                   ? 'bg-white text-violet-700 shadow-sm'
                   : 'text-gray-500 hover:text-gray-800'
@@ -98,13 +126,11 @@ export default function DonationTrendsChart({
           ))}
         </div>
       </div>
-      <div className="min-h-[14rem] flex-1 px-3 pb-4">
-        {chartData.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-500 text-sm">
-            No donation data for this period
-          </div>
+      <div className="px-3 pb-4" style={{ height: CHART_BODY_HEIGHT }}>
+        {!hasPlottableData ? (
+          <ChartEmptyState />
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={CHART_BODY_HEIGHT}>
             <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="donationGradient" x1="0" y1="0" x2="0" y2="1">
@@ -124,6 +150,7 @@ export default function DonationTrendsChart({
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => formatCurrency(v, { compact: true })}
+                domain={[0, 'auto']}
               />
               <Tooltip
                 contentStyle={{
@@ -141,6 +168,7 @@ export default function DonationTrendsChart({
                 stroke="#7c3aed"
                 strokeWidth={2}
                 fill="url(#donationGradient)"
+                isAnimationActive={false}
               />
             </AreaChart>
           </ResponsiveContainer>

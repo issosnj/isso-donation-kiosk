@@ -91,13 +91,7 @@ export default function DonationChangeRequestsTab() {
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-wrap gap-4 items-end justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Receipt / donor change requests</h2>
-          <p className="text-sm text-gray-600 mt-0.5">
-            Temple admins submit corrections; approving updates the donation record used for receipts.
-          </p>
-        </div>
-        <div className="min-w-[200px]">
+        <div className="min-w-[200px] ml-auto">
           <label className="block text-xs font-medium text-gray-600 mb-1">Temple</label>
           <select
             value={filterTempleId}
