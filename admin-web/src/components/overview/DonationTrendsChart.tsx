@@ -75,13 +75,13 @@ export default function DonationTrendsChart({
   isError,
   className = '',
 }: DonationTrendsChartProps) {
-  const cardClass = `dashboard-card ops-chart-card flex flex-col overflow-hidden ${className}`.trim()
+  const cardClass = `dashboard-card ops-chart-card overflow-hidden ${className}`.trim()
 
   if (isLoading) {
     return (
       <WidgetSkeleton
         lines={1}
-        height="min-h-[var(--ops-chart-min-height)]"
+        height="h-[var(--ops-dashboard-panel-height)]"
         className={`!p-6 ${className}`}
       />
     )
@@ -136,7 +136,7 @@ export default function DonationTrendsChart({
           ))}
         </div>
       </div>
-      <div className="min-h-0 flex-1 px-3 pb-4" style={{ minHeight: CHART_BODY_HEIGHT }}>
+      <div className="px-3 pb-4" style={{ height: CHART_BODY_HEIGHT }}>
         {!hasPlottableData ? (
           <ChartEmptyState />
         ) : (

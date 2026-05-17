@@ -26,7 +26,9 @@
   --topbar-height: 3.5rem;
   --page-padding: 1rem;
   --page-padding-desktop: 1.5rem;
-  --ops-chart-min-height: 23.75rem;
+  /* Donation analytics panel: header + 280px chart + padding (activity matches this, not taller) */
+  --ops-chart-body-height: 280px;
+  --ops-dashboard-panel-height: calc(4.75rem + var(--ops-chart-body-height) + 1rem);
 }
 
 html {
@@ -213,27 +215,23 @@ body {
 
 @media (min-width: 1280px) {
   .ops-kpi-grid {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
   }
 }
 
 .ops-kpi-card {
   display: flex;
   flex-direction: column;
-  min-height: 7rem;
-  max-height: 7.5rem;
+  min-height: 8.75rem;
+  overflow: visible;
 }
 
-/* Chart + live activity row */
+/* Chart + live activity row — chart sets height; activity matches it */
 .ops-chart-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
-  align-items: stretch;
-}
-
-.ops-chart-row > * {
-  min-height: var(--ops-chart-min-height);
+  align-items: start;
 }
 
 @media (min-width: 1280px) {
@@ -244,14 +242,14 @@ body {
 
 .ops-chart-card {
   display: flex;
-  min-height: var(--ops-chart-min-height);
   flex-direction: column;
 }
 
 .ops-activity-card {
   display: flex;
-  min-height: var(--ops-chart-min-height);
   flex-direction: column;
+  height: var(--ops-dashboard-panel-height);
+  max-height: var(--ops-dashboard-panel-height);
   overflow: hidden;
 }
 

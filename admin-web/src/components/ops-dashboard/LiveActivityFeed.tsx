@@ -47,13 +47,13 @@ interface LiveActivityFeedProps {
 }
 
 export default function LiveActivityFeed({ events, isLoading, className = '' }: LiveActivityFeedProps) {
-  const cardClass = `dashboard-card ops-activity-card flex h-full flex-col overflow-hidden ${className}`.trim()
+  const cardClass = `dashboard-card ops-activity-card flex flex-col overflow-hidden ${className}`.trim()
 
   if (isLoading) {
     return (
       <WidgetSkeleton
         lines={6}
-        height="min-h-[var(--ops-chart-min-height)]"
+        height="h-[var(--ops-dashboard-panel-height)]"
         className={className}
       />
     )

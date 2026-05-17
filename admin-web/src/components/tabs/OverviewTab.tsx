@@ -83,24 +83,19 @@ function MasterOverviewTab() {
       />
 
       <div className="ops-chart-row min-w-0">
-        <div className="flex min-h-[var(--ops-chart-min-height)] min-w-0 flex-col">
+        <div className="min-w-0">
           <DonationTrendsChart
             data={trendData}
             granularity={chartGranularity}
             onGranularityChange={setChartGranularity}
             isLoading={donationsLoading}
             isError={donationsError}
-            className="h-full min-h-[var(--ops-chart-min-height)] flex-1"
           />
         </div>
-        <div
-          className="flex min-h-[var(--ops-chart-min-height)] min-w-0 flex-col"
-          id="live-activity"
-        >
+        <div className="min-w-0" id="live-activity">
           <LiveActivityFeed
             events={activityEvents}
             isLoading={donationsLoading || devicesLoading}
-            className="h-full min-h-[var(--ops-chart-min-height)] flex-1"
           />
         </div>
       </div>

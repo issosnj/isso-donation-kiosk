@@ -6,7 +6,13 @@ import DataSparkline from './DataSparkline'
 import LivePulse from './LivePulse'
 import { WidgetSkeleton } from './WidgetShell'
 import type { ExecutiveKpis } from '@/hooks/useOverviewData'
-import { formatCount, formatCurrency, formatKpiValue, formatTrendPercent, safeNumber } from '@/lib/formatters'
+import {
+  formatCount,
+  formatCurrency,
+  formatKpiValue,
+  formatTrendPercentCompact,
+  safeNumber,
+} from '@/lib/formatters'
 
 interface ExecutiveKPIGridProps {
   kpis: ExecutiveKpis
@@ -75,7 +81,7 @@ export default function ExecutiveKPIGrid({
     return (
       <div className="ops-kpi-grid">
         {Array.from({ length: 8 }).map((_, i) => (
-          <WidgetSkeleton key={i} lines={2} height="h-[112px]" className="!p-4" />
+          <WidgetSkeleton key={i} lines={3} height="min-h-[8.75rem]" className="!p-4" />
         ))}
       </div>
     )
@@ -103,15 +109,15 @@ export default function ExecutiveKPIGrid({
             key={def.key}
             type="button"
             onClick={() => router.push(`/dashboard?tab=${def.tab}`)}
-            className="dashboard-card dashboard-card-hover ops-kpi-card p-4 text-left group min-w-0"
+            className="dashboard-card dashboard-card-hover ops-kpi-card p-4 pb-3.5 text-left group min-w-0"
           >
-            <div className="flex items-start justify-between gap-1 mb-2 min-h-[2rem]">
-              <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide leading-tight line-clamp-2">
+            <div className="flex items-start justify-between gap-1.5">
+              <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide leading-snug">
                 {def.label}
               </span>
               <LivePulse className="opacity-40 group-hover:opacity-100 transition-opacity scale-75 shrink-0 mt-0.5" />
             </div>
-            <p className="text-lg font-bold text-gray-900 tracking-tight leading-tight tabular-nums">
+            <p className="mt-2 text-lg font-bold text-gray-900 tracking-tight leading-tight tabular-nums">
               {pending ? (
                 <span
                   className="inline-block h-6 w-14 animate-pulse rounded-md bg-gray-200/90"
@@ -123,21 +129,23 @@ export default function ExecutiveKPIGrid({
                 formatKpiValue(value, def.format)
               )}
             </p>
-            <div className="mt-auto flex items-end justify-between gap-1 pt-2">
-              <span
-                className={`max-w-[55%] truncate text-[10px] font-semibold tabular-nums ${
-                  trend === 0
-                    ? 'text-gray-400'
-                    : positive
-                      ? 'text-emerald-600'
-                      : 'text-amber-600'
-                }`}
-              >
-                {formatTrendPercent(trend)}
-              </span>
-              <DataSparkline data={spark} />
+            <div className="mt-auto space-y-1.5 pt-2">
+              <div className="flex items-end justify-between gap-2">
+                <span
+                  className={`shrink-0 text-[10px] font-semibold leading-tight tabular-nums ${
+                    trend === 0
+                      ? 'text-gray-400'
+                      : positive
+                        ? 'text-emerald-600'
+                        : 'text-amber-600'
+                  }`}
+                >
+                  {formatTrendPercentCompact(trend)}
+                </span>
+                <DataSparkline data={spark} />
+              </div>
+              <p className="text-[10px] leading-tight text-gray-400">vs prior period</p>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1">vs prior period</p>
           </button>
         )
       })}

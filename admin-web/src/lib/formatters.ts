@@ -34,6 +34,15 @@ export function formatTrendPercent(value: unknown): string {
   return `${sign}${n.toFixed(1)}%`
 }
 
+/** Shorter trend label for compact KPI cards (avoids truncation). */
+export function formatTrendPercentCompact(value: unknown): string {
+  const n = safeNumber(value)
+  if (n === 0) return 'Flat'
+  const sign = n > 0 ? '+' : ''
+  const decimals = Math.abs(n) >= 100 ? 0 : 1
+  return `${sign}${n.toFixed(decimals)}%`
+}
+
 /** Executive KPI primary value — always show a readable number (never empty). */
 export function formatKpiValue(value: unknown, format: (n: number) => string): string {
   return format(safeNumber(value))
