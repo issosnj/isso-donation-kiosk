@@ -87,7 +87,7 @@ export default function EnterpriseSidebar({
     <aside className={sidebarClass} data-collapsed={collapsed ? 'true' : 'false'}>
       <div className="enterprise-sidebar-header shrink-0">
         <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7] shadow-md shadow-violet-200/50">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#ea580c] via-[#f97316] to-[#fb923c] shadow-md shadow-orange-200/50">
             <span className="text-base font-bold text-white">I</span>
           </div>
           {!collapsed && (
@@ -100,7 +100,7 @@ export default function EnterpriseSidebar({
         {!collapsed && (
           <div className="mt-3 border-t border-gray-100 pt-3">
             <p className="truncate text-sm font-semibold text-gray-900">{user.name}</p>
-            <p className="mt-0.5 text-[10px] font-medium text-violet-600">
+            <p className="mt-0.5 text-[10px] font-medium text-orange-600">
               {isMasterAdmin ? 'Super Admin' : 'Temple Admin'}
             </p>
           </div>

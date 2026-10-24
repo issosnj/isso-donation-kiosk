@@ -76,7 +76,7 @@ export default function DonorsFiltersToolbar({
 
   return (
     <div className="sticky top-0 z-20 -mx-1 px-1 py-2">
-      <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200/80 shadow-md shadow-purple-500/5 p-4 sm:p-5 space-y-4">
+      <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200/80 shadow-md shadow-orange-500/5 p-4 sm:p-5 space-y-4">
         {isMasterAdmin && onTempleSelect && (
           <TempleFilter
             temples={temples}
@@ -107,7 +107,7 @@ export default function DonorsFiltersToolbar({
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search donors by name, email, or phone…"
-              className="w-full pl-10 pr-24 py-2.5 text-sm bg-gray-50/80 border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/25 focus:border-purple-300 focus:bg-white transition-all"
+              className="w-full pl-10 pr-24 py-2.5 text-sm bg-gray-50/80 border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/25 focus:border-orange-300 focus:bg-white transition-all"
               aria-label="Search donors"
             />
             <kbd className="hidden sm:inline-flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 px-2 py-0.5 text-[10px] font-medium text-gray-500 bg-white border border-gray-200 rounded-md shadow-sm">
@@ -123,7 +123,7 @@ export default function DonorsFiltersToolbar({
               id="donor-sort"
               value={sortKey}
               onChange={(e) => onSortChange(e.target.value as DonorSortKey)}
-              className="px-3 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200/80 rounded-xl focus:ring-2 focus:ring-purple-500/25 outline-none"
+              className="px-3 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200/80 rounded-xl focus:ring-2 focus:ring-orange-500/25 outline-none"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.id} value={o.id}>
@@ -135,7 +135,7 @@ export default function DonorsFiltersToolbar({
               <button
                 type="button"
                 onClick={onClearFilters}
-                className="px-3 py-2.5 text-sm font-medium text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-xl transition-colors"
+                className="px-3 py-2.5 text-sm font-medium text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-xl transition-colors"
               >
                 Clear filters
               </button>
@@ -152,8 +152,8 @@ export default function DonorsFiltersToolbar({
               onClick={() => onSegmentChange(s.id)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-all ${
                 segment === s.id
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm shadow-purple-500/25'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-purple-200 hover:text-purple-700 hover:bg-purple-50/50'
+                  ? 'bg-orange-600 text-white border-orange-600 shadow-sm shadow-orange-500/25'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-orange-200 hover:text-orange-700 hover:bg-orange-50/50'
               }`}
             >
               {s.label}

@@ -1,16 +1,10 @@
-import {
-  format,
-  formatDistanceToNow,
-  isValid,
-  parseISO,
-  startOfDay,
-  subDays,
-} from 'date-fns'
+import { formatDistanceToNow, isValid } from 'date-fns'
 import type { Donation } from '@/types/donation'
 import type { DonorStats } from '@/types/donor'
 import type { DeviceListItem } from '@/types/device'
 import type { TrendDataPoint } from '@/hooks/useOverviewData'
-import { safeNumber, sanitizeSparkline } from '@/lib/formatters'
+import { safeNumber } from '@/lib/formatters'
+import { formatCalendarDay, shiftYmd } from '@/lib/zonedRange'
 import type {
   CategoryBreakdownRow,
   DeviceHealthRow,
@@ -44,35 +38,46 @@ interface ChangeRequestRow {
 export function filterDailyByPeriod(
   daily: TrendDataPoint[],
   period: TempleChartPeriod,
-  referenceDate: Date = new Date(),
+  todayYmd: string,
 ): TrendDataPoint[] {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
-  const todayKey = format(startOfDay(referenceDate), 'yyyy-MM-dd')
+  const dayKey = (value: string) => value.slice(0, 10)
 
   if (period === 'today') {
-    return sorted.filter((d) => d.date.startsWith(todayKey) || d.date === todayKey)
+    return sorted.filter((row) => dayKey(row.date) === todayYmd)
   }
 
   if (period === 'ytd') {
-    const year = referenceDate.getFullYear()
-    return sorted.filter((d) => d.date.startsWith(String(year)))
+    const year = todayYmd.slice(0, 4)
+    return sorted.filter((row) => {
+      const key = dayKey(row.date)
+      return key.startsWith(year) && key <= todayYmd
+    })
   }
 
   const days = period === '7d' ? 7 : 30
-  const cutoff = subDays(startOfDay(referenceDate), days - 1)
-  return sorted.filter((d) => {
-    try {
-      const parsed = parseISO(d.date)
-      return isValid(parsed) && parsed >= cutoff
-    } catch {
-      return false
-    }
+  const cutoff = shiftYmd(todayYmd, -(days - 1))
+  return sorted.filter((row) => {
+    const key = dayKey(row.date)
+    return key >= cutoff && key <= todayYmd
   })
+}
+
+function hourInTimeZone(iso: string, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: 'numeric',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(iso))
+  const raw = parts.find((part) => part.type === 'hour')?.value ?? '0'
+  const hour = Number(raw === '24' ? '0' : raw)
+  return Number.isFinite(hour) ? hour : 0
 }
 
 export function buildPerformanceSummary(
   daily: TrendDataPoint[],
   donations: Donation[],
+  timeZone: string,
 ): DonationPerformanceSummary {
   let bestDay = '—'
   let bestAmount = 0
@@ -80,18 +85,14 @@ export function buildPerformanceSummary(
     const amount = safeNumber(row.amount)
     if (amount > bestAmount) {
       bestAmount = amount
-      try {
-        bestDay = format(parseISO(row.date), 'MMM d, yyyy')
-      } catch {
-        bestDay = row.date
-      }
+      bestDay = formatCalendarDay(row.date)
     }
   }
 
   const hourCounts = new Map<number, number>()
   for (const d of donations) {
     if (d.status !== 'SUCCEEDED') continue
-    const hour = new Date(d.createdAt).getHours()
+    const hour = hourInTimeZone(d.createdAt, timeZone)
     hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + 1)
   }
   let peakHour = '—'
@@ -120,13 +121,14 @@ export function buildPerformanceSummary(
     }
   }
 
-  return { bestDay, peakHour, highestCategory }
+  return { bestDay, bestAmount, peakHour, highestCategory }
 }
 
-function pctChange(current: number, previous: number): number {
+function pctChange(current: number, previous: number | null | undefined): number | null {
+  if (previous == null || !Number.isFinite(previous)) return null
   const c = safeNumber(current)
   const p = safeNumber(previous)
-  if (p === 0) return c > 0 ? 100 : 0
+  if (p === 0) return c === 0 ? 0 : null
   return safeNumber(((c - p) / p) * 100)
 }
 
@@ -135,70 +137,50 @@ export function buildTempleMetrics(input: {
   statsMonth: StatsSlice | undefined
   statsToday: StatsSlice | undefined
   statsPrevMonth: StatsSlice | undefined
+  statsYesterday: StatsSlice | undefined
+  statsPriorYtd: StatsSlice | undefined
   donorStats: DonorStats | null | undefined
   deviceOnline: number
-  deviceTotal: number
   recentDonations: Donation[]
-  dailySpark: TrendDataPoint[]
 }): TempleOverviewMetrics {
   const raisedYtd = safeNumber(input.statsYtd?.total)
   const countYtd = safeNumber(input.statsYtd?.count)
   const raisedThisMonth = safeNumber(input.statsMonth?.total)
-  const countMonth = safeNumber(input.statsMonth?.count)
   const raisedToday = safeNumber(input.statsToday?.total)
-  const countToday = safeNumber(input.statsToday?.count)
-  const prevMonthTotal = safeNumber(input.statsPrevMonth?.total)
-  const prevMonthCount = safeNumber(input.statsPrevMonth?.count)
+  const prevMonthTotal = input.statsPrevMonth ? safeNumber(input.statsPrevMonth.total) : null
+  const yesterdayTotal = input.statsYesterday ? safeNumber(input.statsYesterday.total) : null
+  const priorYtdTotal = input.statsPriorYtd ? safeNumber(input.statsPriorYtd.total) : null
+  const priorYtdCount = input.statsPriorYtd ? safeNumber(input.statsPriorYtd.count) : null
+  const averageGift = countYtd > 0 ? raisedYtd / countYtd : 0
+  const priorAverage =
+    priorYtdCount != null && priorYtdCount > 0 && priorYtdTotal != null
+      ? priorYtdTotal / priorYtdCount
+      : priorYtdCount === 0
+        ? 0
+        : null
 
   const failedPending = input.recentDonations.filter(
     (d) => d.status === 'FAILED' || d.status === 'PENDING',
   ).length
-
-  const last7 = input.dailySpark.slice(-7)
-  const sparkFromDaily = (key: 'amount' | 'count') =>
-    sanitizeSparkline(last7.map((d) => safeNumber(d[key])))
 
   return {
     raisedYtd,
     raisedThisMonth,
     raisedToday,
     totalDonations: countYtd,
-    averageGift: countYtd > 0 ? raisedYtd / countYtd : 0,
+    averageGift,
     activeDonors: safeNumber(input.donorStats?.activeCount),
     onlineDevices: input.deviceOnline,
     failedPendingPayments: failedPending,
     trends: {
-      raisedYtd: pctChange(raisedYtd, prevMonthTotal * 12),
+      raisedYtd: pctChange(raisedYtd, priorYtdTotal),
       raisedThisMonth: pctChange(raisedThisMonth, prevMonthTotal),
-      raisedToday: pctChange(countToday, Math.max(1, prevMonthCount / 30)),
-      totalDonations: pctChange(countMonth, prevMonthCount),
-      averageGift: pctChange(
-        countMonth > 0 ? raisedThisMonth / countMonth : 0,
-        prevMonthCount > 0 ? prevMonthTotal / prevMonthCount : 0,
-      ),
-      activeDonors: pctChange(
-        safeNumber(input.donorStats?.activeCount),
-        Math.max(1, safeNumber(input.donorStats?.total) - safeNumber(input.donorStats?.activeCount)),
-      ),
-      onlineDevices: pctChange(
-        input.deviceOnline,
-        Math.max(1, input.deviceTotal - input.deviceOnline),
-      ),
-      failedPendingPayments: 0,
-    },
-    sparklines: {
-      raisedYtd: sparkFromDaily('amount'),
-      raisedThisMonth: sparkFromDaily('amount'),
-      raisedToday: sparkFromDaily('count'),
-      totalDonations: sparkFromDaily('count'),
-      averageGift: sanitizeSparkline(
-        last7.map((d) =>
-          safeNumber(d.count) > 0 ? safeNumber(d.amount) / safeNumber(d.count) : 0,
-        ),
-      ),
-      activeDonors: sparkFromDaily('count'),
-      onlineDevices: sanitizeSparkline(last7.map(() => input.deviceOnline)),
-      failedPendingPayments: sanitizeSparkline(last7.map(() => failedPending)),
+      raisedToday: pctChange(raisedToday, yesterdayTotal),
+      totalDonations: pctChange(countYtd, priorYtdCount),
+      averageGift: pctChange(averageGift, priorAverage),
+      activeDonors: null,
+      onlineDevices: null,
+      failedPendingPayments: null,
     },
   }
 }
@@ -209,11 +191,9 @@ export function buildRecentActivity(donations: Donation[]): RecentDonationActivi
     .slice(0, 8)
     .map((d) => {
       const anonymous = d.submittedAsAnonymous || !d.donorName?.trim()
-      const hasReceipt = Boolean(d.receiptNumber)
-      const hasEmail = Boolean(d.donorEmail?.trim())
       let receiptStatus: RecentDonationActivity['receiptStatus'] = 'unavailable'
       if (d.status === 'SUCCEEDED') {
-        receiptStatus = hasReceipt && hasEmail ? 'sent' : 'pending'
+        receiptStatus = d.receiptNumber ? 'issued' : 'missing'
       }
       let timeAgo = '—'
       try {
@@ -245,12 +225,25 @@ function formatRelativeTime(iso: string | null | undefined): string {
   }
 }
 
-export function buildDeviceHealthRows(devices: DeviceListItem[]): DeviceHealthRow[] {
-  return devices.slice(0, 6).map((d) => {
+export function buildDeviceHealthRows(
+  devices: DeviceListItem[],
+  donations: Donation[] = [],
+): DeviceHealthRow[] {
+  const lastGiftByDevice = new Map<string, string>()
+  for (const donation of donations) {
+    if (donation.status !== 'SUCCEEDED' || !donation.deviceId) continue
+    const previous = lastGiftByDevice.get(donation.deviceId)
+    if (!previous || donation.createdAt > previous) {
+      lastGiftByDevice.set(donation.deviceId, donation.createdAt)
+    }
+  }
+
+  return devices.map((d) => {
     let statusLabel: DeviceHealthRow['statusLabel'] = 'Offline'
     if (d.operationalStatus === 'online') statusLabel = 'Online'
     else if (d.operationalStatus === 'pending') statusLabel = 'Needs setup'
     else if (d.operationalStatus === 'warning') statusLabel = 'Warning'
+    else if (d.operationalStatus === 'deactivated') statusLabel = 'Deactivated'
 
     let readerStatus: DeviceHealthRow['readerStatus'] = 'n/a'
     if (d.readerConnected === true) readerStatus = 'connected'
@@ -263,7 +256,9 @@ export function buildDeviceHealthRows(devices: DeviceListItem[]): DeviceHealthRo
       statusLabel,
       lastHeartbeat: d.lastSeenAt,
       lastHeartbeatLabel: formatRelativeTime(d.lastSeenAt),
-      lastDonationLabel: formatRelativeTime(d.lastActivityAt ?? null),
+      lastDonationLabel: lastGiftByDevice.has(d.id)
+        ? formatRelativeTime(lastGiftByDevice.get(d.id))
+        : 'None in 30 days',
       readerStatus,
     }
   })
@@ -296,7 +291,6 @@ export function buildCategoryBreakdown(donations: Donation[]): CategoryBreakdown
       percentage: grandTotal > 0 ? (amount / grandTotal) * 100 : 0,
     }))
     .sort((a, b) => b.amountRaised - a.amountRaised)
-    .slice(0, 6)
 }
 
 export function buildDonorInsights(
@@ -304,17 +298,6 @@ export function buildDonorInsights(
   donations: Donation[],
 ): DonorInsightSummary {
   const succeeded = donations.filter((d) => d.status === 'SUCCEEDED')
-  const donorGiftCounts = new Map<string, number>()
-  for (const d of succeeded) {
-    const key = d.donorId ?? d.donorPhone ?? d.id
-    donorGiftCounts.set(key, (donorGiftCounts.get(key) ?? 0) + 1)
-  }
-  const frequencies = Array.from(donorGiftCounts.values())
-  const averageDonorFrequency =
-    frequencies.length > 0
-      ? frequencies.reduce((a, b) => a + b, 0) / frequencies.length
-      : 0
-
   const categoryTotals = new Map<string, number>()
   for (const d of succeeded) {
     const name = d.category?.name ?? 'General'
@@ -330,10 +313,10 @@ export function buildDonorInsights(
   }
 
   return {
-    newDonorsThisMonth: safeNumber(donorStats?.newThisMonth),
+    newDonorsThisMonth: safeNumber(donorStats?.firstGiftThisMonth),
     returningDonors: safeNumber(donorStats?.repeatCount),
     topDonorCategory,
-    averageDonorFrequency: Math.round(averageDonorFrequency * 10) / 10,
+    averageDonorFrequency: safeNumber(donorStats?.averageGiftsPerDonor),
   }
 }
 
@@ -342,27 +325,28 @@ export function buildReceiptOps(
   temple: TempleStripeFields | null | undefined,
 ): ReceiptOpsSummary {
   const succeeded = donations.filter((d) => d.status === 'SUCCEEDED')
-  const withEmail = succeeded.filter((d) => Boolean(d.donorEmail?.trim()))
-  const receiptsSent = withEmail.filter((d) => Boolean(d.receiptNumber)).length
-  const pendingResend = withEmail.filter((d) => !d.receiptNumber).length
-  const failedReceipts = donations.filter((d) => d.status === 'FAILED').length
+  const receiptsIssued = succeeded.filter((d) => Boolean(d.receiptNumber)).length
+  const missingReceiptNumbers = succeeded.filter((d) => !d.receiptNumber).length
+  const receiptsWithoutEmail = succeeded.filter(
+    (d) => Boolean(d.receiptNumber) && !d.donorEmail?.trim(),
+  ).length
 
   const recentWithReceipt = succeeded
     .filter((d) => d.receiptNumber)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
 
-  let recentResendLabel = 'No recent receipt activity'
+  let recentReceiptLabel = 'No receipt number in the last 30 days'
   if (recentWithReceipt) {
-    recentResendLabel = `Last receipt #${recentWithReceipt.receiptNumber} · ${formatRelativeTime(recentWithReceipt.createdAt)}`
+    recentReceiptLabel = `Last receipt #${recentWithReceipt.receiptNumber} · ${formatRelativeTime(recentWithReceipt.createdAt)}`
   } else if (!temple?.gmailRefreshToken && !temple?.fromEmail) {
-    recentResendLabel = 'Configure Gmail or sender email in Receipts'
+    recentReceiptLabel = 'Configure Gmail or sender email in Receipts'
   }
 
   return {
-    receiptsSent,
-    failedReceipts,
-    pendingResend,
-    recentResendLabel,
+    receiptsIssued,
+    missingReceiptNumbers,
+    receiptsWithoutEmail,
+    recentReceiptLabel,
   }
 }
 
@@ -381,7 +365,7 @@ export function buildTempleAlerts(input: {
       id: 'failed-payments',
       severity: 'critical',
       title: `${failedCount} failed payment${failedCount === 1 ? '' : 's'}`,
-      description: 'Review failed transactions and retry or cancel as needed.',
+      description: 'Failed payments in the last 30 days. Review them in Donations.',
       tab: 'donations',
     })
   }
@@ -397,13 +381,24 @@ export function buildTempleAlerts(input: {
     })
   }
 
+  const warning = input.devices.filter((d) => d.operationalStatus === 'warning').length
+  if (warning > 0) {
+    alerts.push({
+      id: 'warning-kiosks',
+      severity: 'warning',
+      title: warning === 1 ? '1 kiosk needs a check' : `${warning} kiosks need a check`,
+      description: 'Heartbeat is older than 30 minutes. Confirm the kiosk is still running.',
+      tab: 'devices',
+    })
+  }
+
   const stripeOk =
     Boolean(input.temple?.stripeAccountId) || Boolean(input.temple?.stripePublishableKey)
   if (!stripeOk) {
     alerts.push({
       id: 'stripe-disconnected',
       severity: 'critical',
-      title: 'Stripe not connected',
+      title: 'Stripe is not connected',
       description: 'Connect Stripe to accept card payments on kiosks.',
       tab: 'stripe',
     })
@@ -416,8 +411,11 @@ export function buildTempleAlerts(input: {
     alerts.push({
       id: 'receipt-failures',
       severity: 'warning',
-      title: `${receiptIssues} receipt${receiptIssues === 1 ? '' : 's'} pending`,
-      description: 'Succeeded donations with email but no receipt number.',
+      title:
+        receiptIssues === 1
+          ? '1 receipt missing a number'
+          : `${receiptIssues} receipts missing a number`,
+      description: 'Succeeded gifts have an email address but no receipt number.',
       tab: 'receipts',
     })
   }
@@ -427,8 +425,11 @@ export function buildTempleAlerts(input: {
     alerts.push({
       id: 'donor-corrections',
       severity: 'info',
-      title: `${pendingChanges} donor change request${pendingChanges === 1 ? '' : 's'}`,
-      description: 'Pending master approval for receipt or name corrections.',
+      title:
+        pendingChanges === 1
+          ? '1 receipt name change'
+          : `${pendingChanges} receipt name changes`,
+      description: 'Waiting for Master Admin approval.',
       tab: 'donations',
     })
   }
@@ -441,7 +442,7 @@ export function buildTempleAlerts(input: {
       id: 'unassigned-donors',
       severity: 'info',
       title: `${unassigned} anonymous gifts unassigned`,
-      description: 'Link anonymous donations to donor profiles for reporting.',
+      description: 'Anonymous succeeded gifts from the last 30 days that are not linked to a donor.',
       tab: 'donations',
     })
   }
@@ -458,7 +459,7 @@ export function buildStatusChips(input: {
   const stripeOk =
     Boolean(input.temple?.stripeAccountId) || Boolean(input.temple?.stripePublishableKey)
   const stripeStatus = stripeOk ? 'connected' : 'needs_attention'
-  const stripeLabel = stripeOk ? 'Stripe connected' : 'Stripe needs attention'
+  const stripeLabel = stripeOk ? 'Stripe Connected' : 'Stripe Needs Attention'
 
   const kiosksOnlineLabel =
     input.deviceTotal > 0
@@ -492,7 +493,7 @@ export function exportTempleSummaryCsv(
     ['Average Gift', metrics.averageGift.toFixed(2)],
     ['Active Donors', String(metrics.activeDonors)],
     ['Online Devices', String(metrics.onlineDevices)],
-    ['Failed / Pending Payments', String(metrics.failedPendingPayments)],
+    ['Failed & Pending Payments', String(metrics.failedPendingPayments)],
     ['Best Day', performance.bestDay],
     ['Peak Hour', performance.peakHour],
     ['Top Category', performance.highestCategory],

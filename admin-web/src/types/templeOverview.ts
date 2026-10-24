@@ -14,16 +14,15 @@ export interface TempleOverviewMetrics {
   onlineDevices: number
   failedPendingPayments: number
   trends: {
-    raisedYtd: number
-    raisedThisMonth: number
-    raisedToday: number
-    totalDonations: number
-    averageGift: number
-    activeDonors: number
-    onlineDevices: number
-    failedPendingPayments: number
+    raisedYtd: number | null
+    raisedThisMonth: number | null
+    raisedToday: number | null
+    totalDonations: number | null
+    averageGift: number | null
+    activeDonors: number | null
+    onlineDevices: number | null
+    failedPendingPayments: number | null
   }
-  sparklines: Record<string, number[]>
 }
 
 export interface RecentDonationActivity {
@@ -33,14 +32,14 @@ export interface RecentDonationActivity {
   categoryName: string
   paymentStatus: DonationStatus | string
   timeAgo: string
-  receiptStatus: 'sent' | 'pending' | 'unavailable'
+  receiptStatus: 'issued' | 'missing' | 'unavailable'
   createdAt: string
 }
 
 export interface DeviceHealthRow {
   id: string
   name: string
-  statusLabel: 'Online' | 'Offline' | 'Needs setup' | 'Warning'
+  statusLabel: 'Online' | 'Offline' | 'Needs setup' | 'Warning' | 'Deactivated'
   lastHeartbeat: string | null
   lastHeartbeatLabel: string
   lastDonationLabel: string
@@ -63,10 +62,10 @@ export interface DonorInsightSummary {
 }
 
 export interface ReceiptOpsSummary {
-  receiptsSent: number
-  failedReceipts: number
-  pendingResend: number
-  recentResendLabel: string
+  receiptsIssued: number
+  missingReceiptNumbers: number
+  receiptsWithoutEmail: number
+  recentReceiptLabel: string
 }
 
 export type TempleAlertSeverity = 'critical' | 'warning' | 'info'
@@ -81,6 +80,7 @@ export interface TempleDashboardAlert {
 
 export interface DonationPerformanceSummary {
   bestDay: string
+  bestAmount: number
   peakHour: string
   highestCategory: string
 }

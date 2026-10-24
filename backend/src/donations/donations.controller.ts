@@ -23,9 +23,27 @@ import { StripeService } from '../stripe/stripe.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtOrDeviceAuthGuard } from '../auth/guards/jwt-or-device-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { DonationStatus } from './entities/donation.entity';
 import { UserRole } from '../users/entities/user.entity';
+
+const RECEIPT_SECRET_FIELDS = [
+  'gmailAccessToken',
+  'gmailRefreshToken',
+  'stripeAccountId',
+  'stripePublishableKey',
+  'stripeLocationId',
+] as const;
+
+function receiptSafeTemple<T extends object | null | undefined>(temple: T): T {
+  if (!temple) return temple;
+  const copy = { ...temple } as T & Record<string, unknown>;
+  for (const key of RECEIPT_SECRET_FIELDS) {
+    delete copy[key];
+  }
+  return copy;
+}
 
 @ApiTags('donations')
 @Controller('donations')
@@ -255,6 +273,7 @@ export class DonationsController {
     @Query('templeId') templeId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('timeZone') timeZone?: string,
   ) {
     if (!startDate || !endDate) {
       throw new BadRequestException('startDate and endDate query parameters are required');
@@ -272,7 +291,12 @@ export class DonationsController {
       filterTempleId = user.templeId;
     }
 
-    return this.donationsService.getOverviewMetrics(filterTempleId, parsedStart, parsedEnd);
+    return this.donationsService.getOverviewMetrics(
+      filterTempleId,
+      parsedStart,
+      parsedEnd,
+      timeZone,
+    );
   }
 
   @SkipThrottle()
@@ -282,13 +306,15 @@ export class DonationsController {
   @ApiOperation({ summary: 'Get donation statistics' })
   async getStats(
     @CurrentUser() user: any,
+    @Query('templeId') templeId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
     console.log('[Donations Controller] getStats called by user:', user.email, user.role);
-    console.log('[Donations Controller] Query params:', { startDate, endDate });
+    console.log('[Donations Controller] Query params:', { templeId, startDate, endDate });
 
-    const filterTempleId = user.role === UserRole.MASTER_ADMIN ? undefined : user.templeId;
+    const filterTempleId =
+      user.role === UserRole.MASTER_ADMIN ? templeId || undefined : user.templeId;
     console.log('[Donations Controller] Using templeId:', filterTempleId);
 
     let parsedStartDate: Date | undefined;
@@ -334,11 +360,14 @@ export class DonationsController {
   @ApiOperation({ summary: 'Get donation receipt details for printing' })
   async getReceipt(@Param('id') id: string, @CurrentUser() user: any) {
     const donation = await this.donationsService.findOne(id, user);
-    // Temple is already loaded in donation relations
+    const temple = receiptSafeTemple(donation.temple);
+    if (donation.temple) {
+      donation.temple = temple as typeof donation.temple;
+    }
     return {
       donation,
-      temple: donation.temple,
-      receiptConfig: donation.temple?.receiptConfig || {},
+      temple,
+      receiptConfig: temple?.receiptConfig || {},
     };
   }
 
@@ -351,7 +380,7 @@ export class DonationsController {
     
     // Verify user has access to this donation
     if (user.role === UserRole.TEMPLE_ADMIN && donation.templeId !== user.templeId) {
-      throw new Error('Unauthorized');
+      throw new ForbiddenException('Not allowed to resend receipt for this donation');
     }
 
     if (!donation.donorEmail) {
@@ -530,6 +559,7 @@ export class DonationsController {
 
   @Post(':id/assign-donor')
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.TEMPLE_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Assign an anonymous donation to a donor' })
   async assignDonationToDonor(

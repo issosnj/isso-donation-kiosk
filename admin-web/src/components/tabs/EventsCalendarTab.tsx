@@ -189,7 +189,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
               setEditingEvent(null)
               resetForm()
             }}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors text-sm flex items-center space-x-2"
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium transition-colors text-sm flex items-center space-x-2"
           >
             <PlusIcon className="h-5 w-5" />
             <span>Add Event</span>
@@ -257,13 +257,13 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
                 onClick={() => handleDateClick(day)}
                 className={`aspect-square p-1 border rounded-lg transition-colors text-left ${
                   isToday
-                    ? 'bg-purple-100 border-purple-300'
+                    ? 'bg-orange-100 border-orange-300'
                     : isSelected
-                    ? 'bg-purple-50 border-purple-200'
+                    ? 'bg-orange-50 border-orange-200'
                     : 'border-gray-200 hover:bg-gray-50'
                 } ${!isCurrentMonth ? 'opacity-40' : ''}`}
               >
-                <div className={`text-sm font-medium mb-1 ${isToday ? 'text-purple-700' : 'text-gray-900'}`}>
+                <div className={`text-sm font-medium mb-1 ${isToday ? 'text-orange-700' : 'text-gray-900'}`}>
                   {format(day, 'd')}
                 </div>
                 {dayEvents.length > 0 && (
@@ -271,7 +271,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
                     {dayEvents.slice(0, 2).map(event => (
                       <div
                         key={event.id}
-                        className="text-xs bg-purple-600 text-white px-1 py-0.5 rounded truncate"
+                        className="text-xs bg-orange-600 text-white px-1 py-0.5 rounded truncate"
                         title={event.title}
                       >
                         {event.isAllDay || !event.startTime ? event.title : `${format(parseISO(`${event.date}T${event.startTime}`), 'h:mm a')} ${event.title}`}
@@ -322,7 +322,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleEditEvent(event)}
-                      className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                      className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                     >
                       <PencilIcon className="h-5 w-5" />
                     </button>
@@ -357,7 +357,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
                   type="text"
                   value={eventForm.title}
                   onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="Enter event title"
                 />
               </div>
@@ -370,7 +370,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
                   type="date"
                   value={eventForm.date}
                   onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
 
@@ -380,7 +380,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
                     type="checkbox"
                     checked={eventForm.isAllDay}
                     onChange={(e) => setEventForm({ ...eventForm, isAllDay: e.target.checked, startTime: '', endTime: '' })}
-                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                   />
                   <span className="text-sm font-medium text-gray-700">All Day Event</span>
                 </label>
@@ -396,7 +396,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
                       type="time"
                       value={eventForm.startTime}
                       onChange={(e) => setEventForm({ ...eventForm, startTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                     />
                   </div>
                   <div>
@@ -407,7 +407,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
                       type="time"
                       value={eventForm.endTime}
                       onChange={(e) => setEventForm({ ...eventForm, endTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                     />
                   </div>
                 </div>
@@ -421,7 +421,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
                   value={eventForm.description}
                   onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="Enter event description (optional)"
                 />
               </div>
@@ -441,7 +441,7 @@ export default function EventsCalendarTab({ templeId }: EventsCalendarTabProps) 
               <button
                 onClick={handleSaveEvent}
                 disabled={!eventForm.title.trim() || updateEventsMutation.isPending}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {updateEventsMutation.isPending ? 'Saving...' : editingEvent ? 'Update Event' : 'Add Event'}
               </button>

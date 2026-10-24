@@ -1,41 +1,65 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
+import PageHeader, { headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/layout/PageHeader'
+import { DeviceStatusBadge, DeviceSummaryCards } from '@/components/devices'
+import { useDevices } from '@/hooks/useDevices'
+import type { DeviceListItem } from '@/types/device'
 
 interface DevicesTabProps {
   templeId: string
+  embedded?: boolean
 }
 
-export default function DevicesTab({ templeId }: DevicesTabProps) {
-  const router = useRouter()
-  const [newDeviceLabel, setNewDeviceLabel] = useState('')
-  const queryClient = useQueryClient()
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return 'Never'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days < 7) return `${days}d ago`
+  return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
 
-  const { data: devices, isLoading } = useQuery({
-    queryKey: ['devices', templeId],
+export default function DevicesTab({ templeId, embedded = false }: DevicesTabProps) {
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const [newDeviceLabel, setNewDeviceLabel] = useState('')
+  const [showCreate, setShowCreate] = useState(false)
+
+  const { data: temple } = useQuery({
+    queryKey: ['temple', templeId],
     queryFn: async () => {
-      const response = await api.get('/devices', {
-        params: { templeId },
-      })
-      return response.data
+      const response = await api.get(`/temples/${templeId}`)
+      return response.data as { name?: string }
     },
+    enabled: !embedded,
   })
+
+  const { devices, summary, isLoading, deactivate, reactivate, isDeactivating, isReactivating } =
+    useDevices({ templeId })
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['devices-all'] })
+    queryClient.invalidateQueries({ queryKey: ['devices', templeId] })
+    queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+  }
 
   const createDeviceMutation = useMutation({
     mutationFn: async (label: string) => {
-      const response = await api.post('/devices', {
-        templeId,
-        label,
-      })
+      const response = await api.post('/devices', { templeId, label })
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices', templeId] })
-      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
+      refresh()
       setNewDeviceLabel('')
+      setShowCreate(false)
     },
   })
 
@@ -43,159 +67,200 @@ export default function DevicesTab({ templeId }: DevicesTabProps) {
     mutationFn: async (id: string) => {
       await api.delete(`/devices/${id}`)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices', templeId] })
-      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
-    },
+    onSuccess: refresh,
   })
 
-  const deactivateDeviceMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await api.patch(`/devices/${id}/deactivate`)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices', templeId] })
-      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
-    },
-  })
-
-  const reactivateDeviceMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await api.patch(`/devices/${id}/reactivate`)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices', templeId] })
-      queryClient.invalidateQueries({ queryKey: ['temple', templeId] })
-    },
-  })
-
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg shadow p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-        </div>
-      </div>
-    )
-  }
+  const addButton = (
+    <button
+      type="button"
+      onClick={() => setShowCreate((open) => !open)}
+      className={showCreate ? headerSecondaryButtonClass : headerPrimaryButtonClass}
+    >
+      {showCreate ? 'Close' : 'Add device'}
+    </button>
+  )
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Device</h2>
-        <div className="flex space-x-4">
-          <input
-            type="text"
-            value={newDeviceLabel}
-            onChange={(e) => setNewDeviceLabel(e.target.value)}
-            placeholder="Device label (e.g., Front Lobby Kiosk)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-          />
-          <button
-            onClick={() => createDeviceMutation.mutate(newDeviceLabel)}
-            disabled={!newDeviceLabel || createDeviceMutation.isPending}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-          >
-            {createDeviceMutation.isPending ? 'Creating...' : 'Create'}
-          </button>
-        </div>
-      </div>
+      {!embedded ? (
+        <PageHeader
+          eyebrow={temple?.name}
+          title="Devices"
+          description="Register kiosks, check heartbeat status, and open a device for setup."
+          actions={addButton}
+        />
+      ) : (
+        <div className="flex justify-end">{addButton}</div>
+      )}
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Label</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Device Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Last Seen</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {devices?.map((device: any) => (
-                  <tr 
-                    key={device.id} 
-                    className="hover:bg-purple-50/30 transition-colors border-b border-gray-100 cursor-pointer"
-                    onClick={(e) => {
-                      // Navigate to device status page (separate URL)
-                      e.stopPropagation()
-                      router.push(`/devices/status?id=${device.id}`)
-                    }}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">{device.label}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-mono bg-gray-50 px-3 py-1 rounded border border-gray-200 text-gray-700">
-                        {device.deviceCode}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
-                        device.status === 'ACTIVE' 
-                          ? 'bg-green-100 text-green-700 border-green-200' 
-                          : device.status === 'PENDING' 
-                          ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                          : 'bg-gray-100 text-gray-700 border-gray-200'
-                      }`}>
-                        {device.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">
-                        {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : 'Never'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        {device.status === 'ACTIVE' ? (
-                          <button
-                            onClick={() => {
-                              if (confirm(`Deactivate device "${device.label}"? The device code can be reused on a new tablet.`)) {
-                                deactivateDeviceMutation.mutate(device.id)
-                              }
-                            }}
-                            disabled={deactivateDeviceMutation.isPending}
-                            className="px-3 py-1 text-orange-600 hover:text-orange-700 text-xs font-medium disabled:opacity-50"
-                            title="Deactivate to allow code reuse on new tablet"
-                          >
-                            {deactivateDeviceMutation.isPending ? 'Deactivating...' : 'Deactivate'}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              reactivateDeviceMutation.mutate(device.id)
-                            }}
-                            disabled={reactivateDeviceMutation.isPending}
-                            className="px-3 py-1 text-blue-600 hover:text-blue-700 text-xs font-medium disabled:opacity-50"
-                            title="Reset device to allow activation with same code"
-                          >
-                            {reactivateDeviceMutation.isPending ? 'Reactivating...' : 'Reactivate'}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            if (confirm(`Delete device "${device.label}"? This action cannot be undone.`)) {
-                              deleteDeviceMutation.mutate(device.id)
-                            }
-                          }}
-                          disabled={deleteDeviceMutation.isPending}
-                          className="px-3 py-1 text-red-600 hover:text-red-700 text-xs font-medium disabled:opacity-50"
-                        >
-                          {deleteDeviceMutation.isPending ? 'Deleting...' : 'Delete'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-          </table>
+      <DeviceSummaryCards summary={summary} isLoading={isLoading} />
+
+      {showCreate && (
+        <form
+          className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-5"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (!newDeviceLabel.trim() || createDeviceMutation.isPending) return
+            createDeviceMutation.mutate(newDeviceLabel.trim())
+          }}
+        >
+          <h2 className="text-sm font-semibold text-gray-900">Register a kiosk</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Give the tablet a name you will recognize in the temple, such as Front Lobby.
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              type="text"
+              value={newDeviceLabel}
+              onChange={(e) => setNewDeviceLabel(e.target.value)}
+              placeholder="Device label"
+              className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400"
+            />
+            <button
+              type="submit"
+              disabled={!newDeviceLabel.trim() || createDeviceMutation.isPending}
+              className={headerPrimaryButtonClass}
+            >
+              {createDeviceMutation.isPending ? 'Creating...' : 'Create device'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Kiosks</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Open a device to review setup, heartbeat, and logs.</p>
+          </div>
+          <span className="text-xs font-medium text-gray-500 tabular-nums">
+            {isLoading ? '' : `${devices.length} registered`}
+          </span>
         </div>
+
+        {isLoading ? (
+          <div className="p-5 space-y-3 animate-pulse">
+            {[1, 2, 3].map((row) => (
+              <div key={row} className="h-16 rounded-xl bg-gray-100" />
+            ))}
+          </div>
+        ) : devices.length === 0 ? (
+          <div className="px-6 py-14 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-sm">
+              <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <p className="font-medium text-gray-900">No devices yet</p>
+            <p className="mt-1 text-sm text-gray-500">Add a kiosk to generate a device code for the tablet.</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {devices.map((device) => (
+              <DeviceRow
+                key={device.id}
+                device={device}
+                onOpen={() => router.push(`/devices/status?id=${device.id}`)}
+                onDeactivate={() => {
+                  if (confirm(`Deactivate device "${device.label}"? The device code can be reused on a new tablet.`)) {
+                    deactivate(device.id)
+                  }
+                }}
+                onReactivate={() => reactivate(device.id)}
+                onDelete={() => {
+                  if (confirm(`Delete device "${device.label}"? This action cannot be undone.`)) {
+                    deleteDeviceMutation.mutate(device.id)
+                  }
+                }}
+                busy={
+                  isDeactivating ||
+                  isReactivating ||
+                  deleteDeviceMutation.isPending
+                }
+              />
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )
 }
 
+function DeviceRow({
+  device,
+  onOpen,
+  onDeactivate,
+  onReactivate,
+  onDelete,
+  busy,
+}: {
+  device: DeviceListItem
+  onOpen: () => void
+  onDeactivate: () => void
+  onReactivate: () => void
+  onDelete: () => void
+  busy: boolean
+}) {
+  return (
+    <li
+      className="flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-orange-50/40 lg:flex-row lg:items-center cursor-pointer"
+      onClick={onOpen}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-sm">
+          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-gray-900">{device.label}</p>
+          <p className="mt-0.5 font-mono text-xs text-gray-500">{device.deviceCode}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+        <DeviceStatusBadge status={device.operationalStatus} />
+        <div className="min-w-[7rem] text-sm text-gray-600">
+          <p className="text-[11px] uppercase tracking-wide text-gray-400">Last seen</p>
+          <p className="font-medium text-gray-800">{formatRelativeTime(device.lastSeenAt)}</p>
+        </div>
+        <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
+          <button
+            type="button"
+            onClick={onOpen}
+            className="rounded-lg px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100"
+          >
+            Open
+          </button>
+          {device.status === 'ACTIVE' ? (
+            <button
+              type="button"
+              onClick={onDeactivate}
+              disabled={busy}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+            >
+              Deactivate
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onReactivate}
+              disabled={busy}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-50 disabled:opacity-50"
+            >
+              Reactivate
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={busy}
+            className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </li>
+  )
+}

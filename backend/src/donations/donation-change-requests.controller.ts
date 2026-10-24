@@ -1,6 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -12,7 +11,6 @@ import { RejectDonationChangeRequestDto } from './dto/reject-donation-change-req
 import { DonationChangeRequestStatus } from './entities/donation-change-request.entity';
 
 @ApiTags('donation-change-requests')
-@SkipThrottle()
 @Controller('donation-change-requests')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -30,6 +28,9 @@ export class DonationChangeRequestsController {
   @Roles(UserRole.TEMPLE_ADMIN)
   @ApiOperation({ summary: 'List change requests for the current temple' })
   listMyTemple(@CurrentUser() user: any) {
+    if (!user?.templeId) {
+      throw new ForbiddenException('Temple admin context required');
+    }
     return this.donationChangeRequestsService.listForTemple(user.templeId);
   }
 

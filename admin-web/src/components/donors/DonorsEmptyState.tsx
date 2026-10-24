@@ -49,11 +49,11 @@ export default function DonorsEmptyState({
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
       <div className="relative mb-6">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-100 to-violet-100 flex items-center justify-center shadow-inner">
-          <Icon className="w-10 h-10 text-purple-500" />
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-100 to-orange-100 flex items-center justify-center shadow-inner">
+          <Icon className="w-10 h-10 text-orange-500" />
         </div>
-        <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border border-purple-100 flex items-center justify-center shadow-sm">
-          <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+        <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border border-orange-100 flex items-center justify-center shadow-sm">
+          <svg className="w-4 h-4 text-orange-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
             <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z" />
           </svg>
         </div>
@@ -74,7 +74,7 @@ export default function DonorsEmptyState({
           <button
             type="button"
             onClick={onBackfill}
-            className="px-4 py-2.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-xl hover:bg-orange-100 transition-colors"
           >
             Backfill from donations
           </button>
@@ -83,7 +83,7 @@ export default function DonorsEmptyState({
           <button
             type="button"
             onClick={onAddDonor}
-            className="px-4 py-2.5 text-sm font-semibold text-white bg-purple-600 rounded-xl hover:bg-purple-700 shadow-sm transition-colors"
+            className="px-4 py-2.5 text-sm font-semibold text-white bg-orange-600 rounded-xl hover:bg-orange-700 shadow-sm transition-colors"
           >
             Add donor
           </button>

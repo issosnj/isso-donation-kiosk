@@ -3,12 +3,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import api from '@/lib/api'
+import PageHeader, { headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/layout/PageHeader'
+import { KpiGrid, KpiStatCard, KpiStatSkeleton } from '@/components/ui/KpiStatCard'
+
+const fieldClass =
+  'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400'
 
 interface CategoriesTabProps {
   templeId: string
+  embedded?: boolean
 }
 
-export default function CategoriesTab({ templeId }: CategoriesTabProps) {
+export default function CategoriesTab({ templeId, embedded = false }: CategoriesTabProps) {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newDefaultAmount, setNewDefaultAmount] = useState<number | ''>('')
   const [newShowStartDate, setNewShowStartDate] = useState('')
@@ -28,6 +34,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
   const [editYajmanOpportunities, setEditYajmanOpportunities] = useState<Array<{ id: string; name: string; description?: string }>>([])
   const [newYajmanOpportunityName, setNewYajmanOpportunityName] = useState('')
   const [newYajmanOpportunityDescription, setNewYajmanOpportunityDescription] = useState('')
+  const [showCreate, setShowCreate] = useState(false)
   
   const queryClient = useQueryClient()
 
@@ -48,9 +55,6 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
       const response = await api.get('/donation-categories', {
         params: { templeId },
       })
-      console.log('[CategoriesTab] Fetched categories:', response.data)
-      console.log('[CategoriesTab] Categories count:', response.data?.length)
-      console.log('[CategoriesTab] First category displayOrder:', response.data?.[0]?.displayOrder)
       return response.data
     },
   })
@@ -77,6 +81,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
       setNewShowEndDate('')
       setNewUseDateRange(false)
       setNewQuantityEnabled(false)
+      setShowCreate(false)
     },
   })
 
@@ -102,74 +107,30 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
 
   const moveUpMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log('[CategoriesTab] Moving category up:', id)
-      try {
-        const response = await api.post(`/donation-categories/${id}/move-up`)
-        console.log('[CategoriesTab] Move up response:', response.data)
-        return response.data
-      } catch (error: any) {
-        console.error('[CategoriesTab] Move up API error:', error)
-        console.error('[CategoriesTab] Error response:', error.response)
-        console.error('[CategoriesTab] Error status:', error.response?.status)
-        console.error('[CategoriesTab] Error data:', error.response?.data)
-        throw error
-      }
+      const response = await api.post(`/donation-categories/${id}/move-up`)
+      return response.data
     },
     onSuccess: (data) => {
-      console.log('[CategoriesTab] Move up successful, updating cache with:', data)
-      console.log('[CategoriesTab] Data type:', Array.isArray(data) ? 'array' : typeof data)
-      console.log('[CategoriesTab] Data length:', Array.isArray(data) ? data.length : 'N/A')
-      const currentData = queryClient.getQueryData(['categories', templeId])
-      console.log('[CategoriesTab] Current cache before update:', currentData)
-      // Create a new array reference to ensure React detects the change
       const newData = Array.isArray(data) ? [...data] : data
-      // Update the cache directly with the new order
       queryClient.setQueryData(['categories', templeId], newData)
-      const updatedData = queryClient.getQueryData(['categories', templeId])
-      console.log('[CategoriesTab] Cache after update:', updatedData)
-      console.log('[CategoriesTab] Data references equal?', data === updatedData)
     },
     onError: (error: any) => {
-      console.error('[CategoriesTab] Move up mutation error:', error)
       const errorMessage = error.response?.data?.message || error.message || 'Failed to move category up. Please try again.'
-      console.error('[CategoriesTab] Error message:', errorMessage)
       alert(errorMessage)
     },
   })
 
   const moveDownMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log('[CategoriesTab] Moving category down:', id)
-      try {
-        const response = await api.post(`/donation-categories/${id}/move-down`)
-        console.log('[CategoriesTab] Move down response:', response.data)
-        return response.data
-      } catch (error: any) {
-        console.error('[CategoriesTab] Move down API error:', error)
-        console.error('[CategoriesTab] Error response:', error.response)
-        console.error('[CategoriesTab] Error status:', error.response?.status)
-        console.error('[CategoriesTab] Error data:', error.response?.data)
-        throw error
-      }
+      const response = await api.post(`/donation-categories/${id}/move-down`)
+      return response.data
     },
     onSuccess: (data) => {
-      console.log('[CategoriesTab] Move down successful, updating cache with:', data)
-      console.log('[CategoriesTab] Data type:', Array.isArray(data) ? 'array' : typeof data)
-      console.log('[CategoriesTab] Data length:', Array.isArray(data) ? data.length : 'N/A')
-      const currentData = queryClient.getQueryData(['categories', templeId])
-      console.log('[CategoriesTab] Current cache before update:', currentData)
-      // Create a new array reference to ensure React detects the change
       const newData = Array.isArray(data) ? [...data] : data
-      // Update the cache directly with the new order
       queryClient.setQueryData(['categories', templeId], newData)
-      const updatedData = queryClient.getQueryData(['categories', templeId])
-      console.log('[CategoriesTab] Cache after update:', updatedData)
-      console.log('[CategoriesTab] Data references equal?', data === updatedData)
     },
     onError: (error: any) => {
-      console.error('[CategoriesTab] Move down mutation error:', error)
       const errorMessage = error.response?.data?.message || error.message || 'Failed to move category down. Please try again.'
-      console.error('[CategoriesTab] Error message:', errorMessage)
       alert(errorMessage)
     },
   })
@@ -305,29 +266,100 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
     })
   }
 
+  const categoryList = Array.isArray(categories) ? categories : []
+  const activeCount = categoryList.filter((category: { isActive?: boolean }) => category.isActive).length
+  const onKioskCount = categoryList.filter((category: { showOnKiosk?: boolean }) => category.showOnKiosk).length
+  const scheduledCount = categoryList.filter(
+    (category: { showStartDate?: string | null }) => Boolean(category.showStartDate)
+  ).length
+  const quantityCount = categoryList.filter(
+    (category: { quantityEnabled?: boolean }) => category.quantityEnabled
+  ).length
+
+  const addButton = (
+    <button
+      type="button"
+      onClick={() => setShowCreate((open) => !open)}
+      className={showCreate ? headerSecondaryButtonClass : headerPrimaryButtonClass}
+    >
+      {showCreate ? 'Close' : 'Add category'}
+    </button>
+  )
+
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-        </div>
+      <div className="space-y-6">
+        {!embedded && (
+          <PageHeader
+            eyebrow={temple?.name}
+            title="Categories"
+            description="Create donation categories, default amounts, and when each one appears on the kiosk."
+          />
+        )}
+        <KpiStatSkeleton count={4} />
+        <div className="h-64 rounded-2xl border border-gray-200/80 bg-white animate-pulse" />
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Category</h2>
+      {!embedded ? (
+        <PageHeader
+          eyebrow={temple?.name}
+          title="Categories"
+          description="Create donation categories, default amounts, and when each one appears on the kiosk."
+          actions={addButton}
+        />
+      ) : (
+        <div className="flex justify-end">{addButton}</div>
+      )}
+
+      <KpiGrid count={4}>
+        <KpiStatCard
+          label="Categories"
+          value={categoryList.length.toLocaleString()}
+          insight="Donation choices on the kiosk"
+          iconPath="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+          gradient="from-orange-500 to-orange-600"
+        />
+        <KpiStatCard
+          label="Active"
+          value={activeCount.toLocaleString()}
+          insight={categoryList.length ? `${categoryList.length - activeCount} inactive` : 'None yet'}
+          iconPath="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          gradient="from-emerald-500 to-teal-600"
+        />
+        <KpiStatCard
+          label="On kiosk"
+          value={onKioskCount.toLocaleString()}
+          insight="Visible to donors"
+          iconPath="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+          gradient="from-sky-500 to-blue-600"
+        />
+        <KpiStatCard
+          label="Scheduled"
+          value={scheduledCount.toLocaleString()}
+          insight={quantityCount ? `${quantityCount} with quantity` : 'Date windows'}
+          iconPath="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+          gradient="from-amber-500 to-orange-500"
+        />
+      </KpiGrid>
+
+      {showCreate && (
+      <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm">
+        <h2 className="text-sm font-semibold text-gray-900">New category</h2>
+        <p className="mt-1 mb-4 text-sm text-gray-500">
+          Name it, set an optional default amount, and choose when it shows on the kiosk.
+        </p>
         <div className="space-y-4">
-          <div className="flex space-x-4">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               placeholder="Category name (e.g., General, Annakut, Festival)"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className={`flex-1 ${fieldClass}`}
             />
             <input
               type="number"
@@ -335,8 +367,8 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
               min="0"
               value={newDefaultAmount}
               onChange={(e) => setNewDefaultAmount(e.target.value ? parseFloat(e.target.value) : '')}
-              placeholder="Default amount (optional)"
-              className="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="Default amount"
+              className={`sm:w-44 ${fieldClass}`}
             />
           </div>
           
@@ -347,7 +379,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                 id="newQuantityEnabled"
                 checked={newQuantityEnabled}
                 onChange={(e) => setNewQuantityEnabled(e.target.checked)}
-                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
               />
               <label htmlFor="newQuantityEnabled" className="text-sm text-gray-700">
                 Enable quantity selector on kiosk (× default amount; appears under Custom Amount)
@@ -359,7 +391,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                 id="newUseDateRange"
                 checked={newUseDateRange}
                 onChange={(e) => setNewUseDateRange(e.target.checked)}
-                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
               />
               <label htmlFor="newUseDateRange" className="text-sm text-gray-700">
                 Set date/time range for when this category appears on kiosk
@@ -377,7 +409,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                   type="datetime-local"
                   value={newShowStartDate}
                   onChange={(e) => setNewShowStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className={fieldClass}
                 />
               </div>
               <div>
@@ -388,7 +420,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                   type="datetime-local"
                   value={newShowEndDate}
                   onChange={(e) => setNewShowEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className={fieldClass}
                 />
               </div>
             </div>
@@ -397,45 +429,53 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
           <button
             onClick={handleCreate}
             disabled={!newCategoryName || createCategoryMutation.isPending}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            className={headerPrimaryButtonClass}
           >
-            {createCategoryMutation.isPending ? 'Creating...' : 'Create'}
+            {createCategoryMutation.isPending ? 'Creating...' : 'Create category'}
           </button>
         </div>
       </div>
+      )}
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Kiosk order</h2>
+            <p className="mt-0.5 text-xs text-gray-500">Donors see categories in this order. Move a row to change it.</p>
+          </div>
+          <span className="text-xs font-medium text-gray-500 tabular-nums">{categoryList.length} categories</span>
+        </div>
         {categories?.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="px-6 py-14 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-sm">
+              <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
             </div>
-            <p className="text-gray-500 font-medium">No categories found</p>
-            <p className="text-sm text-gray-400 mt-1">Create your first category to get started</p>
+            <p className="font-medium text-gray-900">No categories yet</p>
+            <p className="mt-1 text-sm text-gray-500">Add a category to show it on the donation kiosk.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Default Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Active</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Show on Kiosk</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Qty</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Range</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/80">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Order</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Default</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Active</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Kiosk</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Schedule</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-100">
                 {categories?.map((category: any, index: number) => (
-                  <tr key={category.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
+                  <tr key={category.id} className="hover:bg-orange-50/40 transition-colors">
                     {editingCategory === category.id ? (
                       <td colSpan={8} className="px-6 py-4">
-                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                        <div className="space-y-4 bg-gray-50/80 p-4 rounded-2xl border border-gray-100">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
@@ -443,7 +483,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                 type="text"
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                className={fieldClass}
                               />
                             </div>
                             <div>
@@ -455,7 +495,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                 value={editDefaultAmount}
                                 onChange={(e) => setEditDefaultAmount(e.target.value ? parseFloat(e.target.value) : '')}
                                 placeholder="Optional"
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                className={fieldClass}
                               />
                             </div>
                           </div>
@@ -466,7 +506,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                 type="checkbox"
                                 checked={editIsActive}
                                 onChange={(e) => setEditIsActive(e.target.checked)}
-                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                               />
                               <span className="text-sm text-gray-700">Active</span>
                             </label>
@@ -475,7 +515,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                 type="checkbox"
                                 checked={editShowOnKiosk}
                                 onChange={(e) => setEditShowOnKiosk(e.target.checked)}
-                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                               />
                               <span className="text-sm text-gray-700">Show on Kiosk</span>
                             </label>
@@ -484,7 +524,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                 type="checkbox"
                                 checked={editQuantityEnabled}
                                 onChange={(e) => setEditQuantityEnabled(e.target.checked)}
-                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                               />
                               <span className="text-sm text-gray-700">Qty on kiosk</span>
                             </label>
@@ -493,7 +533,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                 type="checkbox"
                                 checked={editUseDateRange}
                                 onChange={(e) => setEditUseDateRange(e.target.checked)}
-                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                               />
                               <span className="text-sm text-gray-700">Use Date/Time Range</span>
                             </label>
@@ -509,7 +549,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                   type="datetime-local"
                                   value={editShowStartDate}
                                   onChange={(e) => setEditShowStartDate(e.target.value)}
-                                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  className={fieldClass}
                                 />
                               </div>
                               <div>
@@ -520,7 +560,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                   type="datetime-local"
                                   value={editShowEndDate}
                                   onChange={(e) => setEditShowEndDate(e.target.value)}
-                                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  className={fieldClass}
                                 />
                               </div>
                             </div>
@@ -565,7 +605,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                     value={newYajmanOpportunityName}
                                     onChange={(e) => setNewYajmanOpportunityName(e.target.value)}
                                     placeholder="e.g., ANNUAL POONAM SABHA YAJMAN"
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                    className={fieldClass}
                                   />
                                 </div>
                                 <div>
@@ -574,7 +614,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                     value={newYajmanOpportunityDescription}
                                     onChange={(e) => setNewYajmanOpportunityDescription(e.target.value)}
                                     placeholder="Description (optional)"
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                    className={fieldClass}
                                   />
                                 </div>
                                 <button
@@ -592,13 +632,13 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                             <button
                               onClick={saveEdit}
                               disabled={!editName || updateCategoryMutation.isPending}
-                              className="px-3 py-1 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700 disabled:opacity-50"
+                              className={headerPrimaryButtonClass}
                             >
                               Save
                             </button>
                             <button
                               onClick={cancelEdit}
-                              className="px-3 py-1 border border-gray-300 text-gray-700 rounded text-xs font-medium hover:bg-gray-50"
+                              className={headerSecondaryButtonClass}
                             >
                               Cancel
                             </button>
@@ -607,21 +647,17 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                       </td>
                     ) : (
                       <>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-col space-y-1">
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="inline-flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
                             <button
                               onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                console.log('[CategoriesTab] Move up button clicked for category:', category.id, 'at index:', index)
-                                if (index === 0) {
-                                  console.log('[CategoriesTab] Cannot move up - already at top')
-                                  return
-                                }
+                                if (index === 0) return
                                 moveUpMutation.mutate(category.id)
                               }}
                               disabled={index === 0 || moveUpMutation.isPending || moveDownMutation.isPending}
-                              className="px-2 py-1 text-gray-600 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold"
+                              className="px-2 py-0.5 text-gray-500 hover:bg-orange-50 hover:text-orange-700 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold"
                               title="Move up"
                             >
                               ↑
@@ -630,59 +666,60 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                               onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                console.log('[CategoriesTab] Move down button clicked for category:', category.id, 'at index:', index)
-                                if (index === (categories?.length || 0) - 1) {
-                                  console.log('[CategoriesTab] Cannot move down - already at bottom')
-                                  return
-                                }
+                                if (index === (categories?.length || 0) - 1) return
                                 moveDownMutation.mutate(category.id)
                               }}
                               disabled={index === (categories?.length || 0) - 1 || moveUpMutation.isPending || moveDownMutation.isPending}
-                              className="px-2 py-1 text-gray-600 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold"
+                              className="border-t border-gray-200 px-2 py-0.5 text-gray-500 hover:bg-orange-50 hover:text-orange-700 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold"
                               title="Move down"
                             >
                               ↓
                             </button>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">{category.name}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-700">
-                            {category.defaultAmount != null && !isNaN(Number(category.defaultAmount)) 
-                              ? `$${Number(category.defaultAmount).toFixed(2)}` 
-                              : 'N/A'}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-xs font-bold text-white shadow-sm">
+                              {index + 1}
+                            </div>
+                            <div className="text-sm font-semibold text-gray-900">{category.name}</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
-                            category.isActive 
-                              ? 'bg-green-100 text-green-700 border-green-200' 
-                              : 'bg-gray-100 text-gray-700 border-gray-200'
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="text-sm font-medium tabular-nums text-gray-900">
+                            {category.defaultAmount != null && !isNaN(Number(category.defaultAmount))
+                              ? `$${Number(category.defaultAmount).toFixed(2)}`
+                              : '—'}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className={`px-2.5 py-1 inline-flex text-xs font-semibold rounded-full border ${
+                            category.isActive
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-gray-100 text-gray-600 border-gray-200'
                           }`}>
-                            {category.isActive ? 'Yes' : 'No'}
+                            {category.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
-                            category.showOnKiosk 
-                              ? 'bg-blue-100 text-blue-700 border-blue-200' 
-                              : 'bg-gray-100 text-gray-700 border-gray-200'
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className={`px-2.5 py-1 inline-flex text-xs font-semibold rounded-full border ${
+                            category.showOnKiosk
+                              ? 'bg-sky-50 text-sky-700 border-sky-200'
+                              : 'bg-gray-100 text-gray-600 border-gray-200'
                           }`}>
-                            {category.showOnKiosk ? 'Yes' : 'No'}
+                            {category.showOnKiosk ? 'Showing' : 'Hidden'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className={`px-2.5 py-1 inline-flex text-xs font-semibold rounded-full border ${
                             category.quantityEnabled
-                              ? 'bg-amber-100 text-amber-800 border-amber-200'
-                              : 'bg-gray-100 text-gray-700 border-gray-200'
+                              ? 'bg-amber-50 text-amber-800 border-amber-200'
+                              : 'bg-gray-100 text-gray-600 border-gray-200'
                           }`}>
-                            {category.quantityEnabled ? 'Yes' : 'No'}
+                            {category.quantityEnabled ? 'On' : 'Off'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3.5 whitespace-nowrap">
                           <div className="text-xs text-gray-600">
                             {category.showStartDate && category.showEndDate ? (
                               <div>
@@ -691,15 +728,15 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                 <div>{new Date(category.showEndDate).toLocaleString()}</div>
                               </div>
                             ) : (
-                              <span className="text-gray-400">Always visible</span>
+                              <span className="text-gray-500">Always visible</span>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex space-x-2">
+                        <td className="px-4 py-3.5 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-1">
                             <button
                               onClick={() => startEdit(category)}
-                              className="px-3 py-1 text-purple-600 hover:text-purple-700 text-xs font-medium"
+                              className="rounded-lg px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100"
                             >
                               Edit
                             </button>
@@ -710,7 +747,7 @@ export default function CategoriesTab({ templeId }: CategoriesTabProps) {
                                 }
                               }}
                               disabled={deleteCategoryMutation.isPending}
-                              className="px-3 py-1 text-red-600 hover:text-red-700 text-xs font-medium disabled:opacity-50"
+                              className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                             >
                               Delete
                             </button>

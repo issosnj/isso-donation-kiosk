@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { WidgetEmptyState, WidgetSkeleton } from '@/components/ops-dashboard/WidgetShell'
-import { formatCurrency } from '@/lib/formatters'
+import { formatCurrencyExact } from '@/lib/formatters'
 import type { RecentDonationActivity } from '@/types/templeOverview'
 
 interface TempleRecentActivityProps {
@@ -19,9 +19,27 @@ function statusClass(status: string): string {
 }
 
 function receiptClass(status: RecentDonationActivity['receiptStatus']): string {
-  if (status === 'sent') return 'text-emerald-600'
-  if (status === 'pending') return 'text-amber-600'
+  if (status === 'issued') return 'text-emerald-600'
+  if (status === 'missing') return 'text-amber-600'
   return 'text-gray-400'
+}
+
+function paymentLabel(status: string): string {
+  const labels: Record<string, string> = {
+    SUCCEEDED: 'Completed',
+    PENDING: 'Pending',
+    FAILED: 'Failed',
+    CANCELED: 'Cancelled',
+    REFUNDED: 'Refunded',
+    PLEDGED: 'Pledged',
+  }
+  return labels[status] ?? status
+}
+
+function receiptLabel(status: RecentDonationActivity['receiptStatus']): string {
+  if (status === 'issued') return 'Receipt issued'
+  if (status === 'missing') return 'No receipt number'
+  return 'No receipt'
 }
 
 export default function TempleRecentActivity({
@@ -47,7 +65,7 @@ export default function TempleRecentActivity({
     <div className="dashboard-card flex flex-col h-[380px] overflow-hidden">
       <div className="px-5 pt-5 pb-3 border-b border-gray-100/90 flex items-center justify-between gap-2 shrink-0">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Recent donation activity</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Recent Donation Activity</h3>
           <p className="text-xs text-gray-500 mt-0.5">Last 30 days</p>
         </div>
       </div>
@@ -60,24 +78,24 @@ export default function TempleRecentActivity({
           />
         ) : (
           items.map((item) => (
-            <div key={item.id} className="px-5 py-3.5 hover:bg-violet-50/40 transition-colors">
+            <div key={item.id} className="px-5 py-2.5 h-[83px] box-border overflow-hidden hover:bg-orange-50/40 transition-colors">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900 truncate">{item.donorLabel}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">{item.categoryName}</p>
+                  <p className="text-xs text-gray-500 truncate">{item.categoryName}</p>
                 </div>
                 <p className="text-sm font-bold text-gray-900 tabular-nums shrink-0">
-                  {formatCurrency(item.amount)}
+                  {formatCurrencyExact(item.amount)}
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
                 <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase ${statusClass(item.paymentStatus)}`}
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${statusClass(item.paymentStatus)}`}
                 >
-                  {item.paymentStatus}
+                  {paymentLabel(item.paymentStatus)}
                 </span>
                 <span className={`text-[10px] font-medium ${receiptClass(item.receiptStatus)}`}>
-                  Receipt {item.receiptStatus}
+                  {receiptLabel(item.receiptStatus)}
                 </span>
                 <span className="text-[10px] text-gray-400 ml-auto tabular-nums">{item.timeAgo}</span>
               </div>
@@ -89,9 +107,9 @@ export default function TempleRecentActivity({
         <button
           type="button"
           onClick={() => router.push('/dashboard?tab=donations')}
-          className="w-full text-center text-xs font-semibold text-violet-600 hover:text-violet-700 py-2 rounded-lg hover:bg-violet-50 transition-colors"
+          className="w-full text-center text-xs font-semibold text-orange-600 hover:text-orange-700 py-2 rounded-lg hover:bg-orange-50 transition-colors"
         >
-          View all donations
+          View All Donations
         </button>
       </div>
     </div>

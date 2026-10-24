@@ -16,7 +16,13 @@ export interface Donor {
 export interface DonorStats {
   total: number
   totalDonated: number
+  /** Succeeded gifts linked to donors. Refunded gifts are excluded. */
+  totalGifts: number
   newThisMonth: number
+  /** Donors whose first succeeded gift falls in the requested month. */
+  firstGiftThisMonth?: number
+  /** Succeeded gifts divided by donors who have at least one. */
+  averageGiftsPerDonor?: number
   repeatCount: number
   activeCount: number
 }

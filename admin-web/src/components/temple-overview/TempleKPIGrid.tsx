@@ -1,9 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import MiniSparkline from '@/components/donors/MiniSparkline'
-import { WidgetSkeleton } from '@/components/ops-dashboard/WidgetShell'
-import { formatCurrency, formatCount, formatTrendPercent, safeNumber } from '@/lib/formatters'
+import { KpiGrid, KpiStatCard, KpiStatSkeleton } from '@/components/ui/KpiStatCard'
+import { formatCount, formatCurrencyExact, formatTrendPercent } from '@/lib/formatters'
 import type { TempleOverviewMetrics } from '@/types/templeOverview'
 
 interface TempleKPIGridProps {
@@ -21,7 +20,19 @@ interface KpiDef {
   format: (v: number) => string
   tab?: string
   invertTrend?: boolean
-  money?: boolean
+  iconPath: string
+  gradient: string
+}
+
+const CAPTIONS: Record<KpiKey, string> = {
+  raisedYtd: 'vs same dates last year',
+  raisedThisMonth: 'vs last month',
+  raisedToday: 'vs yesterday',
+  totalDonations: 'vs same dates last year',
+  averageGift: 'vs same dates last year',
+  activeDonors: 'Gave in the last 12 months',
+  onlineDevices: 'Heartbeat within 30 minutes',
+  failedPendingPayments: 'Last 30 days',
 }
 
 const ICONS: Record<KpiKey, string> = {
@@ -42,46 +53,63 @@ const ICONS: Record<KpiKey, string> = {
     'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
 }
 
+const GRADIENTS: Record<KpiKey, string> = {
+  raisedYtd: 'from-orange-500 to-orange-600',
+  raisedThisMonth: 'from-emerald-500 to-teal-600',
+  raisedToday: 'from-sky-500 to-blue-600',
+  totalDonations: 'from-orange-500 to-orange-600',
+  averageGift: 'from-orange-500 to-pink-600',
+  activeDonors: 'from-indigo-500 to-orange-600',
+  onlineDevices: 'from-teal-500 to-emerald-600',
+  failedPendingPayments: 'from-amber-500 to-orange-500',
+}
+
 function buildDefs(metrics: TempleOverviewMetrics): KpiDef[] {
   return [
     {
       key: 'raisedYtd',
       label: 'Raised YTD',
       value: metrics.raisedYtd,
-      format: (v) => formatCurrency(v, { compact: true }),
+      format: formatCurrencyExact,
       tab: 'donations',
-      money: true,
+      iconPath: ICONS.raisedYtd,
+      gradient: GRADIENTS.raisedYtd,
     },
     {
       key: 'raisedThisMonth',
       label: 'Raised This Month',
       value: metrics.raisedThisMonth,
-      format: (v) => formatCurrency(v, { compact: true }),
+      format: formatCurrencyExact,
       tab: 'donations',
-      money: true,
+      iconPath: ICONS.raisedThisMonth,
+      gradient: GRADIENTS.raisedThisMonth,
     },
     {
       key: 'raisedToday',
       label: 'Raised Today',
       value: metrics.raisedToday,
-      format: (v) => formatCurrency(v, { compact: true }),
+      format: formatCurrencyExact,
       tab: 'donations',
-      money: true,
+      iconPath: ICONS.raisedToday,
+      gradient: GRADIENTS.raisedToday,
     },
     {
       key: 'totalDonations',
-      label: 'Total Donations',
+      label: 'Donations YTD',
       value: metrics.totalDonations,
       format: formatCount,
       tab: 'donations',
+      iconPath: ICONS.totalDonations,
+      gradient: GRADIENTS.totalDonations,
     },
     {
       key: 'averageGift',
-      label: 'Average Gift',
+      label: 'Avg Gift YTD',
       value: metrics.averageGift,
-      format: (v) => formatCurrency(v),
+      format: formatCurrencyExact,
       tab: 'donations',
-      money: true,
+      iconPath: ICONS.averageGift,
+      gradient: GRADIENTS.averageGift,
     },
     {
       key: 'activeDonors',
@@ -89,6 +117,8 @@ function buildDefs(metrics: TempleOverviewMetrics): KpiDef[] {
       value: metrics.activeDonors,
       format: formatCount,
       tab: 'donors',
+      iconPath: ICONS.activeDonors,
+      gradient: GRADIENTS.activeDonors,
     },
     {
       key: 'onlineDevices',
@@ -96,14 +126,18 @@ function buildDefs(metrics: TempleOverviewMetrics): KpiDef[] {
       value: metrics.onlineDevices,
       format: formatCount,
       tab: 'devices',
+      iconPath: ICONS.onlineDevices,
+      gradient: GRADIENTS.onlineDevices,
     },
     {
       key: 'failedPendingPayments',
-      label: 'Failed / Pending',
+      label: 'Failed & Pending',
       value: metrics.failedPendingPayments,
       format: formatCount,
       tab: 'donations',
       invertTrend: true,
+      iconPath: ICONS.failedPendingPayments,
+      gradient: GRADIENTS.failedPendingPayments,
     },
   ]
 }
@@ -112,18 +146,12 @@ export default function TempleKPIGrid({ metrics, isLoading, isError }: TempleKPI
   const router = useRouter()
 
   if (isLoading) {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <WidgetSkeleton key={i} lines={2} height="h-[118px]" className="!p-4" />
-        ))}
-      </div>
-    )
+    return <KpiStatSkeleton count={8} />
   }
 
   if (isError) {
     return (
-      <div className="dashboard-card p-6 text-sm text-gray-600 text-center">
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600 text-center">
         Unable to load overview metrics. Try refreshing.
       </div>
     )
@@ -132,55 +160,25 @@ export default function TempleKPIGrid({ metrics, isLoading, isError }: TempleKPI
   const defs = buildDefs(metrics)
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <KpiGrid count={8}>
       {defs.map((def) => {
-        const trend = safeNumber(metrics.trends[def.key])
-        const positive = def.invertTrend ? trend <= 0 : trend >= 0
-        const spark = metrics.sparklines[def.key] ?? []
-
-        const Card = def.tab ? 'button' : 'div'
+        const trend = metrics.trends[def.key]
+        const positive = trend != null && (def.invertTrend ? trend <= 0 : trend >= 0)
         return (
-          <Card
+          <KpiStatCard
             key={def.key}
-            type={def.tab ? 'button' : undefined}
+            label={def.label}
+            value={def.format(def.value)}
+            iconPath={def.iconPath}
+            gradient={def.gradient}
+            trend={trend == null ? undefined : formatTrendPercent(trend)}
+            trendUp={trend == null ? undefined : positive}
+            insight={CAPTIONS[def.key]}
             onClick={def.tab ? () => router.push(`/dashboard?tab=${def.tab}`) : undefined}
-            className={`dashboard-card p-4 text-left min-w-0 ${
-              def.tab ? 'dashboard-card-hover cursor-pointer' : ''
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                  def.key === 'failedPendingPayments'
-                    ? 'bg-amber-50 text-amber-600'
-                    : 'bg-violet-50 text-violet-600'
-                }`}
-              >
-                <svg className="w-4.5 h-4.5 w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={ICONS[def.key]} />
-                </svg>
-              </div>
-              <MiniSparkline
-                className={def.key === 'failedPendingPayments' ? 'text-amber-400' : 'text-violet-400'}
-              />
-            </div>
-            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mt-3 line-clamp-1">
-              {def.label}
-            </p>
-            <p className="text-lg font-bold text-gray-900 mt-1 tabular-nums tracking-tight truncate">
-              {def.format(def.value)}
-            </p>
-            <p
-              className={`text-[10px] font-semibold mt-1.5 tabular-nums ${
-                trend === 0 ? 'text-gray-400' : positive ? 'text-emerald-600' : 'text-rose-600'
-              }`}
-            >
-              {formatTrendPercent(trend)} vs prior period
-            </p>
-          </Card>
+          />
         )
       })}
-    </div>
+    </KpiGrid>
   )
 }
 

@@ -24,8 +24,8 @@ export default function DonationsBulkBar({
   if (selectedCount === 0) return null
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 bg-purple-50/80 border-b border-purple-100">
-      <p className="text-sm font-medium text-purple-900">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 bg-orange-50/80 border-b border-orange-100">
+      <p className="text-sm font-medium text-orange-900">
         <span className="tabular-nums">{selectedCount}</span> selected
       </p>
       <div className="flex flex-wrap items-center gap-2">
@@ -40,7 +40,7 @@ export default function DonationsBulkBar({
           type="button"
           onClick={onResendSelected}
           disabled={isResending}
-          className="px-3 py-1.5 text-xs font-medium text-purple-700 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 disabled:opacity-50"
+          className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-white border border-orange-200 rounded-lg hover:bg-orange-50 disabled:opacity-50"
         >
           {isResending ? 'Sending…' : 'Resend receipts'}
         </button>

@@ -22,7 +22,7 @@ const STATUS_OPTIONS = [
 ]
 
 const inputClass =
-  'w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition-shadow'
+  'w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 outline-none transition-shadow'
 
 interface DonationsFiltersToolbarProps {
   isMasterAdmin: boolean
@@ -74,7 +74,7 @@ export default function DonationsFiltersToolbar({
         <button
           type="button"
           onClick={onClearFilters}
-          className="text-xs font-medium text-purple-600 hover:text-purple-800"
+          className="text-xs font-medium text-orange-600 hover:text-orange-800"
         >
           Clear filters
         </button>
@@ -163,7 +163,7 @@ export default function DonationsFiltersToolbar({
             type="checkbox"
             checked={showFailedAndCancelled}
             onChange={(e) => onShowFailedAndCancelledChange(e.target.checked)}
-            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
           />
           <span className="text-sm font-medium text-gray-700">Show failed &amp; cancelled</span>
         </label>

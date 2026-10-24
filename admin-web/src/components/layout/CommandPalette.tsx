@@ -171,8 +171,8 @@ export default function CommandPalette({
                     isDisabled
                       ? 'text-gray-300 cursor-not-allowed'
                       : isActive
-                        ? 'bg-violet-100 text-violet-900'
-                        : 'text-gray-800 hover:bg-violet-50'
+                        ? 'bg-orange-100 text-orange-900'
+                        : 'text-gray-800 hover:bg-orange-50'
                   }`}
                 >
                   <span>

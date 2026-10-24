@@ -102,7 +102,7 @@ export default function ReceiptView({ donation, temple, receiptConfig }: Receipt
         </button>
         <button
           onClick={handlePrint}
-          className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
         >
           🖨️ Print Receipt
         </button>

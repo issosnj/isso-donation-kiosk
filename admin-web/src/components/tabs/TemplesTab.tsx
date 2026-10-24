@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import api from '@/lib/api'
+import { PageHeaderActions, headerPrimaryButtonClass } from '@/components/layout/PageHeader'
 import TempleEditView from './TempleEditView'
 
 export default function TemplesTab() {
@@ -113,17 +114,18 @@ export default function TemplesTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
+      <PageHeaderActions>
         <button
+          type="button"
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors flex items-center space-x-2 text-sm"
+          className={headerPrimaryButtonClass}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span>{showCreateForm ? 'Cancel' : 'Add Temple'}</span>
+          {showCreateForm ? 'Cancel' : 'Add temple'}
         </button>
-      </div>
+      </PageHeaderActions>
 
       {showCreateForm && (
         <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -159,7 +161,7 @@ export default function TemplesTab() {
                 address: newTempleAddress || undefined
               })}
               disabled={!newTempleName || createTempleMutation.isPending}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               {createTempleMutation.isPending ? 'Creating...' : 'Create Temple'}
             </button>
@@ -194,7 +196,7 @@ export default function TemplesTab() {
                   <tr
                     key={temple.id}
                     onClick={() => setSelectedTempleId(temple.id)}
-                    className="hover:bg-purple-50/30 transition-colors border-b border-gray-100 cursor-pointer"
+                    className="hover:bg-orange-50/30 transition-colors border-b border-gray-100 cursor-pointer"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">{temple.name}</div>

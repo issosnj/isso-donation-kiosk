@@ -109,6 +109,9 @@ export function useDevices(
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['devices-all'] })
+      if (filters?.templeId) {
+        queryClient.invalidateQueries({ queryKey: ['temple', filters.templeId] })
+      }
     },
   })
 
@@ -118,6 +121,9 @@ export function useDevices(
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['devices-all'] })
+      if (filters?.templeId) {
+        queryClient.invalidateQueries({ queryKey: ['temple', filters.templeId] })
+      }
     },
   })
 

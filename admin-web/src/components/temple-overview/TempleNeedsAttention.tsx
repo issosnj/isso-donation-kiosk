@@ -12,13 +12,13 @@ interface TempleNeedsAttentionProps {
 function severityStyles(severity: TempleDashboardAlert['severity']) {
   if (severity === 'critical') return 'border-red-200/80 bg-red-50/80'
   if (severity === 'warning') return 'border-amber-200/80 bg-amber-50/60'
-  return 'border-violet-200/60 bg-violet-50/40'
+  return 'border-orange-200/60 bg-orange-50/40'
 }
 
 function severityDot(severity: TempleDashboardAlert['severity']) {
   if (severity === 'critical') return 'bg-red-500'
   if (severity === 'warning') return 'bg-amber-500'
-  return 'bg-violet-500'
+  return 'bg-orange-500'
 }
 
 export default function TempleNeedsAttention({ alerts, isLoading }: TempleNeedsAttentionProps) {
@@ -31,8 +31,8 @@ export default function TempleNeedsAttention({ alerts, isLoading }: TempleNeedsA
   return (
     <div className="dashboard-card overflow-hidden h-full flex flex-col">
       <div className="px-5 py-4 border-b border-gray-100/90">
-        <h3 className="text-sm font-semibold text-gray-900">Needs attention</h3>
-        <p className="text-xs text-gray-500 mt-0.5">Action center</p>
+        <h3 className="text-sm font-semibold text-gray-900">Needs Attention</h3>
+        <p className="text-xs text-gray-500 mt-0.5">Review these items</p>
       </div>
       <div className="p-4 flex-1 space-y-2 overflow-y-auto custom-scrollbar">
         {alerts.length === 0 ? (

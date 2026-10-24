@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import api from '@/lib/api'
-import { useRouter } from 'next/navigation'
+import PageHeader from '@/components/layout/PageHeader'
 
 interface DeviceDetailsTabProps {
   deviceId: string
@@ -11,7 +11,6 @@ interface DeviceDetailsTabProps {
 }
 
 export default function DeviceDetailsTab({ deviceId, onBack }: DeviceDetailsTabProps) {
-  const router = useRouter()
   const [logFilter, setLogFilter] = useState<string>('all')
   const [logSearch, setLogSearch] = useState<string>('')
 
@@ -64,36 +63,37 @@ export default function DeviceDetailsTab({ deviceId, onBack }: DeviceDetailsTabP
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => {
-              // Remove deviceId from URL and navigate back
-              const url = new URL(window.location.href)
-              url.searchParams.delete('deviceId')
-              url.searchParams.set('tab', 'devices')
-              window.history.pushState({}, '', url.toString())
-              window.location.reload()
-            }}
-            className="text-purple-600 hover:text-purple-700 mb-2 text-sm font-medium"
-          >
-            ← Back to Devices
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">{device?.label || 'Device Details'}</h1>
-          <p className="text-sm text-gray-600 mt-1">Device Code: {device?.deviceCode}</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${
-            device?.status === 'ACTIVE' 
-              ? 'bg-green-100 text-green-700 border-green-200' 
-              : device?.status === 'PENDING' 
-              ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
-              : 'bg-gray-100 text-gray-700 border-gray-200'
-          }`}>
-            {device?.status}
-          </span>
-        </div>
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={() => {
+            const url = new URL(window.location.href)
+            url.searchParams.delete('deviceId')
+            url.searchParams.set('tab', 'devices')
+            window.history.pushState({}, '', url.toString())
+            window.location.reload()
+          }}
+          className="text-sm font-medium text-orange-600 hover:text-orange-700"
+        >
+          ← Back to devices
+        </button>
+        <PageHeader
+          title={device?.label || 'Device details'}
+          description={device?.deviceCode ? `Device code ${device.deviceCode}` : 'Kiosk status and recent logs'}
+          actions={
+            <span
+              className={`px-3 py-1 text-xs font-semibold rounded-full border ${
+                device?.status === 'ACTIVE'
+                  ? 'bg-green-100 text-green-700 border-green-200'
+                  : device?.status === 'PENDING'
+                    ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                    : 'bg-gray-100 text-gray-700 border-gray-200'
+              }`}
+            >
+              {device?.status}
+            </span>
+          }
+        />
       </div>
 
       {/* Device Information Cards */}
@@ -228,12 +228,12 @@ export default function DeviceDetailsTab({ deviceId, onBack }: DeviceDetailsTabP
               placeholder="Search logs..."
               value={logSearch}
               onChange={(e) => setLogSearch(e.target.value)}
-              className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
             <select
               value={logFilter}
               onChange={(e) => setLogFilter(e.target.value)}
-              className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
             >
               <option value="all">All Levels</option>
               <option value="info">Info</option>

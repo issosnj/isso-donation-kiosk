@@ -17,6 +17,7 @@ import { CreateDonationChangeRequestDto, DonorDisplayProposedDto } from './dto/c
 import { DonationsService } from './donations.service';
 import { DonorsService } from '../donors/donors.service';
 import { AuditLog } from '../audit/entities/audit-log.entity';
+import { canonicalDonorPhone } from '../donors/donor-donation-match';
 
 function snapshotFromDonation(d: Donation): DonorDisplaySnapshot {
   return {
@@ -183,14 +184,38 @@ export class DonationChangeRequestsService {
       }
     }
 
+    const previousDonorId = donation.donorId;
+    const previousPhone = donation.donorPhone;
+
     donation.donorName = p.donorName;
     donation.donorPhone = p.donorPhone;
     donation.donorEmail = p.donorEmail;
     donation.donorAddress = p.donorAddress;
     donation.donorId = p.donorId;
     donation.submittedAsAnonymous = false;
+    if (p.donorId && p.donorId !== previousDonorId) {
+      donation.assignedBy = user.id;
+      donation.assignedAt = new Date();
+    }
 
     await this.donationsRepository.save(donation);
+
+    if (p.donorId && p.donorId !== previousDonorId) {
+      const linked = await this.donorsService.getDonorById(p.donorId);
+      const alreadyOnLedger =
+        !previousDonorId &&
+        !!linked?.phone &&
+        canonicalDonorPhone(previousPhone) !== '' &&
+        canonicalDonorPhone(previousPhone) === canonicalDonorPhone(linked.phone);
+      if (linked?.phone && !alreadyOnLedger) {
+        await this.donorsService.updateDonorStats(
+          donation.templeId,
+          linked.phone,
+          Number(donation.amount),
+          donation.createdAt,
+        );
+      }
+    }
 
     req.status = DonationChangeRequestStatus.APPROVED;
     req.reviewedByUserId = user.id;
@@ -273,6 +298,9 @@ export class DonationChangeRequestsService {
     }
     if (req.status !== DonationChangeRequestStatus.PENDING) {
       throw new BadRequestException('Only pending requests can be cancelled');
+    }
+    if (req.requestedByUserId !== user.id) {
+      throw new ForbiddenException('Only the admin who submitted this request can cancel it');
     }
 
     req.status = DonationChangeRequestStatus.CANCELLED;

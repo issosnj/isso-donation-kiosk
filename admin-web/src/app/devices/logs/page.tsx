@@ -91,7 +91,7 @@ function DeviceLogsContent() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
         </div>
       </div>
     )
@@ -118,7 +118,7 @@ function DeviceLogsContent() {
                   <p className="text-red-600">No device ID provided</p>
                   <button
                     onClick={() => router.push('/dashboard?tab=devices')}
-                    className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                    className="mt-4 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
                   >
                     Go Back to Devices
                   </button>
@@ -135,27 +135,28 @@ function DeviceLogsContent() {
         <div className="p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <button
-                    onClick={() => router.push(`/dashboard?tab=devices`)}
-                    className="text-purple-600 hover:text-purple-700 mb-2 text-sm font-medium"
-                  >
-                    ← Back to Devices
-                  </button>
-                  <h1 className="text-2xl font-bold text-gray-900">Device Logs</h1>
-                  <p className="text-sm text-gray-600 mt-1">
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard?tab=devices`)}
+                className="text-sm font-medium text-orange-600 hover:text-orange-700"
+              >
+                ← Back to devices
+              </button>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-bold tracking-tight text-gray-900">Device Logs</h1>
+                  <p className="mt-1 max-w-xl text-sm text-gray-600">
                     {device?.label || 'Loading...'} - {device?.deviceCode}
                   </p>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={async () => {
                       await refetchLogs()
                     }}
                     disabled={isFetching}
-                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-orange-600 rounded-xl shadow-sm hover:bg-orange-700 disabled:opacity-50 transition-colors"
                   >
                     {isFetching ? (
                       <>
@@ -182,7 +183,7 @@ function DeviceLogsContent() {
                   </div>
                   <button
                     onClick={() => router.push(`/devices/status?id=${deviceId}`)}
-                    className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors"
                   >
                     View Status
                   </button>
@@ -209,12 +210,12 @@ function DeviceLogsContent() {
                     placeholder="Search logs..."
                     value={logSearch}
                     onChange={(e) => setLogSearch(e.target.value)}
-                    className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
                   />
                   <select
                     value={logFilter}
                     onChange={(e) => setLogFilter(e.target.value)}
-                    className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
                   >
                     <option value="all">All Levels</option>
                     <option value="info">Info</option>
@@ -254,7 +255,7 @@ function DeviceLogsContent() {
                           setAutoScroll(true)
                           logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
                         }}
-                        className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-purple-700 text-sm font-medium"
+                        className="bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-orange-700 text-sm font-medium"
                       >
                         ↓ Scroll to Bottom
                       </button>
@@ -276,7 +277,7 @@ export default function DeviceLogsPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading device logs...</p>
         </div>
       </div>

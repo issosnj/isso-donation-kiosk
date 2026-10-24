@@ -54,7 +54,7 @@ function ChartEmptyState() {
     >
       <div className="flex h-16 items-end gap-1 opacity-30" aria-hidden>
         {[35, 55, 40, 70, 50, 85, 60].map((h, i) => (
-          <div key={i} className="w-3 rounded-t bg-violet-300" style={{ height: `${h}%` }} />
+          <div key={i} className="w-3 rounded-t bg-orange-300" style={{ height: `${h}%` }} />
         ))}
       </div>
       <div>
@@ -127,7 +127,7 @@ export default function DonationTrendsChart({
               onClick={() => onGranularityChange(g.id)}
               className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-all ${
                 granularity === g.id
-                  ? 'bg-white text-violet-700 shadow-sm'
+                  ? 'bg-white text-orange-700 shadow-sm'
                   : 'text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -144,8 +144,8 @@ export default function DonationTrendsChart({
             <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="donationGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#9333ea" stopOpacity={0.25} />
-                  <stop offset="100%" stopColor="#9333ea" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#f97316" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
@@ -175,7 +175,7 @@ export default function DonationTrendsChart({
               <Area
                 type="monotone"
                 dataKey="amount"
-                stroke="#7c3aed"
+                stroke="#ea580c"
                 strokeWidth={2}
                 fill="url(#donationGradient)"
                 isAnimationActive={false}

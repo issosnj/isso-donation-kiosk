@@ -11,7 +11,7 @@ interface DataSparklineProps {
 export default function DataSparkline({
   data,
   className = '',
-  strokeClass = 'stroke-[#9333EA]',
+  strokeClass = 'stroke-[#f97316]',
 }: DataSparklineProps) {
   const values = sanitizeSparkline(data)
   const max = Math.max(...values, 1)

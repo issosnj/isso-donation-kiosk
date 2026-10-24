@@ -3,12 +3,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import api from '@/lib/api'
+import PageHeader from '@/components/layout/PageHeader'
 
 interface StripeTabProps {
   templeId: string
+  embedded?: boolean
 }
 
-export default function StripeTab({ templeId }: StripeTabProps) {
+export default function StripeTab({ templeId, embedded = false }: StripeTabProps) {
   const queryClient = useQueryClient()
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -120,6 +122,13 @@ export default function StripeTab({ templeId }: StripeTabProps) {
 
   return (
     <div className="space-y-6">
+      {!embedded && (
+        <PageHeader
+          eyebrow={temple?.name}
+          title="Stripe"
+          description="Connect Stripe so this temple can take card payments on the kiosk."
+        />
+      )}
       {/* Success/Error Messages */}
       {successMessage && (
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-3">
@@ -156,17 +165,19 @@ export default function StripeTab({ templeId }: StripeTabProps) {
       )}
 
       <div className="bg-white p-8 rounded-lg border border-gray-200">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center">
-            <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 2.506.979 4.273 2.963 5.342 2.117 1.168 4.84 1.988 6.976 2.843 2.088.807 3.09 1.432 3.09 2.43 0 .98-.84 1.545-2.354 1.545-1.905 0-4.357-.915-5.93-1.738l-.9 5.555C8.219 22.99 10.059 24 13.997 24c2.652 0 4.855-.624 6.538-1.814 1.88-1.353 2.859-3.29 2.859-5.646 0-2.372-.942-4.15-2.861-5.392-1.931-1.24-4.766-2.105-6.557-2.608z"/>
-            </svg>
+        {embedded && (
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center">
+              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 2.506.979 4.273 2.963 5.342 2.117 1.168 4.84 1.988 6.976 2.843 2.088.807 3.09 1.432 3.09 2.43 0 .98-.84 1.545-2.354 1.545-1.905 0-4.357-.915-5.93-1.738l-.9 5.555C8.219 22.99 10.059 24 13.997 24c2.652 0 4.855-.624 6.538-1.814 1.88-1.353 2.859-3.29 2.859-5.646 0-2.372-.942-4.15-2.861-5.392-1.931-1.24-4.766-2.105-6.557-2.608z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Stripe Integration</h2>
+              <p className="text-sm text-gray-600 mt-1">Connect your Stripe account to process payments with M2 reader</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Stripe Integration</h2>
-            <p className="text-sm text-gray-600 mt-1">Connect your Stripe account to process payments with M2 reader</p>
-          </div>
-        </div>
+        )}
         
         {isConnected ? (
           <div className="space-y-6">

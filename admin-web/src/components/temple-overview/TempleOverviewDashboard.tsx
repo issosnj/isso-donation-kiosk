@@ -53,29 +53,12 @@ export default function TempleOverviewDashboard({ templeId }: TempleOverviewDash
 
   const navigateTab = (tab: string) => router.push(`/dashboard?tab=${tab}`)
 
-  if (hasError && !isLoading) {
-    return (
-      <div className="dashboard-card p-12 text-center max-w-lg mx-auto">
-        <p className="text-sm font-medium text-gray-800">Unable to load temple overview</p>
-        <p className="text-xs text-gray-500 mt-2">
-          Check your connection and try again. Your temple data is scoped to your account.
-        </p>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          className="mt-4 px-4 py-2 text-sm font-semibold text-white bg-violet-600 rounded-xl hover:bg-violet-700"
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
-
-  const displayTitle = isLoading ? 'Temple Overview' : `${templeName} Overview`
+  const displayTitle = 'Overview'
 
   return (
     <div className="space-y-5 -mt-1 min-w-0 pb-6">
       <TempleOverviewHeader
+        eyebrow={isLoading ? undefined : templeName}
         title={displayTitle}
         subtitle="Track donations, kiosk health, donor activity, and receipt operations."
         statusChips={statusChips}

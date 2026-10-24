@@ -47,7 +47,7 @@ function DonorCell({
           <button
             type="button"
             onClick={() => onAssignDonor(donation.id)}
-            className="block text-xs font-medium text-purple-600 hover:text-purple-800"
+            className="block text-xs font-medium text-orange-600 hover:text-orange-800"
           >
             Assign to donor
           </button>
@@ -76,7 +76,7 @@ function DonorCell({
               address: donation.donorAddress,
             })
           }
-          className="text-xs font-medium text-purple-600 hover:text-purple-800"
+          className="text-xs font-medium text-orange-600 hover:text-orange-800"
         >
           View details
         </button>
@@ -118,7 +118,7 @@ export default function DonationsTable({
                 type="checkbox"
                 checked={allSelected && donations.length > 0}
                 onChange={onToggleSelectAll}
-                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                 aria-label="Select all"
               />
             </th>
@@ -153,14 +153,14 @@ export default function DonationsTable({
               return (
                 <tr
                   key={donation.id}
-                  className="hover:bg-purple-50/40 transition-colors group"
+                  className="hover:bg-orange-50/40 transition-colors group"
                 >
                   <td className="px-4 py-4 align-middle">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(donation.id)}
                       onChange={() => onToggleSelect(donation.id)}
-                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                     />
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap align-middle">
@@ -206,7 +206,7 @@ export default function DonationsTable({
                     </span>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap align-middle text-right">
-                    <span className="text-sm font-bold text-purple-700 tabular-nums">
+                    <span className="text-sm font-bold text-orange-700 tabular-nums">
                       {net != null ? `$${net.toFixed(2)}` : '—'}
                     </span>
                   </td>

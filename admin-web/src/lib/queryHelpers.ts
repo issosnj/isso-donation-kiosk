@@ -1,4 +1,4 @@
-import { startOfDay, subDays } from 'date-fns'
+import { endOfDay, startOfDay, subDays } from 'date-fns'
 
 /** Do not retry rate-limited or auth errors — retries amplify 429 storms. */
 export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
@@ -10,8 +10,8 @@ export function shouldRetryQuery(failureCount: number, error: unknown): boolean 
 export const OVERVIEW_TREND_DAYS = 90
 
 export function getOverviewTrendRange(referenceDate: Date = new Date()) {
-  const end = startOfDay(referenceDate)
-  const start = subDays(end, OVERVIEW_TREND_DAYS)
+  const end = endOfDay(referenceDate)
+  const start = startOfDay(subDays(referenceDate, OVERVIEW_TREND_DAYS))
   return { start, end }
 }
 

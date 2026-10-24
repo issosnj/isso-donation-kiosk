@@ -23,6 +23,18 @@ import {
 } from '@/components/donations/donationUtils'
 import type { Donation, PaymentDetailsResponse } from '@/types/donation'
 import { isAnonymousForAssign } from '@/lib/donationDisplay'
+import { headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/layout/PageHeader'
+
+function trimmedOrNull(value: string | null | undefined): string | null {
+  const trimmed = (value ?? '').trim()
+  return trimmed ? trimmed : null
+}
+
+const DONOR_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+const receiptFieldClass =
+  'mt-1.5 w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400'
 
 interface DonationsTabProps {
   templeId?: string
@@ -66,6 +78,8 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     donorId: '',
   })
   const [changeRequestTempleNote, setChangeRequestTempleNote] = useState('')
+  const [changeRequestError, setChangeRequestError] = useState('')
+  const [changeRequestNotice, setChangeRequestNotice] = useState('')
 
   // Fetch temples for master admin filter
   const { data: temples } = useQuery({
@@ -127,19 +141,22 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     mutationFn: async (body: {
       donationId: string
       templeNote?: string
-      proposed: Record<string, string | undefined>
+      proposed: Record<string, string | null | undefined>
     }) => {
       const response = await api.post('/donation-change-requests', body)
       return response.data
     },
     onSuccess: () => {
-      alert('Change request submitted for master admin approval.')
+      setChangeRequestNotice('Receipt name change submitted. A Master Admin still needs to approve it.')
       setChangeRequestDonation(null)
       setChangeRequestTempleNote('')
+      setChangeRequestError('')
       queryClient.invalidateQueries({ queryKey: ['donation-change-requests'] })
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || 'Failed to submit request')
+      const raw = error.response?.data?.message
+      const message = Array.isArray(raw) ? raw.join(' ') : raw
+      setChangeRequestError(message || 'Could not submit the receipt name change.')
     },
   })
 
@@ -365,8 +382,8 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   const handleAssignDonor = (donorId: string) => {
     if (!assigningDonationId) return
     const confirmMessage = sendReceiptEmail
-      ? 'Are you sure you want to assign this donation to this donor? This will update the donor\'s statistics and send a receipt email if the donor has an email address.'
-      : 'Are you sure you want to assign this donation to this donor? This will update the donor\'s statistics.'
+      ? 'Are you sure you want to assign this donation to this donor? This links the gift to the donor profile and sends a receipt email when the donor has an email address.'
+      : 'Are you sure you want to assign this donation to this donor? This links the gift to the donor profile.'
     if (confirm(confirmMessage)) {
       setAssigningDonorId(donorId)
       assignDonationMutation.mutate({ 
@@ -558,6 +575,54 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
       donorId: donation.donorId || '',
     })
     setChangeRequestTempleNote('')
+    setChangeRequestError('')
+  }
+
+  const submitChangeRequest = () => {
+    if (!changeRequestDonation) return
+    const donation = changeRequestDonation
+    const nextName = trimmedOrNull(changeRequestForm.donorName)
+    const nextPhone = trimmedOrNull(changeRequestForm.donorPhone)
+    const nextEmail = trimmedOrNull(changeRequestForm.donorEmail)
+    const nextAddress = trimmedOrNull(changeRequestForm.donorAddress)
+    const nextDonorId = trimmedOrNull(changeRequestForm.donorId)
+    const currentDonorId = trimmedOrNull(donation.donorId)
+    const donorIdChanged = nextDonorId !== currentDonorId
+
+    if (nextEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      setChangeRequestError('Enter a valid email address.')
+      return
+    }
+    if (donorIdChanged && nextDonorId && !DONOR_ID_PATTERN.test(nextDonorId)) {
+      setChangeRequestError('Donor Profile ID must be the ID from the donor record.')
+      return
+    }
+
+    const unchanged =
+      nextName === trimmedOrNull(donation.donorName) &&
+      nextPhone === trimmedOrNull(donation.donorPhone) &&
+      nextEmail === trimmedOrNull(donation.donorEmail) &&
+      nextAddress === trimmedOrNull(donation.donorAddress) &&
+      !donorIdChanged
+    if (unchanged) {
+      setChangeRequestError('Change the receipt name or another field before submitting.')
+      return
+    }
+
+    const proposed: Record<string, string | null> = {
+      donorName: changeRequestForm.donorName.trim(),
+      donorPhone: changeRequestForm.donorPhone.trim(),
+      donorEmail: changeRequestForm.donorEmail.trim(),
+      donorAddress: changeRequestForm.donorAddress.trim(),
+    }
+    if (donorIdChanged) proposed.donorId = nextDonorId
+
+    setChangeRequestError('')
+    createChangeRequestMutation.mutate({
+      donationId: donation.id,
+      templeNote: changeRequestTempleNote.trim() || undefined,
+      proposed,
+    })
   }
 
   const getRowActions = (donation: Donation): DonationRowActions => {
@@ -603,7 +668,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
         type="button"
         onClick={handleGenerateReceiptNumbers}
         disabled={generateReceiptNumbersMutation.isPending}
-        className="px-3 py-1.5 text-xs font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+        className="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50"
       >
         {generateReceiptNumbersMutation.isPending ? 'Generating…' : 'Generate receipt #'}
       </button>
@@ -611,7 +676,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
         type="button"
         onClick={handleBackfillStripeFees}
         disabled={backfillStripeFeesMutation.isPending}
-        className="px-3 py-1.5 text-xs font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50"
+        className="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50"
       >
         {backfillStripeFeesMutation.isPending ? 'Backfilling…' : 'Backfill Stripe fees'}
       </button>
@@ -641,10 +706,16 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
         />
       )}
 
+      {changeRequestNotice && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm">
+          {changeRequestNotice}
+        </div>
+      )}
+
       {!isMasterAdmin && pendingMyChangeCount > 0 && (
         <div className="rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm">
-          You have <strong>{pendingMyChangeCount}</strong> receipt / donor change request
-          {pendingMyChangeCount === 1 ? '' : 's'} awaiting master admin approval.
+          You have <strong>{pendingMyChangeCount}</strong> receipt name change request
+          {pendingMyChangeCount === 1 ? '' : 's'} awaiting Master Admin approval.
         </div>
       )}
 
@@ -679,7 +750,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 displayDonations.length > 0 && selectedIds.size === displayDonations.length
               }
               onChange={toggleSelectAll}
-              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
             />
             <span className="text-sm text-gray-600">Select all on page</span>
           </label>
@@ -808,14 +879,24 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
 
       {/* Temple: request donor/receipt change (master approval) */}
       {changeRequestDonation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setChangeRequestDonation(null)}
+        >
           <div
-            className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="receipt-name-change-title"
           >
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Request receipt / name change</h2>
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">Receipt</p>
+                  <h2 id="receipt-name-change-title" className="mt-1 text-xl font-bold text-gray-900">
+                    Request Receipt Name Change
+                  </h2>
+                </div>
                 <button
                   type="button"
                   onClick={() => setChangeRequestDonation(null)}
@@ -828,78 +909,108 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                 </button>
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                Proposed values are sent to a master admin for approval. After approval, the donation record and receipts will use the new donor information.
+                A Master Admin approves this before the receipt uses the new name, phone, email, and address.
               </p>
+              <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm">
+                <p className="font-semibold text-gray-900">
+                  {changeRequestDonation.donorName?.trim() || 'No name on receipt'}
+                </p>
+                <p className="mt-0.5 text-gray-600">
+                  ${Number(changeRequestDonation.amount).toFixed(2)} ·{' '}
+                  {format(new Date(changeRequestDonation.createdAt), 'MMM d, yyyy')} ·{' '}
+                  {changeRequestDonation.category?.name || 'General'}
+                </p>
+                <p className="mt-0.5 text-gray-500">
+                  Receipt {changeRequestDonation.receiptNumber || 'not issued yet'}
+                </p>
+              </div>
             </div>
-            <div className="p-6 space-y-3">
-              <label className="block text-xs font-medium text-gray-600">Name</label>
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                value={changeRequestForm.donorName}
-                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorName: e.target.value }))}
-              />
-              <label className="block text-xs font-medium text-gray-600">Phone</label>
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                value={changeRequestForm.donorPhone}
-                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorPhone: e.target.value }))}
-              />
-              <label className="block text-xs font-medium text-gray-600">Email</label>
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                value={changeRequestForm.donorEmail}
-                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorEmail: e.target.value }))}
-              />
-              <label className="block text-xs font-medium text-gray-600">Mailing address</label>
-              <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm min-h-[72px]"
-                value={changeRequestForm.donorAddress}
-                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorAddress: e.target.value }))}
-              />
-              <label className="block text-xs font-medium text-gray-600">Donor profile ID (optional UUID)</label>
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono text-xs"
-                placeholder="Leave blank if not linking to CRM donor"
-                value={changeRequestForm.donorId}
-                onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorId: e.target.value }))}
-              />
-              <label className="block text-xs font-medium text-gray-600">Note to master admin</label>
-              <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm min-h-[64px]"
-                placeholder="Why is this change needed?"
-                value={changeRequestTempleNote}
-                onChange={(e) => setChangeRequestTempleNote(e.target.value)}
-              />
-              <div className="flex justify-end gap-2 pt-2">
+            <div className="p-6 space-y-4">
+              {myChangeRequests?.some(
+                (request: { status?: string; donationId?: string }) =>
+                  request.status === 'PENDING' && request.donationId === changeRequestDonation.id,
+              ) && (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                  A request for this gift is already waiting for Master Admin approval.
+                </p>
+              )}
+              <label className="block">
+                <span className="text-xs font-medium text-gray-600">Name</span>
+                <input
+                  className={receiptFieldClass}
+                  value={changeRequestForm.donorName}
+                  onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorName: e.target.value }))}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-gray-600">Phone</span>
+                <input
+                  className={receiptFieldClass}
+                  value={changeRequestForm.donorPhone}
+                  onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorPhone: e.target.value }))}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-gray-600">Email</span>
+                <input
+                  type="email"
+                  className={receiptFieldClass}
+                  value={changeRequestForm.donorEmail}
+                  onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorEmail: e.target.value }))}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-gray-600">Mailing Address</span>
+                <textarea
+                  className={`${receiptFieldClass} min-h-[72px]`}
+                  value={changeRequestForm.donorAddress}
+                  onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorAddress: e.target.value }))}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-gray-600">Donor Profile ID</span>
+                <input
+                  className={`${receiptFieldClass} font-mono text-xs`}
+                  placeholder="Leave unchanged unless linking a different donor"
+                  value={changeRequestForm.donorId}
+                  onChange={(e) => setChangeRequestForm((f) => ({ ...f, donorId: e.target.value }))}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-gray-600">Note to Master Admin</span>
+                <textarea
+                  className={`${receiptFieldClass} min-h-[64px]`}
+                  placeholder="Why is this change needed?"
+                  value={changeRequestTempleNote}
+                  onChange={(e) => setChangeRequestTempleNote(e.target.value)}
+                />
+              </label>
+              {changeRequestError && (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                  {changeRequestError}
+                </p>
+              )}
+              <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setChangeRequestDonation(null)}
-                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className={headerSecondaryButtonClass}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  disabled={createChangeRequestMutation.isPending}
-                  onClick={() => {
-                    if (!changeRequestDonation) return
-                    const proposed: Record<string, string | undefined> = {
-                      donorName: changeRequestForm.donorName,
-                      donorPhone: changeRequestForm.donorPhone,
-                      donorEmail: changeRequestForm.donorEmail,
-                      donorAddress: changeRequestForm.donorAddress,
-                    }
-                    const idTrim = changeRequestForm.donorId.trim()
-                    if (idTrim) proposed.donorId = idTrim
-                    createChangeRequestMutation.mutate({
-                      donationId: changeRequestDonation.id,
-                      templeNote: changeRequestTempleNote.trim() || undefined,
-                      proposed,
-                    })
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg disabled:opacity-50"
+                  disabled={
+                    createChangeRequestMutation.isPending ||
+                    myChangeRequests?.some(
+                      (request: { status?: string; donationId?: string }) =>
+                        request.status === 'PENDING' && request.donationId === changeRequestDonation.id,
+                    )
+                  }
+                  onClick={submitChangeRequest}
+                  className={headerPrimaryButtonClass}
                 >
-                  {createChangeRequestMutation.isPending ? 'Submitting…' : 'Submit request'}
+                  {createChangeRequestMutation.isPending ? 'Submitting…' : 'Submit Request'}
                 </button>
               </div>
             </div>
@@ -949,7 +1060,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   onClick={() => setShowCreateDonor(false)}
                   className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                     !showCreateDonor
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-orange-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -959,7 +1070,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   onClick={() => setShowCreateDonor(true)}
                   className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                     showCreateDonor
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-orange-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -975,7 +1086,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                       placeholder="Search by name, phone, or email..."
                       value={donorSearch}
                       onChange={(e) => setDonorSearch(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                   {/* Send receipt email checkbox */}
@@ -985,7 +1096,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                         type="checkbox"
                         checked={sendReceiptEmail}
                         onChange={(e) => setSendReceiptEmail(e.target.checked)}
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                       />
                       <span className="text-sm text-gray-700">
                         Send receipt email after assignment (if donor has email)
@@ -997,7 +1108,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                       {donorsData.donors.map((donor: any) => (
                         <div
                           key={donor.id}
-                          className="p-4 border border-gray-200 rounded-lg hover:bg-purple-50 transition-colors"
+                          className="p-4 border border-gray-200 rounded-lg hover:bg-orange-50 transition-colors"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -1013,7 +1124,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                             <button
                               onClick={() => handleAssignDonor(donor.id)}
                               disabled={assigningDonorId === donor.id || assignDonationMutation.isPending}
-                              className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                              className="ml-4 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                             >
                               {assigningDonorId === donor.id ? 'Assigning...' : 'Assign'}
                             </button>
@@ -1038,7 +1149,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                       value={newDonorForm.phone}
                       onChange={(e) => setNewDonorForm({ ...newDonorForm, phone: e.target.value })}
                       placeholder="Enter phone number"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                     />
                   </div>
@@ -1051,7 +1162,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                       value={newDonorForm.name}
                       onChange={(e) => setNewDonorForm({ ...newDonorForm, name: e.target.value })}
                       placeholder="Enter donor name"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                   <div>
@@ -1063,7 +1174,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                       value={newDonorForm.email}
                       onChange={(e) => setNewDonorForm({ ...newDonorForm, email: e.target.value })}
                       placeholder="Enter email address"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                   <div>
@@ -1075,7 +1186,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                       onChange={(e) => setNewDonorForm({ ...newDonorForm, address: e.target.value })}
                       placeholder="Enter mailing address"
                       rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                   {/* Send receipt email checkbox for new donor */}
@@ -1085,7 +1196,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                         type="checkbox"
                         checked={sendReceiptEmail}
                         onChange={(e) => setSendReceiptEmail(e.target.checked)}
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                       />
                       <span className="text-sm text-gray-700">
                         Send receipt email after assignment (if email provided)
@@ -1095,7 +1206,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   <button
                     onClick={handleCreateDonor}
                     disabled={!newDonorForm.phone || createDonorMutation.isPending}
-                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
                     {createDonorMutation.isPending ? 'Creating...' : 'Create Donor & Assign Donation'}
                   </button>

@@ -5,6 +5,16 @@ export function safeNumber(value: unknown, fallback = 0): number {
   return n
 }
 
+/** Always two decimal places. Use for figures staff reconcile to the ledger. */
+export function formatCurrencyExact(value: unknown): string {
+  return safeNumber(value).toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 export function formatCurrency(value: unknown, options?: { compact?: boolean }): string {
   const n = safeNumber(value)
   if (options?.compact && Math.abs(n) >= 1000) {

@@ -63,7 +63,7 @@ export default function SystemHealthPanel({ metrics, isLoading }: SystemHealthPa
           rows.map((m) => (
             <div
               key={m.id}
-              className="rounded-xl bg-gray-50/80 p-3 border border-gray-100/80 hover:border-violet-100 transition-colors"
+              className="rounded-xl bg-gray-50/80 p-3 border border-gray-100/80 hover:border-orange-100 transition-colors"
             >
               <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide line-clamp-2">
                 {m.label}

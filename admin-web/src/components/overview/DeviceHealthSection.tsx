@@ -92,7 +92,7 @@ export default function DeviceHealthSection({
         </div>
         <button
           onClick={() => router.push('/dashboard?tab=devices')}
-          className="text-xs font-medium text-purple-600 hover:text-purple-700"
+          className="text-xs font-medium text-orange-600 hover:text-orange-700"
         >
           View all
         </button>

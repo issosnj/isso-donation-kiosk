@@ -267,7 +267,7 @@ export default function DonorInfoPopup({
                 href={`/receipt?id=${viewingReceiptId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 flex items-center gap-2"
               >
                 Open in new tab
               </a>
@@ -319,7 +319,7 @@ export default function DonorInfoPopup({
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
                 >
                   Edit
                 </button>
@@ -335,7 +335,7 @@ export default function DonorInfoPopup({
                       type="text"
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -344,7 +344,7 @@ export default function DonorInfoPopup({
                       type="text"
                       value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -354,7 +354,7 @@ export default function DonorInfoPopup({
                     type="email"
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                 </div>
                 <div className="relative">
@@ -368,7 +368,7 @@ export default function DonorInfoPopup({
                       searchAddresses(e.target.value)
                     }}
                     placeholder="Start typing an address..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                   {addressSuggestions.length > 0 && (
                     <div
@@ -395,7 +395,7 @@ export default function DonorInfoPopup({
                   )}
                   {isSearchingAddresses && (
                     <div className="absolute right-3 top-9">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600"></div>
                     </div>
                   )}
                 </div>
@@ -403,7 +403,7 @@ export default function DonorInfoPopup({
                   <button
                     onClick={handleSave}
                     disabled={updateDonorMutation.isPending}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
                   >
                     {updateDonorMutation.isPending ? 'Saving...' : 'Save'}
                   </button>
@@ -464,7 +464,7 @@ export default function DonorInfoPopup({
             </div>
             {isLoading ? (
               <div className="text-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
                 <p className="mt-2 text-gray-600">Loading donations...</p>
               </div>
             ) : donations.length === 0 ? (
@@ -495,7 +495,7 @@ export default function DonorInfoPopup({
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {donations.map((donation: any) => (
-                      <tr key={donation.id} className="hover:bg-purple-50/30 transition-colors">
+                      <tr key={donation.id} className="hover:bg-orange-50/30 transition-colors">
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {format(new Date(donation.createdAt), 'MMM dd, yyyy')}
                         </td>
@@ -516,7 +516,7 @@ export default function DonorInfoPopup({
                               <>
                                 <button
                                   onClick={() => handleViewReceipt(donation.id)}
-                                  className="text-purple-600 hover:text-purple-800 font-medium"
+                                  className="text-orange-600 hover:text-orange-800 font-medium"
                                 >
                                   View Receipt
                                 </button>

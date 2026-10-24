@@ -75,7 +75,7 @@ export default function TopHeaderBar({
           type="button"
           onClick={onOpenCommandPalette}
           aria-label="Open command palette"
-          className="flex h-9 min-w-0 max-w-md flex-1 items-center gap-2 rounded-xl border border-gray-200/60 bg-gray-50/90 px-3 text-sm text-gray-500 transition-colors hover:border-violet-300/60 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 lg:max-w-sm xl:max-w-md"
+          className="flex h-9 min-w-0 max-w-md flex-1 items-center gap-2 rounded-xl border border-gray-200/60 bg-gray-50/90 px-3 text-sm text-gray-500 transition-colors hover:border-orange-300/60 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 lg:max-w-sm xl:max-w-md"
         >
           <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path
@@ -105,7 +105,7 @@ export default function TopHeaderBar({
           <button
             type="button"
             onClick={() => setQuickOpen((o) => !o)}
-            className="inline-flex h-9 items-center whitespace-nowrap rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#A855F7] px-2.5 text-xs font-semibold text-white transition-shadow hover:shadow-md hover:shadow-violet-200/50 sm:px-3 sm:text-sm"
+            className="inline-flex h-9 items-center whitespace-nowrap rounded-xl bg-gradient-to-r from-[#ea580c] via-[#f97316] to-[#fb923c] px-2.5 text-xs font-semibold text-white transition-shadow hover:shadow-md hover:shadow-orange-200/50 sm:px-3 sm:text-sm"
           >
             <span className="hidden sm:inline">Quick actions</span>
             <span className="sm:hidden">Actions</span>
@@ -118,7 +118,7 @@ export default function TopHeaderBar({
                   type="button"
                   disabled={action.soon}
                   onClick={() => handleQuickAction(action)}
-                  className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                  className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-orange-50 disabled:cursor-not-allowed disabled:text-gray-300"
                 >
                   <span>{action.label}</span>
                   {action.soon && (
@@ -172,7 +172,7 @@ export default function TopHeaderBar({
                     onScrollToAlerts?.()
                     setNotifOpen(false)
                   }}
-                  className="mt-3 text-xs font-semibold text-violet-700 hover:text-violet-800"
+                  className="mt-3 text-xs font-semibold text-orange-700 hover:text-orange-800"
                 >
                   View alert center →
                 </button>
@@ -190,7 +190,7 @@ export default function TopHeaderBar({
             }}
             className="flex h-9 max-w-[10rem] items-center gap-2 rounded-xl py-1 pl-1 pr-2 transition-colors hover:bg-gray-100"
           >
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#A855F7] text-sm font-bold text-white">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#ea580c] to-[#fb923c] text-sm font-bold text-white">
               {user.name.charAt(0).toUpperCase()}
             </div>
             <span className="hidden min-w-0 truncate text-sm font-medium text-gray-800 md:block">
@@ -202,7 +202,7 @@ export default function TopHeaderBar({
               <div className="border-b border-gray-100 px-4 py-2">
                 <p className="truncate text-sm font-semibold text-gray-900">{user.name}</p>
                 <p className="truncate text-xs text-gray-500">{user.email}</p>
-                <p className="mt-1 text-[10px] font-medium text-violet-600">
+                <p className="mt-1 text-[10px] font-medium text-orange-600">
                   {user.role.replace(/_/g, ' ')}
                 </p>
               </div>

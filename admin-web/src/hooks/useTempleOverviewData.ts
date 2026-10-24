@@ -2,13 +2,9 @@
 
 import { useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { startOfDay, subDays } from 'date-fns'
 import api from '@/lib/api'
-import {
-  dashboardQueryDefaults,
-  getOverviewTrendRange,
-  overviewQueryDefaults,
-} from '@/lib/queryHelpers'
+import { dashboardQueryDefaults, overviewQueryDefaults } from '@/lib/queryHelpers'
+import { buildTempleRanges, isValidTimeZone } from '@/lib/zonedRange'
 import { useDevices } from '@/hooks/useDevices'
 import type { Donation } from '@/types/donation'
 import type { DonorStats } from '@/types/donor'
@@ -40,6 +36,7 @@ interface StatsResponse {
 interface TempleRecord {
   id: string
   name: string
+  timezone?: string | null
   stripeAccountId?: string | null
   stripePublishableKey?: string | null
   gmailRefreshToken?: string | null
@@ -54,20 +51,6 @@ interface ChangeRequest {
 export function useTempleOverviewData(templeId: string, chartPeriod: TempleChartPeriod) {
   const queryClient = useQueryClient()
 
-  const dateRanges = useMemo(() => {
-    const now = new Date()
-    const endOfToday = startOfDay(now)
-    return {
-      startOfYear: new Date(now.getFullYear(), 0, 1),
-      endOfToday,
-      startOfToday: startOfDay(now),
-      startOfMonth: new Date(now.getFullYear(), now.getMonth(), 1),
-      startOfPrevMonth: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-      endOfPrevMonth: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59),
-      last30Start: subDays(endOfToday, 30),
-    }
-  }, [])
-
   const { data: temple, isLoading: templeLoading, isError: templeError } = useQuery({
     queryKey: ['temple', templeId],
     queryFn: async () => {
@@ -77,58 +60,99 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
     ...dashboardQueryDefaults,
   })
 
-  const {
-    startOfYear,
-    endOfToday,
-    startOfToday,
-    startOfMonth,
-    startOfPrevMonth,
-    endOfPrevMonth,
-    last30Start,
-  } = dateRanges
-
-  const statsQueryOpts = dashboardQueryDefaults
+  const timeZone = isValidTimeZone(temple?.timezone)
+    ? temple.timezone
+    : Intl.DateTimeFormat().resolvedOptions().timeZone
+  const ranges = useMemo(
+    () => buildTempleRanges(timeZone),
+    [timeZone],
+  )
+  const statsReady = Boolean(temple)
+  const statsQueryOpts = { ...dashboardQueryDefaults, enabled: statsReady }
 
   const { data: statsYtd, isLoading: statsYtdLoading, isError: statsYtdError } = useQuery({
-    queryKey: ['temple-overview-stats-ytd', templeId],
-    queryFn: async () => {
-      const res = await api.get<StatsResponse>('/donations/stats', {
-        params: { startDate: startOfYear.toISOString(), endDate: endOfToday.toISOString() },
-      })
-      return res.data
-    },
-    ...statsQueryOpts,
-  })
-
-  const { data: statsMonth, isLoading: statsMonthLoading } = useQuery({
-    queryKey: ['temple-overview-stats-month', templeId],
-    queryFn: async () => {
-      const res = await api.get<StatsResponse>('/donations/stats', {
-        params: { startDate: startOfMonth.toISOString(), endDate: endOfToday.toISOString() },
-      })
-      return res.data
-    },
-    ...statsQueryOpts,
-  })
-
-  const { data: statsToday, isLoading: statsTodayLoading } = useQuery({
-    queryKey: ['temple-overview-stats-today', templeId],
-    queryFn: async () => {
-      const res = await api.get<StatsResponse>('/donations/stats', {
-        params: { startDate: startOfToday.toISOString(), endDate: endOfToday.toISOString() },
-      })
-      return res.data
-    },
-    ...statsQueryOpts,
-  })
-
-  const { data: statsPrevMonth } = useQuery({
-    queryKey: ['temple-overview-stats-prev-month', templeId],
+    queryKey: ['temple-overview-stats-ytd', templeId, ranges.startOfYear.toISOString(), ranges.endOfToday.toISOString()],
     queryFn: async () => {
       const res = await api.get<StatsResponse>('/donations/stats', {
         params: {
-          startDate: startOfPrevMonth.toISOString(),
-          endDate: endOfPrevMonth.toISOString(),
+          templeId,
+          startDate: ranges.startOfYear.toISOString(),
+          endDate: ranges.endOfToday.toISOString(),
+        },
+      })
+      return res.data
+    },
+    ...statsQueryOpts,
+  })
+
+  const { data: statsMonth, isLoading: statsMonthLoading, isError: statsMonthError } = useQuery({
+    queryKey: ['temple-overview-stats-month', templeId, ranges.startOfMonth.toISOString(), ranges.endOfToday.toISOString()],
+    queryFn: async () => {
+      const res = await api.get<StatsResponse>('/donations/stats', {
+        params: {
+          templeId,
+          startDate: ranges.startOfMonth.toISOString(),
+          endDate: ranges.endOfToday.toISOString(),
+        },
+      })
+      return res.data
+    },
+    ...statsQueryOpts,
+  })
+
+  const { data: statsToday, isLoading: statsTodayLoading, isError: statsTodayError } = useQuery({
+    queryKey: ['temple-overview-stats-today', templeId, ranges.startOfToday.toISOString(), ranges.endOfToday.toISOString()],
+    queryFn: async () => {
+      const res = await api.get<StatsResponse>('/donations/stats', {
+        params: {
+          templeId,
+          startDate: ranges.startOfToday.toISOString(),
+          endDate: ranges.endOfToday.toISOString(),
+        },
+      })
+      return res.data
+    },
+    ...statsQueryOpts,
+  })
+
+  const { data: statsPrevMonth, isLoading: statsPrevMonthLoading, isError: statsPrevMonthError } = useQuery({
+    queryKey: ['temple-overview-stats-prev-month', templeId, ranges.startOfPrevMonth.toISOString(), ranges.endOfPrevMonth.toISOString()],
+    queryFn: async () => {
+      const res = await api.get<StatsResponse>('/donations/stats', {
+        params: {
+          templeId,
+          startDate: ranges.startOfPrevMonth.toISOString(),
+          endDate: ranges.endOfPrevMonth.toISOString(),
+        },
+      })
+      return res.data
+    },
+    ...statsQueryOpts,
+  })
+
+  const { data: statsYesterday, isLoading: statsYesterdayLoading, isError: statsYesterdayError } = useQuery({
+    queryKey: ['temple-overview-stats-yesterday', templeId, ranges.startOfYesterday.toISOString(), ranges.endOfYesterday.toISOString()],
+    queryFn: async () => {
+      const res = await api.get<StatsResponse>('/donations/stats', {
+        params: {
+          templeId,
+          startDate: ranges.startOfYesterday.toISOString(),
+          endDate: ranges.endOfYesterday.toISOString(),
+        },
+      })
+      return res.data
+    },
+    ...statsQueryOpts,
+  })
+
+  const { data: statsPriorYtd, isLoading: statsPriorYtdLoading, isError: statsPriorYtdError } = useQuery({
+    queryKey: ['temple-overview-stats-prior-ytd', templeId, ranges.startOfPriorYtd.toISOString(), ranges.endOfPriorYtd.toISOString()],
+    queryFn: async () => {
+      const res = await api.get<StatsResponse>('/donations/stats', {
+        params: {
+          templeId,
+          startDate: ranges.startOfPriorYtd.toISOString(),
+          endDate: ranges.endOfPriorYtd.toISOString(),
         },
       })
       return res.data
@@ -142,42 +166,49 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
     isError: overviewError,
     dataUpdatedAt: overviewUpdatedAt,
   } = useQuery({
-    queryKey: ['temple-donations-overview', templeId],
+    queryKey: ['temple-donations-overview', templeId, ranges.startOfYear.toISOString(), ranges.endOfToday.toISOString(), ranges.timeZone],
     queryFn: async () => {
-      const { start, end } = getOverviewTrendRange()
       const res = await api.get<OverviewApiResponse>('/donations/overview', {
         params: {
-          startDate: start.toISOString(),
-          endDate: end.toISOString(),
+          templeId,
+          startDate: ranges.startOfYear.toISOString(),
+          endDate: ranges.endOfToday.toISOString(),
+          timeZone: ranges.timeZone,
         },
       })
       return res.data
     },
     ...overviewQueryDefaults,
+    enabled: statsReady,
   })
 
   const { data: recentDonations = [], isLoading: donationsLoading, isError: donationsError } =
     useQuery({
-      queryKey: ['temple-overview-recent-donations', templeId],
+      queryKey: ['temple-overview-recent-donations', templeId, ranges.last30Start.toISOString(), ranges.endOfToday.toISOString()],
       queryFn: async () => {
         const res = await api.get<Donation[]>('/donations', {
           params: {
-            startDate: last30Start.toISOString(),
-            endDate: endOfToday.toISOString(),
+            templeId,
+            startDate: ranges.last30Start.toISOString(),
+            endDate: ranges.endOfToday.toISOString(),
           },
         })
         return Array.isArray(res.data) ? res.data : []
       },
       ...dashboardQueryDefaults,
+      enabled: statsReady,
     })
 
   const { data: donorStats, isLoading: donorStatsLoading, isError: donorStatsError } = useQuery({
-    queryKey: ['donor-stats', templeId],
+    queryKey: ['donor-stats', templeId, ranges.startOfMonth.toISOString()],
     queryFn: async () => {
-      const res = await api.get<DonorStats>(`/donors/temple/${templeId}/stats`)
+      const res = await api.get<DonorStats>(`/donors/temple/${templeId}/stats`, {
+        params: { monthStart: ranges.startOfMonth.toISOString() },
+      })
       return res.data
     },
     ...dashboardQueryDefaults,
+    enabled: statsReady,
   })
 
   const { data: changeRequests = [] } = useQuery({
@@ -207,8 +238,8 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
   )
 
   const chartData = useMemo(
-    () => filterDailyByPeriod(daily, chartPeriod),
-    [daily, chartPeriod],
+    () => filterDailyByPeriod(daily, chartPeriod, ranges.todayYmd),
+    [daily, chartPeriod, ranges.todayYmd],
   )
 
   const metrics = useMemo(
@@ -218,27 +249,30 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
         statsMonth,
         statsToday,
         statsPrevMonth,
+        statsYesterday,
+        statsPriorYtd,
         donorStats,
         deviceOnline: deviceSummary.online,
-        deviceTotal: deviceSummary.total,
         recentDonations,
-        dailySpark: daily,
       }),
     [
       statsYtd,
       statsMonth,
       statsToday,
       statsPrevMonth,
+      statsYesterday,
+      statsPriorYtd,
       donorStats,
       deviceSummary.online,
-      deviceSummary.total,
       recentDonations,
-      daily,
     ],
   )
 
   const recentActivity = useMemo(() => buildRecentActivity(recentDonations), [recentDonations])
-  const deviceHealth = useMemo(() => buildDeviceHealthRows(devices), [devices])
+  const deviceHealth = useMemo(
+    () => buildDeviceHealthRows(devices, recentDonations),
+    [devices, recentDonations],
+  )
   const categoryBreakdown = useMemo(
     () => buildCategoryBreakdown(recentDonations),
     [recentDonations],
@@ -252,8 +286,8 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
     [recentDonations, temple],
   )
   const performanceSummary = useMemo(
-    () => buildPerformanceSummary(chartData, recentDonations),
-    [chartData, recentDonations],
+    () => buildPerformanceSummary(chartData, recentDonations, ranges.timeZone),
+    [chartData, recentDonations, ranges.timeZone],
   )
   const alerts = useMemo(
     () =>
@@ -282,6 +316,9 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
     void queryClient.invalidateQueries({ queryKey: ['temple-overview-stats-ytd', templeId] })
     void queryClient.invalidateQueries({ queryKey: ['temple-overview-stats-month', templeId] })
     void queryClient.invalidateQueries({ queryKey: ['temple-overview-stats-today', templeId] })
+    void queryClient.invalidateQueries({ queryKey: ['temple-overview-stats-prev-month', templeId] })
+    void queryClient.invalidateQueries({ queryKey: ['temple-overview-stats-yesterday', templeId] })
+    void queryClient.invalidateQueries({ queryKey: ['temple-overview-stats-prior-ytd', templeId] })
     void queryClient.invalidateQueries({ queryKey: ['temple-donations-overview', templeId] })
     void queryClient.invalidateQueries({ queryKey: ['temple-overview-recent-donations', templeId] })
     void queryClient.invalidateQueries({ queryKey: ['donor-stats', templeId] })
@@ -290,17 +327,26 @@ export function useTempleOverviewData(templeId: string, chartPeriod: TempleChart
 
   const isLoading =
     templeLoading ||
-    statsYtdLoading ||
-    statsMonthLoading ||
-    statsTodayLoading ||
-    overviewLoading ||
-    donationsLoading ||
-    devicesLoading ||
-    donorStatsLoading
+    (statsReady &&
+      (statsYtdLoading ||
+        statsMonthLoading ||
+        statsTodayLoading ||
+        statsPrevMonthLoading ||
+        statsYesterdayLoading ||
+        statsPriorYtdLoading ||
+        overviewLoading ||
+        donationsLoading ||
+        devicesLoading ||
+        donorStatsLoading))
 
   const hasError =
     templeError ||
     statsYtdError ||
+    statsMonthError ||
+    statsTodayError ||
+    statsPrevMonthError ||
+    statsYesterdayError ||
+    statsPriorYtdError ||
     overviewError ||
     donationsError ||
     devicesError ||

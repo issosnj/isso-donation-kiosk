@@ -71,7 +71,7 @@ export default function TemplePerformanceSection({
                 </div>
                 <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-purple-500 rounded-full transition-all"
+                    className="h-full bg-orange-500 rounded-full transition-all"
                     style={{ width: `${(t.total / maxTotal) * 100}%` }}
                   />
                 </div>
@@ -82,7 +82,7 @@ export default function TemplePerformanceSection({
                   sessionStorage.setItem('openTempleId', t.templeId)
                   router.push('/dashboard?tab=temples')
                 }}
-                className="text-xs font-medium text-purple-600 hover:text-purple-700 flex-shrink-0"
+                className="text-xs font-medium text-orange-600 hover:text-orange-700 flex-shrink-0"
               >
                 View
               </button>

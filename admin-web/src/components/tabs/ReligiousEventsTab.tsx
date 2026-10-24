@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { PageHeaderActions, headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/layout/PageHeader'
 
 interface ReligiousEvent {
   id: string
@@ -268,33 +269,33 @@ export default function ReligiousEventsTab() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-end">
-        <div className="flex space-x-3">
-          <button
-            onClick={() => {
-              setIsCreating(true)
-              setEditingId(null)
-              setEntryMode('manual')
-              resetForm()
-            }}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            + Manual Entry
-          </button>
-          <button
-            onClick={() => {
-              setIsCreating(true)
-              setEditingId(null)
-              setEntryMode('google')
-              resetForm()
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            + Fetch from Google Calendar
-          </button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeaderActions>
+        <button
+          type="button"
+          onClick={() => {
+            setIsCreating(true)
+            setEditingId(null)
+            setEntryMode('manual')
+            resetForm()
+          }}
+          className={headerPrimaryButtonClass}
+        >
+          Manual entry
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsCreating(true)
+            setEditingId(null)
+            setEntryMode('google')
+            resetForm()
+          }}
+          className={headerSecondaryButtonClass}
+        >
+          Fetch from Google Calendar
+        </button>
+      </PageHeaderActions>
 
       {(isCreating || editingId) && (
         <div className="mb-6 bg-white rounded-lg shadow p-6">
@@ -364,7 +365,7 @@ export default function ReligiousEventsTab() {
                           <button
                             type="button"
                             onClick={() => handleImportEvent(event)}
-                            className="ml-3 px-3 py-1 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700"
+                            className="ml-3 px-3 py-1 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700"
                           >
                             Import
                           </button>
@@ -401,7 +402,7 @@ export default function ReligiousEventsTab() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   placeholder="e.g., Poonam, Upvas, Ekadashi"
                 />
               </div>
@@ -414,7 +415,7 @@ export default function ReligiousEventsTab() {
                   required
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -426,7 +427,7 @@ export default function ReligiousEventsTab() {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 rows={3}
                 placeholder="Optional description of the observance"
               />
@@ -441,7 +442,7 @@ export default function ReligiousEventsTab() {
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -454,7 +455,7 @@ export default function ReligiousEventsTab() {
                   onChange={(e) =>
                     setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -520,7 +521,7 @@ export default function ReligiousEventsTab() {
                     value={newCalendarLink}
                     onChange={(e) => setNewCalendarLink(e.target.value)}
                     placeholder="https://calendar.google.com/calendar/embed?src=..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault()
@@ -531,7 +532,7 @@ export default function ReligiousEventsTab() {
                   <button
                     type="button"
                     onClick={handleAddCalendarLink}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
                   >
                     Add
                   </button>
@@ -542,7 +543,7 @@ export default function ReligiousEventsTab() {
             <div className="flex space-x-3">
               <button
                 type="submit"
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
               >
                 {editingId ? 'Update' : 'Create'}
               </button>
@@ -618,7 +619,7 @@ export default function ReligiousEventsTab() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleEdit(event)}
-                          className="text-purple-600 hover:text-purple-900 mr-4"
+                          className="text-orange-600 hover:text-orange-900 mr-4"
                         >
                           Edit
                         </button>
@@ -702,7 +703,7 @@ export default function ReligiousEventsTab() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleEdit(event)}
-                          className="text-purple-600 hover:text-purple-900 mr-4"
+                          className="text-orange-600 hover:text-orange-900 mr-4"
                         >
                           Edit
                         </button>
@@ -744,7 +745,7 @@ export default function ReligiousEventsTab() {
             </p>
             <button
               onClick={() => setIsCreating(true)}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
             >
               + Add Observance
             </button>

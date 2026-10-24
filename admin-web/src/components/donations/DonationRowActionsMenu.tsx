@@ -49,7 +49,7 @@ export default function DonationRowActionsMenu({ actions }: DonationRowActionsMe
     })
   }
   if (actions.onRequestChange) {
-    items.push({ label: 'Request receipt / name change', onClick: actions.onRequestChange })
+    items.push({ label: 'Request receipt name change', onClick: actions.onRequestChange })
   }
   if (actions.onAssignDonor) {
     items.push({ label: 'Assign to donor', onClick: actions.onAssignDonor })
@@ -84,7 +84,7 @@ export default function DonationRowActionsMenu({ actions }: DonationRowActionsMe
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-1 w-52 py-1 bg-white border border-gray-200 rounded-xl shadow-lg ring-1 ring-black/5"
+          className="absolute right-0 z-30 mt-1 min-w-[15.5rem] py-1 bg-white border border-gray-200 rounded-xl shadow-lg ring-1 ring-black/5"
         >
           {items.map((item) => (
             <button
@@ -99,7 +99,7 @@ export default function DonationRowActionsMenu({ actions }: DonationRowActionsMe
               className={`w-full text-left px-3 py-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 item.destructive
                   ? 'text-red-600 hover:bg-red-50'
-                  : 'text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                  : 'text-gray-700 hover:bg-orange-50 hover:text-orange-900'
               }`}
             >
               {item.label}

@@ -22,8 +22,8 @@ const severityStyles = {
     border: 'border-l-amber-500',
   },
   info: {
-    badge: 'bg-violet-100 text-violet-800 border-violet-200',
-    border: 'border-l-violet-500',
+    badge: 'bg-orange-100 text-orange-800 border-orange-200',
+    border: 'border-l-orange-500',
   },
 } as const
 
@@ -55,7 +55,7 @@ export default function PlatformAlertsPanel({
                 onClick={() => onFilterChange(f)}
                 className={`px-2 py-1 text-[10px] font-semibold rounded-lg capitalize transition-colors ${
                   filter === f
-                    ? 'bg-violet-100 text-[#7C3AED]'
+                    ? 'bg-orange-100 text-[#ea580c]'
                     : 'text-gray-500 hover:bg-gray-100'
                 }`}
               >
@@ -72,7 +72,7 @@ export default function PlatformAlertsPanel({
           filtered.map((alert) => (
             <div
               key={alert.id}
-              className={`rounded-xl border border-gray-100 bg-gray-50/50 p-3 border-l-4 ${severityStyles[alert.severity].border} hover:border-violet-200 transition-colors`}
+              className={`rounded-xl border border-gray-100 bg-gray-50/50 p-3 border-l-4 ${severityStyles[alert.severity].border} hover:border-orange-200 transition-colors`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">

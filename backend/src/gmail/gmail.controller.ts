@@ -26,7 +26,10 @@ export class GmailController {
 
   // Simple encryption/decryption helpers (in production, use a proper encryption service)
   private getEncryptionKey(): Buffer {
-    const keyString = this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!';
+    const keyString = this.configService.get<string>('ENCRYPTION_KEY');
+    if (!keyString) {
+      throw new Error('ENCRYPTION_KEY is not configured');
+    }
     
     // If it's a hex string, parse it
     if (/^[0-9a-fA-F]+$/.test(keyString)) {

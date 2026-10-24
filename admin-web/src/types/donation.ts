@@ -19,6 +19,7 @@ export interface DonationTemple {
 export interface Donation {
   id: string
   templeId: string
+  deviceId?: string | null
   amount: number | string
   netAmount?: number | string | null
   stripeFee?: number | string | null

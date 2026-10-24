@@ -4,30 +4,25 @@ import type { Donor, DonorKpis, DonorSegment, DonorSortKey, DonorStats } from '@
 const VIP_STORAGE_PREFIX = 'isso-donor-vip:'
 const NOTES_STORAGE_PREFIX = 'isso-donor-notes:'
 
-export function formatMoney(value: number, compact = false): string {
-  if (compact && value >= 1000) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(value)
-  }
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
+export function roundMoney(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return 0
+  return Math.round(n * 100) / 100
+}
+
+export function formatMoney(value: number, _compact = false): string {
+  return formatMoneyPrecise(value)
 }
 
 export function formatMoneyPrecise(value: number): string {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '—'
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value)
+  }).format(n)
 }
 
 export function formatDonorDate(dateString: string | null): string {
@@ -66,14 +61,16 @@ export function donorInitials(donor: Donor): string {
 
 export function computeDonorKpis(stats: DonorStats | null | undefined): DonorKpis {
   const total = stats?.total ?? 0
-  const totalDonated = stats?.totalDonated ?? 0
+  const totalDonated = roundMoney(stats?.totalDonated ?? 0)
+  const totalGifts = stats?.totalGifts ?? 0
   return {
     total,
     totalDonated,
+    totalGifts,
     newThisMonth: stats?.newThisMonth ?? 0,
     repeatCount: stats?.repeatCount ?? 0,
     activeCount: stats?.activeCount ?? 0,
-    averageDonation: total > 0 ? totalDonated / total : 0,
+    averageDonation: totalGifts > 0 ? roundMoney(totalDonated / totalGifts) : 0,
     recurringCount: stats?.repeatCount ?? 0,
   }
 }
@@ -133,7 +130,7 @@ export function getDonorBadges(donor: Donor): { id: string; label: string; class
     badges.push({
       id: 'repeat',
       label: 'Repeat',
-      className: 'bg-violet-50 text-violet-700 ring-violet-200/80',
+      className: 'bg-orange-50 text-orange-700 ring-orange-200/80',
     })
   }
   if (isNewThisMonth(donor)) {
@@ -214,7 +211,7 @@ export function exportDonorsToCsv(donors: Donor[], filenamePrefix = 'donors'): v
     Name: d.name || 'Anonymous',
     Email: d.email || '',
     Phone: d.phone,
-    'Total donated': Number(d.totalAmount).toFixed(2),
+    'Total donated': roundMoney(d.totalAmount).toFixed(2),
     Donations: d.totalDonations,
     'Last donation': d.lastDonationDate
       ? format(new Date(d.lastDonationDate), 'yyyy-MM-dd')

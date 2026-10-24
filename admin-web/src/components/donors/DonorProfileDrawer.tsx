@@ -12,6 +12,7 @@ import {
   formatDonorDate,
   formatMoneyPrecise,
   getDonorNotes,
+  roundMoney,
   isDonorVip,
   setDonorNotes,
   setDonorVip,
@@ -65,7 +66,7 @@ export default function DonorProfileDrawer({
     }
   }, [])
 
-  const { data: donations = [], isLoading } = useQuery({
+  const { data: donations = [], isLoading, isError } = useQuery({
     queryKey: ['donations-by-donor', donor.phone, templeId, donor.id],
     queryFn: async () => {
       const params = new URLSearchParams()
@@ -94,17 +95,20 @@ export default function DonorProfileDrawer({
     },
   })
 
-  const sortedDonations = [...donations].sort(
-    (a: { createdAt: string }, b: { createdAt: string }) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )
+  const sortedDonations = [...donations]
+    .filter((d: { status?: string }) => !d.status || d.status === 'SUCCEEDED')
+    .sort(
+      (a: { createdAt: string }, b: { createdAt: string }) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
 
-  const lifetimeTotal = sortedDonations.reduce(
-    (sum: number, d: { amount: number }) => sum + Number(d.amount),
-    0,
+  const historyReady = !isLoading && !isError
+  const historyTotal = roundMoney(
+    sortedDonations.reduce((sum: number, d: { amount: number }) => sum + roundMoney(d.amount), 0),
   )
-  const avgGift =
-    sortedDonations.length > 0 ? lifetimeTotal / sortedDonations.length : Number(donor.totalAmount)
+  const lifetimeTotal = historyReady ? historyTotal : roundMoney(donor.totalAmount)
+  const giftCount = historyReady ? sortedDonations.length : Number(donor.totalDonations) || 0
+  const avgGift = giftCount > 0 ? roundMoney(lifetimeTotal / giftCount) : 0
   const firstDonation = sortedDonations[sortedDonations.length - 1]
   const lastDonation = sortedDonations[0]
 
@@ -172,9 +176,9 @@ export default function DonorProfileDrawer({
 
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {/* Header */}
-          <div className="px-6 pt-2 pb-6 border-b border-gray-100 bg-gradient-to-b from-purple-50/50 to-white">
+          <div className="px-6 pt-2 pb-6 border-b border-gray-100 bg-gradient-to-b from-orange-50/50 to-white">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-purple-500/25 shrink-0">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-orange-500/25 shrink-0">
                 {donorInitials(donor)}
               </div>
               <div className="min-w-0 flex-1">
@@ -184,9 +188,14 @@ export default function DonorProfileDrawer({
                 <p className="text-sm text-gray-600 mt-0.5 truncate">{donor.email || 'No email'}</p>
                 <p className="text-sm text-gray-500 tabular-nums">{donor.phone}</p>
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  <StatusBadge label={donor.totalDonations > 0 ? 'Active' : 'Prospect'} active />
+                  <StatusBadge
+                    label={giftCount > 0 ? (isRecentDonor(lastDonation?.createdAt || donor.lastDonationDate) ? 'Active' : 'Lapsed') : 'Prospect'}
+                    active={giftCount > 0 && isRecentDonor(lastDonation?.createdAt || donor.lastDonationDate)}
+                  />
                   {vip && <StatusBadge label="VIP" vip />}
-                  {donor.totalDonations > 1 && <StatusBadge label="Repeat donor" />}
+                  {(historyReady ? giftCount : donor.totalDonations) > 1 && (
+                    <StatusBadge label="Repeat donor" />
+                  )}
                 </div>
               </div>
             </div>
@@ -198,22 +207,38 @@ export default function DonorProfileDrawer({
               Donation analytics
             </h3>
             <div className="grid grid-cols-2 gap-3">
-              <MetricCard label="Lifetime total" value={formatMoneyPrecise(lifetimeTotal || Number(donor.totalAmount))} />
-              <MetricCard label="Average gift" value={formatMoneyPrecise(avgGift)} />
+              <MetricCard
+                label="Lifetime total"
+                value={isLoading ? '…' : isError ? formatMoneyPrecise(roundMoney(donor.totalAmount)) : formatMoneyPrecise(lifetimeTotal)}
+              />
+              <MetricCard label="Average gift" value={isLoading ? '…' : formatMoneyPrecise(avgGift)} />
               <MetricCard
                 label="First donation"
-                value={firstDonation ? format(new Date(firstDonation.createdAt), 'MMM d, yyyy') : formatDonorDate(donor.createdAt)}
+                value={
+                  isLoading
+                    ? '…'
+                    : historyReady && firstDonation
+                      ? format(new Date(firstDonation.createdAt), 'MMM d, yyyy')
+                      : '—'
+                }
                 small
               />
               <MetricCard
                 label="Last donation"
-                value={lastDonation ? format(new Date(lastDonation.createdAt), 'MMM d, yyyy') : formatDonorDate(donor.lastDonationDate)}
+                value={
+                  historyReady && lastDonation
+                    ? format(new Date(lastDonation.createdAt), 'MMM d, yyyy')
+                    : historyReady
+                      ? '—'
+                      : formatDonorDate(donor.lastDonationDate)
+                }
                 small
               />
             </div>
             <p className="text-xs text-gray-500 mt-3">
-              {donor.totalDonations} gift{donor.totalDonations !== 1 ? 's' : ''} on record
-              {sortedDonations.length > 1 && ' · Consistent supporter'}
+              {isError
+                ? 'Gift history could not be loaded. The lifetime total is the donor ledger figure.'
+                : `${giftCount} succeeded gift${giftCount !== 1 ? 's' : ''}. Refunds are excluded.`}
             </p>
           </section>
 
@@ -228,12 +253,16 @@ export default function DonorProfileDrawer({
                   <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />
                 ))}
               </div>
+            ) : isError ? (
+              <p className="text-sm text-red-700 py-4 text-center bg-red-50 rounded-xl">
+                Gift history could not be loaded.
+              </p>
             ) : sortedDonations.length === 0 ? (
               <p className="text-sm text-gray-500 py-4 text-center bg-gray-50 rounded-xl">
-                No donation activity yet.
+                No succeeded gifts on record.
               </p>
             ) : (
-              <ol className="relative border-l-2 border-purple-100 ml-2 space-y-4">
+              <ol className="relative border-l-2 border-orange-100 ml-2 space-y-4">
                 {sortedDonations.slice(0, 12).map((d: {
                   id: string
                   createdAt: string
@@ -242,8 +271,8 @@ export default function DonorProfileDrawer({
                   status?: string
                 }) => (
                   <li key={d.id} className="ml-5 relative">
-                    <span className="absolute -left-[1.35rem] top-1.5 w-2.5 h-2.5 rounded-full bg-purple-500 ring-4 ring-purple-50" />
-                    <div className="bg-gray-50/80 hover:bg-purple-50/50 rounded-xl p-3 transition-colors">
+                    <span className="absolute -left-[1.35rem] top-1.5 w-2.5 h-2.5 rounded-full bg-orange-500 ring-4 ring-orange-50" />
+                    <div className="bg-gray-50/80 hover:bg-orange-50/50 rounded-xl p-3 transition-colors">
                       <p className="text-sm font-medium text-gray-900">
                         Donated {formatMoneyPrecise(Number(d.amount))}
                       </p>
@@ -256,7 +285,7 @@ export default function DonorProfileDrawer({
                           <button
                             type="button"
                             onClick={() => handleViewReceipt(d.id)}
-                            className="text-xs font-medium text-purple-600 hover:text-purple-800"
+                            className="text-xs font-medium text-orange-600 hover:text-orange-800"
                           >
                             View receipt
                           </button>
@@ -280,6 +309,11 @@ export default function DonorProfileDrawer({
                 ))}
               </ol>
             )}
+            {historyReady && sortedDonations.length > 12 && (
+              <p className="text-xs text-gray-500 mt-3">
+                Showing the latest 12 of {sortedDonations.length} gifts. The lifetime total includes every succeeded gift.
+              </p>
+            )}
           </section>
 
           {/* Notes */}
@@ -291,7 +325,7 @@ export default function DonorProfileDrawer({
               <button
                 type="button"
                 onClick={() => setNotesOpen((v) => !v)}
-                className="text-xs font-medium text-purple-600 hover:text-purple-800"
+                className="text-xs font-medium text-orange-600 hover:text-orange-800"
               >
                 {notesOpen ? 'Cancel' : notes ? 'Edit' : 'Add note'}
               </button>
@@ -303,12 +337,12 @@ export default function DonorProfileDrawer({
                   onChange={(e) => setNotes(e.target.value)}
                   rows={4}
                   placeholder="Sponsorship interest, family donor, volunteer, follow-up needed…"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/25 outline-none resize-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/25 outline-none resize-none"
                 />
                 <button
                   type="button"
                   onClick={handleSaveNotes}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700"
                 >
                   Save note
                 </button>
@@ -387,6 +421,15 @@ export default function DonorProfileDrawer({
       </div>
     </DrawerShell>
   )
+}
+
+function isRecentDonor(dateString?: string | null): boolean {
+  if (!dateString) return false
+  const last = new Date(dateString)
+  if (Number.isNaN(last.getTime())) return false
+  const cutoff = new Date()
+  cutoff.setMonth(cutoff.getMonth() - 12)
+  return last >= cutoff
 }
 
 function DrawerShell({
@@ -490,9 +533,9 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200/80 rounded-xl hover:bg-purple-50 hover:border-purple-200 hover:text-purple-900 transition-all disabled:opacity-50 text-left"
+      className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200/80 rounded-xl hover:bg-orange-50 hover:border-orange-200 hover:text-orange-900 transition-all disabled:opacity-50 text-left"
     >
-      <svg className="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 shrink-0 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
       </svg>
       {label}

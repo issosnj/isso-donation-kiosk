@@ -78,7 +78,7 @@ export default function Sidebar({
       >
       <div className="p-5 border-b border-gray-200">
         <div className="flex items-center space-x-3 mb-5">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center shadow-sm">
+          <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-orange-700 rounded-lg flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-lg">I</span>
           </div>
           <div>
@@ -104,7 +104,7 @@ export default function Sidebar({
               onClick={() => setActiveTab(tab.id)}
               className={`w-full text-left px-3 py-2.5 mb-0.5 flex items-center space-x-3 rounded-md transition-all duration-150 ${
                 isActive
-                  ? 'bg-purple-50 text-purple-700 font-semibold'
+                  ? 'bg-orange-50 text-orange-700 font-semibold'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >

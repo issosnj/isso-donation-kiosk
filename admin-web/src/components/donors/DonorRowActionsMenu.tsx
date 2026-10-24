@@ -51,7 +51,7 @@ export default function DonorRowActionsMenu({ actions }: DonorRowActionsMenuProp
         <button
           type="button"
           onClick={actions.onView}
-          className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+          className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
           aria-label="View donor"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +99,7 @@ export default function DonorRowActionsMenu({ actions }: DonorRowActionsMenuProp
               className={`w-full text-left px-3 py-2 text-sm transition-colors ${
                 item.destructive
                   ? 'text-red-600 hover:bg-red-50'
-                  : 'text-gray-700 hover:bg-purple-50 hover:text-purple-900'
+                  : 'text-gray-700 hover:bg-orange-50 hover:text-orange-900'
               }`}
             >
               {item.label}

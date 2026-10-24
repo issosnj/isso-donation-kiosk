@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsUUID, IsString, IsOptional, MaxLength, ValidateNested } from 'class-validator';
+import { IsUUID, IsString, IsOptional, IsEmail, MaxLength, ValidateIf, ValidateNested } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class DonorDisplayProposedDto {
@@ -17,7 +17,8 @@ export class DonorDisplayProposedDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
+  @ValidateIf((_, value) => typeof value === 'string' && value.trim() !== '')
+  @IsEmail()
   @MaxLength(254)
   donorEmail?: string;
 

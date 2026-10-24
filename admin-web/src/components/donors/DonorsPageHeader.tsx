@@ -1,6 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import PageHeader, {
+  PageHeaderActions,
+  headerPrimaryButtonClass,
+  headerSecondaryButtonClass,
+} from '@/components/layout/PageHeader'
 
 interface DonorsPageHeaderProps {
   templeLabel?: string
@@ -33,90 +38,69 @@ export default function DonorsPageHeader({
     return () => document.removeEventListener('mousedown', onDoc)
   }, [moreOpen])
 
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-purple-100/80 bg-gradient-to-br from-white via-purple-50/30 to-violet-50/40 shadow-sm">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-transparent pointer-events-none" />
-      <div className="relative px-6 py-7 sm:px-8 sm:py-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          {!isMasterAdmin ? (
-            <div className="min-w-0 max-w-2xl">
-              {templeLabel && (
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-600">
-                  {templeLabel}
-                </p>
-              )}
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-                Donor Management
-              </h1>
-              <p className="mt-2 text-sm leading-relaxed text-gray-600 sm:text-base">
-                Manage temple donor relationships, donation history, recurring contributions, and
-                engagement.
-              </p>
-            </div>
-          ) : (
-            <div className="min-w-0 flex-1" aria-hidden />
-          )}
-
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+  const actions = (
+    <>
+      <button type="button" onClick={onAddDonor} className={headerPrimaryButtonClass}>
+        <PlusIcon />
+        Add Donor
+      </button>
+      <button
+        type="button"
+        onClick={onExport}
+        disabled={exportDisabled}
+        className={headerSecondaryButtonClass}
+      >
+        <ExportIcon />
+        Export
+      </button>
+      <button type="button" onClick={onImport} className={headerSecondaryButtonClass}>
+        <ImportIcon />
+        Import
+      </button>
+      <div className="relative" ref={moreRef}>
+        <button
+          type="button"
+          onClick={() => setMoreOpen((v) => !v)}
+          className={headerSecondaryButtonClass}
+          aria-expanded={moreOpen}
+          aria-haspopup="menu"
+        >
+          More
+          <ChevronIcon />
+        </button>
+        {moreOpen && (
+          <div
+            role="menu"
+            className="absolute right-0 z-20 mt-1.5 w-52 py-1 bg-white border border-gray-200/80 rounded-xl shadow-lg ring-1 ring-black/5"
+          >
             <button
               type="button"
-              onClick={onAddDonor}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-violet-600 rounded-xl shadow-md shadow-purple-500/20 hover:from-purple-700 hover:to-violet-700 transition-all"
+              role="menuitem"
+              onClick={() => {
+                setMoreOpen(false)
+                onBackfill()
+              }}
+              className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-900 transition-colors"
             >
-              <PlusIcon />
-              Add Donor
+              Backfill from donations
             </button>
-            <button
-              type="button"
-              onClick={onExport}
-              disabled={exportDisabled}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white/90 border border-gray-200/80 rounded-xl shadow-sm hover:bg-white hover:shadow transition-all disabled:opacity-50"
-            >
-              <ExportIcon />
-              Export
-            </button>
-            <button
-              type="button"
-              onClick={onImport}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white/90 border border-gray-200/80 rounded-xl shadow-sm hover:bg-white hover:shadow transition-all"
-            >
-              <ImportIcon />
-              Import
-            </button>
-            <div className="relative" ref={moreRef}>
-              <button
-                type="button"
-                onClick={() => setMoreOpen((v) => !v)}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-gray-700 bg-white/90 border border-gray-200/80 rounded-xl shadow-sm hover:bg-white transition-all"
-                aria-expanded={moreOpen}
-                aria-haspopup="menu"
-              >
-                More
-                <ChevronIcon />
-              </button>
-              {moreOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 z-20 mt-1.5 w-52 py-1 bg-white border border-gray-200/80 rounded-xl shadow-lg ring-1 ring-black/5"
-                >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setMoreOpen(false)
-                      onBackfill()
-                    }}
-                    className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-900 transition-colors"
-                  >
-                    Backfill from donations
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
+        )}
       </div>
-    </div>
+    </>
+  )
+
+  if (isMasterAdmin) {
+    return <PageHeaderActions>{actions}</PageHeaderActions>
+  }
+
+  return (
+    <PageHeader
+      eyebrow={templeLabel}
+      title="Donor Management"
+      description="Manage temple donor relationships, donation history, recurring contributions, and engagement."
+      actions={actions}
+    />
   )
 }
 

@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
+import PageHeader, {
+  headerPrimaryButtonClass,
+  headerSecondaryButtonClass,
+} from '@/components/layout/PageHeader'
 
 interface ReceiptTabProps {
   templeId: string
@@ -217,68 +221,37 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
     )
   }
 
+  const editLabel = isMasterAdmin ? 'Edit configuration' : 'Edit contact information'
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Receipt Configuration</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Customize how donation receipts are sent to donors
-          </p>
-        </div>
-        {isMasterAdmin && (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow={temple?.name}
+        title="Receipts"
+        description="Customize how donation receipts are sent to donors."
+        actions={
           !isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-            >
-              Edit Configuration
+            <button type="button" onClick={() => setIsEditing(true)} className={headerPrimaryButtonClass}>
+              {editLabel}
             </button>
           ) : (
-            <div className="flex space-x-3">
-              <button
-                onClick={handleCancel}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-              >
+            <>
+              <button type="button" onClick={handleCancel} className={headerSecondaryButtonClass}>
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={updateMutation.isPending}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50"
+                className={headerPrimaryButtonClass}
               >
-                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+                {updateMutation.isPending ? 'Saving...' : 'Save changes'}
               </button>
-            </div>
+            </>
           )
-        )}
-        {!isMasterAdmin && (
-          !isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-            >
-              Edit Contact Information
-            </button>
-          ) : (
-            <div className="flex space-x-3">
-              <button
-                onClick={handleCancel}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={updateMutation.isPending}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50"
-              >
-                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          )
-        )}
-      </div>
+        }
+      />
+      <div className="bg-white rounded-lg border border-gray-200 p-8">
 
       {/* Gmail Connection Status */}
       {(gmailSuccessMessage || gmailErrorMessage) && (
@@ -342,7 +315,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, fromEmail: e.target.value })}
                   disabled={!isEditing}
                   placeholder="donations@temple.org"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
                 <p className="text-xs text-gray-500 mt-1">Email address receipts will be sent from</p>
               </div>
@@ -356,7 +329,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, fromName: e.target.value })}
                   disabled={!isEditing}
                   placeholder={temple?.name || 'Temple Name'}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
                 <p className="text-xs text-gray-500 mt-1">Display name for email sender</p>
               </div>
@@ -370,7 +343,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Donation Receipt - {{templeName}}"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
                 <p className="text-xs text-gray-500 mt-1">Use {'{{templeName}}'} to insert temple name</p>
               </div>
@@ -393,7 +366,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
                   disabled={!isEditing}
                   placeholder="International Swaminarayan Satsang Organization"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
               </div>
               <div>
@@ -406,7 +379,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, organizationSubtitle: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Under Shree NarNarayandev Gadi - The Original Swaminarayan Sampradaya"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
               </div>
               <div>
@@ -419,7 +392,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, headerTitle: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Shree Swaminarayan Vijaytetram"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
               </div>
               <div>
@@ -432,7 +405,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
                   disabled={!isEditing}
                   placeholder="https://example.com/logo.png"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
               </div>
             </div>
@@ -450,7 +423,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                 checked={formData.showContactInfo}
                 onChange={(e) => setFormData({ ...formData, showContactInfo: e.target.checked })}
                 disabled={!isEditing}
-                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
+                className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded disabled:bg-gray-100"
               />
               <label htmlFor="showContactInfo" className="ml-2 text-sm font-medium text-gray-700">
                 Show contact information on receipt
@@ -468,7 +441,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     disabled={!isEditing}
                     placeholder="(856) 829-4776"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                   />
                 </div>
                 <div>
@@ -481,7 +454,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     disabled={!isEditing}
                     placeholder="snj@issousa.org"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                   />
                 </div>
                 <div>
@@ -494,7 +467,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                     disabled={!isEditing}
                     placeholder="www.issousa.org"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                   />
                 </div>
               </div>
@@ -517,7 +490,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, headerText: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Thank You for Your Donation"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
               </div>
               <div>
@@ -530,7 +503,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, thankYouMessage: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Thank you for your kind donation, your donation may be tax deductible."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
               </div>
               <div>
@@ -543,7 +516,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   disabled={!isEditing}
                   placeholder="Optional custom message to include in receipt"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
               </div>
               <div>
@@ -556,7 +529,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   onChange={(e) => setFormData({ ...formData, footerText: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Your donation helps support our temple"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                 />
               </div>
             </div>
@@ -575,7 +548,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   checked={formData.showAmountInWords}
                   onChange={(e) => setFormData({ ...formData, showAmountInWords: e.target.checked })}
                   disabled={!isEditing}
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
+                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded disabled:bg-gray-100"
                 />
                 <label htmlFor="showAmountInWords" className="ml-2 text-sm font-medium text-gray-700">
                   Show amount in words
@@ -588,7 +561,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   checked={formData.showPaymentMethod}
                   onChange={(e) => setFormData({ ...formData, showPaymentMethod: e.target.checked })}
                   disabled={!isEditing}
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
+                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded disabled:bg-gray-100"
                 />
                 <label htmlFor="showPaymentMethod" className="ml-2 text-sm font-medium text-gray-700">
                   Show payment method
@@ -601,7 +574,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   checked={formData.showPreparedBy}
                   onChange={(e) => setFormData({ ...formData, showPreparedBy: e.target.checked })}
                   disabled={!isEditing}
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
+                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded disabled:bg-gray-100"
                 />
                 <label htmlFor="showPreparedBy" className="ml-2 text-sm font-medium text-gray-700">
                   Show "Prepared by" field
@@ -618,7 +591,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                     onChange={(e) => setFormData({ ...formData, preparedBy: e.target.value })}
                     disabled={!isEditing}
                     placeholder="Vijay Patel"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                   />
                 </div>
               )}
@@ -638,7 +611,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                   checked={formData.includeTaxId}
                   onChange={(e) => setFormData({ ...formData, includeTaxId: e.target.checked })}
                   disabled={!isEditing}
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:bg-gray-100"
+                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded disabled:bg-gray-100"
                 />
                 <label htmlFor="includeTaxId" className="ml-2 text-sm font-medium text-gray-700">
                   Include Tax ID (EIN) in receipts
@@ -656,7 +629,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                       onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
                       disabled={!isEditing}
                       placeholder="22-2290410"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                     />
                   </div>
                   <div>
@@ -669,7 +642,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
                       disabled={!isEditing}
                       placeholder="ISSO (EIN#22-2290410) is recognized by IRS as 501(c)(3) tax exempt organization, please visit us at www.issousa.org"
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100"
                     />
                   </div>
                 </>
@@ -678,6 +651,7 @@ export default function ReceiptTab({ templeId, isMasterAdmin = false }: ReceiptT
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

@@ -80,12 +80,17 @@ export class DonorsController {
   async getDonorStats(
     @Param('templeId') templeId: string,
     @Request() req,
+    @Query('monthStart') monthStart?: string,
   ) {
     const targetTempleId = req.user.role === UserRole.TEMPLE_ADMIN ? req.user.templeId : templeId;
     if (req.user.role === UserRole.TEMPLE_ADMIN && templeId !== req.user.templeId) {
       throw new ForbiddenException('Cannot access donors for another temple');
     }
-    return this.donorsService.getDonorStats(targetTempleId);
+    const parsedMonthStart = monthStart ? new Date(monthStart) : undefined;
+    return this.donorsService.getDonorStats(
+      targetTempleId,
+      parsedMonthStart && !isNaN(parsedMonthStart.getTime()) ? parsedMonthStart : undefined,
+    );
   }
 
   @Get('temple/:templeId')

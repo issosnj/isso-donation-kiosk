@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, IsNull } from 'typeorm';
+import { Repository, Not, IsNull, In } from 'typeorm';
 import { Donation, DonationStatus } from './entities/donation.entity';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { CompleteDonationDto } from './dto/complete-donation.dto';
@@ -14,6 +14,7 @@ import { DonorsService } from '../donors/donors.service';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { isAnonymousForAttribution } from './donation-anonymity.util';
+import { canonicalDonorPhone, canonicalPhoneSql, donationBelongsToDonorSql } from '../donors/donor-donation-match';
 
 @Injectable()
 export class DonationsService {
@@ -142,6 +143,8 @@ export class DonationsService {
     if (!donation) {
       throw new NotFoundException(`Donation with ID ${donationId} not found`);
     }
+
+    const alreadySucceeded = donation.status === DonationStatus.SUCCEEDED;
 
     // SECURITY: Never trust client-provided status for SUCCEEDED. Verify with Stripe API.
     if (completeDonationDto.status === DonationStatus.SUCCEEDED && completeDonationDto.stripePaymentIntentId) {
@@ -283,16 +286,22 @@ export class DonationsService {
     const skipDonorProfile = completeDonationDto.submittedAsAnonymous === true;
     if (!skipDonorProfile && completeDonationDto.donorPhone) {
       try {
-        await this.donorsService.findOrCreateDonor(
+        const donor = await this.donorsService.findOrCreateDonor(
           donation.templeId,
           completeDonationDto.donorPhone,
           completeDonationDto.donorName,
           completeDonationDto.donorEmail,
           completeDonationDto.donorAddress,
         );
-        
-        // Update donor statistics only for succeeded donations
-        if (completeDonationDto.status === DonationStatus.SUCCEEDED) {
+
+        if (donor && !savedDonation.donorId) {
+          savedDonation.donorId = donor.id;
+          await this.donationsRepository.save(savedDonation);
+        }
+
+        // A retried complete must not add the same gift to the running total again.
+        // The donor page reads succeeded gifts from the ledger, not this counter.
+        if (donor && completeDonationDto.status === DonationStatus.SUCCEEDED && !alreadySucceeded) {
           await this.donorsService.updateDonorStats(
             donation.templeId,
             completeDonationDto.donorPhone,
@@ -307,7 +316,11 @@ export class DonationsService {
     }
 
     // Send receipt email if email is provided and payment succeeded
-    if (completeDonationDto.donorEmail && completeDonationDto.status === DonationStatus.SUCCEEDED) {
+    if (
+      completeDonationDto.donorEmail &&
+      completeDonationDto.status === DonationStatus.SUCCEEDED &&
+      !alreadySucceeded
+    ) {
       console.log('[DonationsService] 📧 Scheduling receipt email for donation:', savedDonation.id);
       // Don't await - send email asynchronously to not block donation completion
       this.sendReceiptEmail(savedDonation).catch((error) => {
@@ -382,32 +395,52 @@ export class DonationsService {
     templeId?: string,
     donorId?: string,
   ): Promise<Donation[]> {
-    const normalizedPhone = phone.replace(/\D/g, '');
-    const queryBuilder = this.donationsRepository
-      .createQueryBuilder('donation')
-      .leftJoinAndSelect('donation.temple', 'temple')
-      .leftJoinAndSelect('donation.category', 'category')
-      .where('donation.status = :status', { status: DonationStatus.SUCCEEDED })
-      .orderBy('donation.createdAt', 'DESC');
+    const canonicalPhone = canonicalDonorPhone(phone);
+    const belongsToMatchedDonor = donationBelongsToDonorSql('donation', 'donor_match');
+    const params: unknown[] = [DonationStatus.SUCCEEDED];
+    const templeSql = templeId
+      ? `AND donation."templeId" = $${params.push(templeId)}::uuid`
+      : '';
 
-    // Match by donorId OR normalized phone (PostgreSQL: strip non-digits from donorPhone)
+    let matchSql: string;
     if (donorId) {
-      queryBuilder.andWhere(
-        '(donation.donorId = :donorId OR REGEXP_REPLACE(COALESCE(donation.donorPhone, \'\'), \'[^0-9]\', \'\', \'g\') = :normalizedPhone)',
-        { donorId, normalizedPhone },
-      );
+      matchSql = `EXISTS (
+        SELECT 1 FROM donors donor_match
+        WHERE donor_match.id = $${params.push(donorId)}::uuid
+          AND donor_match."templeId" = donation."templeId"
+          AND ${belongsToMatchedDonor}
+      )`;
+    } else if (canonicalPhone) {
+      matchSql = `EXISTS (
+        SELECT 1 FROM donors donor_match
+        WHERE donor_match."templeId" = donation."templeId"
+          AND ${canonicalPhoneSql('donor_match.phone')} = $${params.push(canonicalPhone)}
+          AND ${belongsToMatchedDonor}
+      )`;
     } else {
-      queryBuilder.andWhere(
-        "REGEXP_REPLACE(COALESCE(donation.donorPhone, ''), '[^0-9]', '', 'g') = :normalizedPhone",
-        { normalizedPhone },
-      );
+      return [];
     }
 
-    if (templeId) {
-      queryBuilder.andWhere('donation.templeId = :templeId', { templeId });
-    }
+    const idRows: { id: string }[] = await this.donationsRepository.query(
+      `
+      SELECT donation.id
+      FROM donations donation
+      WHERE donation.status = $1
+        ${templeSql}
+        AND ${matchSql}
+      ORDER BY donation."createdAt" DESC
+      `,
+      params,
+    );
+    if (idRows.length === 0) return [];
 
-    return queryBuilder.getMany();
+    const donations = await this.donationsRepository.find({
+      where: { id: In(idRows.map((row) => row.id)) },
+      relations: ['temple', 'category'],
+    });
+    const order = new Map(idRows.map((row, index) => [row.id, index]));
+    donations.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return donations;
   }
 
   async backfillStripeFees(): Promise<{ updated: number; failed: number }> {
@@ -806,10 +839,14 @@ export class DonationsService {
     templeId: string | undefined,
     startDate: Date,
     endDate: Date,
+    timeZone?: string,
   ): Promise<{
     daily: { date: string; amount: number; count: number }[];
     byTemple: { templeId: string; templeName: string; total: number; count: number }[];
   }> {
+    const bucketTz = this.bucketTimeZone(timeZone).replace(/'/g, '');
+    const localTimestamp = `(donation."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE '${bucketTz}')`;
+
     let dailyQb = this.donationsRepository
       .createQueryBuilder('donation')
       .where('donation.status = :status', { status: DonationStatus.SUCCEEDED })
@@ -823,11 +860,11 @@ export class DonationsService {
     }
 
     const dailyRaw = await dailyQb
-      .select(`TO_CHAR(DATE_TRUNC('day', donation.createdAt), 'YYYY-MM-DD')`, 'date')
+      .select(`TO_CHAR(DATE_TRUNC('day', ${localTimestamp}), 'YYYY-MM-DD')`, 'date')
       .addSelect('COALESCE(SUM(donation.amount), 0)', 'total')
       .addSelect('COUNT(donation.id)', 'count')
-      .groupBy(`DATE_TRUNC('day', donation.createdAt)`)
-      .orderBy(`DATE_TRUNC('day', donation.createdAt)`, 'ASC')
+      .groupBy(`DATE_TRUNC('day', ${localTimestamp})`)
+      .orderBy(`DATE_TRUNC('day', ${localTimestamp})`, 'ASC')
       .getRawMany();
 
     let templeQb = this.donationsRepository
@@ -869,10 +906,25 @@ export class DonationsService {
     return { daily, byTemple };
   }
 
+  /** IANA zone used to decide which calendar day a gift belongs to. */
+  private bucketTimeZone(timeZone?: string): string {
+    if (
+      timeZone &&
+      timeZone.length < 64 &&
+      /^[A-Za-z0-9_+-]+(?:\/[A-Za-z0-9_+-]+){0,2}$/.test(timeZone)
+    ) {
+      return timeZone;
+    }
+    return 'UTC';
+  }
+
   // Simple encryption/decryption helpers (should match GmailController)
   // Key derivation function - ensures we always have exactly 32 bytes for AES-256
   private getKey(): Buffer {
-    const keyString = this.configService.get<string>('ENCRYPTION_KEY') || 'default-key-32-characters-long!!';
+    const keyString = this.configService.get<string>('ENCRYPTION_KEY');
+    if (!keyString) {
+      throw new Error('ENCRYPTION_KEY is not configured');
+    }
     
     // If it's a hex string, parse it
     if (/^[0-9a-fA-F]+$/.test(keyString)) {
@@ -1165,6 +1217,8 @@ export class DonationsService {
       return donation;
     }
 
+    const previousPhone = donation.donorPhone;
+
     // Update donation with donor information
     donation.donorId = donorId;
     donation.donorName = donor.name || donation.donorName;
@@ -1181,15 +1235,17 @@ export class DonationsService {
 
     const savedDonation = await this.donationsRepository.save(donation);
 
-    // Update donor statistics if not already updated
-    // Check if this donation was already counted in donor stats
-    // We'll update stats to ensure accuracy
-    await this.donorsService.updateDonorStats(
-      donation.templeId,
-      donor.phone,
-      Number(donation.amount),
-      donation.createdAt,
-    );
+    const alreadyOnLedger =
+      canonicalDonorPhone(previousPhone) !== '' &&
+      canonicalDonorPhone(previousPhone) === canonicalDonorPhone(donor.phone);
+    if (donor.phone && !alreadyOnLedger) {
+      await this.donorsService.updateDonorStats(
+        donation.templeId,
+        donor.phone,
+        Number(donation.amount),
+        donation.createdAt,
+      );
+    }
 
     console.log(`[DonationsService] ✅ Assigned donation ${donationId} to donor ${donorId} by user ${assignedByUserId || 'unknown'}`);
 

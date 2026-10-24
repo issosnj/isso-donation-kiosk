@@ -94,7 +94,7 @@ export default function MasterDevicesTab() {
     <div className="space-y-6">
       <DeviceSummaryCards summary={summary} isLoading={isLoading} />
 
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-200 bg-gray-50/50">
           <div className="flex flex-col sm:flex-row gap-3">
             <input
@@ -102,12 +102,12 @@ export default function MasterDevicesTab() {
               placeholder="Search by device name, code, or temple..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
             <select
               value={templeFilter}
               onChange={(e) => setTempleFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[180px]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 min-w-[180px]"
             >
               <option value="">All temples</option>
               {temples.map((t: any) => (
@@ -119,7 +119,7 @@ export default function MasterDevicesTab() {
             <select
               value={activationFilter}
               onChange={(e) => setActivationFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[140px]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 min-w-[140px]"
             >
               <option value="">Activation: All</option>
               <option value="PENDING">Pending</option>
@@ -129,7 +129,7 @@ export default function MasterDevicesTab() {
             <select
               value={healthFilter}
               onChange={(e) => setHealthFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[140px]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 min-w-[140px]"
             >
               <option value="">Health: All</option>
               <option value="online">Online</option>
@@ -200,7 +200,7 @@ export default function MasterDevicesTab() {
                 {filteredBySearch.map((d) => (
                   <tr
                     key={d.id}
-                    className="hover:bg-purple-50/30 transition-colors"
+                    className="hover:bg-orange-50/30 transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div>
@@ -242,7 +242,7 @@ export default function MasterDevicesTab() {
                       <div className="flex items-center justify-end gap-1 flex-wrap">
                         <button
                           onClick={() => handleView(d)}
-                          className="px-3 py-1.5 text-sm font-medium text-purple-600 hover:bg-purple-50 rounded-md"
+                          className="px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-md"
                         >
                           View
                         </button>

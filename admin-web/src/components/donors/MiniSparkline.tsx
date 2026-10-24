@@ -1,6 +1,6 @@
 'use client'
 
-export default function MiniSparkline({ className = 'text-purple-400' }: { className?: string }) {
+export default function MiniSparkline({ className = 'text-orange-400' }: { className?: string }) {
   const heights = [40, 65, 45, 80, 55, 90, 70]
   return (
     <svg viewBox="0 0 56 24" className={`h-6 w-14 opacity-70 ${className}`} aria-hidden>

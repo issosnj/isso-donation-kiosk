@@ -43,7 +43,7 @@ export default function DonorEditModal({
               value={form.address}
               onChange={(e) => onChange({ ...form, address: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/25 outline-none resize-none"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/25 outline-none resize-none"
             />
           </div>
         </div>
@@ -59,7 +59,7 @@ export default function DonorEditModal({
             type="button"
             onClick={onSave}
             disabled={isSaving}
-            className="px-4 py-2.5 text-sm font-semibold text-white bg-purple-600 rounded-xl hover:bg-purple-700 disabled:opacity-50"
+            className="px-4 py-2.5 text-sm font-semibold text-white bg-orange-600 rounded-xl hover:bg-orange-700 disabled:opacity-50"
           >
             {isSaving ? 'Saving…' : 'Save'}
           </button>
@@ -87,7 +87,7 @@ function Field({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/25 outline-none"
+        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/25 outline-none"
       />
     </div>
   )

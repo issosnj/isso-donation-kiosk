@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { buildTempleRanges, isValidTimeZone } from '@/lib/zonedRange'
 import type { Donor, DonorSegment, DonorSortKey } from '@/types/donor'
 import {
   TempleFilter,
@@ -58,6 +59,15 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
   const limit = segment !== 'all' || sortKey !== 'last_donation' ? 200 : 50
   const effectiveTempleId = isMasterAdmin ? templeId : (templeId as string)
 
+  const { data: ownTemple } = useQuery({
+    queryKey: ['temple', effectiveTempleId],
+    queryFn: async () => {
+      const response = await api.get(`/temples/${effectiveTempleId}`)
+      return response.data as { name?: string; timezone?: string }
+    },
+    enabled: !isMasterAdmin && !!effectiveTempleId,
+  })
+
   const { data: temples = [] } = useQuery({
     queryKey: ['temples'],
     queryFn: async () => {
@@ -67,6 +77,14 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
     enabled: isMasterAdmin,
   })
 
+  const rawTempleZone = isMasterAdmin
+    ? temples.find((t: { id: string; timezone?: string }) => t.id === effectiveTempleId)?.timezone
+    : ownTemple?.timezone
+  const templeTimeZone = isValidTimeZone(rawTempleZone)
+    ? rawTempleZone
+    : Intl.DateTimeFormat().resolvedOptions().timeZone
+  const monthStart = buildTempleRanges(templeTimeZone).startOfMonth.toISOString()
+
   const endpoint =
     isMasterAdmin && effectiveTempleId
       ? `/donors/temple/${effectiveTempleId}`
@@ -74,7 +92,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
         ? '/donors/my-temple'
         : null
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: ['donors', effectiveTempleId, page, search, limit],
     queryFn: async () => {
       if (!endpoint) return { donors: [], total: 0 }
@@ -89,11 +107,13 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
     enabled: !!endpoint,
   })
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['donor-stats', effectiveTempleId],
+  const { data: stats, isLoading: statsLoading, isError: statsError } = useQuery({
+    queryKey: ['donor-stats', effectiveTempleId, monthStart],
     queryFn: async () => {
       if (!effectiveTempleId) return null
-      const res = await api.get(`/donors/temple/${effectiveTempleId}/stats`)
+      const res = await api.get(`/donors/temple/${effectiveTempleId}/stats`, {
+        params: { monthStart },
+      })
       return res.data
     },
     enabled: !!effectiveTempleId && !!endpoint,
@@ -252,19 +272,21 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
   }
 
   const emptyVariant =
-    rawDonors.length === 0
-      ? search
-        ? 'no_results'
-        : 'no_donors'
-      : displayedDonors.length === 0
-        ? 'segment'
-        : null
+    isLoading && rawDonors.length === 0
+      ? null
+      : rawDonors.length === 0
+        ? search
+          ? 'no_results'
+          : 'no_donors'
+        : displayedDonors.length === 0
+          ? 'segment'
+          : null
 
   return (
     <div className="space-y-6 pb-8 min-w-0 max-w-full">
       <DonorsPageHeader
         isMasterAdmin={isMasterAdmin}
-        templeLabel={selectedTemple?.name}
+        templeLabel={isMasterAdmin ? selectedTemple?.name : ownTemple?.name}
         onAddDonor={() => setShowAddDonor(true)}
         onExport={() => exportDonorsToCsv(displayedDonors.length ? displayedDonors : rawDonors)}
         onImport={() =>
@@ -276,7 +298,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
         exportDisabled={rawDonors.length === 0}
       />
 
-      <DonorsKPICards kpis={kpis} isLoading={statsLoading} />
+      <DonorsKPICards kpis={kpis} isLoading={statsLoading} isError={statsError} />
 
       <DonorsFiltersToolbar
         search={search}
@@ -291,7 +313,10 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
           setPage(1)
         }}
         sortKey={sortKey}
-        onSortChange={setSortKey}
+        onSortChange={(key) => {
+          setSortKey(key)
+          setPage(1)
+        }}
         onClearFilters={clearFilters}
         isMasterAdmin={isMasterAdmin}
         temples={temples}
@@ -300,7 +325,11 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
         resultCount={displayedDonors.length}
       />
 
-      {emptyVariant ? (
+      {isError ? (
+        <div className="bg-white rounded-2xl border border-red-200 shadow-sm px-6 py-10 text-center text-sm text-red-800">
+          The donor list could not be loaded. Totals stay hidden until the directory loads successfully.
+        </div>
+      ) : emptyVariant ? (
         <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm">
           <DonorsEmptyState
             variant={emptyVariant}

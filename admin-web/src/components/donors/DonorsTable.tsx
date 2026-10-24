@@ -135,7 +135,7 @@ function DonorTableRow({
 
   return (
     <tr
-      className="group hover:bg-purple-50/40 transition-colors cursor-pointer"
+      className="group hover:bg-orange-50/40 transition-colors cursor-pointer"
       onClick={() => onRowClick(donor)}
     >
       <td className="px-5 py-4">
@@ -150,7 +150,7 @@ function DonorTableRow({
         <span className="inline-flex items-center gap-1.5 text-sm text-gray-700 tabular-nums">
           {donor.totalDonations}
           {donor.totalDonations > 1 && (
-            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-700">
+            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-orange-50 text-orange-700">
               Repeat
             </span>
           )}
@@ -187,7 +187,7 @@ function DonorMobileCard({
       tabIndex={0}
       onClick={() => onRowClick(donor)}
       onKeyDown={(e) => e.key === 'Enter' && onRowClick(donor)}
-      className="p-4 hover:bg-purple-50/30 transition-colors cursor-pointer active:bg-purple-50/50"
+      className="p-4 hover:bg-orange-50/30 transition-colors cursor-pointer active:bg-orange-50/50"
     >
       <div className="flex items-start justify-between gap-3">
         <DonorIdentity donor={donor} badges={badges} vip={vip} compact />
@@ -219,7 +219,7 @@ function DonorIdentity({
   return (
     <div className="flex items-center gap-3 min-w-0">
       <div
-        className={`shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-white font-semibold shadow-sm ${
+        className={`shrink-0 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-semibold shadow-sm ${
           compact ? 'w-10 h-10 text-sm' : 'w-11 h-11 text-sm'
         }`}
       >

@@ -16,14 +16,15 @@ function statusBadge(label: DeviceHealthRow['statusLabel']) {
     Offline: 'bg-gray-100 text-gray-600',
     'Needs setup': 'bg-amber-50 text-amber-800',
     Warning: 'bg-orange-50 text-orange-700',
+    Deactivated: 'bg-gray-100 text-gray-500',
   }
   return map[label] ?? 'bg-gray-100 text-gray-600'
 }
 
 function readerLabel(status: DeviceHealthRow['readerStatus']) {
-  if (status === 'connected') return 'Reader connected'
-  if (status === 'disconnected') return 'Reader offline'
-  if (status === 'unknown') return 'Reader unknown'
+  if (status === 'connected') return 'Reader Connected'
+  if (status === 'disconnected') return 'Reader Offline'
+  if (status === 'unknown') return 'Not Reported'
   return 'N/A'
 }
 
@@ -50,21 +51,21 @@ export default function TempleDeviceHealthTable({
     <div className="dashboard-card overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100/90 flex items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Kiosk & device health</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Kiosk & Device Health</h3>
           <p className="text-xs text-gray-500 mt-0.5">Heartbeat and reader status</p>
         </div>
         <button
           type="button"
           onClick={() => router.push('/dashboard?tab=devices')}
-          className="text-xs font-semibold text-violet-600 hover:text-violet-700"
+          className="text-xs font-semibold text-orange-600 hover:text-orange-700"
         >
-          Devices tab
+          Devices
         </button>
       </div>
       {rows.length === 0 ? (
         <WidgetEmptyState
           title="No devices registered"
-          description="Add a kiosk from the Devices tab to start accepting donations."
+          description="Add a kiosk from Devices to start accepting donations."
           icon="inbox"
         />
       ) : (
@@ -82,7 +83,7 @@ export default function TempleDeviceHealthTable({
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-violet-50/30">
+                  <tr key={row.id} className="hover:bg-orange-50/30">
                     <td className="px-5 py-3 font-medium text-gray-900">{row.name}</td>
                     <td className="px-3 py-3">
                       <span
@@ -116,7 +117,7 @@ export default function TempleDeviceHealthTable({
                     {row.lastHeartbeatLabel}
                   </div>
                   <div>
-                    <span className="text-gray-400 block">Last gift</span>
+                    <span className="text-gray-400 block">Last Gift</span>
                     {row.lastDonationLabel}
                   </div>
                   <div className="col-span-2">

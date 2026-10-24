@@ -49,7 +49,7 @@ export default function MasterReceiptsTab() {
       <div>
         <button
           onClick={() => setSelectedTempleId(null)}
-          className="mb-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors flex items-center space-x-2 text-sm"
+          className="mb-4 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -74,7 +74,7 @@ export default function MasterReceiptsTab() {
                 <button
                   key={temple.id}
                   onClick={() => setSelectedTempleId(temple.id)}
-                  className="p-4 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left"
+                  className="p-4 border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-left"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-gray-900">{temple.name}</h4>

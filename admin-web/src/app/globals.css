@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --primary: #7c3aed;
-  --primary-mid: #9333ea;
-  --primary-light: #a855f7;
-  --accent: #c084fc;
-  --primary-dark: #6d28d9;
-  --primary-tint: #ede9fe;
-  --secondary: #8b5cf6;
+  --primary: #ea580c;
+  --primary-mid: #f97316;
+  --primary-light: #fb923c;
+  --accent: #fdba74;
+  --primary-dark: #c2410c;
+  --primary-tint: #ffedd5;
+  --secondary: #f97316;
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
@@ -19,7 +19,7 @@
   --text-secondary: #6b7280;
   --border: #e5e7eb;
   --card-radius: 1.25rem;
-  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 24px rgba(124, 58, 237, 0.06);
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 24px rgba(234, 88, 12, 0.06);
   /* Master admin shell layout */
   --sidebar-width: 16rem;
   --sidebar-collapsed-width: 4.5rem;
@@ -131,13 +131,13 @@ body {
 }
 
 .enterprise-nav-item.is-active {
-  background-color: rgb(245 243 255);
-  color: rgb(91 33 182);
+  background-color: rgb(255 247 237);
+  color: rgb(154 52 18);
   font-weight: 500;
 }
 
 .enterprise-nav-item.is-active:not(.is-collapsed-item) {
-  box-shadow: inset 2px 0 0 0 rgb(124 58 237);
+  box-shadow: inset 2px 0 0 0 rgb(234 88 12);
 }
 
 .enterprise-nav-item.is-disabled {
@@ -265,7 +265,7 @@ body {
 
   .dashboard-card-hover:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.05), 0 12px 32px rgba(124, 58, 237, 0.1);
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.05), 0 12px 32px rgba(234, 88, 12, 0.1);
   }
 
   .dashboard-card-hover:active {

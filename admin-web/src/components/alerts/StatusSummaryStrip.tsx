@@ -40,7 +40,7 @@ export default function StatusSummaryStrip({ summary, isLoading }: StatusSummary
     <button
       type="button"
       onClick={() => router.push('/dashboard?tab=overview')}
-      className="w-full text-left flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-2.5 hover:bg-gray-50 hover:border-purple-200 transition-colors group"
+      className="w-full text-left flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-2.5 hover:bg-gray-50 hover:border-orange-200 transition-colors group"
     >
       <div className="flex items-center gap-3">
         <div className="flex gap-1.5">
@@ -62,7 +62,7 @@ export default function StatusSummaryStrip({ summary, isLoading }: StatusSummary
         </div>
         <span className="text-sm text-gray-600">{parts.join(' · ')} need attention</span>
       </div>
-      <span className="text-xs font-medium text-purple-600 group-hover:text-purple-700">
+      <span className="text-xs font-medium text-orange-600 group-hover:text-orange-700">
         View all →
       </span>
     </button>

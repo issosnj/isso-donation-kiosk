@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
@@ -16,6 +16,10 @@ export class UsersService {
     const existingUser = await this.findByEmail(createUserDto.email);
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
+    }
+
+    if (createUserDto.role === UserRole.TEMPLE_ADMIN && !createUserDto.templeId) {
+      throw new BadRequestException('Temple admin accounts require a temple');
     }
 
     const passwordHash = await bcrypt.hash(createUserDto.password, 10);

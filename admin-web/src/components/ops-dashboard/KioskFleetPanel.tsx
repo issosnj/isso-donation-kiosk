@@ -75,7 +75,7 @@ function DeviceCard({
       <button
         type="button"
         onClick={() => onDetails(d.id)}
-        className="w-full py-2 text-xs font-semibold text-[#7C3AED] bg-violet-50 rounded-lg hover:bg-violet-100"
+        className="w-full py-2 text-xs font-semibold text-[#ea580c] bg-orange-50 rounded-lg hover:bg-orange-100"
       >
         View details
       </button>
@@ -130,7 +130,7 @@ export default function KioskFleetPanel({ devices, isLoading, isError }: KioskFl
             <button
               type="button"
               onClick={() => router.push('/dashboard?tab=devices')}
-              className="text-xs font-semibold text-[#7C3AED] hover:text-[#6D28D9]"
+              className="text-xs font-semibold text-[#ea580c] hover:text-[#c2410c]"
             >
               Fleet center →
             </button>
@@ -169,7 +169,7 @@ export default function KioskFleetPanel({ devices, isLoading, isError }: KioskFl
                 {display.map((d) => {
                   const cfg = statusConfig[d.operationalStatus]
                   return (
-                    <tr key={d.id} className="border-b border-gray-50 hover:bg-violet-50/30 transition-colors">
+                    <tr key={d.id} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors">
                       <td className="px-5 py-3">
                         <p className="text-sm font-medium text-gray-900">{d.label}</p>
                         <p className="text-xs text-gray-500">{d.templeName}</p>
@@ -202,7 +202,7 @@ export default function KioskFleetPanel({ devices, isLoading, isError }: KioskFl
                         <button
                           type="button"
                           onClick={() => goDetails(d.id)}
-                          className="text-xs font-semibold text-[#7C3AED] hover:text-[#6D28D9]"
+                          className="text-xs font-semibold text-[#ea580c] hover:text-[#c2410c]"
                         >
                           Details
                         </button>

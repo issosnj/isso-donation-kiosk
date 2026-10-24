@@ -77,7 +77,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors text-sm"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-orange-600 rounded-xl shadow-sm hover:bg-orange-700 transition-colors"
           >
             Edit
           </button>
@@ -96,14 +96,14 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                   })
                 }
               }}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-orange-600 rounded-xl shadow-sm hover:bg-orange-700 disabled:opacity-50 transition-colors"
             >
               {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
             </button>
@@ -124,7 +124,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
             disabled={!isEditing}
             min="10"
             max="300"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
           />
           <p className="mt-1 text-xs text-gray-500">Time in seconds before kiosk returns to home screen after inactivity (10-300)</p>
         </div>
@@ -140,7 +140,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
             onChange={(e) => setFormData({ ...formData, whatsAppLink: e.target.value })}
             disabled={!isEditing}
             placeholder="https://chat.whatsapp.com/..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
           />
           <p className="mt-1 text-xs text-gray-500">QR code will be generated automatically on the kiosk</p>
         </div>
@@ -156,7 +156,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
             onChange={(e) => setFormData({ ...formData, observanceCalendarUrl: e.target.value })}
             disabled={!isEditing}
             placeholder="https://calendar.google.com/calendar/..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
           />
           <p className="mt-1 text-xs text-gray-500">Google Calendar public URL for religious observances. When set, kiosk will use this instead of global events.</p>
         </div>
@@ -172,7 +172,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
             onChange={(e) => setFormData({ ...formData, googleCalendarLink: e.target.value })}
             disabled={!isEditing}
             placeholder="https://calendar.google.com/calendar/..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
           />
           <p className="mt-1 text-xs text-gray-500">Link to temple events calendar (displayed on kiosk)</p>
         </div>
@@ -197,7 +197,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                   disabled={!isEditing}
                   min="0"
                   step="0.01"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                 />
                 {isEditing && (
                   <button
@@ -220,7 +220,7 @@ export default function KioskHomeTab({ templeId }: KioskHomeTabProps) {
                     presetAmounts: [...formData.presetAmounts, 0],
                   })
                 }}
-                className="w-full px-4 py-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-lg hover:border-purple-500 hover:text-purple-600 transition-colors font-medium"
+                className="w-full px-4 py-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-lg hover:border-orange-500 hover:text-orange-600 transition-colors font-medium"
               >
                 + Add Preset Amount
               </button>

@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Donor } from './entities/donor.entity';
+import { DonationStatus } from '../donations/entities/donation.entity';
+import { donationBelongsToDonorSql, canonicalDonorPhone, canonicalPhoneSql, roundMoney } from './donor-donation-match';
 
 @Injectable()
 export class DonorsService {
@@ -25,12 +27,12 @@ export class DonorsService {
       return null;
     }
 
-    // Normalize phone number (remove spaces, dashes, etc.)
-    const normalizedPhone = phone.replace(/\D/g, '');
+    const normalizedPhone = canonicalDonorPhone(phone);
+    if (!normalizedPhone) {
+      return null;
+    }
 
-    let donor = await this.donorsRepository.findOne({
-      where: { templeId, phone: normalizedPhone },
-    });
+    let donor = await this.findDonorByCanonicalPhone(templeId, normalizedPhone);
 
     if (donor) {
       // Update existing donor information
@@ -68,10 +70,11 @@ export class DonorsService {
       return;
     }
 
-    const normalizedPhone = phone.replace(/\D/g, '');
-    const donor = await this.donorsRepository.findOne({
-      where: { templeId, phone: normalizedPhone },
-    });
+    const normalizedPhone = canonicalDonorPhone(phone);
+    if (!normalizedPhone) {
+      return;
+    }
+    const donor = await this.findDonorByCanonicalPhone(templeId, normalizedPhone);
 
     if (donor) {
       donor.totalDonations += 1;
@@ -91,10 +94,20 @@ export class DonorsService {
       return null;
     }
 
-    const normalizedPhone = phone.replace(/\D/g, '');
-    return this.donorsRepository.findOne({
-      where: { templeId, phone: normalizedPhone },
-    });
+    const normalizedPhone = canonicalDonorPhone(phone);
+    if (!normalizedPhone) {
+      return null;
+    }
+    return this.findDonorByCanonicalPhone(templeId, normalizedPhone);
+  }
+
+  private findDonorByCanonicalPhone(templeId: string, canonicalPhone: string): Promise<Donor | null> {
+    return this.donorsRepository
+      .createQueryBuilder('donor')
+      .where('donor.templeId = :templeId', { templeId })
+      .andWhere(`${canonicalPhoneSql('donor.phone')} = :phone`, { phone: canonicalPhone })
+      .orderBy('donor.createdAt', 'ASC')
+      .getOne();
   }
 
   /**
@@ -115,25 +128,52 @@ export class DonorsService {
     limit: number = 50,
     search?: string,
   ): Promise<{ donors: Donor[]; total: number }> {
-    const queryBuilder = this.donorsRepository
-      .createQueryBuilder('donor')
-      .leftJoinAndSelect('donor.temple', 'temple')
-      .where('donor.templeId = :templeId', { templeId })
-      .orderBy('donor.lastDonationDate', 'DESC')
-      .addOrderBy('donor.createdAt', 'DESC');
+    const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 500) : 50;
+
+    let whereSql = `d."templeId" = $1::uuid`;
+    let params: unknown[] = [templeId];
 
     if (search && search.trim()) {
-      const searchTerm = `%${search.trim()}%`;
-      queryBuilder.andWhere(
-        '(donor.name ILIKE :search OR donor.phone ILIKE :search OR donor.email ILIKE :search)',
-        { search: searchTerm },
-      );
+      const matches = await this.donorsRepository
+        .createQueryBuilder('donor')
+        .select(['donor.id'])
+        .where('donor.templeId = :templeId', { templeId })
+        .andWhere(
+          '(donor.name ILIKE :search OR donor.phone ILIKE :search OR donor.email ILIKE :search)',
+          { search: `%${search.trim()}%` },
+        )
+        .getMany();
+      if (matches.length === 0) {
+        return { donors: [], total: 0 };
+      }
+      whereSql = `d.id IN (${matches.map((_, index) => `$${index + 1}::uuid`).join(', ')})`;
+      params = matches.map((donor) => donor.id);
     }
 
-    const [donors, total] = await queryBuilder
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
+    const ledger = await this.loadLedger(whereSql, params);
+    ledger.sort((a, b) => {
+      const aLast = a.lastGift ? new Date(a.lastGift).getTime() : 0;
+      const bLast = b.lastGift ? new Date(b.lastGift).getTime() : 0;
+      if (bLast !== aLast) return bLast - aLast;
+      const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bCreated - aCreated;
+    });
+
+    const total = ledger.length;
+    const pageRows = ledger.slice((safePage - 1) * safeLimit, safePage * safeLimit);
+    if (pageRows.length === 0) {
+      return { donors: [], total };
+    }
+
+    const donors = await this.donorsRepository.find({
+      where: { id: In(pageRows.map((row) => row.donorId)) },
+      relations: ['temple'],
+    });
+    const order = new Map(pageRows.map((row, index) => [row.donorId, index]));
+    donors.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    this.stampLedger(donors, pageRows);
 
     return { donors, total };
   }
@@ -141,10 +181,16 @@ export class DonorsService {
   /**
    * Get donor stats for a temple (for CRM dashboard)
    */
-  async getDonorStats(templeId: string): Promise<{
+  async getDonorStats(
+    templeId: string,
+    monthStart?: Date,
+  ): Promise<{
     total: number;
     totalDonated: number;
+    totalGifts: number;
     newThisMonth: number;
+    firstGiftThisMonth: number;
+    averageGiftsPerDonor: number;
     repeatCount: number;
     activeCount: number;
   }> {
@@ -153,36 +199,44 @@ export class DonorsService {
     const twelveMonthsAgo = new Date(now);
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-    const [total, totalDonatedResult, newThisMonth, repeatCount, activeCount] = await Promise.all([
-      this.donorsRepository.count({ where: { templeId } }),
-      this.donorsRepository
-        .createQueryBuilder('donor')
-        .select('COALESCE(SUM(donor.totalAmount), 0)', 'sum')
-        .where('donor.templeId = :templeId', { templeId })
-        .getRawOne(),
+    const [ledger, newThisMonth] = await Promise.all([
+      this.loadLedger(`d."templeId" = $1::uuid`, [templeId]),
       this.donorsRepository
         .createQueryBuilder('donor')
         .where('donor.templeId = :templeId', { templeId })
         .andWhere('donor.createdAt >= :startOfMonth', { startOfMonth })
         .getCount(),
-      this.donorsRepository
-        .createQueryBuilder('donor')
-        .where('donor.templeId = :templeId', { templeId })
-        .andWhere('donor.totalDonations > 1')
-        .getCount(),
-      this.donorsRepository
-        .createQueryBuilder('donor')
-        .where('donor.templeId = :templeId', { templeId })
-        .andWhere('donor.lastDonationDate >= :twelveMonthsAgo', { twelveMonthsAgo })
-        .getCount(),
     ]);
 
-    const totalDonated = Number(totalDonatedResult?.sum ?? 0);
+    let totalDonated = 0;
+    let totalGifts = 0;
+    let repeatCount = 0;
+    let activeCount = 0;
+    let donorsWithGifts = 0;
+    let firstGiftThisMonth = 0;
+    const monthBoundary =
+      monthStart && !isNaN(monthStart.getTime())
+        ? monthStart
+        : new Date(now.getFullYear(), now.getMonth(), 1);
+
+    for (const row of ledger) {
+      const gifts = Number(row.giftCount) || 0;
+      totalGifts += gifts;
+      totalDonated = roundMoney(totalDonated + roundMoney(row.giftSum));
+      if (gifts > 0) donorsWithGifts += 1;
+      if (gifts > 1) repeatCount += 1;
+      if (row.lastGift && new Date(row.lastGift) >= twelveMonthsAgo) activeCount += 1;
+      if (row.firstGift && new Date(row.firstGift) >= monthBoundary) firstGiftThisMonth += 1;
+    }
 
     return {
-      total,
+      total: ledger.length,
       totalDonated,
+      totalGifts,
       newThisMonth,
+      firstGiftThisMonth,
+      averageGiftsPerDonor:
+        donorsWithGifts > 0 ? Math.round((totalGifts / donorsWithGifts) * 10) / 10 : 0,
       repeatCount,
       activeCount,
     };
@@ -218,7 +272,7 @@ export class DonorsService {
     if (updates.email !== undefined) donor.email = updates.email?.trim() || null;
     if (updates.address !== undefined) donor.address = updates.address?.trim() || null;
     if (updates.phone !== undefined) {
-      donor.phone = updates.phone.replace(/\D/g, '');
+      donor.phone = canonicalDonorPhone(updates.phone);
     }
 
     return this.donorsRepository.save(donor);
@@ -323,6 +377,60 @@ export class DonorsService {
     }
 
     return { created, updated, errors };
+  }
+
+  /**
+   * Replace stored running totals with succeeded-gift totals from the donation ledger.
+   * Refunded, failed, pending, and canceled gifts are not included.
+   * Each succeeded gift is counted for only one donor.
+   */
+  private stampLedger(
+    donors: Donor[],
+    rows: { donorId: string; giftCount: string; giftSum: string; lastGift: string | null }[],
+  ): void {
+    const byId = new Map(rows.map((row) => [row.donorId, row]));
+    for (const donor of donors) {
+      const row = byId.get(donor.id);
+      if (!row) continue;
+      donor.totalDonations = Number(row.giftCount) || 0;
+      donor.totalAmount = roundMoney(row.giftSum);
+      donor.lastDonationDate = row.lastGift ? new Date(row.lastGift) : null;
+    }
+  }
+
+  private loadLedger(
+    whereSql: string,
+    params: unknown[],
+  ): Promise<
+    {
+      donorId: string;
+      giftCount: string;
+      giftSum: string;
+      lastGift: string | null;
+      firstGift: string | null;
+      createdAt: string | null;
+    }[]
+  > {
+    const match = donationBelongsToDonorSql('dn', 'd');
+    return this.donorsRepository.query(
+      `
+      SELECT
+        d.id AS "donorId",
+        d."createdAt" AS "createdAt",
+        COUNT(dn.id)::int AS "giftCount",
+        COALESCE(SUM(dn.amount), 0) AS "giftSum",
+        MAX(dn."createdAt") AS "lastGift",
+        MIN(dn."createdAt") AS "firstGift"
+      FROM donors d
+      LEFT JOIN donations dn
+        ON dn."templeId" = d."templeId"
+        AND dn.status = '${DonationStatus.SUCCEEDED}'
+        AND ${match}
+      WHERE ${whereSql}
+      GROUP BY d.id, d."createdAt"
+      `,
+      params,
+    );
   }
 }
 

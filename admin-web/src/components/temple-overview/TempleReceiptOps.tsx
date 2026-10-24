@@ -26,22 +26,22 @@ export default function TempleReceiptOps({ summary, isLoading, isError }: Temple
   }
 
   const stats = [
-    { label: 'Receipts sent', value: summary.receiptsSent, tone: 'text-emerald-600' },
-    { label: 'Failed receipts', value: summary.failedReceipts, tone: 'text-red-600' },
-    { label: 'Pending resend', value: summary.pendingResend, tone: 'text-amber-600' },
+    { label: 'Receipts Issued', value: summary.receiptsIssued, tone: 'text-emerald-600' },
+    { label: 'Missing Number', value: summary.missingReceiptNumbers, tone: 'text-amber-600' },
+    { label: 'No Email', value: summary.receiptsWithoutEmail, tone: 'text-gray-700' },
   ]
 
   return (
     <div className="dashboard-card overflow-hidden h-full flex flex-col">
       <div className="px-5 py-4 border-b border-gray-100/90 flex items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Receipt operations</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Email delivery overview</p>
+          <h3 className="text-sm font-semibold text-gray-900">Receipt Operations</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Last 30 days · succeeded gifts</p>
         </div>
         <button
           type="button"
           onClick={() => router.push('/dashboard?tab=receipts')}
-          className="text-xs font-semibold text-violet-600 hover:text-violet-700"
+          className="text-xs font-semibold text-orange-600 hover:text-orange-700"
         >
           Receipts
         </button>
@@ -57,9 +57,9 @@ export default function TempleReceiptOps({ summary, isLoading, isError }: Temple
         </div>
         <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5">
           <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
-            Recent activity
+            Recent Activity
           </p>
-          <p className="text-xs text-gray-700 mt-1 leading-relaxed">{summary.recentResendLabel}</p>
+          <p className="text-xs text-gray-700 mt-1 leading-relaxed">{summary.recentReceiptLabel}</p>
         </div>
       </div>
     </div>
