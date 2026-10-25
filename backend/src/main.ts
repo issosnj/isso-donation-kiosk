@@ -10,6 +10,8 @@ import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { DataSource } from 'typeorm';
+import { typeOrmConfig } from './config/typeorm.config';
 
 function validateRequiredEnv() {
   const databaseUrl = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL;
@@ -26,8 +28,12 @@ function validateRequiredEnv() {
 
 async function bootstrap() {
   validateRequiredEnv();
+  await ensureRefundedAmountColumn();
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    cors: false,
+    rawBody: true,
+  });
   
   // Serve static files from uploads directory
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
@@ -268,6 +274,27 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
   console.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
+}
+
+async function ensureRefundedAmountColumn(): Promise<void> {
+  const dataSource = new DataSource(typeOrmConfig());
+  await dataSource.initialize();
+  try {
+    await dataSource.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name = 'donations'
+        ) THEN
+          ALTER TABLE donations
+          ADD COLUMN IF NOT EXISTS "refundedAmount" numeric(10,2) NOT NULL DEFAULT 0;
+        END IF;
+      END $$;
+    `);
+  } finally {
+    await dataSource.destroy();
+  }
 }
 
 bootstrap();

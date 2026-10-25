@@ -408,6 +408,28 @@ class APIService {
         )
     }
     
+    func verifyAdminPin(_ password: String) async throws -> Bool {
+        guard let url = URL(string: "\(baseURL)/devices/verify-admin-pin") else {
+            throw APIError.invalidURL
+        }
+        var pinRequest = URLRequest(url: url)
+        pinRequest.httpMethod = "POST"
+        pinRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        pinRequest.timeoutInterval = 8
+        if let token = deviceToken {
+            pinRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        pinRequest.httpBody = try JSONSerialization.data(withJSONObject: ["password": password])
+        let (_, response) = try await URLSession.shared.data(for: pinRequest)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        if (200...299).contains(http.statusCode) {
+            return true
+        }
+        throw APIError.httpError(http.statusCode)
+    }
+
     func getKioskConfig(timeout: TimeInterval = 10.0) async throws -> KioskConfigResponse {
         let response: KioskConfigResponse = try await request(
             endpoint: "/devices/kiosk-config",

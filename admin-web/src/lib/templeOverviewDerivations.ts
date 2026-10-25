@@ -3,7 +3,7 @@ import type { Donation } from '@/types/donation'
 import type { DonorStats } from '@/types/donor'
 import type { DeviceListItem } from '@/types/device'
 import type { TrendDataPoint } from '@/hooks/useOverviewData'
-import { safeNumber } from '@/lib/formatters'
+import { keptDonationAmount, safeNumber } from '@/lib/formatters'
 import { formatCalendarDay, shiftYmd } from '@/lib/zonedRange'
 import type {
   CategoryBreakdownRow,
@@ -110,7 +110,7 @@ export function buildPerformanceSummary(
   for (const d of donations) {
     if (d.status !== 'SUCCEEDED') continue
     const name = d.category?.name ?? 'General'
-    categoryTotals.set(name, (categoryTotals.get(name) ?? 0) + safeNumber(d.amount))
+    categoryTotals.set(name, (categoryTotals.get(name) ?? 0) + keptDonationAmount(d))
   }
   let highestCategory = '—'
   let topCatAmount = 0
@@ -204,7 +204,7 @@ export function buildRecentActivity(donations: Donation[]): RecentDonationActivi
       return {
         id: d.id,
         donorLabel: anonymous ? 'Anonymous' : (d.donorName?.trim() ?? 'Donor'),
-        amount: safeNumber(d.amount),
+        amount: keptDonationAmount(d),
         categoryName: d.category?.name ?? 'General',
         paymentStatus: d.status,
         timeAgo,
@@ -272,7 +272,7 @@ export function buildCategoryBreakdown(donations: Donation[]): CategoryBreakdown
     if (d.status !== 'SUCCEEDED') continue
     const id = d.category?.id ?? '__general__'
     const name = d.category?.name ?? 'General'
-    const amount = safeNumber(d.amount)
+    const amount = keptDonationAmount(d)
     grandTotal += amount
     const existing = map.get(id) ?? { name, amount: 0, count: 0 }
     map.set(id, {
@@ -301,7 +301,7 @@ export function buildDonorInsights(
   const categoryTotals = new Map<string, number>()
   for (const d of succeeded) {
     const name = d.category?.name ?? 'General'
-    categoryTotals.set(name, (categoryTotals.get(name) ?? 0) + safeNumber(d.amount))
+    categoryTotals.set(name, (categoryTotals.get(name) ?? 0) + keptDonationAmount(d))
   }
   let topDonorCategory = '—'
   let top = 0

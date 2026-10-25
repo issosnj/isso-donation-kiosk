@@ -16,6 +16,9 @@ import { ConfigService } from '@nestjs/config';
 import { isAnonymousForAttribution } from './donation-anonymity.util';
 import { canonicalDonorPhone, canonicalPhoneSql, donationBelongsToDonorSql } from '../donors/donor-donation-match';
 
+/** Succeeded gifts keep their original amount. Totals use what remains after partial refunds. */
+const KEPT_GIFT_SQL = 'donation.amount - COALESCE(donation."refundedAmount", 0)';
+
 @Injectable()
 export class DonationsService {
   constructor(
@@ -84,6 +87,7 @@ export class DonationsService {
       const donation = this.donationsRepository.create({
         ...donationFields,
         lineItems: lineItemsDto?.length ? lineItemsDto : null,
+        refundedAmount: 0,
         status: DonationStatus.PENDING,
       });
       
@@ -256,7 +260,7 @@ export class DonationsService {
 
     // Generate receipt number if payment succeeded and temple has a code
     if (completeDonationDto.status === DonationStatus.SUCCEEDED && !donation.receiptNumber) {
-      donation.receiptNumber = await this.generateReceiptNumber(donation.templeId);
+      await this.claimReceiptNumber(donation);
     }
 
     const savedDonation = await this.donationsRepository.save(donation);
@@ -340,40 +344,50 @@ export class DonationsService {
     return savedDonation;
   }
 
-  private async generateReceiptNumber(templeId: string): Promise<string> {
-    // Get temple to access templeCode
-    const temple = await this.templesService.findOne(templeId);
-    if (!temple || !temple.templeCode) {
-      // If no temple code, use temple ID first 4 chars
-      const fallbackCode = templeId.substring(0, 4).toUpperCase();
-      console.warn(`[DonationsService] Temple ${templeId} has no templeCode, using fallback: ${fallbackCode}`);
-    }
+  /**
+   * Assign the next receipt number and persist it under a transaction lock
+   * so two gifts completing together cannot receive the same number.
+   */
+  private async claimReceiptNumber(donation: Donation): Promise<string> {
+    if (donation.receiptNumber) return donation.receiptNumber;
 
-    const templeCode = temple?.templeCode || templeId.substring(0, 4).toUpperCase();
-    const pattern = `${templeCode} - K - %`;
+    const receiptNumber = await this.donationsRepository.manager.transaction(async (manager) => {
+      await manager.query(`SELECT pg_advisory_xact_lock(hashtext($1), hashtext('receipt'))`, [
+        donation.templeId,
+      ]);
 
-    // Query donations with receipt numbers matching the pattern
-    const donationsWithReceipts = await this.donationsRepository
-      .createQueryBuilder('donation')
-      .where('donation.templeId = :templeId', { templeId })
-      .andWhere('donation.receiptNumber IS NOT NULL')
-      .andWhere('donation.receiptNumber LIKE :pattern', { pattern })
-      .orderBy('donation.createdAt', 'DESC')
-      .getMany();
+      const existing: { receiptNumber: string | null }[] = await manager.query(
+        `SELECT "receiptNumber" FROM donations WHERE id = $1`,
+        [donation.id],
+      );
+      if (existing[0]?.receiptNumber) return existing[0].receiptNumber;
 
-    let nextNumber = 1;
-    if (donationsWithReceipts.length > 0) {
-      // Extract the number from the last receipt number
-      const lastReceiptNumber = donationsWithReceipts[0].receiptNumber;
-      const match = lastReceiptNumber.match(/\d+$/);
-      if (match) {
-        nextNumber = parseInt(match[0], 10) + 1;
+      const temple = await this.templesService.findOne(donation.templeId);
+      const templeCode = temple?.templeCode || donation.templeId.substring(0, 4).toUpperCase();
+      const escapedCode = templeCode.replace(/[\\%_]/g, '\\$&');
+      const rows: { receiptNumber: string }[] = await manager.query(
+        `
+        SELECT "receiptNumber"
+        FROM donations
+        WHERE "templeId" = $1
+          AND "receiptNumber" LIKE $2 ESCAPE '\\'
+        `,
+        [donation.templeId, `${escapedCode} - K - %`],
+      );
+
+      let maxNumber = 0;
+      for (const row of rows) {
+        const match = row.receiptNumber?.match(/(\d+)\s*$/);
+        if (match) maxNumber = Math.max(maxNumber, parseInt(match[1], 10));
       }
-    }
 
-    // Format: TempleCode - K - 0001
-    const receiptNumber = `${templeCode} - K - ${nextNumber.toString().padStart(4, '0')}`;
-    console.log(`[DonationsService] Generated receipt number: ${receiptNumber} for temple ${templeId}`);
+      const next = `${templeCode} - K - ${(maxNumber + 1).toString().padStart(4, '0')}`;
+      await manager.update(Donation, donation.id, { receiptNumber: next });
+      return next;
+    });
+
+    donation.receiptNumber = receiptNumber;
+    console.log(`[DonationsService] Generated receipt number: ${receiptNumber} for temple ${donation.templeId}`);
     return receiptNumber;
   }
 
@@ -510,53 +524,15 @@ export class DonationsService {
 
     let totalUpdated = 0;
 
-    // Process each temple's donations
-    for (const [templeId, templeDonations] of donationsByTemple.entries()) {
-      // Sort by creation date to maintain chronological order
-      templeDonations.sort((a, b) => 
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    for (const [, templeDonations] of donationsByTemple.entries()) {
+      templeDonations.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
 
-      // Get existing receipt numbers for this temple to find the starting number
-      const existingDonations = await this.donationsRepository
-        .createQueryBuilder('donation')
-        .where('donation.templeId = :templeId', { templeId })
-        .andWhere('donation.receiptNumber IS NOT NULL')
-        .andWhere('donation.status = :status', { status: DonationStatus.SUCCEEDED })
-        .orderBy('donation.createdAt', 'ASC')
-        .getMany();
-
-      // Find the highest receipt number
-      let nextNumber = 1;
-      if (existingDonations.length > 0) {
-        const temple = templeDonations[0].temple;
-        const templeCode = temple?.templeCode || templeId.substring(0, 4).toUpperCase();
-        const pattern = `${templeCode} - K - %`;
-        
-        const matchingReceipts = existingDonations.filter(d => 
-          d.receiptNumber && d.receiptNumber.startsWith(templeCode + ' - K - ')
-        );
-        
-        if (matchingReceipts.length > 0) {
-          const lastReceipt = matchingReceipts[matchingReceipts.length - 1].receiptNumber;
-          const match = lastReceipt?.match(/\d+$/);
-          if (match) {
-            nextNumber = parseInt(match[0], 10) + 1;
-          }
-        }
-      }
-
-      // Generate receipt numbers for each donation
       for (const donation of templeDonations) {
-        const temple = donation.temple;
-        const templeCode = temple?.templeCode || templeId.substring(0, 4).toUpperCase();
-        const receiptNumber = `${templeCode} - K - ${nextNumber.toString().padStart(4, '0')}`;
-        
-        donation.receiptNumber = receiptNumber;
-        await this.donationsRepository.save(donation);
+        const receiptNumber = await this.claimReceiptNumber(donation);
         console.log(`[DonationsService] Generated receipt number ${receiptNumber} for donation ${donation.id}`);
-        
-        // Update Stripe PaymentIntent metadata with receipt number if available
+
         if (donation.stripePaymentIntentId) {
           try {
             await this.stripeService.updatePaymentIntentMetadata(
@@ -565,16 +541,13 @@ export class DonationsService {
               {
                 donationId: donation.id,
                 templeId: donation.templeId,
-                receiptNumber: receiptNumber,
-              }
+                receiptNumber,
+              },
             );
-            console.log(`[DonationsService] Added receipt number ${receiptNumber} to Stripe PaymentIntent ${donation.stripePaymentIntentId}`);
           } catch (error) {
             console.warn(`[DonationsService] Failed to update PaymentIntent metadata with receipt number: ${error.message}`);
-            // Don't fail receipt generation if metadata update fails
           }
         }
-        nextNumber++;
         totalUpdated++;
       }
     }
@@ -649,6 +622,7 @@ export class DonationsService {
       donorPhone: createPledgeDto.donorPhone,
       donorEmail: createPledgeDto.donorEmail,
       status: DonationStatus.PLEDGED,
+      refundedAmount: 0,
       pledgeToken,
       pledgeExpiryDate: expiryDate,
       pledgePaymentLink: paymentLink,
@@ -688,7 +662,7 @@ export class DonationsService {
     
     // Generate receipt number if payment succeeded
     if (payPledgeDto.status === DonationStatus.SUCCEEDED && !donation.receiptNumber) {
-      donation.receiptNumber = await this.generateReceiptNumber(donation.templeId);
+      await this.claimReceiptNumber(donation);
     }
     
     const savedDonation = await this.donationsRepository.save(donation);
@@ -795,6 +769,28 @@ export class DonationsService {
     return this.donationsRepository.save(donation);
   }
 
+  /**
+   * Record a Stripe refund against the original gift.
+   * A partial refund stays SUCCEEDED so the remaining dollars stay in totals.
+   * The gift becomes REFUNDED only when the full amount has been returned.
+   */
+  async recordRefund(donationId: string, refundedNow: number): Promise<Donation> {
+    const donation = await this.findOne(donationId);
+    const original = Number(donation.amount);
+    const already = Number(donation.refundedAmount || 0);
+    const next = Math.round((already + Number(refundedNow)) * 100) / 100;
+    if (!Number.isFinite(original) || !Number.isFinite(next) || next <= already) {
+      throw new BadRequestException('Refund amount is invalid');
+    }
+    if (next - original > 0.009) {
+      throw new BadRequestException('Refund exceeds the remaining gift amount');
+    }
+    const fullyRefunded = original - next <= 0.009;
+    donation.refundedAmount = fullyRefunded ? original : next;
+    donation.status = fullyRefunded ? DonationStatus.REFUNDED : DonationStatus.SUCCEEDED;
+    return this.donationsRepository.save(donation);
+  }
+
   async getStats(templeId?: string, startDate?: Date, endDate?: Date) {
     console.log('[Donations Service] getStats called with:', { templeId, startDate, endDate });
 
@@ -814,7 +810,7 @@ export class DonationsService {
     }
 
     const raw = await queryBuilder
-      .select('COALESCE(SUM(donation.amount), 0)', 'total')
+      .select(`COALESCE(SUM(${KEPT_GIFT_SQL}), 0)`, 'total')
       .addSelect('COUNT(donation.id)', 'count')
       .getRawOne<{ total: string | number | null; count: string | number | null }>();
 
@@ -861,7 +857,7 @@ export class DonationsService {
 
     const dailyRaw = await dailyQb
       .select(`TO_CHAR(DATE_TRUNC('day', ${localTimestamp}), 'YYYY-MM-DD')`, 'date')
-      .addSelect('COALESCE(SUM(donation.amount), 0)', 'total')
+      .addSelect(`COALESCE(SUM(${KEPT_GIFT_SQL}), 0)`, 'total')
       .addSelect('COUNT(donation.id)', 'count')
       .groupBy(`DATE_TRUNC('day', ${localTimestamp})`)
       .orderBy(`DATE_TRUNC('day', ${localTimestamp})`, 'ASC')
@@ -884,10 +880,10 @@ export class DonationsService {
       .select('donation.templeId', 'templeId')
       .addSelect('COALESCE(MAX(temple.name), :unk)', 'templeName')
       .setParameter('unk', 'Unknown')
-      .addSelect('COALESCE(SUM(donation.amount), 0)', 'total')
+      .addSelect(`COALESCE(SUM(${KEPT_GIFT_SQL}), 0)`, 'total')
       .addSelect('COUNT(donation.id)', 'count')
       .groupBy('donation.templeId')
-      .orderBy('SUM(donation.amount)', 'DESC')
+      .orderBy(`SUM(${KEPT_GIFT_SQL})`, 'DESC')
       .getRawMany();
 
     const daily = (dailyRaw as any[]).map((row) => ({

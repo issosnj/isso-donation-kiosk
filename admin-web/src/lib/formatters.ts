@@ -5,6 +5,17 @@ export function safeNumber(value: unknown, fallback = 0): number {
   return n
 }
 
+/** Gift dollars still counted after a partial refund. A full refund counts as zero. */
+export function keptDonationAmount(donation: {
+  amount: unknown
+  refundedAmount?: unknown
+  status?: string | null
+}): number {
+  if (donation.status === 'REFUNDED') return 0
+  const kept = safeNumber(donation.amount) - safeNumber(donation.refundedAmount)
+  return Math.max(0, Math.round(kept * 100) / 100)
+}
+
 /** Always two decimal places. Use for figures staff reconcile to the ledger. */
 export function formatCurrencyExact(value: unknown): string {
   return safeNumber(value).toLocaleString('en-US', {

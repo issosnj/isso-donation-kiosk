@@ -75,6 +75,18 @@ export function computeDonorKpis(stats: DonorStats | null | undefined): DonorKpi
   }
 }
 
+export function listDonorVipIds(): string[] {
+  if (typeof window === 'undefined') return []
+  const ids: string[] = []
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i)
+    if (key?.startsWith(VIP_STORAGE_PREFIX) && localStorage.getItem(key) === '1') {
+      ids.push(key.slice(VIP_STORAGE_PREFIX.length))
+    }
+  }
+  return ids
+}
+
 export function isDonorVip(donorId: string): boolean {
   if (typeof window === 'undefined') return false
   return localStorage.getItem(`${VIP_STORAGE_PREFIX}${donorId}`) === '1'

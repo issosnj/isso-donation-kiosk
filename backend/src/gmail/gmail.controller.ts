@@ -91,7 +91,7 @@ export class GmailController {
       throw new Error('Gmail configuration missing. Please set GMAIL_CLIENT_ID and GMAIL_REDIRECT_URI in environment variables.');
     }
 
-    const oauthUrl = this.gmailService.getOAuthUrl(templeId);
+    const oauthUrl = this.gmailService.getOAuthUrl(templeId, user.id);
     return { oauthUrl };
   }
 
@@ -107,10 +107,10 @@ export class GmailController {
         throw new Error('Missing code or state parameter');
       }
 
-      const stateData = JSON.parse(
-        Buffer.from(state, 'base64').toString('utf-8'),
-      );
-      const { templeId } = stateData;
+      const { templeId } = this.gmailService.verifyOAuthState(state);
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(templeId)) {
+        throw new Error('Invalid OAuth state');
+      }
 
       // Exchange code for token
       const tokenData = await this.gmailService.exchangeCodeForToken(code, state);

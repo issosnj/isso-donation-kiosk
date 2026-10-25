@@ -273,11 +273,15 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   })
 
   const handleRefund = (donation: Donation) => {
-    const refundAmount = prompt(`Enter refund amount (leave empty for full refund of $${Number(donation.amount).toFixed(2)}):`)
+    const remaining = Math.max(
+      0,
+      Math.round((Number(donation.amount) - Number(donation.refundedAmount || 0)) * 100) / 100,
+    )
+    const refundAmount = prompt(`Enter refund amount (leave empty for full refund of $${remaining.toFixed(2)}):`)
     if (refundAmount === null) return // User cancelled
-    
+
     const amount = refundAmount.trim() ? parseFloat(refundAmount) : undefined
-    if (amount !== undefined && (isNaN(amount) || amount <= 0 || amount > Number(donation.amount))) {
+    if (amount !== undefined && (isNaN(amount) || amount <= 0 || amount - remaining > 0.009)) {
       alert('Invalid refund amount')
       return
     }
@@ -650,7 +654,9 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
           ? () => setAssigningDonationId(donation.id)
           : undefined,
       onRefund: hasPayment ? () => handleRefund(donation) : undefined,
-      refundDisabled: donation.status === 'REFUNDED',
+      refundDisabled:
+        donation.status === 'REFUNDED' ||
+        Number(donation.amount) - Number(donation.refundedAmount || 0) <= 0,
       isRefunding: refundingId === donation.id,
     }
   }

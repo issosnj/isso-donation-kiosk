@@ -19,6 +19,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { DeviceAuthGuard } from '../auth/guards/device-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
 import { DonorsService } from './donors.service';
 import { UpdateDonorDto } from './dto/update-donor.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -55,6 +56,7 @@ export class DonorsController {
   }
 
   @Get('device/lookup/:phone')
+  @Public()
   @UseGuards(DeviceAuthGuard)
   @ApiOperation({ summary: 'Lookup donor by phone number (device endpoint for kiosk)' })
   async lookupDonorDevice(
@@ -102,6 +104,10 @@ export class DonorsController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '50',
     @Query('search') search?: string,
+    @Query('segment') segment?: string,
+    @Query('sort') sort?: string,
+    @Query('monthStart') monthStart?: string,
+    @Query('vipIds') vipIds?: string,
   ) {
     // Temple Admin: only their temple
     const targetTempleId = req.user.role === UserRole.TEMPLE_ADMIN ? req.user.templeId : templeId;
@@ -113,6 +119,7 @@ export class DonorsController {
       parseInt(page, 10),
       parseInt(limit, 10),
       search,
+      this.donorListOptions(segment, sort, monthStart, vipIds),
     );
     return result;
   }
@@ -125,6 +132,10 @@ export class DonorsController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '50',
     @Query('search') search?: string,
+    @Query('segment') segment?: string,
+    @Query('sort') sort?: string,
+    @Query('monthStart') monthStart?: string,
+    @Query('vipIds') vipIds?: string,
   ) {
     const templeId = req.user.templeId;
     if (!templeId) {
@@ -136,8 +147,45 @@ export class DonorsController {
       parseInt(page, 10),
       parseInt(limit, 10),
       search,
+      this.donorListOptions(segment, sort, monthStart, vipIds),
     );
     return result;
+  }
+
+  private donorListOptions(
+    segment?: string,
+    sort?: string,
+    monthStart?: string,
+    vipIds?: string,
+  ) {
+    const allowedSegments = new Set([
+      'all',
+      'vip',
+      'recurring',
+      'new',
+      'inactive',
+      'high_value',
+      'anonymous',
+    ]);
+    const allowedSorts = new Set([
+      'last_donation',
+      'name',
+      'total_amount',
+      'donation_count',
+      'created',
+    ]);
+    const parsedMonth = monthStart ? new Date(monthStart) : undefined;
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return {
+      segment: segment && allowedSegments.has(segment) ? segment : 'all',
+      sort: sort && allowedSorts.has(sort) ? sort : 'last_donation',
+      monthStart: parsedMonth && !isNaN(parsedMonth.getTime()) ? parsedMonth : undefined,
+      vipIds: (vipIds || '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => uuid.test(id))
+        .slice(0, 500),
+    };
   }
 
   @Post()

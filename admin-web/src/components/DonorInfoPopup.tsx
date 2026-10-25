@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { keptDonationAmount } from '@/lib/formatters'
 import { format } from 'date-fns'
 import ReceiptView from './ReceiptView'
 
@@ -457,7 +458,7 @@ export default function DonorInfoPopup({
                   </span>
                   <span className="text-gray-400">|</span>
                   <span className="font-semibold text-green-600">
-                    {formatCurrency(donations.reduce((sum: number, d: any) => sum + Number(d.amount), 0))} total
+                    {formatCurrency(donations.reduce((sum: number, d: any) => sum + keptDonationAmount(d), 0))} total
                   </span>
                 </div>
               )}
@@ -505,7 +506,7 @@ export default function DonorInfoPopup({
                           )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600 tabular-nums">
-                          {formatCurrency(Number(donation.amount))}
+                          {formatCurrency(keptDonationAmount(donation))}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                           {donation.category?.name || 'General'}

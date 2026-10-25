@@ -650,10 +650,12 @@ export class StripeService {
 
     let event: Stripe.Event;
 
+    const payload = Buffer.isBuffer(webhookData) ? webhookData.toString('utf8') : webhookData;
+
     if (!webhookSecret) {
       this.logger.warn('Stripe webhook verification skipped', { reason: 'STRIPE_WEBHOOK_SECRET not set' });
       try {
-        event = typeof webhookData === 'string' ? JSON.parse(webhookData) : webhookData;
+        event = typeof payload === 'string' ? JSON.parse(payload) : payload;
       } catch (err) {
         this.logger.error('Failed to parse webhook data', (err as Error).stack, {});
         throw new Error('Invalid webhook data');
@@ -661,7 +663,7 @@ export class StripeService {
     } else {
       try {
         event = this.stripe.webhooks.constructEvent(
-          webhookData,
+          Buffer.isBuffer(webhookData) ? webhookData : payload,
           signature,
           webhookSecret,
         );

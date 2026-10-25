@@ -23,10 +23,12 @@ async function createMasterAdmin() {
       return;
     }
 
-    // Get email and password from environment or use defaults
     const email = process.env.MASTER_ADMIN_EMAIL || 'admin@isso.org';
-    const password = process.env.MASTER_ADMIN_PASSWORD || 'admin123456';
+    const password = process.env.MASTER_ADMIN_PASSWORD;
     const name = process.env.MASTER_ADMIN_NAME || 'Master Admin';
+    if (!password || password.length < 12) {
+      throw new Error('Set MASTER_ADMIN_PASSWORD to at least 12 characters before creating a master admin.');
+    }
 
     // Check if user with this email exists
     const existingUser = await usersRepository.findOne({

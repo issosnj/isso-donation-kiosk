@@ -15,6 +15,7 @@ import { CreateDonationCategoryDto } from './dto/create-donation-category.dto';
 import { UpdateDonationCategoryDto } from './dto/update-donation-category.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeviceAuthGuard } from '../auth/guards/device-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CurrentDevice } from '../auth/decorators/current-device.decorator';
@@ -131,6 +132,7 @@ export class DonationCategoriesController {
   }
 
   @Get('kiosk/:templeId')
+  @Public()
   @UseGuards(DeviceAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get categories for kiosk (filtered by date/time)' })

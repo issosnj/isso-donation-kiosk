@@ -127,6 +127,12 @@ export class DonorsService {
     page: number = 1,
     limit: number = 50,
     search?: string,
+    options?: {
+      segment?: string;
+      sort?: string;
+      monthStart?: Date;
+      vipIds?: string[];
+    },
   ): Promise<{ donors: Donor[]; total: number }> {
     const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
     const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 500) : 50;
@@ -151,15 +157,10 @@ export class DonorsService {
       params = matches.map((donor) => donor.id);
     }
 
-    const ledger = await this.loadLedger(whereSql, params);
-    ledger.sort((a, b) => {
-      const aLast = a.lastGift ? new Date(a.lastGift).getTime() : 0;
-      const bLast = b.lastGift ? new Date(b.lastGift).getTime() : 0;
-      if (bLast !== aLast) return bLast - aLast;
-      const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return bCreated - aCreated;
-    });
+    const ledger = this.sortDonorLedger(
+      this.filterDonorLedger(await this.loadLedger(whereSql, params), options),
+      options?.sort,
+    );
 
     const total = ledger.length;
     const pageRows = ledger.slice((safePage - 1) * safeLimit, safePage * safeLimit);
@@ -398,12 +399,87 @@ export class DonorsService {
     }
   }
 
+  private filterDonorLedger<T extends {
+    donorId: string;
+    name: string | null;
+    giftCount: string;
+    giftSum: string;
+    lastGift: string | null;
+    createdAt: string | null;
+  }>(rows: T[], options?: { segment?: string; monthStart?: Date; vipIds?: string[] }): T[] {
+    const segment = options?.segment || 'all';
+    if (segment === 'all') return rows;
+
+    const vipIds = new Set(options?.vipIds || []);
+    const monthStart =
+      options?.monthStart && !isNaN(options.monthStart.getTime())
+        ? options.monthStart
+        : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const inactiveBefore = new Date();
+    inactiveBefore.setMonth(inactiveBefore.getMonth() - 12);
+
+    return rows.filter((row) => {
+      const gifts = Number(row.giftCount) || 0;
+      const total = Number(row.giftSum) || 0;
+      const last = row.lastGift ? new Date(row.lastGift) : null;
+      switch (segment) {
+        case 'vip':
+          return total >= 1000 || vipIds.has(row.donorId);
+        case 'recurring':
+          return gifts > 1;
+        case 'new':
+          return !!row.createdAt && new Date(row.createdAt) >= monthStart;
+        case 'inactive':
+          return !last || last < inactiveBefore;
+        case 'high_value':
+          return total >= 500;
+        case 'anonymous':
+          return !row.name?.trim();
+        default:
+          return true;
+      }
+    });
+  }
+
+  private sortDonorLedger<T extends {
+    name: string | null;
+    phone: string | null;
+    giftCount: string;
+    giftSum: string;
+    lastGift: string | null;
+    createdAt: string | null;
+  }>(rows: T[], sort?: string): T[] {
+    const key = sort || 'last_donation';
+    return [...rows].sort((a, b) => {
+      switch (key) {
+        case 'name':
+          return (a.name || a.phone || '').localeCompare(b.name || b.phone || '', undefined, {
+            sensitivity: 'base',
+          });
+        case 'total_amount':
+          return (Number(b.giftSum) || 0) - (Number(a.giftSum) || 0);
+        case 'donation_count':
+          return (Number(b.giftCount) || 0) - (Number(a.giftCount) || 0);
+        case 'created':
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        case 'last_donation':
+        default: {
+          const lastDiff = new Date(b.lastGift || 0).getTime() - new Date(a.lastGift || 0).getTime();
+          if (lastDiff !== 0) return lastDiff;
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        }
+      }
+    });
+  }
+
   private loadLedger(
     whereSql: string,
     params: unknown[],
   ): Promise<
     {
       donorId: string;
+      name: string | null;
+      phone: string | null;
       giftCount: string;
       giftSum: string;
       lastGift: string | null;
@@ -418,7 +494,9 @@ export class DonorsService {
         d.id AS "donorId",
         d."createdAt" AS "createdAt",
         COUNT(dn.id)::int AS "giftCount",
-        COALESCE(SUM(dn.amount), 0) AS "giftSum",
+        d.name AS "name",
+        d.phone AS "phone",
+        COALESCE(SUM(dn.amount - COALESCE(dn."refundedAmount", 0)), 0) AS "giftSum",
         MAX(dn."createdAt") AS "lastGift",
         MIN(dn."createdAt") AS "firstGift"
       FROM donors d
@@ -427,7 +505,7 @@ export class DonorsService {
         AND dn.status = '${DonationStatus.SUCCEEDED}'
         AND ${match}
       WHERE ${whereSql}
-      GROUP BY d.id, d."createdAt"
+      GROUP BY d.id, d."createdAt", d.name, d.phone
       `,
       params,
     );

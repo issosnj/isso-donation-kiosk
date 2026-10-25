@@ -1,4 +1,18 @@
-import { Controller, Post, Get, Body, Param, Query, UseGuards, ForbiddenException, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  ForbiddenException,
+  Headers,
+  Req,
+  BadRequestException,
+  RawBodyRequest,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { StripeService } from './stripe.service';
@@ -90,10 +104,13 @@ export class StripeController {
   @SkipThrottle()
   @ApiOperation({ summary: 'Stripe webhook handler (called by Stripe)' })
   async handleWebhook(
-    @Body() body: any,
+    @Req() req: RawBodyRequest<Request>,
     @Headers('stripe-signature') signature?: string,
   ) {
-    await this.stripeService.handleWebhook(body, signature || '');
+    if (!req.rawBody || req.rawBody.length === 0) {
+      throw new BadRequestException('Missing raw webhook body');
+    }
+    await this.stripeService.handleWebhook(req.rawBody, signature || '');
     return { received: true };
   }
 }

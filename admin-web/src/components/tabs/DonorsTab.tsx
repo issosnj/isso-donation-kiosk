@@ -16,10 +16,8 @@ import {
   DonorProfileDrawer,
   DonorEditModal,
   computeDonorKpis,
-  applyDonorSegment,
-  sortDonors,
   exportDonorsToCsv,
-  isValidDonorPhone,
+  listDonorVipIds,
   normalizeDonorPhone,
   setDonorVip,
   isDonorVip,
@@ -54,9 +52,14 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
   const [showAddDonor, setShowAddDonor] = useState(false)
   const [editForm, setEditForm] = useState({ name: '', email: '', address: '', phone: '' })
   const [addForm, setAddForm] = useState({ name: '', email: '', address: '', phone: '' })
+  const [formError, setFormError] = useState<string | null>(null)
   const [vipVersion, setVipVersion] = useState(0)
 
-  const limit = segment !== 'all' || sortKey !== 'last_donation' ? 200 : 50
+  const limit = 50
+  const vipIds = useMemo(() => {
+    void vipVersion
+    return listDonorVipIds()
+  }, [vipVersion])
   const effectiveTempleId = isMasterAdmin ? templeId : (templeId as string)
 
   const { data: ownTemple } = useQuery({
@@ -93,14 +96,18 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
         : null
 
   const { data, isLoading, isFetching, isError } = useQuery({
-    queryKey: ['donors', effectiveTempleId, page, search, limit],
+    queryKey: ['donors', effectiveTempleId, page, search, limit, segment, sortKey, monthStart, vipIds.join(',')],
     queryFn: async () => {
       if (!endpoint) return { donors: [], total: 0 }
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
+        segment,
+        sort: sortKey,
+        monthStart,
       })
       if (search) params.append('search', search)
+      if (segment === 'vip' && vipIds.length > 0) params.append('vipIds', vipIds.join(','))
       const response = await api.get(`${endpoint}?${params.toString()}`)
       return response.data
     },
@@ -138,7 +145,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
       alert('Donor updated successfully!')
     },
     onError: (error: { response?: { data?: { message?: string } } }) => {
-      alert(error.response?.data?.message || 'Failed to update donor')
+      setFormError(error.response?.data?.message || 'Failed to update donor')
     },
   })
 
@@ -161,7 +168,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
       alert('Donor added successfully!')
     },
     onError: (error: { response?: { data?: { message?: string } } }) => {
-      alert(error.response?.data?.message || 'Failed to create donor')
+      setFormError(error.response?.data?.message || 'Failed to create donor')
     },
   })
 
@@ -227,15 +234,9 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
   }
 
   const rawDonors: Donor[] = data?.donors || []
+  const displayedDonors = rawDonors
   const total = data?.total || 0
   const selectedTemple = temples.find((t: { id: string }) => t.id === effectiveTempleId)
-
-  const displayedDonors = useMemo(() => {
-    void vipVersion
-    let list = applyDonorSegment(rawDonors, segment)
-    list = sortDonors(list, sortKey)
-    return list
-  }, [rawDonors, segment, sortKey, vipVersion])
 
   const kpis = computeDonorKpis(stats)
 
@@ -277,10 +278,10 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
       : rawDonors.length === 0
         ? search
           ? 'no_results'
-          : 'no_donors'
-        : displayedDonors.length === 0
-          ? 'segment'
-          : null
+          : segment !== 'all'
+            ? 'segment'
+            : 'no_donors'
+        : null
 
   return (
     <div className="space-y-6 pb-8 min-w-0 max-w-full">
@@ -322,7 +323,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
         temples={temples}
         selectedTempleId={effectiveTempleId}
         onTempleSelect={handleTempleSelect}
-        resultCount={displayedDonors.length}
+        resultCount={total}
       />
 
       {isError ? (
@@ -358,7 +359,7 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
           })}
           page={page}
           limit={limit}
-          total={segment === 'all' && sortKey === 'last_donation' ? total : displayedDonors.length}
+          total={total}
           onPageChange={setPage}
         />
       )}
@@ -375,37 +376,45 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
 
       {editingDonor && (
         <DonorEditModal
+          mode="edit"
+          initialAddress={editingDonor.address || ''}
           form={editForm}
-          onChange={setEditForm}
+          onChange={(next) => {
+            setFormError(null)
+            setEditForm(next)
+          }}
           onSave={() => updateMutation.mutate(editForm)}
-          onClose={() => setEditingDonor(null)}
+          onClose={() => {
+            setFormError(null)
+            setEditingDonor(null)
+          }}
           isSaving={updateMutation.isPending}
+          error={formError}
         />
       )}
 
       {showAddDonor && (
         <DonorEditModal
-          title="Add donor"
+          mode="add"
           form={addForm}
-          onChange={setAddForm}
+          onChange={(next) => {
+            setFormError(null)
+            setAddForm(next)
+          }}
           onSave={() => {
-            const phone = normalizeDonorPhone(addForm.phone)
-            if (!phone) {
-              alert('Phone number is required')
-              return
-            }
-            if (!isValidDonorPhone(addForm.phone)) {
-              alert('Enter a valid 10-digit phone number (optional +1 country code).')
-              return
-            }
             createMutation.mutate({
               ...addForm,
-              phone,
+              phone: normalizeDonorPhone(addForm.phone),
               templeId: effectiveTempleId,
             })
           }}
-          onClose={() => setShowAddDonor(false)}
+          onClose={() => {
+            setFormError(null)
+            setAddForm({ name: '', email: '', address: '', phone: '' })
+            setShowAddDonor(false)
+          }}
           isSaving={createMutation.isPending}
+          error={formError}
         />
       )}
     </div>

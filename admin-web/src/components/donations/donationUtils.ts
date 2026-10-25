@@ -1,17 +1,15 @@
 import { format } from 'date-fns'
 import type { Donation, DonationsKpis } from '@/types/donation'
+import { keptDonationAmount } from '@/lib/formatters'
 
 export function computeDonationKpis(donations: Donation[]): DonationsKpis {
   const succeeded = donations.filter((d) => d.status === 'SUCCEEDED')
-  const totalGross = succeeded.reduce((sum, d) => sum + Number(d.amount), 0)
+  const totalGross = succeeded.reduce((sum, d) => sum + keptDonationAmount(d), 0)
   const totalFees = succeeded.reduce(
     (sum, d) => sum + Number(d.stripeFee || d.squareFee || 0),
     0,
   )
-  const totalNet = succeeded.reduce(
-    (sum, d) => sum + Number(d.netAmount ?? d.amount),
-    0,
-  )
+  const totalNet = succeeded.reduce((sum, d) => sum + (donationNet(d) ?? 0), 0)
   return {
     totalGross,
     totalNet,
@@ -89,6 +87,7 @@ export function exportDonationsToCsv(rows: Donation[], filenamePrefix = 'donatio
     Temple: d.temple?.name || '',
     Receipt: d.receiptNumber || '',
     Gross: Number(d.amount).toFixed(2),
+    Refunded: Number(d.refundedAmount || 0).toFixed(2),
     Fee:
       d.stripeFee || d.squareFee
         ? Number(d.stripeFee || d.squareFee).toFixed(2)
@@ -127,6 +126,8 @@ export function donationFee(d: Donation): number {
 
 export function donationNet(d: Donation): number | null {
   if (d.status !== 'SUCCEEDED') return null
-  if (d.netAmount != null) return Number(d.netAmount)
-  return Number(d.amount)
+  const base = d.netAmount != null ? Number(d.netAmount) : Number(d.amount)
+  const refunded = Number(d.refundedAmount || 0)
+  const net = base - (Number.isFinite(refunded) ? refunded : 0)
+  return Math.round(Math.max(0, net) * 100) / 100
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import api from '@/lib/api'
+import { keptDonationAmount } from '@/lib/formatters'
 import type { Donor } from '@/types/donor'
 import ReceiptView from '@/components/ReceiptView'
 import {
@@ -104,7 +105,11 @@ export default function DonorProfileDrawer({
 
   const historyReady = !isLoading && !isError
   const historyTotal = roundMoney(
-    sortedDonations.reduce((sum: number, d: { amount: number }) => sum + roundMoney(d.amount), 0),
+    sortedDonations.reduce(
+      (sum: number, d: { amount: number; refundedAmount?: number; status?: string }) =>
+        sum + roundMoney(keptDonationAmount(d)),
+      0,
+    ),
   )
   const lifetimeTotal = historyReady ? historyTotal : roundMoney(donor.totalAmount)
   const giftCount = historyReady ? sortedDonations.length : Number(donor.totalDonations) || 0
@@ -267,6 +272,7 @@ export default function DonorProfileDrawer({
                   id: string
                   createdAt: string
                   amount: number
+                  refundedAmount?: number
                   receiptNumber?: string
                   status?: string
                 }) => (
@@ -274,7 +280,7 @@ export default function DonorProfileDrawer({
                     <span className="absolute -left-[1.35rem] top-1.5 w-2.5 h-2.5 rounded-full bg-orange-500 ring-4 ring-orange-50" />
                     <div className="bg-gray-50/80 hover:bg-orange-50/50 rounded-xl p-3 transition-colors">
                       <p className="text-sm font-medium text-gray-900">
-                        Donated {formatMoneyPrecise(Number(d.amount))}
+                        Donated {formatMoneyPrecise(keptDonationAmount(d))}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {format(new Date(d.createdAt), 'MMM d, yyyy · h:mm a')}

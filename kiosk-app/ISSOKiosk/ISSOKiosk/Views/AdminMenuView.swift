@@ -645,10 +645,10 @@ struct AdminPasswordView: View {
     @State private var password: String = ""
     @State private var errorMessage: String = ""
     @State private var isAuthenticated: Bool = false
+    @State private var isChecking: Bool = false
 
-    // SECURITY: This should be moved to Keychain or secure config. Do not use in production without rotation.
-    // Consider fetching from backend or storing securely per-device.
-    private let adminPassword = "admin123"
+    /// Used only when the kiosk cannot reach the API. Set KIOSK_ADMIN_PIN on the server to replace this.
+    private let offlineFallbackPassword = "admin123"
 
     var body: some View {
         PremiumKioskModal(showBottomCloseButton: false) {
@@ -737,17 +737,17 @@ struct AdminPasswordView: View {
                     Button {
                         checkPassword()
                     } label: {
-                        Text("Submit")
+                        Text(isChecking ? "Checking" : "Submit")
                             .font(.custom("Inter-SemiBold", size: 15))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .fill(password.isEmpty ? Color(red: 0.75, green: 0.76, blue: 0.78) : Color(red: 0.35, green: 0.34, blue: 0.84))
+                                    .fill(password.isEmpty || isChecking ? Color(red: 0.75, green: 0.76, blue: 0.78) : Color(red: 0.35, green: 0.34, blue: 0.84))
                             )
                     }
-                    .disabled(password.isEmpty)
+                    .disabled(password.isEmpty || isChecking)
                 }
                 .padding(.top, 8)
             }
@@ -766,14 +766,52 @@ struct AdminPasswordView: View {
     }
 
     private func checkPassword() {
-        if password == adminPassword {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            isAuthenticated = true
-            password = ""
-            errorMessage = ""
-        } else {
-            errorMessage = "Incorrect password"
-            password = ""
+        let entered = password
+        guard !entered.isEmpty, !isChecking else { return }
+        isChecking = true
+        errorMessage = ""
+        Task {
+            let outcome = await verifyAdminPin(entered)
+            await MainActor.run {
+                isChecking = false
+                switch outcome {
+                case .accepted:
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    isAuthenticated = true
+                    password = ""
+                    errorMessage = ""
+                case .rejected:
+                    errorMessage = "Incorrect password"
+                    password = ""
+                case .offline:
+                    if entered == offlineFallbackPassword {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        isAuthenticated = true
+                        password = ""
+                        errorMessage = ""
+                    } else {
+                        errorMessage = "Could not reach the server. The offline password was not accepted."
+                        password = ""
+                    }
+                }
+            }
+        }
+    }
+
+    private enum PinOutcome {
+        case accepted
+        case rejected
+        case offline
+    }
+
+    private func verifyAdminPin(_ entered: String) async -> PinOutcome {
+        do {
+            _ = try await APIService.shared.verifyAdminPin(entered)
+            return .accepted
+        } catch APIError.httpError(let code) where code == 401 || code == 403 {
+            return .rejected
+        } catch {
+            return .offline
         }
     }
 }

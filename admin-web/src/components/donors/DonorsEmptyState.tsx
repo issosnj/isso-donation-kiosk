@@ -34,7 +34,7 @@ export default function DonorsEmptyState({
     },
     segment: {
       title: `No ${segmentLabel || 'matching'} donors`,
-      description: 'No donors match this segment on the current page. Try another filter or clear segments.',
+      description: 'No donors in this temple match this segment. Try another filter or clear segments.',
       icon: FilterIcon,
     },
     select_temple: {

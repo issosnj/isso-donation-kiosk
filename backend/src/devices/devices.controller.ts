@@ -14,6 +14,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
@@ -29,7 +31,10 @@ import { UserRole } from '../users/entities/user.entity';
 @ApiTags('devices')
 @Controller('devices')
 export class DevicesController {
-  constructor(private readonly devicesService: DevicesService) {}
+  constructor(
+    private readonly devicesService: DevicesService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -80,6 +85,25 @@ export class DevicesController {
       console.error('[Devices Controller] Error stack:', error.stack);
       throw error;
     }
+  }
+
+  @Post('verify-admin-pin')
+  @Throttle({ default: { limit: 8, ttl: 900000 } })
+  @UseGuards(DeviceAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Check the kiosk admin password (device endpoint)' })
+  verifyAdminPin(@Body() body: { password?: string }) {
+    const configured = this.configService.get<string>('KIOSK_ADMIN_PIN')?.trim();
+    const expected = configured || 'admin123';
+    const actual = body?.password || '';
+    const actualBuf = Buffer.from(actual);
+    const expectedBuf = Buffer.from(expected);
+    const matches =
+      actualBuf.length === expectedBuf.length && crypto.timingSafeEqual(actualBuf, expectedBuf);
+    if (!matches) {
+      throw new UnauthorizedException('Incorrect password');
+    }
+    return { ok: true };
   }
 
   @Get('kiosk-config')

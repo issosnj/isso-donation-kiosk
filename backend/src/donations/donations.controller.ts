@@ -498,21 +498,30 @@ export class DonationsController {
       throw new ForbiddenException('Unauthorized');
     }
 
-    if (donation.status !== DonationStatus.SUCCEEDED) {
-      throw new BadRequestException('Can only refund successful donations');
+    const originalAmount = Number(donation.amount);
+    const alreadyRefunded = Number(donation.refundedAmount || 0);
+    const remaining = Math.round((originalAmount - alreadyRefunded) * 100) / 100;
+    if (donation.status !== DonationStatus.SUCCEEDED || remaining <= 0) {
+      throw new BadRequestException('Can only refund the remaining balance of a successful donation');
+    }
+    if (
+      refundDto.amount != null &&
+      (refundDto.amount <= 0 || refundDto.amount - remaining > 0.009)
+    ) {
+      throw new BadRequestException('Refund amount is invalid');
     }
 
     // Process refund through Stripe if Stripe payment
     if (donation.stripePaymentIntentId) {
+      const amountToRefund = refundDto.amount ?? remaining;
       const refundResult = await this.stripeService.refundPayment(
         donation.templeId,
         donation.stripePaymentIntentId,
-        refundDto.amount,
+        amountToRefund,
         refundDto.reason,
       );
 
-      // Update donation status
-      await this.donationsService.updateStatus(donation.id, DonationStatus.REFUNDED);
+      await this.donationsService.recordRefund(donation.id, refundResult.amount);
 
       return {
         message: 'Refund processed successfully',

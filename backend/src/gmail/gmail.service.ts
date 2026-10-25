@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TemplesService } from '../temples/temples.service';
+import * as crypto from 'crypto';
+
+const OAUTH_STATE_TTL_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class GmailService {
@@ -9,7 +12,7 @@ export class GmailService {
     private templesService: TemplesService,
   ) {}
 
-  getOAuthUrl(templeId: string): string {
+  getOAuthUrl(templeId: string, userId: string): string {
     const clientId = this.configService.get<string>('GMAIL_CLIENT_ID');
     const redirectUri = this.configService.get<string>('GMAIL_REDIRECT_URI');
     
@@ -17,7 +20,7 @@ export class GmailService {
       throw new Error('Gmail configuration missing: GMAIL_CLIENT_ID or GMAIL_REDIRECT_URI not set');
     }
     
-    const state = Buffer.from(JSON.stringify({ templeId })).toString('base64');
+    const state = this.signOAuthState(templeId, userId);
     const encodedRedirectUri = encodeURIComponent(redirectUri);
     
     // Gmail OAuth scopes for sending emails
@@ -26,10 +29,53 @@ export class GmailService {
       'https://www.googleapis.com/auth/userinfo.email',
     ].join(' ');
     
-    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=consent&state=${state}`;
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
     
     console.log('[Gmail Service] Generated OAuth URL for temple:', templeId);
     return oauthUrl;
+  }
+
+  signOAuthState(templeId: string, userId: string): string {
+    const payload = Buffer.from(
+      JSON.stringify({
+        templeId,
+        userId,
+        exp: Date.now() + OAUTH_STATE_TTL_MS,
+      }),
+    ).toString('base64url');
+    const signature = crypto.createHmac('sha256', this.oauthStateSecret()).update(payload).digest('base64url');
+    return `${payload}.${signature}`;
+  }
+
+  verifyOAuthState(state: string): { templeId: string; userId: string } {
+    const [payload, signature] = (state || '').split('.');
+    if (!payload || !signature || state.split('.').length !== 2) {
+      throw new Error('Invalid OAuth state');
+    }
+    const expected = crypto.createHmac('sha256', this.oauthStateSecret()).update(payload).digest('base64url');
+    const actualBuf = Buffer.from(signature);
+    const expectedBuf = Buffer.from(expected);
+    if (actualBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(actualBuf, expectedBuf)) {
+      throw new Error('Invalid OAuth state');
+    }
+    let data: { templeId?: string; userId?: string; exp?: number };
+    try {
+      data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    } catch {
+      throw new Error('Invalid OAuth state');
+    }
+    if (!data.templeId || !data.userId || typeof data.exp !== 'number' || data.exp < Date.now()) {
+      throw new Error('OAuth state expired');
+    }
+    return { templeId: data.templeId, userId: data.userId };
+  }
+
+  private oauthStateSecret(): string {
+    const secret = this.configService.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+    return secret;
   }
 
   async exchangeCodeForToken(code: string, state: string): Promise<any> {

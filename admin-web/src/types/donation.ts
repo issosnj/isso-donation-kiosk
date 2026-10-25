@@ -21,6 +21,7 @@ export interface Donation {
   templeId: string
   deviceId?: string | null
   amount: number | string
+  refundedAmount?: number | string | null
   netAmount?: number | string | null
   stripeFee?: number | string | null
   squareFee?: number | string | null

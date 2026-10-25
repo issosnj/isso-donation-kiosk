@@ -197,6 +197,11 @@ export default function DonationsTable({
                     <span className="text-sm font-semibold text-gray-900 tabular-nums">
                       ${safeNumber(donation.amount).toFixed(2)}
                     </span>
+                    {safeNumber(donation.refundedAmount) > 0 && (
+                      <span className="block text-xs font-normal text-amber-700">
+                        Refunded ${safeNumber(donation.refundedAmount).toFixed(2)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap align-middle text-right">
                     <span className="text-sm text-gray-500 tabular-nums">
