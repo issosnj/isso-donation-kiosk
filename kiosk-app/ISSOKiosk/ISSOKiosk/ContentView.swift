@@ -11,6 +11,18 @@ struct ContentView: View {
     @StateObject private var navigationState = AppNavigationState()
     
     var body: some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-previewStep3") {
+            Step3KeyboardPreviewHost()
+        } else {
+            kioskContent
+        }
+        #else
+        kioskContent
+        #endif
+    }
+
+    private var kioskContent: some View {
         ZStack {
             // Background color - always show immediately
             Color.white
@@ -68,4 +80,47 @@ struct ContentView: View {
         idleTimer.configure(timeout: timeout)
     }
 }
+
+#if DEBUG
+/// Development-only Step 3 host. Release builds omit this. It does not activate a device or skip payment checks.
+private struct Step3KeyboardPreviewHost: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var donationLines: [CheckoutDonationLine] = [
+        .primary(amount: 51, category: nil)
+    ]
+
+    private var requestedFocus: DonorInlineFocus {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-previewFocus"), arguments.indices.contains(index + 1) else {
+            return .none
+        }
+        switch arguments[index + 1] {
+        case "first": return .firstName
+        case "last": return .lastName
+        case "phone": return .phone
+        case "email": return .email
+        case "address": return .address
+        default: return .none
+        }
+    }
+
+    var body: some View {
+        ModernDonationDetailsView(
+            donationLines: $donationLines,
+            category: nil,
+            initialDonorName: nil,
+            initialDonorPhone: nil,
+            initialDonorEmail: nil,
+            initialDonorAddress: nil,
+            initialAnonymousSeva: false,
+            onConfirm: { _, _, _, _, _ in },
+            onCancel: {},
+            onAddAdditionalSeva: nil,
+            debugInitialFocus: requestedFocus,
+            debugSeedSuggestions: ProcessInfo.processInfo.arguments.contains("-previewAddressSuggestions")
+        )
+        .environmentObject(appState)
+    }
+}
+#endif
 

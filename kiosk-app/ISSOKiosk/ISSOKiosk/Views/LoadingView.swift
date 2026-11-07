@@ -54,12 +54,10 @@ struct LoadingView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background - ensure it covers entire screen including safe areas
+                // Ignore safe area on the reader so the artwork is measured to the
+                // full display. Framing it to the inset size leaves a white band.
                 backgroundView(geometry: geometry)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .ignoresSafeArea(.all, edges: .all)
-                
-                // Loading content
+
                 VStack(spacing: 40) {
                     Spacer()
                     
@@ -101,6 +99,7 @@ struct LoadingView: View {
                 }
             }
         }
+        .ignoresSafeArea(.all, edges: .all)
         .onAppear {
             // Start smooth rotation animation using Timer for better performance (60 FPS)
             animationTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { _ in

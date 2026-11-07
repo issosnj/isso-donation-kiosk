@@ -10,8 +10,19 @@
 		B9EC68AA2EF5E1F600F9F2A4 /* StripeTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = B9EC68A92EF5E1F600F9F2A4 /* StripeTerminal */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		D1A100000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B94A27F52EF4DEAD005A3BBE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B94A27FC2EF4DEAD005A3BBE;
+			remoteInfo = ISSOKiosk;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		B94A27FD2EF4DEAD005A3BBE /* ISSOKiosk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ISSOKiosk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1A100000000000000000004 /* ISSOKioskTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ISSOKioskTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -33,6 +44,11 @@
 			path = ISSOKiosk;
 			sourceTree = "<group>";
 		};
+		D1A100000000000000000005 /* ISSOKioskTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ISSOKioskTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +60,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D1A100000000000000000007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -51,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				B94A27FF2EF4DEAD005A3BBE /* ISSOKiosk */,
+				D1A100000000000000000005 /* ISSOKioskTests */,
 				B9EC68AB2EF5E3AE00F9F2A4 /* Frameworks */,
 				B94A27FE2EF4DEAD005A3BBE /* Products */,
 			);
@@ -60,6 +84,7 @@
 			isa = PBXGroup;
 			children = (
 				B94A27FD2EF4DEAD005A3BBE /* ISSOKiosk.app */,
+				D1A100000000000000000004 /* ISSOKioskTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -97,6 +122,27 @@
 			productReference = B94A27FD2EF4DEAD005A3BBE /* ISSOKiosk.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D1A100000000000000000001 /* ISSOKioskTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D1A10000000000000000000B /* Build configuration list for PBXNativeTarget "ISSOKioskTests" */;
+			buildPhases = (
+				D1A100000000000000000006 /* Sources */,
+				D1A100000000000000000007 /* Frameworks */,
+				D1A100000000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D1A100000000000000000003 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D1A100000000000000000005 /* ISSOKioskTests */,
+			);
+			name = ISSOKioskTests;
+			productName = ISSOKioskTests;
+			productReference = D1A100000000000000000004 /* ISSOKioskTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -109,6 +155,10 @@
 				TargetAttributes = {
 					B94A27FC2EF4DEAD005A3BBE = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					D1A100000000000000000001 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = B94A27FC2EF4DEAD005A3BBE;
 					};
 				};
 			};
@@ -130,12 +180,20 @@
 			projectRoot = "";
 			targets = (
 				B94A27FC2EF4DEAD005A3BBE /* ISSOKiosk */,
+				D1A100000000000000000001 /* ISSOKioskTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		B94A27FB2EF4DEAD005A3BBE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D1A100000000000000000008 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -152,7 +210,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D1A100000000000000000006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D1A100000000000000000003 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B94A27FC2EF4DEAD005A3BBE /* ISSOKiosk */;
+			targetProxy = D1A100000000000000000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		B94A28062EF4DEAE005A3BBE /* Debug */ = {
@@ -354,6 +427,48 @@
 			};
 			name = Release;
 		};
+		D1A100000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CA574NG6CA;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Donation.ISSOKioskTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ISSOKiosk.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ISSOKiosk";
+			};
+			name = Debug;
+		};
+		D1A10000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CA574NG6CA;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Donation.ISSOKioskTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ISSOKiosk.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ISSOKiosk";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -371,6 +486,15 @@
 			buildConfigurations = (
 				B94A28092EF4DEAE005A3BBE /* Debug */,
 				B94A280A2EF4DEAE005A3BBE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D1A10000000000000000000B /* Build configuration list for PBXNativeTarget "ISSOKioskTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D1A100000000000000000009 /* Debug */,
+				D1A10000000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
