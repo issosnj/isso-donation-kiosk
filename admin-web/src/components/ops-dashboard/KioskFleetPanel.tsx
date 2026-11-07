@@ -67,10 +67,6 @@ function DeviceCard({
             )}
           </dd>
         </div>
-        <div>
-          <dt className="text-gray-400">App</dt>
-          <dd className="text-gray-500 font-medium">—</dd>
-        </div>
       </dl>
       <button
         type="button"
@@ -155,13 +151,12 @@ export default function KioskFleetPanel({ devices, isLoading, isError }: KioskFl
           <div className="hidden md:block overflow-x-auto custom-scrollbar">
             <table className="w-full text-left min-w-[800px]">
               <thead>
-                <tr className="text-[10px] uppercase tracking-wide text-gray-500 border-b border-gray-100">
+                <tr className="text-[10px] tracking-wide text-gray-500 border-b border-gray-100">
                   <th className="px-5 py-2.5 font-semibold">Device</th>
                   <th className="px-3 py-2.5 font-semibold">Status</th>
                   <th className="px-3 py-2.5 font-semibold">Heartbeat</th>
                   <th className="px-3 py-2.5 font-semibold">Reader</th>
                   <th className="px-3 py-2.5 font-semibold">Last donation</th>
-                  <th className="px-3 py-2.5 font-semibold">App version</th>
                   <th className="px-5 py-2.5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -197,7 +192,6 @@ export default function KioskFleetPanel({ devices, isLoading, isError }: KioskFl
                       <td className="px-3 py-3 text-xs text-gray-600">
                         {formatHeartbeat(d.lastActivityAt ?? null)}
                       </td>
-                      <td className="px-3 py-3 text-xs text-gray-400">—</td>
                       <td className="px-5 py-3 text-right">
                         <button
                           type="button"

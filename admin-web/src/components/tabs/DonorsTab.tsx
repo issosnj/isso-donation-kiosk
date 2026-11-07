@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
@@ -79,6 +79,13 @@ export default function DonorsTab({ templeId, isMasterAdmin = false }: DonorsTab
     },
     enabled: isMasterAdmin,
   })
+
+  useEffect(() => {
+    if (!isMasterAdmin || effectiveTempleId || temples.length === 0) return
+    const firstId = (temples[0] as { id?: string }).id
+    if (!firstId) return
+    router.replace(`/dashboard?tab=donors&templeId=${encodeURIComponent(firstId)}`)
+  }, [isMasterAdmin, effectiveTempleId, temples, router])
 
   const rawTempleZone = isMasterAdmin
     ? temples.find((t: { id: string; timezone?: string }) => t.id === effectiveTempleId)?.timezone

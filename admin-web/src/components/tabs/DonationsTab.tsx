@@ -3,10 +3,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { format } from 'date-fns'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import DonorInfoPopup from '../DonorInfoPopup'
 import {
-  PendingDonationsAlert,
   DonationsPageHeader,
   DonationsKPICards,
   DonationsFiltersToolbar,
@@ -43,8 +43,16 @@ interface DonationsTabProps {
 
 export default function DonationsTab({ templeId, isMasterAdmin = false }: DonationsTabProps) {
   const queryClient = useQueryClient()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const exportIntentStarted = useRef(false)
   const [resendingId, setResendingId] = useState<string | null>(null)
   const [refundingId, setRefundingId] = useState<string | null>(null)
+  const [refundTarget, setRefundTarget] = useState<Donation | null>(null)
+  const [refundAmountInput, setRefundAmountInput] = useState('')
+  const [refundReasonInput, setRefundReasonInput] = useState('')
+  const [refundFormError, setRefundFormError] = useState('')
+  const [refundSuccess, setRefundSuccess] = useState('')
   const [viewingPaymentDetailsId, setViewingPaymentDetailsId] = useState<string | null>(null)
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetailsResponse | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -114,6 +122,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     data: donations = [],
     isLoading,
     isFetching,
+    isError,
     refetch,
   } = useQuery({
     queryKey: ['donations', selectedTempleId, startDate, endDate, templeId],
@@ -210,21 +219,6 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     },
   })
 
-  const cleanupPendingMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post('/donations/cleanup/pending')
-      return response.data
-    },
-    onSuccess: (data) => {
-      alert(`Successfully cleaned up ${data.deleted} pending donation(s).`)
-      queryClient.invalidateQueries({ queryKey: ['donations'] })
-      setSelectedIds(new Set())
-    },
-    onError: (error: any) => {
-      alert(error.response?.data?.message || 'Failed to cleanup pending donations')
-    },
-  })
-
   const cancelDonationMutation = useMutation({
     mutationFn: async (donationId: string) => {
       await api.post(`/donations/${donationId}/cancel`)
@@ -248,12 +242,19 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
       return response.data
     },
     onSuccess: (data) => {
-      alert(`Refund processed successfully! Refund ID: ${data.refundId}, Amount: $${data.refundAmount.toFixed(2)}`)
+      const amount = Number(data?.refundAmount)
+      setRefundSuccess(
+        Number.isFinite(amount)
+          ? `Refund processed for $${amount.toFixed(2)}.`
+          : 'Refund processed.',
+      )
+      setRefundFormError('')
+      setRefundTarget(null)
       setRefundingId(null)
       queryClient.invalidateQueries({ queryKey: ['donations'] })
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || 'Failed to process refund')
+      setRefundFormError(error.response?.data?.message || 'Failed to process refund')
       setRefundingId(null)
     },
   })
@@ -272,26 +273,34 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     },
   })
 
-  const handleRefund = (donation: Donation) => {
+  const openRefund = (donation: Donation) => {
+    setRefundTarget(donation)
+    setRefundAmountInput('')
+    setRefundReasonInput('')
+    setRefundFormError('')
+    setRefundSuccess('')
+  }
+
+  const submitRefund = () => {
+    if (!refundTarget) return
     const remaining = Math.max(
       0,
-      Math.round((Number(donation.amount) - Number(donation.refundedAmount || 0)) * 100) / 100,
+      Math.round((Number(refundTarget.amount) - Number(refundTarget.refundedAmount || 0)) * 100) / 100,
     )
-    const refundAmount = prompt(`Enter refund amount (leave empty for full refund of $${remaining.toFixed(2)}):`)
-    if (refundAmount === null) return // User cancelled
-
-    const amount = refundAmount.trim() ? parseFloat(refundAmount) : undefined
+    const amount = refundAmountInput.trim() ? parseFloat(refundAmountInput) : undefined
     if (amount !== undefined && (isNaN(amount) || amount <= 0 || amount - remaining > 0.009)) {
-      alert('Invalid refund amount')
+      setRefundFormError(
+        remaining > 0 ? `Enter an amount up to $${remaining.toFixed(2)}.` : 'Nothing left to refund.',
+      )
       return
     }
-
-    const reason = prompt('Enter refund reason (optional):') || undefined
-    
-    if (confirm(`Are you sure you want to refund ${amount ? `$${amount.toFixed(2)}` : 'the full amount'}?`)) {
-      setRefundingId(donation.id)
-      refundMutation.mutate({ donationId: donation.id, amount, reason })
-    }
+    setRefundFormError('')
+    setRefundingId(refundTarget.id)
+    refundMutation.mutate({
+      donationId: refundTarget.id,
+      amount,
+      reason: refundReasonInput.trim() || undefined,
+    })
   }
 
   const handleViewPaymentDetails = (donationId: string) => {
@@ -436,15 +445,8 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
     }, {})
   }, [donations])
 
-  const pendingCount = statusCounts.PENDING || 0
   const failedCount = statusCounts.FAILED || 0
   const cancelledCount = statusCounts.CANCELED || 0
-
-  const handleCleanupPending = () => {
-    if (confirm(`Delete all ${pendingCount} pending donation(s)? This cannot be undone.`)) {
-      cleanupPendingMutation.mutate()
-    }
-  }
 
   const kpis = useMemo(() => computeDonationKpis(donations), [donations])
   const categoryOptions = useMemo(() => extractCategoryOptions(donations), [donations])
@@ -485,6 +487,20 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
   const handleExport = (rows: Donation[] = displayDonations) => {
     exportDonationsToCsv(rows)
   }
+
+  useEffect(() => {
+    if (searchParams.get('intent') !== 'export') {
+      exportIntentStarted.current = false
+      return
+    }
+    if (isLoading || exportIntentStarted.current) return
+    exportIntentStarted.current = true
+    if (!isError) handleExport()
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('intent')
+    const next = params.toString()
+    router.replace(next ? `/dashboard?${next}` : '/dashboard')
+  }, [handleExport, isError, isLoading, router, searchParams])
 
   const handleExportSelected = () => {
     const rows = displayDonations.filter((d) => selectedIds.has(d.id))
@@ -653,7 +669,7 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
         isAnonymousForAssign(donation) && donation.status === 'SUCCEEDED'
           ? () => setAssigningDonationId(donation.id)
           : undefined,
-      onRefund: hasPayment ? () => handleRefund(donation) : undefined,
+      onRefund: hasPayment ? () => openRefund(donation) : undefined,
       refundDisabled:
         donation.status === 'REFUNDED' ||
         Number(donation.amount) - Number(donation.refundedAmount || 0) <= 0,
@@ -699,18 +715,16 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
         isRefreshing={isFetching}
       />
 
-      <DonationsKPICards kpis={kpis} isLoading={isLoading} />
-
-      {pendingCount > 0 && (
-        <PendingDonationsAlert
-          count={pendingCount}
-          onReview={() => setShowFailedAndCancelled(true)}
-          onShowFailedAndCancelled={() => setShowFailedAndCancelled(true)}
-          onCleanupPending={isMasterAdmin ? handleCleanupPending : undefined}
-          isCleaningUp={cleanupPendingMutation.isPending}
-          isMasterAdmin={isMasterAdmin}
-        />
+      {refundSuccess && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+          <p>{refundSuccess}</p>
+          <button type="button" onClick={() => setRefundSuccess('')} className="font-medium text-green-800">
+            Dismiss
+          </button>
+        </div>
       )}
+
+      <DonationsKPICards kpis={kpis} isLoading={isLoading} />
 
       {changeRequestNotice && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm">
@@ -1218,6 +1232,69 @@ export default function DonationsTab({ templeId, isMasterAdmin = false }: Donati
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {refundTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="refund-title"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <h3 id="refund-title" className="text-lg font-semibold text-gray-900">
+              Refund donation
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Leave the amount blank to refund the full remaining balance of $
+              {Math.max(
+                0,
+                Math.round(
+                  (Number(refundTarget.amount) - Number(refundTarget.refundedAmount || 0)) * 100,
+                ) / 100,
+              ).toFixed(2)}
+              .
+            </p>
+            <label className="mt-4 block text-sm font-medium text-gray-700">
+              Amount
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={refundAmountInput}
+                onChange={(event) => setRefundAmountInput(event.target.value)}
+                className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/30"
+              />
+            </label>
+            <label className="mt-3 block text-sm font-medium text-gray-700">
+              Reason
+              <input
+                type="text"
+                value={refundReasonInput}
+                onChange={(event) => setRefundReasonInput(event.target.value)}
+                className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/30"
+              />
+            </label>
+            {refundFormError && <p className="mt-3 text-sm text-red-700">{refundFormError}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setRefundTarget(null)}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitRefund}
+                disabled={refundMutation.isPending}
+                className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+              >
+                {refundMutation.isPending ? 'Refunding…' : 'Refund'}
+              </button>
             </div>
           </div>
         </div>

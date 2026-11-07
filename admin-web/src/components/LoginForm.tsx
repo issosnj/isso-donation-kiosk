@@ -69,6 +69,16 @@ export default function LoginForm() {
     }
   }
 
+  const continueAsDummy = () => {
+    login('dev-bypass', {
+      id: 'dev-admin',
+      name: 'Dev Admin',
+      email: 'dev@localhost',
+      role: 'MASTER_ADMIN',
+    })
+    router.push('/dashboard')
+  }
+
   return (
     <form onSubmit={handleSubmit} className="mt-10 space-y-5 text-left">
       {error && (
@@ -129,6 +139,15 @@ export default function LoginForm() {
       >
         {loading ? 'SIGNING IN...' : 'SIGN IN'}
       </button>
+      {process.env.NODE_ENV === 'development' && (
+        <button
+          type="button"
+          onClick={continueAsDummy}
+          className="w-full pt-1 text-center text-sm font-medium text-gray-400 transition hover:text-orange-700"
+        >
+          Continue as dummy admin
+        </button>
+      )}
     </form>
   )
 }

@@ -13,29 +13,16 @@ export interface KpiStatCardProps {
   onClick?: () => void
 }
 
-/** One row when the page is wide enough; otherwise a second row. */
-function kpiColumns(count: number): string {
-  const base = 'grid gap-3 min-w-0'
-  switch (count) {
-    case 3:
-      return `${base} grid-cols-1 @md/kpi:grid-cols-3`
-    case 4:
-      return `${base} grid-cols-2 @2xl/kpi:grid-cols-4`
-    case 5:
-      return `${base} grid-cols-2 @lg/kpi:grid-cols-3 @4xl/kpi:grid-cols-5`
-    case 6:
-      return `${base} grid-cols-2 @xl/kpi:grid-cols-3 @5xl/kpi:grid-cols-6`
-    case 8:
-      return `${base} grid-cols-2 @3xl/kpi:grid-cols-4 @7xl/kpi:grid-cols-8`
-    default:
-      return `${base} grid-cols-2 @3xl/kpi:grid-cols-4`
-  }
-}
+export function KpiGrid({ count, children }: { count?: number; children: ReactNode }) {
+  // Six cards would otherwise wrap as five plus one. Fit them on one row and let each card shrink.
+  const columns =
+    count === 6
+      ? '[grid-template-columns:repeat(2,minmax(0,14rem))] sm:[grid-template-columns:repeat(3,minmax(0,14rem))] xl:[grid-template-columns:repeat(6,minmax(0,14rem))]'
+      : '[grid-template-columns:repeat(auto-fit,minmax(11rem,14rem))]'
 
-export function KpiGrid({ count, children }: { count: number; children: ReactNode }) {
   return (
-    <div className="@container/kpi min-w-0">
-      <div className={kpiColumns(count)}>{children}</div>
+    <div className="min-w-0">
+      <div className={`grid min-w-0 items-stretch gap-3 ${columns}`}>{children}</div>
     </div>
   )
 }
@@ -51,24 +38,24 @@ export function KpiStatCard({
   onClick,
 }: KpiStatCardProps) {
   const className =
-    'group w-full min-w-0 bg-white rounded-2xl border border-gray-200/70 shadow-sm px-3.5 py-3.5 text-left hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200'
+    'group flex h-full w-full min-w-0 flex-col gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-3 text-left shadow-sm transition-shadow hover:shadow-md'
 
   const body = (
     <>
       <div
-        className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-sm shrink-0`}
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br shadow-sm ${gradient}`}
       >
-        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={iconPath} />
         </svg>
       </div>
-      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mt-3 leading-tight">{label}</p>
-      <p className="text-lg font-bold text-gray-900 mt-1 tabular-nums tracking-tight leading-tight break-words">{value}</p>
+      <p className="truncate text-[11px] font-medium leading-4 text-gray-500">{label}</p>
+      <p className="text-lg font-bold leading-none tabular-nums tracking-tight text-gray-900">{value}</p>
       {(trend || insight) && (
-        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+        <div className="flex items-center gap-1.5">
           {trend ? (
             <span
-              className={`inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
+              className={`inline-flex shrink-0 items-center rounded px-1 py-0.5 text-[10px] font-semibold leading-4 ${
                 trendUp === false ? 'bg-gray-100 text-gray-600' : 'bg-emerald-50 text-emerald-700'
               }`}
             >
@@ -76,7 +63,7 @@ export function KpiStatCard({
               {trend}
             </span>
           ) : null}
-          {insight ? <span className="text-[11px] text-gray-500 leading-snug line-clamp-2">{insight}</span> : null}
+          {insight ? <span className="truncate text-[10px] leading-4 text-gray-500">{insight}</span> : null}
         </div>
       )}
     </>
@@ -99,11 +86,11 @@ export function KpiStatSkeleton({ count }: { count: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="bg-white rounded-2xl border border-gray-200/70 px-3.5 py-3.5 animate-pulse h-[124px]"
+          className="h-[7.25rem] animate-pulse rounded-xl border border-gray-200/70 bg-white px-3 py-3"
         >
-          <div className="h-9 w-9 bg-gray-200 rounded-xl mb-3" />
-          <div className="h-3 bg-gray-200 rounded w-16 mb-2" />
-          <div className="h-6 bg-gray-200 rounded w-20" />
+          <div className="mb-2 h-7 w-7 rounded-lg bg-gray-200" />
+          <div className="mb-2 h-3 w-16 rounded bg-gray-200" />
+          <div className="h-5 w-14 rounded bg-gray-200" />
         </div>
       ))}
     </KpiGrid>

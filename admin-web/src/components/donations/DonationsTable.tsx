@@ -106,7 +106,7 @@ export default function DonationsTable({
   emptyHint,
 }: DonationsTableProps) {
   const thClass =
-    'px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50/95'
+    'px-4 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide whitespace-nowrap bg-gray-50/95'
 
   return (
     <div className="overflow-x-auto custom-scrollbar max-w-full">

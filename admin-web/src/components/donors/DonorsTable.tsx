@@ -47,24 +47,24 @@ export default function DonorsTable({
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/60">
-              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide">
                 Donor
               </th>
-              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide">
                 Lifetime
               </th>
-              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide">
                 Gifts
               </th>
-              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide">
                 Last gift
               </th>
               {isMasterAdmin && (
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide">
                   Temple
                 </th>
               )}
-              <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">
+              <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 tracking-wide w-28">
                 Actions
               </th>
             </tr>
@@ -150,7 +150,7 @@ function DonorTableRow({
         <span className="inline-flex items-center gap-1.5 text-sm text-gray-700 tabular-nums">
           {donor.totalDonations}
           {donor.totalDonations > 1 && (
-            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-orange-50 text-orange-700">
+            <span className="text-[10px] font-semibold tracking-wide px-1.5 py-0.5 rounded-md bg-orange-50 text-orange-700">
               Repeat
             </span>
           )}
@@ -195,7 +195,7 @@ function DonorMobileCard({
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
         <StatPill label="Lifetime" value={formatMoneyPrecise(Number(donor.totalAmount))} />
-        <StatPill label="Gifts" value={String(donor.totalDonations)} />
+        <StatPill label="Donations" value={String(donor.totalDonations)} />
         <StatPill label="Last" value={formatDonorDate(donor.lastDonationDate)} small />
       </div>
       {isMasterAdmin && donor.temple?.name && (
@@ -265,7 +265,7 @@ function StatPill({
 }) {
   return (
     <div className="rounded-xl bg-gray-50 px-2 py-2">
-      <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">{label}</p>
+      <p className="text-[10px] font-medium text-gray-500 tracking-wide">{label}</p>
       <p
         className={`font-semibold text-gray-900 tabular-nums mt-0.5 truncate ${
           small ? 'text-xs' : 'text-sm'

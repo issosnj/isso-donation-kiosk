@@ -18,7 +18,7 @@ export interface MasterAdminPageMeta {
 const PAGE_META: Record<MasterAdminTab, Omit<MasterAdminPageMeta, 'tab'>> = {
   overview: {
     title: 'Operations dashboard',
-    subtitle: 'Nationwide kiosk fleet · donations · platform health',
+    subtitle: 'Donations, kiosks, and temple activity',
   },
   temples: {
     title: 'Temples',

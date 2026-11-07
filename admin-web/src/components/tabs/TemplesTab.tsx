@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
 import { PageHeaderActions, headerPrimaryButtonClass } from '@/components/layout/PageHeader'
 import TempleEditView from './TempleEditView'
@@ -12,6 +13,8 @@ export default function TemplesTab() {
   const [newTempleName, setNewTempleName] = useState('')
   const [newTempleAddress, setNewTempleAddress] = useState('')
   const queryClient = useQueryClient()
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   // Check if we should auto-open a temple (e.g., after Stripe connection)
   useEffect(() => {
@@ -24,7 +27,15 @@ export default function TemplesTab() {
     }
   }, [selectedTempleId])
 
-  const { data: temples, isLoading, error } = useQuery({
+  useEffect(() => {
+    if (searchParams.get('tab') !== 'temples' || searchParams.get('intent') !== 'create') return
+    setShowCreateForm(true)
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('intent')
+    router.replace(`/dashboard?${params.toString()}`)
+  }, [router, searchParams])
+
+  const { data: temples, isLoading, error, refetch } = useQuery({
     queryKey: ['temples'],
     queryFn: async () => {
       console.log('[Temples Query] Fetching temples...')
@@ -94,14 +105,6 @@ export default function TemplesTab() {
     )
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-        Failed to load temples. Please try again.
-      </div>
-    )
-  }
-
   // If a temple is selected, show the edit view
   if (selectedTempleId) {
     return (
@@ -140,7 +143,7 @@ export default function TemplesTab() {
                 value={newTempleName}
                 onChange={(e) => setNewTempleName(e.target.value)}
                 placeholder="Enter temple name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               />
             </div>
             <div>
@@ -152,7 +155,7 @@ export default function TemplesTab() {
                 value={newTempleAddress}
                 onChange={(e) => setNewTempleAddress(e.target.value)}
                 placeholder="Enter temple address"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               />
             </div>
             <button
@@ -169,6 +172,20 @@ export default function TemplesTab() {
         </div>
       )}
 
+      {error && (
+        <div className="flex items-center justify-between gap-3 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+          <p>Failed to load temples.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="shrink-0 text-sm font-semibold text-red-800 underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!error && (
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {temples?.length === 0 ? (
           <div className="p-12 text-center">
@@ -185,18 +202,26 @@ export default function TemplesTab() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stripe Connected</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Devices</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 tracking-wide">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 tracking-wide">Address</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 tracking-wide">Stripe Connected</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 tracking-wide">Devices</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {temples?.map((temple: any) => (
                   <tr
                     key={temple.id}
+                    tabIndex={0}
+                    role="link"
                     onClick={() => setSelectedTempleId(temple.id)}
-                    className="hover:bg-orange-50/30 transition-colors border-b border-gray-100 cursor-pointer"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        setSelectedTempleId(temple.id)
+                      }
+                    }}
+                    className="hover:bg-orange-50/30 focus:bg-orange-50/40 focus:outline-none transition-colors border-b border-gray-100 cursor-pointer"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">{temple.name}</div>
@@ -205,11 +230,11 @@ export default function TemplesTab() {
                       <div className="text-sm text-gray-600">{temple.address || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${temple.stripeAccountId || temple.stripePublishableKey
+                      <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${temple.stripeAccountId
                         ? 'bg-green-100 text-green-700 border border-green-200'
                         : 'bg-gray-100 text-gray-700 border border-gray-200'
                         }`}>
-                        {temple.stripeAccountId || temple.stripePublishableKey ? 'Connected' : 'Not Connected'}
+                        {temple.stripeAccountId ? 'Connected' : 'Not Connected'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -222,6 +247,7 @@ export default function TemplesTab() {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }

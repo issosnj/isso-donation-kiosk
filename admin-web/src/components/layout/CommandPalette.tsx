@@ -146,7 +146,7 @@ export default function CommandPalette({
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search temples, donors, donations, receipts…"
+            placeholder="Go to a page…"
             className="flex-1 text-sm outline-none bg-transparent text-gray-900 placeholder:text-gray-400"
           />
           <kbd className="hidden sm:inline text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
@@ -177,12 +177,12 @@ export default function CommandPalette({
                 >
                   <span>
                     <span className="font-medium">{item.label}</span>
-                    <span className="ml-2 text-[10px] text-gray-400 uppercase">
+                    <span className="ml-2 text-[10px] text-gray-400">
                       {item.kind === 'action' ? 'Action' : 'Page'}
                     </span>
                   </span>
                   {item.soon && (
-                    <span className="text-[9px] font-bold uppercase text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                    <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
                       Coming soon
                     </span>
                   )}
