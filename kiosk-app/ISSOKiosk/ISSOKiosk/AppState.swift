@@ -405,10 +405,19 @@ class AppState: ObservableObject {
         appLog("✅ Recorded successful donation time: \(Date())", category: "AppState")
     }
     
-    /// Ensure Stripe Terminal connection is ready
-    /// Stripe Terminal will be initialized when payment is needed
+    /// Reconnect the reader when it has been idle long enough that the next
+    /// payment would be rejected while the kiosk still shows the reader online.
     func ensureStripeConnectionReady() async {
-        appLog("🔄 Stripe Terminal will be initialized when payment starts", category: "AppState")
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            StripeTerminalService.shared.prepareReaderIfStale { error in
+                if let error = error {
+                    appLog("⚠️ Reader refresh after idle failed: \(error.localizedDescription). Payment will try again.", category: "AppState")
+                } else {
+                    appLog("✅ Reader session checked after idle", category: "AppState")
+                }
+                continuation.resume()
+            }
+        }
     }
     
     /// Automatically connect Stripe reader on app startup
