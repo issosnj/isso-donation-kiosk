@@ -36,7 +36,7 @@ export default function PageHeader({
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         {eyebrow ? (
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-orange-600">
+          <p className="mb-1 text-xs font-semibold tracking-wide text-orange-600">
             {eyebrow}
           </p>
         ) : null}

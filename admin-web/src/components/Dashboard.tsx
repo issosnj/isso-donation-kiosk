@@ -22,8 +22,6 @@ interface DashboardProps {
   } | null
 }
 
-const MOBILE_BREAKPOINT = 1024
-
 export default function Dashboard({ user }: DashboardProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -40,9 +38,14 @@ export default function Dashboard({ user }: DashboardProps) {
     message: string
     templeId?: string
   } | null>(null)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const isMasterAdmin = user?.role === 'MASTER_ADMIN'
-  const { devices } = useDevices(undefined, { enabled: isMasterAdmin })
+  const {
+    devices,
+    isLoading: devicesLoading,
+    isError: devicesError,
+  } = useDevices(undefined, { enabled: isMasterAdmin })
   const { alerts } = usePlatformAlerts(isMasterAdmin ? devices : [])
 
   useEffect(() => {
@@ -75,22 +78,14 @@ export default function Dashboard({ user }: DashboardProps) {
     setActiveTab('overview')
   }, [tabFromUrl, router])
 
-  useEffect(() => {
-    if (!isMasterAdmin) return
-    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const apply = () => {
-      if (mq.matches) setSidebarCollapsed(true)
-    }
-    apply()
-    mq.addEventListener('change', apply)
-    return () => mq.removeEventListener('change', apply)
-  }, [isMasterAdmin])
-
-  const handleTabChange = (tab: string) => {
+  const handleTabChange = (tab: string, intent?: string) => {
+    setMobileNavOpen(false)
     setActiveTab(tab)
     const urlParams = new URLSearchParams(window.location.search)
     urlParams.set('tab', tab)
     if (tab !== 'devices') urlParams.delete('deviceId')
+    if (intent) urlParams.set('intent', intent)
+    else urlParams.delete('intent')
     const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '')
     router.push(newUrl)
   }
@@ -132,14 +127,21 @@ export default function Dashboard({ user }: DashboardProps) {
 
   if (!user) return null
 
-  const platformStatus =
-    devices.filter((d) => d.operationalStatus === 'offline').length > 2
-      ? 'degraded'
-      : alerts.some((a) => a.severity === 'critical')
+  const deployedDevices = devices.filter(
+    (d) => d.operationalStatus !== 'pending' && d.operationalStatus !== 'deactivated',
+  )
+  const offlineDevices = deployedDevices.filter((d) => d.operationalStatus === 'offline').length
+  const mostOfFleetOffline = deployedDevices.length > 0 && offlineDevices / deployedDevices.length > 0.5
+  const fleetNeedsAttention = alerts.some((a) => a.severity === 'warning' || a.severity === 'critical')
+  const platformStatus = !isMasterAdmin
+    ? 'operational'
+    : devicesLoading || devicesError
+      ? 'unknown'
+      : mostOfFleetOffline
         ? 'outage'
-        : 'operational'
-
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+        : fleetNeedsAttention
+          ? 'degraded'
+          : 'operational'
 
   const sidebarSpacerClass = isMasterAdmin
     ? `master-admin-sidebar-spacer hidden lg:block ${sidebarCollapsed ? 'is-collapsed' : ''}`
@@ -160,6 +162,14 @@ export default function Dashboard({ user }: DashboardProps) {
     >
       {isMasterAdmin ? (
         <>
+          {mobileNavOpen && (
+            <button
+              type="button"
+              className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+              aria-label="Close navigation menu"
+              onClick={() => setMobileNavOpen(false)}
+            />
+          )}
           <EnterpriseSidebar
             user={user}
             activeTab={activeTab}
@@ -167,6 +177,7 @@ export default function Dashboard({ user }: DashboardProps) {
             onLogout={logout}
             collapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
+            mobileOpen={mobileNavOpen}
           />
           <CommandPalette
             open={commandOpen}
@@ -220,6 +231,10 @@ export default function Dashboard({ user }: DashboardProps) {
           <TopHeaderBar
             user={user}
             onOpenCommandPalette={() => setCommandOpen(true)}
+            onOpenMobileNav={() => {
+              setSidebarCollapsed(false)
+              setMobileNavOpen(true)
+            }}
             onNavigate={handleTabChange}
             onScrollToAlerts={scrollToAlerts}
             alertCount={alerts.length}

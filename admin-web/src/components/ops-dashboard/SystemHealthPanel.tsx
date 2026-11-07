@@ -55,24 +55,28 @@ export default function SystemHealthPanel({ metrics, isLoading }: SystemHealthPa
 
   return (
     <div className="dashboard-card h-full flex flex-col min-h-[220px]">
-      <WidgetHeader title="System health" subtitle="Platform operational metrics" />
-      <div className="p-4 grid grid-cols-2 gap-3 flex-1">
+      <WidgetHeader title="System health" subtitle="Donations and kiosks" />
+      <div
+        className={`grid flex-1 gap-3 p-4 ${
+          rows.length === 3 ? 'grid-cols-1 sm:grid-cols-3' : rows.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+        }`}
+      >
         {rows.length === 0 ? (
           <p className="col-span-2 text-sm text-gray-500 text-center py-6">No metrics available</p>
         ) : (
           rows.map((m) => (
             <div
               key={m.id}
-              className="rounded-xl bg-gray-50/80 p-3 border border-gray-100/80 hover:border-orange-100 transition-colors"
+              className="flex h-full min-h-[108px] flex-col rounded-xl border border-gray-100/80 bg-gray-50/80 p-3 transition-colors hover:border-orange-100"
             >
-              <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide line-clamp-2">
+              <p className="text-[10px] font-medium text-gray-500 tracking-wide line-clamp-2">
                 {m.label}
               </p>
               <p className="text-xl font-bold text-gray-900 mt-1 tabular-nums">
                 {formatMetricValue(m.value, m.unit)}
               </p>
               <span
-                className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize ${statusColors[m.status]}`}
+                className={`mt-auto inline-flex w-fit rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${statusColors[m.status]}`}
               >
                 {m.status}
               </span>

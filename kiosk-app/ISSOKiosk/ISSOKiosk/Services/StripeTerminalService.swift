@@ -9,10 +9,10 @@ import StripeTerminal
 // ✅ Prevents reader from falling asleep with keep-alive mechanism
 //
 // Key design choices (kiosk-friendly):
-// - Connect ONCE and keep connection alive
-// - Before taking a payment, ensure reader is connected
-// - Use keep-alive to prevent reader from sleeping
-// - Handle connection token refresh automatically
+// - Keep a live reader connection. Do not disconnect it just because it has been idle.
+// - The M2 can still look online and reject the first collect after a long sleep.
+//   That rejection is collected again on the same payment, on the same screen.
+// - A fresh connection token is minted whenever the SDK asks (tokens are single-use).
 
 final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     static let shared = StripeTerminalService()
@@ -35,6 +35,23 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     private weak var currentPaymentViewController: UIViewController?
     private var currentPaymentIntent: PaymentIntent? // Store current intent being collected for cancellation
     private var currentPaymentIntentId: String? // Store PaymentIntent ID for backend cancellation
+    private var cancelRequested = false
+    private var didFinishPayment = false
+    private var collectStartedAt: Date?
+    
+    // Completions waiting on an in-flight discover/connect.
+    private let connectStateLock = NSLock()
+    private var connectCompletions: [(Error?) -> Void] = []
+    private var didAttemptConnect = false
+    private var discoveryTimeoutTimer: Timer?
+    
+    /// Last successful connect or completed payment. Reading cached reader
+    /// properties does not count — that does not talk to the M2.
+    private var lastReaderActivityAt: Date?
+    /// After this much silence the reader can still look online while the
+    /// next payment is rejected. Reconnect before collecting.
+    private let staleSessionInterval: TimeInterval = 5 * 60
+    private let discoveryTimeout: TimeInterval = 25
     
     // Keep-alive timer to prevent reader from sleeping
     private var keepAliveTimer: Timer?
@@ -71,6 +88,8 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     deinit {
         keepAliveTimer?.invalidate()
         connectionRefreshTimer?.invalidate()
+        discoveryTimeoutTimer?.invalidate()
+        connectionStatusCheckTimer?.invalidate()
     }
     
     // MARK: - Logging helper
@@ -108,20 +127,18 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     // MARK: - ConnectionTokenProvider
     
     func fetchConnectionToken(_ completion: @escaping ConnectionTokenCompletionBlock) {
-        // If we have a cached token, use it
-        if let token = connectionToken {
-            log("📝 Using cached connection token", verbose: true)
-            completion(token, nil)
-            return
-        }
-        
-        // Otherwise, fetch a new one from the backend
-        log("📡 Fetching new connection token from backend...")
+        // Stripe connection tokens are single-use. Returning a cached token
+        // makes the next reader command fail after the session has been idle,
+        // while the reader still looks connected.
+        log("📡 Fetching a new connection token from backend...")
         Task {
             do {
                 let credentials = try await APIService.shared.getStripeCredentials()
                 await MainActor.run {
                     self.connectionToken = credentials.connectionToken
+                    if self.locationId == nil || self.locationId?.isEmpty == true {
+                        self.locationId = credentials.locationId
+                    }
                     self.log("✅ Connection token fetched successfully", verbose: true)
                     completion(credentials.connectionToken, nil)
                 }
@@ -137,21 +154,99 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     /// Connect to a reader (M2)
     /// Note: M2 readers without screens register automatically when connected
     func connectToReader(from viewController: UIViewController, completion: @escaping (Error?) -> Void) {
-        guard !isConnecting else {
-            log("⚠️ Connection already in progress")
-            completion(NSError(domain: "StripeTerminal", code: -1, userInfo: [NSLocalizedDescriptionKey: "Connection already in progress"]))
+        connectToReader(from: viewController, forceReconnect: false, completion: completion)
+    }
+    
+    /// Connect only when the SDK has actually dropped the reader.
+    /// A connected M2 that has been idle is left alone; disconnecting it
+    /// is what makes the next donation fail before the card is collected.
+    func prepareReaderIfStale(completion: @escaping (Error?) -> Void) {
+        if paymentInProgress {
+            completion(nil)
+            return
+        }
+        guard !isSdkReaderConnected else {
+            completion(nil)
+            return
+        }
+        guard let viewController = UIViewController.topViewController() else {
+            log("⚠️ No view controller available to connect the reader")
+            completion(nil)
+            return
+        }
+        log("🔄 Reader is offline — connecting before the donor pays")
+        connectToReader(from: viewController, forceReconnect: false, completion: completion)
+    }
+    
+    func isReaderConnected() -> Bool {
+        isSdkReaderConnected
+    }
+    
+    /// True only after a card collect was rejected for a reader/session reason
+    /// and the in-place retry also failed. Card declines and cancellations are not included.
+    func isSilentRetryableReaderError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == "StripeTerminal" && nsError.code == -100 {
+            return false
+        }
+        return nsError.userInfo["silentReaderRetry"] as? Bool == true
+    }
+    
+    private func connectToReader(from _: UIViewController, forceReconnect: Bool, completion: @escaping (Error?) -> Void) {
+        let sdkConnected = isSdkReaderConnected
+        
+        connectStateLock.lock()
+        if isConnecting {
+            connectCompletions.append(completion)
+            connectStateLock.unlock()
+            log("⏳ Reader connection already in progress — waiting for it")
             return
         }
         
-        guard currentReader == nil else {
+        let mustReconnect = forceReconnect || !sdkConnected
+        if sdkConnected && !mustReconnect {
+            if let reader = Terminal.shared.connectedReader {
+                currentReader = reader
+            }
+            connectStateLock.unlock()
             log("✅ Reader already connected")
             startKeepAlive()
             completion(nil)
             return
         }
         
+        connectCompletions.append(completion)
         isConnecting = true
+        connectStateLock.unlock()
+        
+        let startDiscovery = { [weak self] in
+            self?.beginDiscovery()
+        }
+        
+        if Terminal.shared.connectedReader != nil || currentReader != nil {
+            log("🔄 Clearing the previous reader session before discovery")
+            disconnectReader {
+                startDiscovery()
+            }
+        } else {
+            startDiscovery()
+        }
+    }
+    
+    private var isSdkReaderConnected: Bool {
+        Terminal.shared.connectedReader != nil
+    }
+    
+    private var isReaderSessionStale: Bool {
+        guard let lastReaderActivityAt else {
+            return false
+        }
+        return Date().timeIntervalSince(lastReaderActivityAt) >= staleSessionInterval
+    }
+    
+    private func beginDiscovery() {
         log("🔌 Discovering M2 readers...")
+        scheduleDiscoveryTimeout()
         
         // Discover readers using BluetoothScanDiscoveryConfiguration (SDK 3.0)
         // Per Stripe docs: https://docs.stripe.com/terminal/payments/connect-reader
@@ -163,22 +258,84 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
             log("🔍 Discovering physical M2 readers via Bluetooth...")
             
             Terminal.shared.discoverReaders(config, delegate: self) { error in
-            if let error = error {
-                self.isConnecting = false
-                self.log("❌ Discovery failed: \(error.localizedDescription)")
-                completion(error)
-                return
-            }
-            
-                // Discovery started - will call delegate methods
-                // When a reader is found and connected, it will automatically register
+                if let error = error {
+                    self.log("❌ Discovery failed: \(error.localizedDescription)")
+                    self.finishConnect(error)
+                    return
+                }
+                
+                // A nil error means discovery ended, or the SDK accepted the scan.
+                // Only adopt a reader here after we have already asked to connect.
+                // Otherwise this races a stale connectedReader from the session we just dropped.
+                if self.didAttemptConnect, let reader = Terminal.shared.connectedReader {
+                    self.handleConnected(reader)
+                    return
+                }
+                
                 self.log("🔍 Discovery started - M2 reader will auto-register on connection")
             }
         } catch {
-            self.isConnecting = false
             self.log("❌ Failed to create discovery configuration: \(error.localizedDescription)")
-            completion(error)
+            finishConnect(error)
         }
+    }
+    
+    private func scheduleDiscoveryTimeout() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.discoveryTimeoutTimer?.invalidate()
+            self.discoveryTimeoutTimer = Timer.scheduledTimer(withTimeInterval: self.discoveryTimeout, repeats: false) { [weak self] _ in
+                guard let self, self.isConnecting else { return }
+                self.log("❌ Reader reconnect timed out")
+                let error = NSError(
+                    domain: "StripeTerminal",
+                    code: -6,
+                    userInfo: [NSLocalizedDescriptionKey: "Card reader didn't respond. Tap Proceed to Payment to try again."]
+                )
+                self.finishConnect(error)
+            }
+        }
+    }
+    
+    private func handleConnected(_ reader: Reader) {
+        currentReader = reader
+        lastConnectionError = nil
+        lastReaderActivityAt = Date()
+        log("✅ M2 Reader connected and registered successfully!")
+        log("   Serial: \(reader.serialNumber)")
+        let deviceTypeString = String(describing: reader.deviceType)
+        log("   Device Type: \(deviceTypeString.contains("chipper2X") || deviceTypeString.contains("M2") ? "M2" : "Other")")
+        log("   Status: \(String(describing: reader.status))")
+        log("💡 Reader is now registered in your Stripe account")
+        finishConnect(nil)
+    }
+    
+    private func finishConnect(_ error: Error?) {
+        connectStateLock.lock()
+        let callbacks = connectCompletions
+        let shouldFinish = isConnecting || !callbacks.isEmpty
+        if shouldFinish {
+            isConnecting = false
+            didAttemptConnect = false
+            connectCompletions.removeAll()
+        }
+        connectStateLock.unlock()
+        guard shouldFinish else { return }
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.discoveryTimeoutTimer?.invalidate()
+            self?.discoveryTimeoutTimer = nil
+            self?.stopConnectionStatusCheck()
+            if error == nil {
+                self?.startKeepAlive()
+                self?.startConnectionRefresh()
+            }
+            callbacks.forEach { $0(error) }
+        }
+    }
+    
+    private func markReaderActivity() {
+        lastReaderActivityAt = Date()
     }
     
     /// Disconnect from reader
@@ -186,7 +343,8 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         stopKeepAlive()
         stopConnectionRefresh()
         
-        guard currentReader != nil else {
+        guard Terminal.shared.connectedReader != nil || currentReader != nil else {
+            currentReader = nil
             completion?()
             return
         }
@@ -206,9 +364,12 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     
     // MARK: - Payment Processing
     
-    /// Take payment using Stripe Terminal
+    /// Take payment using Stripe Terminal.
+    /// `clientSecret` is the PaymentIntent client secret (`pi_..._secret_...`).
+    /// `paymentIntentId` is the `pi_...` id stored for cancellation and the backend.
     func takePayment(
         amount: Double,
+        clientSecret: String,
         paymentIntentId: String,
         from viewController: UIViewController,
         completion: @escaping (Result<PaymentResult, Error>) -> Void
@@ -219,105 +380,276 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
             return
         }
         
-        // Check both our cached reader and Terminal.shared.connectedReader
-        let connectedReader = Terminal.shared.connectedReader ?? currentReader
-        
-        guard connectedReader != nil else {
-            log("❌ No reader connected")
-            completion(.failure(NSError(domain: "StripeTerminal", code: -2, userInfo: [NSLocalizedDescriptionKey: "No reader connected. Please connect a reader first."])))
-            return
-        }
-        
-        // Update our cached reader if Terminal.shared has one but we don't
-        if currentReader == nil, let terminalReader = Terminal.shared.connectedReader {
-            currentReader = terminalReader
-            log("📱 Synced connected reader from Terminal.shared for payment", verbose: true)
-        }
-        
         paymentInProgress = true
+        didFinishPayment = false
+        cancelRequested = false
+        collectStartedAt = nil
         currentCompletion = completion
         currentPaymentViewController = viewController
-        currentPaymentIntentId = paymentIntentId // Store for potential cancellation
+        currentPaymentIntentId = paymentIntentId
         
         log("💳 Starting payment: $\(String(format: "%.2f", amount))")
         
-        // Retrieve payment intent (SDK 3.0: requires clientSecret parameter name)
-        Terminal.shared.retrievePaymentIntent(clientSecret: paymentIntentId) { intent, error in
+        let startCollect = { [weak self] in
+            guard let self else { return }
+            if self.cancelRequested {
+                self.finishPayment(.failure(self.userCanceledError()))
+                return
+            }
+            self.retrieveAndCollect(clientSecret: clientSecret, allowReaderRetry: true)
+        }
+        
+        // Same path as a normal donation when the reader is already online.
+        // Idle readers stay connected; a rejected wake-up is retried below.
+        if isSdkReaderConnected {
+            if isReaderSessionStale {
+                log("💤 Reader has been idle. Collecting, and retrying automatically if it rejects this attempt.")
+            }
+            startCollect()
+            return
+        }
+        
+        log("🔄 Reader is offline — connecting before collecting payment")
+        connectToReader(from: viewController, forceReconnect: false) { error in
+            if self.cancelRequested {
+                self.finishPayment(.failure(self.userCanceledError()))
+                return
+            }
+            if let error = error, !self.isSdkReaderConnected {
+                self.log("❌ Reader was not ready for payment: \(error.localizedDescription)")
+                self.finishPayment(.failure(error))
+                return
+            }
+            startCollect()
+        }
+    }
+    
+    private func retrieveAndCollect(clientSecret: String, allowReaderRetry: Bool) {
+        if cancelRequested {
+            finishPayment(.failure(userCanceledError()))
+            return
+        }
+        if allowReaderRetry {
+            collectStartedAt = Date()
+        }
+        
+        Terminal.shared.retrievePaymentIntent(clientSecret: clientSecret) { intent, error in
+            if self.cancelRequested {
+                self.finishPayment(.failure(self.userCanceledError()))
+                return
+            }
             guard let intent = intent, error == nil else {
-                self.paymentInProgress = false
-                self.currentPaymentIntent = nil
-                self.currentPaymentIntentId = nil
-                self.log("❌ Failed to retrieve payment intent: \(error?.localizedDescription ?? "unknown error")")
-                completion(.failure(error ?? NSError(domain: "StripeTerminal", code: -3, userInfo: [NSLocalizedDescriptionKey: "Failed to retrieve payment intent"])))
+                let retrieveError = error ?? NSError(domain: "StripeTerminal", code: -3, userInfo: [NSLocalizedDescriptionKey: "Failed to retrieve payment intent"])
+                self.log("❌ Failed to retrieve payment intent: \(retrieveError.localizedDescription)")
+                self.retryOrFail(retrieveError, clientSecret: clientSecret, allowReaderRetry: allowReaderRetry)
                 return
             }
             
-            // Store current intent for potential cancellation
             self.currentPaymentIntent = intent
-            
-            // Collect payment (SDK 3.0: use CollectConfigurationBuilder)
-            // skipTipping: true — donations are fixed amount; avoids tipping screen + confusing delay/beep
-            do {
-                let collectConfig = try CollectConfigurationBuilder()
-                    .setSkipTipping(true)
-                    .build()
-                Terminal.shared.collectPaymentMethod(intent, collectConfig: collectConfig) { intent, error in
+            self.collectPaymentMethod(on: intent, clientSecret: clientSecret, allowReaderRetry: allowReaderRetry)
+        }
+    }
+    
+    private func collectPaymentMethod(on intent: PaymentIntent, clientSecret: String, allowReaderRetry: Bool) {
+        // skipTipping: true — donations are a fixed amount; avoids the tipping screen.
+        do {
+            let collectConfig = try CollectConfigurationBuilder()
+                .setSkipTipping(true)
+                .build()
+            Terminal.shared.collectPaymentMethod(intent, collectConfig: collectConfig) { collectedIntent, error in
+                if self.cancelRequested {
+                    self.finishPayment(.failure(self.userCanceledError()))
+                    return
+                }
                 if let error = error {
-                    self.paymentInProgress = false
-                    self.currentPaymentIntent = nil
-                    self.currentPaymentIntentId = nil
-                    // Check if error is due to cancellation (PaymentIntent was canceled)
                     let errorDescription = error.localizedDescription.lowercased()
                     if errorDescription.contains("canceled") || errorDescription.contains("cancelled") {
-                        self.log("ℹ️ Payment collection canceled (PaymentIntent was canceled)")
+                        self.log("ℹ️ Payment collection canceled: \(error.localizedDescription)")
                     } else {
                         self.log("❌ Payment collection failed: \(error.localizedDescription)")
                     }
-                    completion(.failure(error))
+                    self.retryOrFail(error, clientSecret: clientSecret, allowReaderRetry: allowReaderRetry)
                     return
                 }
                 
-                guard let intent = intent else {
-                    self.paymentInProgress = false
-                    self.currentPaymentIntent = nil
-                    self.currentPaymentIntentId = nil
+                guard let collectedIntent = collectedIntent else {
+                    let missingIntent = NSError(domain: "StripeTerminal", code: -4, userInfo: [NSLocalizedDescriptionKey: "Payment intent is nil"])
                     self.log("❌ Payment intent is nil after collection")
-                    completion(.failure(NSError(domain: "StripeTerminal", code: -4, userInfo: [NSLocalizedDescriptionKey: "Payment intent is nil"])))
+                    self.retryOrFail(missingIntent, clientSecret: clientSecret, allowReaderRetry: allowReaderRetry)
                     return
                 }
                 
-                // Update stored intent
-                self.currentPaymentIntent = intent
-                
-                // Confirm payment intent (SDK 3.0: processPayment → confirmPaymentIntent)
-                Terminal.shared.confirmPaymentIntent(intent) { intent, error in
-                    self.paymentInProgress = false
-                    self.currentPaymentIntent = nil
-                    
-                    if let error = error {
-                        self.log("❌ Payment processing failed: \(error.localizedDescription)")
-                        completion(.failure(error))
-                        return
-                    }
-                    
-                    guard let intent = intent else {
-                        self.log("❌ Payment intent is nil after processing")
-                        completion(.failure(NSError(domain: "StripeTerminal", code: -5, userInfo: [NSLocalizedDescriptionKey: "Payment intent is nil"])))
-                        return
-                    }
-                    
-                    self.log("✅ Payment completed: \(intent.stripeId ?? "unknown")")
-                    let result = PaymentResult(success: true, paymentIntentId: intent.stripeId)
-                    completion(.success(result))
-                }
+                self.currentPaymentIntent = collectedIntent
+                self.confirmCollectedPayment(collectedIntent)
             }
-            } catch {
-                self.paymentInProgress = false
-                self.currentPaymentIntent = nil
-                self.log("❌ Failed to create collect configuration: \(error.localizedDescription)")
-                completion(.failure(error))
-            }
+        } catch {
+            log("❌ Failed to create collect configuration: \(error.localizedDescription)")
+            retryOrFail(error, clientSecret: clientSecret, allowReaderRetry: allowReaderRetry)
         }
+    }
+    
+    private func confirmCollectedPayment(_ intent: PaymentIntent) {
+        // Confirm on the reader. Do not automatically re-collect after confirm:
+        // a retry there can authorize the card twice.
+        Terminal.shared.confirmPaymentIntent(intent) { confirmedIntent, error in
+            if self.cancelRequested {
+                self.finishPayment(.failure(self.userCanceledError()))
+                return
+            }
+            if let error = error {
+                self.log("❌ Payment processing failed: \(error.localizedDescription)")
+                self.finishPayment(.failure(error))
+                return
+            }
+            guard let confirmedIntent = confirmedIntent else {
+                self.log("❌ Payment intent is nil after processing")
+                self.finishPayment(.failure(NSError(domain: "StripeTerminal", code: -5, userInfo: [NSLocalizedDescriptionKey: "Payment intent is nil"])))
+                return
+            }
+            
+            self.markReaderActivity()
+            self.log("✅ Payment completed: \(confirmedIntent.stripeId ?? "unknown")")
+            let result = PaymentResult(success: true, paymentIntentId: confirmedIntent.stripeId)
+            self.finishPayment(.success(result))
+        }
+    }
+    
+    /// The M2 often rejects the first collect after it has been asleep, then
+    /// accepts the next one. Retry that collect before the donation is failed.
+    private func retryOrFail(_ error: Error, clientSecret: String, allowReaderRetry: Bool) {
+        if cancelRequested || isUserCancel(error) {
+            finishPayment(.failure(userCanceledError()))
+            return
+        }
+        // Only the fast rejection is the asleep-reader case. A failure after the
+        // reader has already been waiting for a card is left for the donor.
+        let rejectedImmediately = failedBeforeCardPrompt()
+        guard allowReaderRetry, rejectedImmediately, isTransientReaderError(error) else {
+            if allowReaderRetry == false && rejectedImmediately && isTransientReaderError(error) {
+                finishRecoverableFailure(error)
+            } else {
+                finishPayment(.failure(error))
+            }
+            return
+        }
+        
+        let collectAgain = { [weak self] in
+            guard let self else { return }
+            if self.cancelRequested {
+                self.finishPayment(.failure(self.userCanceledError()))
+                return
+            }
+            self.retrieveAndCollect(clientSecret: clientSecret, allowReaderRetry: false)
+        }
+        
+        // Still connected: the failed command woke the reader. Collect again
+        // on this PaymentIntent. Do not drop the Bluetooth session.
+        if isSdkReaderConnected && !errorRequiresReconnect(error) {
+            log("↻ Reader rejected the first attempt (\(error.localizedDescription)). Collecting again.")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: collectAgain)
+            return
+        }
+        
+        log("↻ Reader dropped the first attempt. Reconnecting, then collecting again.")
+        lastReaderActivityAt = nil
+        guard let viewController = currentPaymentViewController ?? UIViewController.topViewController() else {
+            finishRecoverableFailure(error)
+            return
+        }
+        
+        connectToReader(from: viewController, forceReconnect: isSdkReaderConnected) { reconnectError in
+            if self.cancelRequested {
+                self.finishPayment(.failure(self.userCanceledError()))
+                return
+            }
+            if let reconnectError = reconnectError, !self.isSdkReaderConnected {
+                self.log("❌ Reconnect before retry failed: \(reconnectError.localizedDescription)")
+                self.finishPayment(.failure(error))
+                return
+            }
+            collectAgain()
+        }
+    }
+    
+    /// The idle rejection comes back within a couple of seconds. A donor who
+    /// was shown the card prompt and then timed out is not the same case.
+    private func failedBeforeCardPrompt() -> Bool {
+        guard let collectStartedAt else { return true }
+        return Date().timeIntervalSince(collectStartedAt) < 15
+    }
+    
+    private func errorRequiresReconnect(_ error: Error) -> Bool {
+        let message = error.localizedDescription.lowercased()
+        let markers = ["not connected", "disconnected", "disconnect", "no active reader"]
+        return markers.contains { message.contains($0) }
+    }
+    
+    private func isUserCancel(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == "StripeTerminal" && nsError.code == -100 {
+            return true
+        }
+        return error.localizedDescription.lowercased().contains("canceled by user")
+            || error.localizedDescription.lowercased().contains("cancelled by user")
+    }
+    
+    private func finishRecoverableFailure(_ error: Error) {
+        let nsError = error as NSError
+        var info = nsError.userInfo
+        info["silentReaderRetry"] = true
+        finishPayment(.failure(NSError(domain: nsError.domain, code: nsError.code, userInfo: info)))
+    }
+    
+    private func isTransientReaderError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == "StripeTerminal" && (nsError.code == -100 || nsError.code == -1 || nsError.code == -6 || nsError.code == -7) {
+            return false
+        }
+        
+        let message = error.localizedDescription.lowercased()
+        let hardFailures = [
+            "declin", "insufficient", "do not honor", "lost card", "stolen",
+            "incorrect pin", "expired card", "not permitted", "fraud"
+        ]
+        if hardFailures.contains(where: { message.contains($0) }) {
+            return false
+        }
+        
+        let transientMarkers = [
+            "not connected", "disconnected", "disconnect", "bluetooth",
+            "reader is busy", "reader busy", "session", "timed out", "timeout",
+            "communicate", "interrupted", "connection token", "connection was lost",
+            "could not connect", "unable to connect", "network", "offline",
+            "try again", "unexpected", "canceled", "cancelled", "no active reader",
+            "reader error"
+        ]
+        if transientMarkers.contains(where: { message.contains($0) }) {
+            return true
+        }
+        // Stripe often surfaces the idle rejection as a numeric SDK error
+        // ("The operation couldn’t be completed. (com.stripe-terminal error …)").
+        // One retry is safe: card declines are excluded above, and confirm is not retried.
+        return nsError.domain.lowercased().contains("stripe")
+    }
+    
+    private func userCanceledError() -> NSError {
+        NSError(
+            domain: "StripeTerminal",
+            code: -100,
+            userInfo: [NSLocalizedDescriptionKey: "Payment canceled by user"]
+        )
+    }
+    
+    private func finishPayment(_ result: Result<PaymentResult, Error>) {
+        guard !didFinishPayment else { return }
+        didFinishPayment = true
+        paymentInProgress = false
+        currentPaymentIntent = nil
+        currentPaymentIntentId = nil
+        currentPaymentViewController = nil
+        let completion = currentCompletion
+        currentCompletion = nil
+        completion?(result)
     }
     
     /// Cancel current payment
@@ -325,52 +657,33 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         guard paymentInProgress else { return }
         
         log("🚫 Canceling payment")
+        cancelRequested = true
         
-        // Note: Stripe Terminal SDK doesn't have a direct method to cancel payment collection.
-        // When the PaymentIntent is canceled on the backend, the collectPaymentMethod call
-        // will automatically fail with a cancellation error, which we handle in the completion.
-        
-        // Cancel the PaymentIntent on the backend if we have the ID
-        // This will cause collectPaymentMethod to fail with a cancellation error
+        // Stripe Terminal has no direct cancel for an in-flight collect.
+        // Canceling the PaymentIntent on the backend makes collectPaymentMethod
+        // fail, and cancelRequested stops the idle-session retry from starting it again.
         if let paymentIntentId = currentPaymentIntentId {
-            Task.detached { [weak self] in
-                guard let self = self else { return }
-                // The backend cancellation is handled by the PaymentView's cancelPayment method
-                // which calls APIService.shared.cancelDonation, which cancels the PaymentIntent
-                await MainActor.run {
-                    self.log("💡 PaymentIntent ID available for backend cancellation: \(paymentIntentId)", verbose: true)
-                }
-            }
+            log("💡 PaymentIntent ID available for backend cancellation: \(paymentIntentId)", verbose: true)
         }
         
-        // Clear stored intent
-        currentPaymentIntent = nil
-        currentPaymentIntentId = nil
-        
-        // Cancel completion handler with cancellation error
-        if let completion = currentCompletion {
-            let cancelError = NSError(
-                domain: "StripeTerminal",
-                code: -100,
-                userInfo: [NSLocalizedDescriptionKey: "Payment canceled by user"]
-            )
-            completion(.failure(cancelError))
-            currentCompletion = nil
-        }
-        
-        paymentInProgress = false
-        currentPaymentViewController = nil
+        finishPayment(.failure(userCanceledError()))
     }
     
     // MARK: - Keep-Alive Mechanism
     
     private func startKeepAlive() {
-        stopKeepAlive()
-        
-        log("💓 Starting keep-alive timer (every \(Int(keepAliveInterval)) seconds)")
-        
-        keepAliveTimer = Timer.scheduledTimer(withTimeInterval: keepAliveInterval, repeats: true) { [weak self] _ in
-            self?.performKeepAlive()
+        let start = { [weak self] in
+            guard let self else { return }
+            self.keepAliveTimer?.invalidate()
+            self.log("💓 Starting keep-alive timer (every \(Int(self.keepAliveInterval)) seconds)")
+            self.keepAliveTimer = Timer.scheduledTimer(withTimeInterval: self.keepAliveInterval, repeats: true) { [weak self] _ in
+                self?.performKeepAlive()
+            }
+        }
+        if Thread.isMainThread {
+            start()
+        } else {
+            DispatchQueue.main.async(execute: start)
         }
     }
     
@@ -384,24 +697,30 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
             return
         }
         
-        // Access reader properties to keep connection alive
-        // This prevents the M2 reader from falling asleep
+        // These fields are cached on the Reader object. Touching them does not
+        // wake the M2, so this timer must not reset the stale-session clock.
         _ = reader.serialNumber
         _ = reader.deviceType
         _ = reader.status
         
-        log("💓 Keep-alive: Reader connection active", verbose: true)
+        log("💓 Keep-alive: cached reader object still present", verbose: true)
     }
     
     // MARK: - Connection Refresh
     
     private func startConnectionRefresh() {
-        stopConnectionRefresh()
-        
-        log("🔄 Starting connection refresh timer (every \(Int(connectionRefreshInterval / 60)) minutes)")
-        
-        connectionRefreshTimer = Timer.scheduledTimer(withTimeInterval: connectionRefreshInterval, repeats: true) { [weak self] _ in
-            self?.refreshConnection()
+        let start = { [weak self] in
+            guard let self else { return }
+            self.connectionRefreshTimer?.invalidate()
+            self.log("🔄 Starting connection refresh timer (every \(Int(self.connectionRefreshInterval / 60)) minutes)")
+            self.connectionRefreshTimer = Timer.scheduledTimer(withTimeInterval: self.connectionRefreshInterval, repeats: true) { [weak self] _ in
+                self?.refreshConnection()
+            }
+        }
+        if Thread.isMainThread {
+            start()
+        } else {
+            DispatchQueue.main.async(execute: start)
         }
     }
     
@@ -437,28 +756,34 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
         
             // Connection status check started (verbose)
         
-        connectionStatusCheckTimer = Timer.scheduledTimer(withTimeInterval: connectionStatusCheckInterval, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            
-            // Check if reader is connected via Terminal.shared
-            if let connectedReader = Terminal.shared.connectedReader {
-                // Reader is connected but we haven't updated our state yet
-                if self.currentReader == nil {
-                    self.currentReader = connectedReader
-                    self.isConnecting = false
-                    self.lastConnectionError = nil
-                    self.log("✅ Reader connection detected via status check - Serial: \(connectedReader.serialNumber)")
-                    self.log("💡 Connection completed (software update may still be in progress)")
-                    self.startKeepAlive()
-                    self.startConnectionRefresh()
-                    // Don't stop the timer yet - let it continue until connection callback fires
-                } else if self.isConnecting {
-                    // We have a reader but still marked as connecting - update state
-                    self.isConnecting = false
-                    self.lastConnectionError = nil
-                    self.log("✅ Connection state updated - reader is ready")
+        let start = { [weak self] in
+            guard let self else { return }
+            self.connectionStatusCheckTimer?.invalidate()
+            self.connectionStatusCheckTimer = Timer.scheduledTimer(withTimeInterval: self.connectionStatusCheckInterval, repeats: true) { [weak self] _ in
+                guard let self else { return }
+                
+                if let connectedReader = Terminal.shared.connectedReader {
+                    let waitingForConnect = self.isConnecting || !self.connectCompletions.isEmpty
+                    if self.currentReader == nil || waitingForConnect {
+                        self.currentReader = connectedReader
+                        self.lastConnectionError = nil
+                        self.lastReaderActivityAt = Date()
+                        self.log("✅ Reader connection detected via status check - Serial: \(connectedReader.serialNumber)")
+                        if waitingForConnect {
+                            self.log("💡 Connection completed (software update may still be in progress)")
+                            self.finishConnect(nil)
+                        } else {
+                            self.startKeepAlive()
+                            self.startConnectionRefresh()
+                        }
+                    }
                 }
             }
+        }
+        if Thread.isMainThread {
+            start()
+        } else {
+            DispatchQueue.main.async(execute: start)
         }
     }
     
@@ -470,7 +795,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     // MARK: - Helper Methods
     
     func checkHardwareConnection() -> Bool {
-        return currentReader != nil
+        return Terminal.shared.connectedReader != nil
     }
     
     func isPaymentInProgress() -> Bool {
@@ -478,17 +803,18 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     }
     
     func getReaderInfo() -> (connected: Bool, model: String?, error: String?) {
-        // First check Terminal.shared for the connected reader (most reliable)
-        // Then fall back to our cached currentReader
-        let connectedReader = Terminal.shared.connectedReader ?? currentReader
-        
-        guard let reader = connectedReader else {
+        // Only the SDK's live reader counts. A cached Reader stays non-nil after
+        // the Bluetooth session dies, which is why the kiosk showed "online"
+        // and then rejected the first payment.
+        guard let reader = Terminal.shared.connectedReader else {
+            if !isConnecting {
+                currentReader = nil
+            }
             return (connected: false, model: nil, error: lastConnectionError)
         }
         
-        // Update our cached reader if Terminal.shared has one but we don't
-        if currentReader == nil && Terminal.shared.connectedReader != nil {
-            currentReader = Terminal.shared.connectedReader
+        if currentReader == nil {
+            currentReader = reader
             log("📱 Synced connected reader from Terminal.shared", verbose: true)
         }
         
@@ -500,9 +826,7 @@ final class StripeTerminalService: NSObject, ConnectionTokenProvider {
     
     /// Get reader battery level (0-100, or nil if not available)
     func getReaderBatteryLevel() -> Int? {
-        let connectedReader = Terminal.shared.connectedReader ?? currentReader
-        
-        guard let reader = connectedReader else {
+        guard let reader = Terminal.shared.connectedReader else {
             return nil
         }
         
@@ -694,6 +1018,7 @@ extension StripeTerminalService: TerminalDelegate {
     @objc func terminal(_ terminal: Terminal, didReportUnexpectedReaderDisconnect reader: Reader) {
         log("⚠️ Reader unexpectedly disconnected")
         currentReader = nil
+        lastReaderActivityAt = nil
         stopKeepAlive()
         stopConnectionRefresh()
     }
@@ -703,10 +1028,18 @@ extension StripeTerminalService: TerminalDelegate {
 
 extension StripeTerminalService: DiscoveryDelegate {
     @objc func terminal(_ terminal: Terminal, didUpdateDiscoveredReaders readers: [Reader]) {
-        guard isConnecting else { return }
+        connectStateLock.lock()
+        let shouldConnect = isConnecting && !didAttemptConnect && !readers.isEmpty
+        if shouldConnect {
+            didAttemptConnect = true
+        }
+        let stillScanning = isConnecting && readers.isEmpty
+        connectStateLock.unlock()
         
-        if readers.isEmpty {
-            log("⏳ No readers discovered yet, continuing scan...")
+        guard shouldConnect else {
+            if stillScanning {
+                log("⏳ No readers discovered yet, continuing scan...")
+            }
             return
         }
         
@@ -717,6 +1050,7 @@ extension StripeTerminalService: DiscoveryDelegate {
             return typeString.contains("chipper2X") || typeString.contains("M2")
         } ?? readers.first!
         
+        didAttemptConnect = true
         log("🔌 Connecting to M2 reader: \(m2Reader.serialNumber)")
         if let location = m2Reader.location {
             log("📱 Reader location: \(String(describing: location))")
@@ -729,54 +1063,34 @@ extension StripeTerminalService: DiscoveryDelegate {
                 .build()
             
             Terminal.shared.connectBluetoothReader(m2Reader, delegate: self, connectionConfig: connectionConfig) { reader, error in
-                self.isConnecting = false
-                
                 if let error = error {
                     let userFriendlyError = self.getUserFriendlyError(error)
                     self.lastConnectionError = userFriendlyError
                     self.log("❌ Connection failed: \(error.localizedDescription)")
                     self.log("📱 User-friendly error: \(userFriendlyError)")
+                    self.finishConnect(error)
                     return
                 }
                 
-                // Clear error on successful connection
-                self.lastConnectionError = nil
-                
-                guard let reader = reader else {
-                    self.log("❌ Reader is nil after connection")
-                    // Even if reader is nil, check Terminal.shared.connectedReader as fallback
-                    if let connectedReader = Terminal.shared.connectedReader {
-                        self.currentReader = connectedReader
-                        self.log("✅ Reader found via Terminal.shared.connectedReader - Serial: \(connectedReader.serialNumber)")
-                        self.startKeepAlive()
-                        self.startConnectionRefresh()
-                    }
+                if let reader = reader ?? Terminal.shared.connectedReader {
+                    self.handleConnected(reader)
                     return
                 }
                 
-                self.currentReader = reader
-                self.log("✅ M2 Reader connected and registered successfully!")
-                self.log("   Serial: \(reader.serialNumber)")
-                let deviceTypeString = String(describing: reader.deviceType)
-                self.log("   Device Type: \(deviceTypeString.contains("chipper2X") || deviceTypeString.contains("M2") ? "M2" : "Other")")
-                self.log("   Status: \(String(describing: reader.status))")
-                if let location = reader.location {
-                    self.log("   Location: \(String(describing: location))")
-                }
-                self.log("💡 Reader is now registered in your Stripe account")
-                self.startKeepAlive()
-                self.startConnectionRefresh()
-                // Stop connection status check since callback fired
-                self.stopConnectionStatusCheck()
+                self.log("❌ Reader is nil after connection")
+                self.finishConnect(NSError(
+                    domain: "StripeTerminal",
+                    code: -7,
+                    userInfo: [NSLocalizedDescriptionKey: "Reader is nil after connection"]
+                ))
             }
             
-            // Start a periodic check to see if reader becomes connected even if callback hasn't fired
-            // This helps when software update is taking a long time
-            // Connection status check started (verbose)
+            // The connect callback can lag behind a software update. If the SDK
+            // already has a reader, unblock whoever is waiting to take payment.
             startConnectionStatusCheck()
         } catch {
-            self.isConnecting = false
             self.log("❌ Failed to create connection configuration: \(error.localizedDescription)")
+            self.finishConnect(error)
         }
     }
 }
@@ -785,10 +1099,12 @@ extension StripeTerminalService: DiscoveryDelegate {
 
 extension StripeTerminalService: BluetoothReaderDelegate {
     @objc func reader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions) {
+        markReaderActivity()
         log("📱 Reader input requested: \(String(describing: inputOptions))")
     }
     
     @objc func reader(_ reader: Reader, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
+        markReaderActivity()
         log("📱 Reader display message: \(String(describing: displayMessage))")
     }
     
@@ -827,11 +1143,16 @@ extension StripeTerminalService: BluetoothReaderDelegate {
         // Sometimes the connection completes even if update progress is stuck
         if percent == 0 {
             // Check if reader is connected despite update progress being 0
-            if let connectedReader = Terminal.shared.connectedReader, currentReader == nil {
+            if let connectedReader = Terminal.shared.connectedReader, currentReader == nil || isConnecting {
                 currentReader = connectedReader
+                lastReaderActivityAt = Date()
                 log("📱 Reader connected detected during update (progress: 0%) - Serial: \(connectedReader.serialNumber)")
-                startKeepAlive()
-                startConnectionRefresh()
+                if isConnecting || !connectCompletions.isEmpty {
+                    finishConnect(nil)
+                } else {
+                    startKeepAlive()
+                    startConnectionRefresh()
+                }
             }
         }
     }

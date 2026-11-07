@@ -11,8 +11,9 @@ import {
   getOverviewTrendRange,
   overviewQueryDefaults,
 } from '@/lib/queryHelpers'
-import { format, subDays, startOfDay, parseISO, isValid } from 'date-fns'
+import { format, subDays, startOfDay, endOfDay, parseISO, isValid } from 'date-fns'
 import { safeNumber, sanitizeSparkline } from '@/lib/formatters'
+import type { HealthMetric } from '@/components/ops-dashboard/SystemHealthPanel'
 
 export interface TemplePerformance {
   templeId: string
@@ -125,7 +126,7 @@ function bucketDailyMetrics(
 export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
   const dateRanges = useMemo(() => {
     const now = new Date()
-    const endOfToday = startOfDay(now)
+    const endOfToday = endOfDay(now)
     return {
       startOfYear: new Date(now.getFullYear(), 0, 1),
       endOfToday,
@@ -255,7 +256,11 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     ...statsQueryOpts,
   })
 
-  const { data: recentDonations = [], isLoading: recentDonationsLoading } = useQuery({
+  const {
+    data: recentDonations = [],
+    isLoading: recentDonationsLoading,
+    isError: recentDonationsError,
+  } = useQuery({
     queryKey: ['overview-recent-donations'],
     queryFn: async () => {
       const res = await api.get('/donations', {
@@ -299,20 +304,22 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
   const countYtd = safeNumber(statsYtd?.count)
   const last30 = safeNumber(statsLast30?.total)
   const prev30 = safeNumber(statsPrev30?.total)
+  const monthTotal = safeNumber(statsMonth?.total)
+  const prevMonthTotal = safeNumber(statsPrevMonth?.total)
+  const monthCount = safeNumber(statsMonth?.count)
+  const prevMonthCount = safeNumber(statsPrevMonth?.count)
   const trendDirection: 'up' | 'down' | 'neutral' =
     last30 > 0 || prev30 > 0 ? (last30 >= prev30 ? 'up' : 'down') : 'neutral'
 
   const failedTransactions = recentDonations.filter((d) => d.status === 'FAILED').length
 
-  const templeCount = temples.length
   const templesWithDonations = new Set(
     recentDonations
       .filter((d) => d.status === 'SUCCEEDED' || d.status === 'COMPLETED')
       .map((d) => d.templeId)
       .filter(Boolean),
   )
-  const activeTemples =
-    templesWithDonations.size > 0 ? templesWithDonations.size : templeCount
+  const activeTemples = recentDonationsError ? 0 : templesWithDonations.size
 
   const executiveKpis: ExecutiveKpis = {
     totalDonations: totalYtd,
@@ -321,8 +328,8 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     activeTemples,
     onlineKiosks: safeNumber(deviceSummary.online),
     failedTransactions,
-    avgDonation: countYtd > 0 ? safeNumber(totalYtd / countYtd) : 0,
-    activeDonors: countYtd,
+    avgDonation: monthCount > 0 ? safeNumber(monthTotal / monthCount) : 0,
+    activeDonors: statsError ? 0 : countYtd,
   }
 
   const last7 = daily.slice(-7)
@@ -344,65 +351,76 @@ export function useOverviewData(chartGranularity: ChartGranularity = 'day') {
     activeDonors: sparkFromDaily('count'),
   }
 
-  const monthTotal = safeNumber(statsMonth?.total)
-  const prevMonthTotal = safeNumber(statsPrevMonth?.total)
-  const monthCount = safeNumber(statsMonth?.count)
-  const prevMonthCount = safeNumber(statsPrevMonth?.count)
-
   const kpiTrends: Record<string, number> = {
     totalDonations: pctChange(last30, prev30),
-    donationsToday: pctChange(safeNumber(statsToday?.count), Math.max(1, safeNumber(statsPrev30?.count) / 30)),
+    donationsToday:
+      safeNumber(statsPrev30?.count) > 0
+        ? pctChange(safeNumber(statsToday?.count), safeNumber(statsPrev30?.count) / 30)
+        : 0,
     monthlyRevenue: pctChange(monthTotal, prevMonthTotal),
     activeTemples: 0,
-    onlineKiosks: pctChange(deviceSummary.online, Math.max(1, deviceSummary.total - deviceSummary.online)),
+    onlineKiosks: 0,
     failedTransactions: 0,
     avgDonation: pctChange(
       monthCount > 0 ? monthTotal / monthCount : 0,
       prevMonthCount > 0 ? prevMonthTotal / prevMonthCount : 0,
     ),
-    activeDonors: pctChange(monthCount, prevMonthCount),
+    activeDonors: 0,
   }
 
+  const deployedDevices = devices.filter(
+    (d) => d.operationalStatus !== 'pending' && d.operationalStatus !== 'deactivated',
+  )
+  const reportingDevices = deployedDevices.filter(
+    (d) => d.operationalStatus === 'online' || d.operationalStatus === 'warning',
+  )
   const uptimePct =
-    deviceSummary.total > 0
-      ? Math.round((deviceSummary.online / deviceSummary.total) * 1000) / 10
-      : 100
+    deployedDevices.length > 0
+      ? Math.round((reportingDevices.length / deployedDevices.length) * 1000) / 10
+      : null
 
-  const systemHealth = [
-    // TODO: Replace with GET /api/health or monitoring service (Datadog/Sentry uptime).
-    { id: 'api', label: 'API uptime', value: 99.9, unit: '%' as const, status: 'healthy' as const },
-    {
+  const settledDonations = recentDonations.filter(
+    (d) => d.status === 'SUCCEEDED' || d.status === 'COMPLETED' || d.status === 'FAILED',
+  )
+  const donationSuccessPct =
+    !recentDonationsError && settledDonations.length > 0
+      ? Math.round(
+          ((settledDonations.length - failedTransactions) / settledDonations.length) * 1000,
+        ) / 10
+      : null
+
+  const systemHealth: HealthMetric[] = []
+  if (donationSuccessPct != null) {
+    systemHealth.push({
       id: 'donations',
       label: 'Donation success',
-      value: failedTransactions > 5 ? 96.5 : 99.2,
-      unit: '%' as const,
-      status: failedTransactions > 5 ? ('warning' as const) : ('healthy' as const),
-    },
-    // TODO: Replace with GET /api/receipts/metrics (delivery success rate from email/logs).
-    { id: 'receipts', label: 'Receipt delivery', value: 98.4, unit: '%' as const, status: 'healthy' as const },
-    {
+      value: donationSuccessPct,
+      unit: '%',
+      status: donationSuccessPct < 50 ? 'critical' : donationSuccessPct < 95 ? 'warning' : 'healthy',
+    })
+  }
+  if (!devicesLoading && !devicesError && uptimePct != null) {
+    systemHealth.push({
       id: 'kiosks',
       label: 'Kiosk uptime',
       value: uptimePct,
-      unit: '%' as const,
-      status: uptimePct < 90 ? ('critical' as const) : uptimePct < 97 ? ('warning' as const) : ('healthy' as const),
-    },
-    // TODO: Replace with GET /api/sync/queue health (pending/failed sync jobs).
-    {
+      unit: '%',
+      status: uptimePct < 50 ? 'critical' : uptimePct < 95 ? 'warning' : 'healthy',
+    })
+    systemHealth.push({
       id: 'sync',
-      label: 'Sync queue',
+      label: 'Kiosks needing attention',
       value: safeNumber(deviceSummary.needingAttention),
-      unit: '' as const,
-      status: deviceSummary.needingAttention > 3 ? ('warning' as const) : ('healthy' as const),
-    },
-    // TODO: Replace with Stripe Connect / Terminal health endpoint.
-    { id: 'payments', label: 'Payment processor', value: 99.8, unit: '%' as const, status: 'healthy' as const },
-  ]
+      unit: '',
+      status: deviceSummary.needingAttention > 3 ? 'warning' : 'healthy',
+    })
+  }
 
   const kpiPending = {
-    activeTemples: templesLoading,
-    onlineKiosks: devicesLoading,
-    failedTransactions: recentDonationsLoading,
+    activeTemples: templesLoading || recentDonationsLoading || recentDonationsError,
+    onlineKiosks: devicesLoading || devicesError,
+    failedTransactions: recentDonationsLoading || recentDonationsError,
+    activeDonors: statsLoading || statsError,
   }
 
   return {

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { dummyResponse, isDevDummySession } from './devDummyApi'
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 
@@ -17,9 +18,12 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken')
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  if (isDevDummySession()) {
+    config.adapter = (request) => Promise.resolve(dummyResponse(request))
   }
   return config
 })
@@ -38,6 +42,14 @@ api.interceptors.response.use(
     }
     
     if (error.response?.status === 401) {
+      // Local dummy session has no real API token. Keep the page open so the UI can be worked on.
+      if (
+        process.env.NODE_ENV === 'development' &&
+        typeof window !== 'undefined' &&
+        localStorage.getItem('authToken') === 'dev-bypass'
+      ) {
+        return Promise.reject(error)
+      }
       // Only handle 401 if we're not already on the login page
       // This prevents redirect loops and unnecessary redirects
       if (typeof window !== 'undefined' && window.location.pathname !== '/') {

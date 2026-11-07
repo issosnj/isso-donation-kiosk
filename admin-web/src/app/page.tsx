@@ -23,32 +23,26 @@ export default function Home() {
         <div className="flex flex-col justify-center px-8 py-12 sm:px-14 lg:px-16">
           <div className="mx-auto w-full max-w-md text-center">
             <p className="text-sm font-semibold tracking-[0.22em] text-gray-400">WELCOME TO</p>
-            <div className="mt-4 flex items-center justify-center gap-3 text-orange-600">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-600 text-xl font-bold text-white">
-                I
-              </span>
-              <h1 className="text-4xl font-bold tracking-wide">ISSO Kiosk</h1>
-            </div>
+            <h1 className="mt-4 text-4xl font-bold tracking-wide text-orange-600">ISSO Kiosk</h1>
             <p className="mx-auto mt-4 max-w-sm text-base leading-7 text-gray-500">
               Sign in to manage donations, kiosks, and receipts.
             </p>
             <LoginForm />
           </div>
         </div>
-        <div className="relative min-h-[300px] lg:min-h-0">
+        <div className="relative lg:h-full">
           <img
             src="/swaminarayan-temple.jpg"
             alt="Shree Swaminarayan Mandir, Ahmedabad (Kalupur)"
             className="absolute inset-0 h-full w-full object-cover object-[center_30%]"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-orange-600/80 via-orange-700/72 to-orange-950/80" />
-          <div className="relative flex h-full flex-col items-center justify-center px-8 py-12 text-center text-white">
-            <span className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/15 text-4xl font-bold ring-1 ring-white/40">
-              I
-            </span>
-            <p className="mt-6 text-4xl font-semibold tracking-[0.18em]">ISSO</p>
-            <p className="mt-4 max-w-sm text-base leading-7 text-white/85">
-              Donor CRM for Shree Swaminarayan temples. Kalupur, Ahmedabad.
+          <div className="relative flex min-h-[360px] flex-col items-center justify-center px-8 py-12 text-center text-white lg:h-full lg:min-h-0">
+            <p className="text-4xl font-semibold tracking-[0.18em]">ISSO</p>
+            <p className="mt-4 max-w-lg text-base leading-7 text-white/85">
+              Donor CRM for Shree Swaminarayan ISSO Temples.
+              <br />
+              Under NarNarayan Dev Gadi, Kalupur, Ahmedabad.
             </p>
           </div>
         </div>

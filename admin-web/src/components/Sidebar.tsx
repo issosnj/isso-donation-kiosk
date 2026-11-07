@@ -1,6 +1,7 @@
 'use client'
 
 import { OverviewIcon, TemplesIcon, DonationsIcon, UsersIcon, DevicesIcon, CategoriesIcon, StripeIcon, LogoutIcon, ReceiptIcon, ReligiousEventsIcon } from './Icons'
+import IssoLogo from '@/components/IssoLogo'
 
 interface SidebarProps {
   user: {
@@ -78,9 +79,7 @@ export default function Sidebar({
       >
       <div className="p-5 border-b border-gray-200">
         <div className="flex items-center space-x-3 mb-5">
-          <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-orange-700 rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-white font-bold text-lg">I</span>
-          </div>
+          <IssoLogo variant="orange" className="h-10 w-10 object-contain" />
           <div>
             <h1 className="text-base font-bold text-gray-900">ISSO Kiosk</h1>
             <p className="text-xs text-gray-500">Donor CRM</p>

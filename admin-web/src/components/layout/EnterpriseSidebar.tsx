@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { LogoutIcon } from '../Icons'
+import IssoLogo from '@/components/IssoLogo'
 import { NavItemIcon } from '@/lib/enterpriseNavIcons'
 import { MASTER_NAV_GROUPS, TEMPLE_NAV_ITEMS } from '@/lib/masterNavigation'
 
@@ -12,6 +13,7 @@ interface EnterpriseSidebarProps {
   onLogout: () => void
   collapsed: boolean
   onToggleCollapse: () => void
+  mobileOpen?: boolean
 }
 
 function isNavItemActive(activeTab: string, itemTab: string | undefined): boolean {
@@ -25,6 +27,7 @@ export default function EnterpriseSidebar({
   onLogout,
   collapsed,
   onToggleCollapse,
+  mobileOpen = false,
 }: EnterpriseSidebarProps) {
   const isMasterAdmin = user.role === 'MASTER_ADMIN'
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
@@ -44,6 +47,7 @@ export default function EnterpriseSidebar({
     'fixed left-0 top-0 z-40 flex h-screen flex-col',
     'border-r border-gray-200/80 bg-white/95 shadow-sm backdrop-blur-xl',
     collapsed ? 'is-collapsed' : '',
+    mobileOpen ? 'is-mobile-open' : '',
   ].join(' ')
 
   const renderNavItem = (item: (typeof MASTER_NAV_GROUPS)[0]['items'][0]) => {
@@ -72,7 +76,7 @@ export default function EnterpriseSidebar({
             <>
               <span className="truncate flex-1 text-left">{item.label}</span>
               {item.soon && (
-                <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gray-400">
+                <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold text-gray-400">
                   Soon
                 </span>
               )}
@@ -87,9 +91,7 @@ export default function EnterpriseSidebar({
     <aside className={sidebarClass} data-collapsed={collapsed ? 'true' : 'false'}>
       <div className="enterprise-sidebar-header shrink-0">
         <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#ea580c] via-[#f97316] to-[#fb923c] shadow-md shadow-orange-200/50">
-            <span className="text-base font-bold text-white">I</span>
-          </div>
+          <IssoLogo variant="orange" className="h-9 w-9 shrink-0 object-contain" />
           {!collapsed && (
             <div className="min-w-0">
               <h1 className="truncate text-sm font-bold text-gray-900">ISSO Platform</h1>
@@ -101,7 +103,7 @@ export default function EnterpriseSidebar({
           <div className="mt-3 border-t border-gray-100 pt-3">
             <p className="truncate text-sm font-semibold text-gray-900">{user.name}</p>
             <p className="mt-0.5 text-[10px] font-medium text-orange-600">
-              {isMasterAdmin ? 'Super Admin' : 'Temple Admin'}
+              {isMasterAdmin ? 'Master Admin' : 'Temple Admin'}
             </p>
           </div>
         )}
@@ -119,7 +121,7 @@ export default function EnterpriseSidebar({
                         type="button"
                         onClick={() => toggleGroup(group.id)}
                         aria-expanded={expandedGroups[group.id]}
-                        className="flex w-full items-center justify-between rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-600"
+                        className="flex w-full items-center justify-between rounded-md px-2 py-1 text-[10px] font-semibold tracking-wide text-gray-400 transition-colors hover:text-gray-600"
                       >
                         <span>{group.label}</span>
                         <svg
@@ -178,7 +180,7 @@ export default function EnterpriseSidebar({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="mb-1.5 w-full rounded-lg py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800"
+          className="mb-1.5 hidden w-full rounded-lg py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800 lg:block"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? '→' : '← Collapse'}

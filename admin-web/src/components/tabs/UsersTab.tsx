@@ -1,7 +1,8 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
 import { PageHeaderActions, headerPrimaryButtonClass } from '@/components/layout/PageHeader'
 
@@ -12,9 +13,20 @@ export default function UsersTab() {
   const [newUserPassword, setNewUserPassword] = useState('')
   const [newUserRole, setNewUserRole] = useState<'MASTER_ADMIN' | 'TEMPLE_ADMIN'>('TEMPLE_ADMIN')
   const [newUserTempleId, setNewUserTempleId] = useState('')
+  const [createError, setCreateError] = useState('')
   const queryClient = useQueryClient()
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-  const { data: users, isLoading, error } = useQuery({
+  useEffect(() => {
+    if (searchParams.get('tab') !== 'users' || searchParams.get('intent') !== 'create') return
+    setShowCreateForm(true)
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('intent')
+    router.replace(`/dashboard?${params.toString()}`)
+  }, [router, searchParams])
+
+  const { data: users, isLoading, error, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const response = await api.get('/users')
@@ -38,10 +50,15 @@ export default function UsersTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       setShowCreateForm(false)
+      setCreateError('')
       setNewUserName('')
       setNewUserEmail('')
       setNewUserPassword('')
       setNewUserTempleId('')
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message
+      setCreateError(Array.isArray(message) ? message.join(' ') : message || 'Failed to create user')
     },
   })
 
@@ -52,14 +69,6 @@ export default function UsersTab() {
           <div className="h-4 bg-gray-200 rounded w-3/4"></div>
           <div className="h-4 bg-gray-200 rounded w-1/2"></div>
         </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-        Failed to load users. Please try again.
       </div>
     )
   }
@@ -92,7 +101,7 @@ export default function UsersTab() {
                 value={newUserName}
                 onChange={(e) => setNewUserName(e.target.value)}
                 placeholder="Enter user name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               />
             </div>
             <div>
@@ -104,7 +113,7 @@ export default function UsersTab() {
                 value={newUserEmail}
                 onChange={(e) => setNewUserEmail(e.target.value)}
                 placeholder="Enter user email"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               />
             </div>
             <div>
@@ -116,7 +125,7 @@ export default function UsersTab() {
                 value={newUserPassword}
                 onChange={(e) => setNewUserPassword(e.target.value)}
                 placeholder="Enter password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               />
             </div>
             <div>
@@ -126,7 +135,7 @@ export default function UsersTab() {
               <select
                 value={newUserRole}
                 onChange={(e) => setNewUserRole(e.target.value as 'MASTER_ADMIN' | 'TEMPLE_ADMIN')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               >
                 <option value="TEMPLE_ADMIN">Temple Admin</option>
                 <option value="MASTER_ADMIN">Master Admin</option>
@@ -140,7 +149,7 @@ export default function UsersTab() {
                 <select
                   value={newUserTempleId}
                   onChange={(e) => setNewUserTempleId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 >
                   <option value="">Select a temple</option>
                   {temples?.map((temple: any) => (
@@ -151,14 +160,20 @@ export default function UsersTab() {
                 </select>
               </div>
             )}
+            {createError && (
+              <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</p>
+            )}
             <button
-              onClick={() => createUserMutation.mutate({
-                name: newUserName,
-                email: newUserEmail,
-                password: newUserPassword,
-                role: newUserRole,
-                ...(newUserRole === 'TEMPLE_ADMIN' && { templeId: newUserTempleId }),
-              })}
+              onClick={() => {
+                setCreateError('')
+                createUserMutation.mutate({
+                  name: newUserName,
+                  email: newUserEmail,
+                  password: newUserPassword,
+                  role: newUserRole,
+                  ...(newUserRole === 'TEMPLE_ADMIN' && { templeId: newUserTempleId }),
+                })
+              }}
               disabled={!newUserName || !newUserEmail || !newUserPassword || 
                        (newUserRole === 'TEMPLE_ADMIN' && !newUserTempleId) || 
                        createUserMutation.isPending}
@@ -170,6 +185,20 @@ export default function UsersTab() {
         </div>
       )}
 
+      {error && (
+        <div className="flex items-center justify-between gap-3 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+          <p>Failed to load users.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="shrink-0 text-sm font-semibold text-red-800 underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!error && (
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {users?.length === 0 ? (
           <div className="p-12 text-center">
@@ -186,10 +215,10 @@ export default function UsersTab() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Temple</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 tracking-wide">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 tracking-wide">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 tracking-wide">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 tracking-wide">Temple</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -220,6 +249,7 @@ export default function UsersTab() {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }

@@ -7,15 +7,17 @@ import LivePulse from '@/components/ops-dashboard/LivePulse'
 interface TopHeaderBarProps {
   user: { name: string; email: string; role: string }
   onOpenCommandPalette: () => void
-  onNavigate: (tab: string) => void
+  onOpenMobileNav?: () => void
+  onNavigate: (tab: string, intent?: string) => void
   onScrollToAlerts?: () => void
   alertCount?: number
-  platformStatus?: 'operational' | 'degraded' | 'outage'
+  platformStatus?: 'operational' | 'degraded' | 'outage' | 'unknown'
 }
 
 export default function TopHeaderBar({
   user,
   onOpenCommandPalette,
+  onOpenMobileNav,
   onNavigate,
   onScrollToAlerts,
   alertCount = 0,
@@ -52,8 +54,9 @@ export default function TopHeaderBar({
 
   const statusLabel = {
     operational: { text: 'All systems operational', color: 'text-emerald-700 bg-emerald-50' },
-    degraded: { text: 'Degraded performance', color: 'text-amber-700 bg-amber-50' },
+    degraded: { text: 'Needs attention', color: 'text-amber-700 bg-amber-50' },
     outage: { text: 'Service disruption', color: 'text-red-700 bg-red-50' },
+    unknown: { text: 'Status unavailable', color: 'text-gray-600 bg-gray-100' },
   }[platformStatus]
 
   const handleQuickAction = (action: (typeof QUICK_ACTIONS)[number]) => {
@@ -62,7 +65,13 @@ export default function TopHeaderBar({
       onNavigate('overview')
       onScrollToAlerts?.()
     } else if (action.tab) {
-      onNavigate(action.tab)
+      const intent =
+        action.id === 'add-temple' || action.id === 'create-admin'
+          ? 'create'
+          : action.id === 'export-donations'
+            ? 'export'
+            : undefined
+      onNavigate(action.tab, intent)
     }
     setQuickOpen(false)
   }
@@ -71,6 +80,18 @@ export default function TopHeaderBar({
     <header className="master-admin-topbar">
       <div className="mx-auto flex h-full w-full max-w-[1600px] min-w-0 items-center justify-between gap-3 px-4 md:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
+        {onOpenMobileNav && (
+          <button
+            type="button"
+            onClick={onOpenMobileNav}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 lg:hidden"
+            aria-label="Open navigation menu"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
         <button
           type="button"
           onClick={onOpenCommandPalette}
@@ -86,7 +107,7 @@ export default function TopHeaderBar({
             />
           </svg>
           <span className="hidden truncate sm:inline">
-            Search temples, donors, donations, receipts…
+            Go to a page…
           </span>
           <span className="truncate sm:hidden">Search…</span>
           <kbd className="ml-auto hidden shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-400 sm:inline">
@@ -122,7 +143,7 @@ export default function TopHeaderBar({
                 >
                   <span>{action.label}</span>
                   {action.soon && (
-                    <span className="shrink-0 text-[9px] font-bold uppercase text-gray-400">Soon</span>
+                    <span className="shrink-0 text-[9px] font-bold text-gray-400">Soon</span>
                   )}
                 </button>
               ))}
@@ -203,16 +224,20 @@ export default function TopHeaderBar({
                 <p className="truncate text-sm font-semibold text-gray-900">{user.name}</p>
                 <p className="truncate text-xs text-gray-500">{user.email}</p>
                 <p className="mt-1 text-[10px] font-medium text-orange-600">
-                  {user.role.replace(/_/g, ' ')}
+                  {user.role
+                    .toLowerCase()
+                    .split('_')
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ')}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setProfileOpen(false)}
-                className="w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                disabled
+                className="w-full cursor-not-allowed px-4 py-2 text-left text-sm text-gray-400"
               >
                 Account settings
-                <span className="ml-2 text-[9px] uppercase text-gray-400">Coming soon</span>
+                <span className="ml-2 text-[9px] text-gray-400">Coming soon</span>
               </button>
             </div>
           )}

@@ -8,7 +8,7 @@ import ReceiptTab from './ReceiptTab'
 export default function MasterReceiptsTab() {
   const [selectedTempleId, setSelectedTempleId] = useState<string | null>(null)
 
-  const { data: temples, isLoading, error } = useQuery({
+  const { data: temples, isLoading, error, refetch } = useQuery({
     queryKey: ['temples'],
     queryFn: async () => {
       const response = await api.get('/temples')
@@ -38,7 +38,12 @@ export default function MasterReceiptsTab() {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-        Failed to load temples. Please try again.
+        <div className="flex items-center justify-between gap-3">
+          <span>Failed to load temples.</span>
+          <button type="button" onClick={() => refetch()} className="text-sm font-semibold underline">
+            Try again
+          </button>
+        </div>
       </div>
     )
   }

@@ -126,8 +126,12 @@ export function donationFee(d: Donation): number {
 
 export function donationNet(d: Donation): number | null {
   if (d.status !== 'SUCCEEDED') return null
-  const base = d.netAmount != null ? Number(d.netAmount) : Number(d.amount)
   const refunded = Number(d.refundedAmount || 0)
+  const fee = donationFee(d)
+  const base =
+    d.netAmount != null
+      ? Number(d.netAmount)
+      : Number(d.amount) - (Number.isFinite(fee) ? fee : 0)
   const net = base - (Number.isFinite(refunded) ? refunded : 0)
   return Math.round(Math.max(0, net) * 100) / 100
 }

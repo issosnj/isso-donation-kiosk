@@ -73,12 +73,19 @@ export function usePlatformAlerts(devices: DeviceListItem[]) {
     const alerts: Alert[] = []
 
     const offline = devices.filter((d) => d.operationalStatus === 'offline')
+    const deployed = devices.filter(
+      (d) => d.operationalStatus !== 'pending' && d.operationalStatus !== 'deactivated',
+    )
+    const mostOfFleetOffline = deployed.length > 0 && offline.length / deployed.length > 0.5
     if (offline.length > 0) {
       alerts.push({
         id: 'offline-kiosks',
-        severity: 'critical',
+        severity: mostOfFleetOffline ? 'critical' : 'warning',
         title: 'Kiosks offline',
-        description: `${offline.length} device(s) have not reported in over 24 hours.`,
+        description:
+          offline.length === 1
+            ? '1 device has not reported in over 24 hours.'
+            : `${offline.length} devices have not reported in over 24 hours.`,
         count: offline.length,
         actions: [{ label: 'View devices', href: '?tab=devices', variant: 'primary' }],
         timestamp: new Date().toISOString(),
@@ -91,7 +98,10 @@ export function usePlatformAlerts(devices: DeviceListItem[]) {
         id: 'stale-heartbeat',
         severity: 'warning',
         title: 'Needs attention',
-        description: `${warning.length} kiosk(s) missed recent check-ins.`,
+        description:
+          warning.length === 1
+            ? '1 kiosk missed a recent check-in.'
+            : `${warning.length} kiosks missed recent check-ins.`,
         count: warning.length,
         actions: [{ label: 'Review fleet', href: '?tab=devices', variant: 'secondary' }],
         timestamp: new Date().toISOString(),
@@ -104,7 +114,10 @@ export function usePlatformAlerts(devices: DeviceListItem[]) {
         id: 'pending-setup',
         severity: 'info',
         title: 'Pending activation',
-        description: `${pending.length} device(s) awaiting setup.`,
+        description:
+          pending.length === 1
+            ? '1 device is awaiting setup.'
+            : `${pending.length} devices are awaiting setup.`,
         count: pending.length,
         actions: [{ label: 'Complete setup', href: '?tab=devices', variant: 'secondary' }],
       })
@@ -116,7 +129,10 @@ export function usePlatformAlerts(devices: DeviceListItem[]) {
         id: 'reader-disconnected',
         severity: 'warning',
         title: 'Payment reader disconnected',
-        description: `${readerIssues.length} terminal(s) report reader offline.`,
+        description:
+          readerIssues.length === 1
+            ? '1 terminal reports its reader offline.'
+            : `${readerIssues.length} terminals report a reader offline.`,
         count: readerIssues.length,
         templeName: readerIssues[0]?.templeName,
         actions: [{ label: 'Troubleshoot', href: '?tab=devices', variant: 'primary' }],
