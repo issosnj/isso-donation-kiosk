@@ -319,6 +319,32 @@ struct DonationHomeView: View {
             .onChange(of: quantity) { _ in
                 IdleTimer.shared.userDidInteract()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .idleTimeoutReached)) { _ in
+                clearDonationSession()
+            }
+    }
+
+    /// Drops the in-progress donation before the flow is removed. Review & Payment is a cover;
+    /// leaving it presented makes the next Tap to Donate reopen that same donation.
+    private func clearDonationSession() {
+        showingYajmanOpportunities = false
+        showingPledgeOption = false
+        showingPayment = false
+        showingDetails = false
+        showingCustomAmountKeypad = false
+        hideSystemKeyboard = false
+        customAmountFocused = false
+        selectedAmount = nil
+        customAmount = ""
+        selectedCategory = nil
+        quantity = 1
+        donorName = nil
+        donorPhone = nil
+        donorEmail = nil
+        donorAddress = nil
+        reviewDonorAnonymousSeva = false
+        reviewDonationLines = []
+        appendSevaOnNextReview = false
     }
     
     /// Split from `body` so the compiler can type-check the main screen and flow modifiers separately.
@@ -523,14 +549,14 @@ struct DonationHomeView: View {
                 HStack(alignment: .top, spacing: columnSpacing) {
                     if showingCustomAmountKeypad {
                         keypadPlaceholderSection(geometry: geometry)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                             .transition(.asymmetric(
                                 insertion: .opacity.combined(with: .scale(scale: 0.97)),
                                 removal: .opacity.combined(with: .scale(scale: 0.97))
                             ))
                     } else {
                         categorySection(geometry: geometry)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     }
                     
                     Rectangle()
@@ -545,13 +571,14 @@ struct DonationHomeView: View {
                         }
                     
                     amountSection(geometry: geometry)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
                 .padding(.horizontal, geometry.scale(glassPanelInternalPadding))
                 .padding(.top, geometry.scale(glassPanelVerticalPadding))
                 .padding(.bottom, geometry.scale(28))
             }
-            .frame(maxWidth: panelMaxWidth, maxHeight: geometry.size.height * 0.76)
+            .frame(maxWidth: panelMaxWidth)
+            .frame(height: geometry.size.height * 0.76)
             .background(
                 RoundedRectangle(cornerRadius: geometry.scale(glassPanelCornerRadius))
                     .fill(Color.white.opacity(0.15))
@@ -721,7 +748,7 @@ struct DonationHomeView: View {
             categoryContent(geometry: geometry)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
     
     @ViewBuilder
@@ -835,11 +862,13 @@ struct DonationHomeView: View {
                 .frame(maxWidth: .infinity)
             
             Spacer(minLength: 0)
-            
-            actionButtonsRow(geometry: geometry)
-                .padding(.top, geometry.scale(20))
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // Sit on the category list's bottom edge. Keeping the buttons in the
+        // column's own height pushed them below the scrolling area.
+        .safeAreaInset(edge: .bottom, spacing: geometry.scale(12)) {
+            actionButtonsRow(geometry: geometry)
+        }
     }
     
     @ViewBuilder

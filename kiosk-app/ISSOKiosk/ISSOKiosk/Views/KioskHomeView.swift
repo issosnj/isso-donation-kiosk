@@ -12,18 +12,9 @@ struct KioskHomeView: View {
     @State private var showEvents = false
     @State private var showReligiousEvents = false
     @State private var showLanguageSelector = false
-    @State private var currentTime = Date()
-    @State private var timer: Timer?
     
     // QR Code cache to avoid regenerating on each tap
     @State private var qrCodeCache: [String: UIImage] = [:]
-    
-    // Cache DateFormatter for better performance
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
-    }()
     
     // Helper function to convert hex string to Color
     private func colorFromHex(_ hex: String) -> Color {
@@ -216,6 +207,7 @@ struct KioskHomeView: View {
                                 }
                             }
                         })
+                    .equatable()
                     .padding(.horizontal, geometry.scale(DesignSystem.Spacing.xl))
                     .padding(.vertical, geometry.scale(DesignSystem.Components.sectionSpacing))
                     .frame(maxWidth: .infinity)
@@ -413,26 +405,11 @@ struct KioskHomeView: View {
                 .presentationBackground(.clear)
         }
         .onAppear {
-            // Start timer to update time every second - optimized for performance
-            currentTime = Date()
-            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-                currentTime = Date()
-            }
-            // Add timer to RunLoop for better performance
-            if let timer = timer {
-                RunLoop.current.add(timer, forMode: .common)
-            }
-            // Pre-generate QR codes for better performance
             pregenerateQRCodes()
         }
         .onChange(of: appState.temple?.homeScreenConfig?.whatsAppLink) { _ in
             // Regenerate QR codes when config changes
             pregenerateQRCodes()
-        }
-        .onDisappear {
-            // Stop timer when view disappears
-            timer?.invalidate()
-            timer = nil
         }
     }
     
@@ -485,9 +462,6 @@ struct KioskHomeView: View {
         return languageManager.translate("isso")
     }
     
-    private var timeString: String {
-        Self.timeFormatter.string(from: currentTime)
-    }
 }
 
 // Reader Battery Status View Component (shows iPad battery and Stripe reader battery)
@@ -881,12 +855,15 @@ struct ScaleButtonStyle: ButtonStyle {
 }
 
 // Gold-accented donate button with pressed state
-struct GoldAccentDonateButton: View {
+struct GoldAccentDonateButton: View, Equatable {
     let buttonColor: String
     let action: () -> Void
     @State private var isPressed = false
     @State private var pulseScale: CGFloat = 1.0
-    @EnvironmentObject var navigationState: AppNavigationState
+
+    static func == (lhs: GoldAccentDonateButton, rhs: GoldAccentDonateButton) -> Bool {
+        lhs.buttonColor == rhs.buttonColor
+    }
     
     // Helper to convert hex string to Color
     private func colorFromHex(_ hex: String) -> Color {
@@ -941,31 +918,18 @@ struct GoldAccentDonateButton: View {
                 x: 0,
                 y: isPressed ? 3 : 6
             )
-            .scaleEffect((isPressed ? 0.98 : 1.0) * pulseScale)
+            .compositingGroup()
+            .scaleEffect(isPressed ? 0.98 : pulseScale)
         }
         .buttonStyle(PlainButtonStyle())
         .onAppear {
-            // Subtle, calming pulse — premium feel without distraction
+            // One continuous pulse. Resetting the scale on later updates makes the zoom jump.
             pulseScale = 1.0
             withAnimation(
                 Animation.easeInOut(duration: 2.5)
                     .repeatForever(autoreverses: true)
             ) {
                 pulseScale = 1.02
-            }
-        }
-        .onChange(of: navigationState.showDonationFlow) { _ in
-            // Restart animation when returning from donation flow
-            if !navigationState.showDonationFlow {
-                pulseScale = 1.0
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    withAnimation(
-                        Animation.easeInOut(duration: 2.5)
-                            .repeatForever(autoreverses: true)
-                    ) {
-                        pulseScale = 1.02
-                    }
-                }
             }
         }
         .simultaneousGesture(

@@ -37,13 +37,29 @@ export class PlacesService {
       return { predictions: [] };
     }
 
+    const restricted = await this.fetchAutocomplete(input, sessionToken, true);
+    if (restricted && restricted.predictions.length > 0) {
+      return restricted;
+    }
+    // `types=address` is rejected by some Google keys, and a partial street can come back empty.
+    // A second request without that filter still returns addresses.
+    return (await this.fetchAutocomplete(input, sessionToken, false)) ?? restricted ?? { predictions: [] };
+  }
+
+  private async fetchAutocomplete(
+    input: string,
+    sessionToken: string | undefined,
+    addressesOnly: boolean,
+  ): Promise<{ predictions: AutocompletePrediction[] } | null> {
     try {
-      const params: any = {
+      const params: Record<string, string> = {
         input,
         key: this.apiKey,
-        types: 'address', // Only return addresses
+        components: 'country:us',
       };
-
+      if (addressesOnly) {
+        params.types = 'address';
+      }
       if (sessionToken) {
         params.sessiontoken = sessionToken;
       }
@@ -60,10 +76,10 @@ export class PlacesService {
       }
 
       console.error('[PlacesService] Google Places API error:', response.data.status, response.data.error_message);
-      return { predictions: [] };
+      return null;
     } catch (error) {
       console.error('[PlacesService] Error calling Google Places API:', error.message);
-      return { predictions: [] };
+      return null;
     }
   }
 

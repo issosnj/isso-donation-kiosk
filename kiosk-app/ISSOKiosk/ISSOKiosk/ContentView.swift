@@ -3,6 +3,8 @@ import Combine
 
 class AppNavigationState: ObservableObject {
     @Published var showDonationFlow = false
+    /// New value discards the previous donation, including a Review & Payment cover left open at idle timeout.
+    @Published var donationSessionID = UUID()
 }
 
 struct ContentView: View {
@@ -45,10 +47,9 @@ struct ContentView: View {
                     // Show donation flow on top when active
                     if navigationState.showDonationFlow {
                         DonationHomeView(onDismiss: {
-                            withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
-                                navigationState.showDonationFlow = false
-                            }
+                            endDonationSession()
                         })
+                        .id(navigationState.donationSessionID)
                         .environmentObject(appState)
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom).combined(with: .opacity),
@@ -63,8 +64,11 @@ struct ContentView: View {
                     setupIdleTimer()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .idleTimeoutReached)) { _ in
-                    withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
-                        navigationState.showDonationFlow = false
+                    guard navigationState.showDonationFlow else { return }
+                    // Let DonationHomeView close Review & Payment first. Removing the flow in this
+                    // same turn keeps that cover presented, so the next Tap to Donate reopens it.
+                    DispatchQueue.main.async {
+                        endDonationSession()
                     }
                 }
             } else {
@@ -78,6 +82,14 @@ struct ContentView: View {
     private func setupIdleTimer() {
         let timeout = TimeInterval(appState.temple?.homeScreenConfig?.idleTimeoutSeconds ?? 60)
         idleTimer.configure(timeout: timeout)
+    }
+
+    /// Leaves the donation flow and drops its screen state. The next Tap to Donate opens a blank selection page.
+    private func endDonationSession() {
+        navigationState.donationSessionID = UUID()
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+            navigationState.showDonationFlow = false
+        }
     }
 }
 

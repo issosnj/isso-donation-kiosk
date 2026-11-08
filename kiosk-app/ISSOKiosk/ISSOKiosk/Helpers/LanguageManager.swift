@@ -95,6 +95,8 @@ class LanguageManager: ObservableObject {
             "enterYourEmail": "Enter your email",
             "enterYourAddress": "Enter your mailing address",
             "savedDonorPrompt": "Saved donor information is available for this number. Would you like to use it?",
+            "donorLookupChecking": "Checking this number…",
+            "donorMatchedPrevious": "Found from a previous donation. To change this information, please contact your mandir IT team or the Donation Office.",
             "useSavedInformation": "Use Saved Information",
             "continueWithoutSaved": "Continue Without It",
             "firstNameRequired": "Enter a first name",
@@ -130,6 +132,7 @@ class LanguageManager: ObservableObject {
             "confirm": "Confirm",
             "back": "Back",
             "next": "Next",
+            "previous": "Previous",
             "submit": "Submit",
             
             // Donation Selection Page (additional keys)
@@ -201,6 +204,8 @@ class LanguageManager: ObservableObject {
             "enterYourEmail": "તમારું ઇમેઇલ દાખલ કરો",
             "enterYourAddress": "તમારું મેઇલિંગ સરનામું દાખલ કરો",
             "savedDonorPrompt": "આ નંબર માટે સાચવેલી દાતા માહિતી ઉપલબ્ધ છે. શું તમે તેનો ઉપયોગ કરશો?",
+            "donorLookupChecking": "આ નંબર તપાસી રહ્યા છીએ…",
+            "donorMatchedPrevious": "અગાઉના દાનમાંથી મળ્યું. આ માહિતી બદલવા માટે, કૃપા કરીને તમારી મંદિર IT ટીમ અથવા દાન ઑફિસનો સંપર્ક કરો.",
             "useSavedInformation": "સાચવેલી માહિતી વાપરો",
             "continueWithoutSaved": "તેના વગર આગળ વધો",
             "firstNameRequired": "પ્રથમ નામ દાખલ કરો",
@@ -236,6 +241,7 @@ class LanguageManager: ObservableObject {
             "confirm": "પુષ્ટિ કરો",
             "back": "પાછળ",
             "next": "આગળ",
+            "previous": "પાછળ",
             "submit": "સબમિટ કરો",
             
             // Donation Selection Page (additional keys)
@@ -307,6 +313,8 @@ class LanguageManager: ObservableObject {
             "enterYourEmail": "अपना ईमेल दर्ज करें",
             "enterYourAddress": "अपना मेलिंग पता दर्ज करें",
             "savedDonorPrompt": "इस नंबर के लिए सहेजी गई दाता जानकारी उपलब्ध है। क्या आप उसका उपयोग करना चाहते हैं?",
+            "donorLookupChecking": "यह नंबर जाँचा जा रहा है…",
+            "donorMatchedPrevious": "पिछले दान से मिला. यह जानकारी बदलने के लिए, कृपया अपनी मंदिर IT टीम या दान कार्यालय से संपर्क करें.",
             "useSavedInformation": "सहेजी गई जानकारी उपयोग करें",
             "continueWithoutSaved": "इसके बिना जारी रखें",
             "firstNameRequired": "पहला नाम दर्ज करें",
@@ -342,6 +350,7 @@ class LanguageManager: ObservableObject {
             "confirm": "पुष्टि करें",
             "back": "पीछे",
             "next": "आगे",
+            "previous": "पिछला",
             "submit": "सबमिट करें",
             
             // Donation Selection Page (additional keys)

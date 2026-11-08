@@ -48,6 +48,18 @@ struct DonorCheckoutRules: Sendable {
         String(raw.filter(\.isNumber).prefix(10))
     }
 
+    /// Next stored value after one keypad digit. Extra digits past 10 are ignored.
+    static func phoneDigitsByInserting(_ digit: Character, into stored: String) -> String {
+        guard digit.isNumber else { return digits(from: stored) }
+        return String((digits(from: stored) + String(digit)).prefix(10))
+    }
+
+    static func phoneDigitsByDeletingLast(from stored: String) -> String {
+        var storedDigits = digits(from: stored)
+        if !storedDigits.isEmpty { storedDigits.removeLast() }
+        return storedDigits
+    }
+
     /// Display only. The stored value remains digits.
     static func displayPhone(_ raw: String) -> String {
         let d = digits(from: raw)

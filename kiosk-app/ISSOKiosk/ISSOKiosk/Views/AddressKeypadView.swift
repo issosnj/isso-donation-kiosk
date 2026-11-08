@@ -76,16 +76,18 @@ struct AddressKeypadView: View {
                                             .padding(.top, 2)
                                         
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(suggestion.structured_formatting.main_text)
+                                            Text(suggestion.title)
                                                 .font(.custom("Inter-Medium", size: 16))
                                                 .foregroundColor(Color(red: 0.26, green: 0.20, blue: 0.20))
                                                 .lineLimit(2)
                                                 .fixedSize(horizontal: false, vertical: true)
-                                            Text(suggestion.structured_formatting.secondary_text)
-                                                .font(.custom("Inter-Regular", size: 14))
-                                                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
-                                                .lineLimit(2)
-                                                .fixedSize(horizontal: false, vertical: true)
+                                            if !suggestion.subtitle.isEmpty {
+                                                Text(suggestion.subtitle)
+                                                    .font(.custom("Inter-Regular", size: 14))
+                                                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.6))
+                                                    .lineLimit(2)
+                                                    .fixedSize(horizontal: false, vertical: true)
+                                            }
                                         }
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     }

@@ -33,11 +33,21 @@ enum DonorInlineFocus: Int, CaseIterable {
 
     var nextField: DonorInlineFocus? {
         switch self {
+        case .phone: return .firstName
         case .firstName: return .lastName
-        case .lastName: return .phone
-        case .phone: return .email
+        case .lastName: return .email
         case .email: return .address
         case .address, .none: return nil
+        }
+    }
+
+    var previousField: DonorInlineFocus? {
+        switch self {
+        case .firstName: return .phone
+        case .lastName: return .firstName
+        case .email: return .lastName
+        case .address: return .email
+        case .phone, .none: return nil
         }
     }
 }
@@ -83,6 +93,15 @@ struct ModernDonationDetailsView: View {
     @State private var lookupSession = DonorLookupSession()
     @State private var lookupTask: Task<Void, Never>?
     @State private var savedDonorPrompt = false
+    /// Name, email, and address stay hidden until the phone lookup finishes.
+    @State private var donorDetailsRevealed = false
+    /// True when the visible details were filled from an earlier donation.
+    @State private var donorMatchedPreviousDonation = false
+
+    /// Saved donor details stay visible and cannot be changed on the kiosk.
+    private var donorIdentityLocked: Bool {
+        donorMatchedPreviousDonation && !anonymousSeva
+    }
     @State private var pendingSavedDonor: DonorCheckoutRules.SavedDonor?
     @State private var donorRestingFieldFrames: [DonorInlineFocus: CGRect] = [:]
     @State private var donorViewport: CGRect = .zero
@@ -139,21 +158,41 @@ struct ModernDonationDetailsView: View {
             dismissInlineInput()
             return
         }
+        guard donorDetailsRevealed || anonymousSeva else {
+            dismissInlineInput()
+            return
+        }
+        if donorIdentityLocked && next != .phone {
+            dismissInlineInput()
+            return
+        }
         // Move the real first responder immediately so the keyboard stays up.
         // SwiftUI focus state follows in the same turn.
         focus(next)
         fieldRegistry.focus(index: next.rawValue)
     }
 
+    private func retreat(from field: DonorInlineFocus) {
+        guard let previous = field.previousField else {
+            dismissInlineInput()
+            return
+        }
+        focus(previous)
+        fieldRegistry.focus(index: previous.rawValue)
+    }
+
     private func refreshDonorScroll(animated: Bool) {
-        let field = donorRestingFieldFrames[inlineFocus] ?? .zero
-        let suggestionReserve: CGFloat = (inlineFocus == .address && !addressSuggestions.isEmpty) ? 200 : 0
+        var field = donorRestingFieldFrames[inlineFocus] ?? .zero
+        // Suggestions sit under the address row. Keep that list above the keyboard.
+        if inlineFocus == .address, !addressSuggestions.isEmpty {
+            field.size.height += 220
+        }
         var next = DonorKeyboardAvoidance.scrollOffset(
             fieldInContent: field,
             viewport: donorViewport,
             keyboard: keyboardFrame,
             padding: 16,
-            reservedAboveField: suggestionReserve
+            reservedAboveField: 0
         )
         if abs(next) < 0.5 {
             let contentBottom = donorRestingFieldFrames.values.map(\.maxY).max() ?? 0
@@ -309,8 +348,9 @@ struct ModernDonationDetailsView: View {
         placeholder: String,
         text: Binding<String>,
         field: DonorInlineFocus,
-        contentType: UITextContentType,
-        error: String?
+        contentType: UITextContentType?,
+        error: String?,
+        locked: Bool = false
     ) -> some View {
         let s = geometry.scale
         VStack(alignment: .leading, spacing: s(6)) {
@@ -338,13 +378,16 @@ struct ModernDonationDetailsView: View {
                         isFocused: inlineFocus == field,
                         onFieldBecameActive: { _ in focus(field) },
                         keyboardReturnKeyType: .next,
+                        onRetreatToPreviousField: field.previousField == nil ? nil : { retreat(from: field) },
                         onAdvanceToNextField: { advance(from: field) },
+                        accessoryPreviousTitle: "previous".localized,
                         accessoryNextTitle: "next".localized,
                         suppressKeyboardPredictions: true,
                         addsDoneAccessoryBar: true,
                         accessoryBackgroundUIColor: UIColor(creamFill),
                         accessoryTintUIColor: UIColor(burgundyBrand),
-                        accessoryDoneTitle: "done".localized
+                        accessoryDoneTitle: "done".localized,
+                        editingLocked: locked
                     )
                 }
             }
@@ -371,7 +414,7 @@ struct ModernDonationDetailsView: View {
                         textUIColor: UIColor(headingColor),
                         placeholderUIColor: UIColor(headingColor.opacity(0.48)),
                         keyboardType: .phonePad,
-                        textContentType: .telephoneNumber,
+                        textContentType: nil,
                         autocapitalization: .none,
                         disableAutocorrect: true,
                         onEditingDone: { dismissInlineInput() },
@@ -383,6 +426,7 @@ struct ModernDonationDetailsView: View {
                         onFieldBecameActive: { _ in focus(.phone) },
                         keyboardReturnKeyType: .next,
                         onAdvanceToNextField: { advance(from: .phone) },
+                        accessoryPreviousTitle: "previous".localized,
                         accessoryNextTitle: "next".localized,
                         suppressKeyboardPredictions: true,
                         addsDoneAccessoryBar: true,
@@ -415,7 +459,7 @@ struct ModernDonationDetailsView: View {
                         textUIColor: UIColor(headingColor),
                         placeholderUIColor: UIColor(headingColor.opacity(0.48)),
                         keyboardType: .emailAddress,
-                        textContentType: .emailAddress,
+                        textContentType: nil,
                         autocapitalization: .none,
                         disableAutocorrect: true,
                         onEditingDone: { dismissInlineInput() },
@@ -425,13 +469,16 @@ struct ModernDonationDetailsView: View {
                         isFocused: inlineFocus == .email,
                         onFieldBecameActive: { _ in focus(.email) },
                         keyboardReturnKeyType: .next,
+                        onRetreatToPreviousField: { retreat(from: .email) },
                         onAdvanceToNextField: { advance(from: .email) },
+                        accessoryPreviousTitle: "previous".localized,
                         accessoryNextTitle: "next".localized,
                         suppressKeyboardPredictions: true,
                         addsDoneAccessoryBar: true,
                         accessoryBackgroundUIColor: UIColor(creamFill),
                         accessoryTintUIColor: UIColor(burgundyBrand),
-                        accessoryDoneTitle: "done".localized
+                        accessoryDoneTitle: "done".localized,
+                        editingLocked: donorIdentityLocked
                     )
                 }
             }
@@ -442,7 +489,6 @@ struct ModernDonationDetailsView: View {
     @ViewBuilder
     private func inlineAddressField(geometry: GeometryProxy) -> some View {
         let s = geometry.scale
-        let corner = s(DesignSystem.Components.buttonCornerRadius)
         VStack(alignment: .leading, spacing: s(6)) {
             fieldLabel("mailingAddress".localized, geometry: geometry)
             ZStack(alignment: .topLeading) {
@@ -464,9 +510,13 @@ struct ModernDonationDetailsView: View {
                             fieldIndex: DonorInlineFocus.address.rawValue,
                             isFocused: inlineFocus == .address,
                             onFieldBecameActive: { _ in focus(.address) },
+                            onRetreatToPreviousField: { retreat(from: .address) },
+                            accessoryPreviousTitle: "previous".localized,
+                            accessoryNextTitle: "next".localized,
                             accessoryBackgroundUIColor: UIColor(creamFill),
                             accessoryTintUIColor: UIColor(burgundyBrand),
-                            accessoryDoneTitle: "done".localized
+                            accessoryDoneTitle: "done".localized,
+                            editingLocked: donorIdentityLocked
                         )
                     }
                 }
@@ -480,71 +530,12 @@ struct ModernDonationDetailsView: View {
                         .allowsHitTesting(false)
                 }
             }
-            .overlay(alignment: .topLeading) {
-                if inlineFocus == .address && !addressSuggestions.isEmpty {
-                    let visibleCount = CGFloat(min(addressSuggestions.count, 4))
-                    let listHeight = min(s(168), visibleCount * s(54))
-                    addressSuggestionList(geometry: geometry)
-                        .padding(.leading, s(DesignSystem.Spacing.lg))
-                        .offset(y: -(listHeight + s(8)))
-                        .zIndex(8)
-                }
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: corner)
-                    .stroke(Color.clear, lineWidth: 0)
-            )
-        }
-    }
-
-    @ViewBuilder
-    private func savedDonorPromptCard(geometry: GeometryProxy) -> some View {
-        let s = geometry.scale
-        let corner = s(DesignSystem.Components.buttonCornerRadius)
-        VStack(alignment: .leading, spacing: s(8)) {
-            Text("savedDonorPrompt".localized)
-                .font(.custom("Georgia", size: s(14)))
-                .foregroundColor(headingColor)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: s(8)) {
-                Button {
-                    if let pending = pendingSavedDonor {
-                        apply(DonorCheckoutRules.applySavedDonor(pending, to: donorDraft))
-                    }
-                    savedDonorPrompt = false
-                    pendingSavedDonor = nil
-                } label: {
-                    Text("useSavedInformation".localized)
-                        .font(.custom("Georgia", size: s(13)))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, s(10))
-                        .padding(.vertical, s(8))
-                        .background(RoundedRectangle(cornerRadius: corner).fill(burgundyBrand))
-                }
-                .buttonStyle(.plain)
-                Button {
-                    savedDonorPrompt = false
-                    pendingSavedDonor = nil
-                } label: {
-                    Text("continueWithoutSaved".localized)
-                        .font(.custom("Georgia", size: s(13)))
-                        .foregroundColor(headingColor)
-                        .padding(.horizontal, s(10))
-                        .padding(.vertical, s(8))
-                        .background(
-                            RoundedRectangle(cornerRadius: corner)
-                                .stroke(goldAccent.opacity(0.8), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
+            if inlineFocus == .address && !addressSuggestions.isEmpty {
+                addressSuggestionList(geometry: geometry)
+                    .padding(.top, s(4))
+                    .zIndex(8)
             }
         }
-        .padding(s(10))
-        .background(
-            RoundedRectangle(cornerRadius: corner)
-                .fill(Color.white.opacity(0.72))
-        )
-        .overlay(DonationGoldRingBorder(cornerRadius: corner).allowsHitTesting(false))
     }
 
     @ViewBuilder
@@ -560,14 +551,16 @@ struct ModernDonationDetailsView: View {
                         Task { await selectAddress(suggestion: suggestion) }
                     } label: {
                         VStack(alignment: .leading, spacing: s(2)) {
-                            Text(suggestion.structured_formatting.main_text)
+                            Text(suggestion.title)
                                 .font(.custom("Georgia", size: s(14)))
                                 .foregroundColor(headingColor)
                                 .lineLimit(1)
-                            Text(suggestion.structured_formatting.secondary_text)
-                                .font(.custom("Georgia", size: s(12)))
-                                .foregroundColor(headingColor.opacity(0.6))
-                                .lineLimit(1)
+                            if !suggestion.subtitle.isEmpty {
+                                Text(suggestion.subtitle)
+                                    .font(.custom("Georgia", size: s(12)))
+                                    .foregroundColor(headingColor.opacity(0.6))
+                                    .lineLimit(1)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, s(10))
@@ -946,6 +939,15 @@ struct ModernDonationDetailsView: View {
     private func donorInputFields(geometry: GeometryProxy) -> some View {
         let s = geometry.scale
         VStack(alignment: .leading, spacing: s(DesignSystem.Components.inlineSpacing)) {
+            inlinePhoneField(geometry: geometry)
+                .donorRestingFrame(.phone)
+            if lookupSession.inFlightPhone != nil && !donorDetailsRevealed && !anonymousSeva {
+                Text("donorLookupChecking".localized)
+                    .font(.custom("Georgia", size: s(14)))
+                    .foregroundColor(headingColor.opacity(0.75))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if donorDetailsRevealed && !anonymousSeva {
             HStack(alignment: .top, spacing: s(12)) {
                 inlineNameField(
                     geometry: geometry,
@@ -954,8 +956,9 @@ struct ModernDonationDetailsView: View {
                     placeholder: "enterYourFirstName".localized,
                     text: $donorFirstName,
                     field: .firstName,
-                    contentType: .givenName,
-                    error: shows(.firstNameRequired) ? "firstNameRequired".localized : nil
+                    contentType: nil,
+                    error: shows(.firstNameRequired) ? "firstNameRequired".localized : nil,
+                    locked: donorIdentityLocked
                 )
                 .frame(maxWidth: .infinity)
                 .donorRestingFrame(.firstName)
@@ -966,21 +969,28 @@ struct ModernDonationDetailsView: View {
                     placeholder: "enterYourLastName".localized,
                     text: $donorLastName,
                     field: .lastName,
-                    contentType: .familyName,
-                    error: shows(.lastNameRequired) ? "lastNameRequired".localized : nil
+                    contentType: nil,
+                    error: shows(.lastNameRequired) ? "lastNameRequired".localized : nil,
+                    locked: donorIdentityLocked
                 )
                 .frame(maxWidth: .infinity)
                 .donorRestingFrame(.lastName)
             }
-            inlinePhoneField(geometry: geometry)
-                .donorRestingFrame(.phone)
-            if savedDonorPrompt && !anonymousSeva {
-                savedDonorPromptCard(geometry: geometry)
-            }
+            .allowsHitTesting(!donorIdentityLocked)
             inlineEmailField(geometry: geometry)
                 .donorRestingFrame(.email)
+                .allowsHitTesting(!donorIdentityLocked)
             inlineAddressField(geometry: geometry)
                 .donorRestingFrame(.address)
+                .allowsHitTesting(!donorIdentityLocked)
+            if donorMatchedPreviousDonation {
+                Text("donorMatchedPrevious".localized)
+                    .font(.custom("Georgia", size: s(14)))
+                    .foregroundColor(goldAccent)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, s(32))
+            }
+            }
         }
     }
 
@@ -1050,6 +1060,9 @@ struct ModernDonationDetailsView: View {
         let arrowSize = compact ? s(13) : s(16)
         Button(action: {
             dismissInlineInput()
+            if !anonymousSeva && DonorCheckoutRules.digits(from: donorPhone).count == 10 {
+                donorDetailsRevealed = true
+            }
             showValidation = true
             guard checkoutIssues.isEmpty else { return }
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -1180,6 +1193,10 @@ struct ModernDonationDetailsView: View {
                     donorAddress = initialAddress
                 }
                 anonymousSeva = false
+                let hasIdentity = !donorFirstName.isEmpty || !donorLastName.isEmpty || !donorEmail.isEmpty || !donorAddress.isEmpty
+                if hasIdentity {
+                    donorDetailsRevealed = true
+                }
             }
 
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
@@ -1204,6 +1221,18 @@ struct ModernDonationDetailsView: View {
             let normalized = DonorCheckoutRules.digits(from: newPhone)
             if normalized != newPhone {
                 donorPhone = normalized
+                return
+            }
+            if normalized.count < 10 {
+                lookupTask?.cancel()
+                lookupSession.invalidate()
+                savedDonorPrompt = false
+                pendingSavedDonor = nil
+                donorMatchedPreviousDonation = false
+                if donorDetailsRevealed {
+                    donorDetailsRevealed = false
+                    clearDonorIdentityFields()
+                }
                 return
             }
             beginDonorLookupIfNeeded()
@@ -1239,6 +1268,21 @@ struct ModernDonationDetailsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .idleTimeoutReached)) { _ in
             dismissInlineInput()
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            closeKeyboardAfterHideButton()
+        }
+    }
+
+    /// The iPad keyboard-down key hides the keys but leaves the shortcut bar up.
+    /// Done, and that down key, both leave the field so the bar closes too.
+    private func closeKeyboardAfterHideButton() {
+        let focus = inlineFocus
+        guard focus == .firstName || focus == .lastName || focus == .email || focus == .address else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            guard inlineFocus == focus else { return }
+            guard keyboardFrame.height < 90 else { return }
+            dismissInlineInput()
+        }
     }
 
     #if DEBUG
@@ -1248,6 +1292,7 @@ struct ModernDonationDetailsView: View {
         if debugSeedSuggestions {
             donorAddress = "2101"
         }
+        donorDetailsRevealed = true
         guard debugInitialFocus != .none || arguments.contains("-previewDismissKeyboard") else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
             if debugSeedSuggestions {
@@ -1291,15 +1336,31 @@ struct ModernDonationDetailsView: View {
         addressSuggestions = []
         savedDonorPrompt = false
         pendingSavedDonor = nil
+        donorMatchedPreviousDonation = false
+        donorDetailsRevealed = false
         donorSnapshotBeforeAnonymous = nil
         dismissInlineInput()
     }
 
+    private func clearDonorIdentityFields() {
+        donorFirstName = ""
+        donorLastName = ""
+        donorEmail = ""
+        donorAddress = ""
+        addressSuggestions = []
+    }
+
     private func beginDonorLookupIfNeeded() {
+        let previousPhone = lookupSession.settledPhone
         let action = lookupSession.notePhone(donorPhone, anonymous: anonymousSeva)
         guard case .start(let phone, let generation) = action else { return }
         savedDonorPrompt = false
         pendingSavedDonor = nil
+        if let previousPhone, previousPhone != phone {
+            donorMatchedPreviousDonation = false
+            donorDetailsRevealed = false
+            clearDonorIdentityFields()
+        }
         lookupTask?.cancel()
         lookupTask = Task {
             let response: DonorLookupResponse?
@@ -1311,24 +1372,27 @@ struct ModernDonationDetailsView: View {
             }
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                if response == nil {
-                    if lookupSession.generation == generation && lookupSession.inFlightPhone == phone {
-                        lookupSession.inFlightPhone = nil
-                    }
-                    return
-                }
                 let found = response?.found == true && response?.donor != nil
                 switch lookupSession.receive(phone: phone, generation: generation, found: found) {
                 case .prompt:
                     if let donor = response?.donor {
-                        pendingSavedDonor = DonorCheckoutRules.SavedDonor(
-                            name: donor.name,
-                            email: donor.email,
-                            address: donor.address
-                        )
-                        savedDonorPrompt = true
+                        apply(DonorCheckoutRules.applySavedDonor(
+                            DonorCheckoutRules.SavedDonor(
+                                name: donor.name,
+                                email: donor.email,
+                                address: donor.address
+                            ),
+                            to: donorDraft
+                        ))
+                        donorMatchedPreviousDonation = true
+                    } else {
+                        donorMatchedPreviousDonation = false
                     }
-                case .notFound, .stale:
+                    donorDetailsRevealed = true
+                case .notFound:
+                    donorMatchedPreviousDonation = false
+                    donorDetailsRevealed = true
+                case .stale:
                     break
                 }
             }
@@ -1442,21 +1506,109 @@ private enum DonorUSPhoneFormatting {
     }
 }
 
-// MARK: - Themed keyboard accessory (matches kiosk cream / burgundy; avoids default white + blue bar)
-private enum DonorFormAccessoryToolbar {
-    static func applyAppearance(_ toolbar: UIToolbar, backgroundColor: UIColor) {
-        toolbar.isTranslucent = false
-        if #available(iOS 15.0, *) {
-            let appearance = UIToolbarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = backgroundColor
-            appearance.shadowColor = UIColor.black.withAlphaComponent(0.12)
-            toolbar.standardAppearance = appearance
-            toolbar.scrollEdgeAppearance = appearance
-            toolbar.compactAppearance = appearance
-        } else {
-            toolbar.barTintColor = backgroundColor
+/// The phone pad is a custom input view. After it resigns, iPad can leave only the shortcut
+/// bar on screen, so the next field (First Name and the rest) never opens the letter keyboard.
+private enum DonorKeyboardHandoff {
+    static var phonePadWasLastInput = false
+    static var latestKeyboardHeight: CGFloat = 0
+    private static var isWatchingKeyboard = false
+
+    static func notePhonePadDismissed() {
+        phonePadWasLastInput = true
+        watchKeyboardHeight()
+    }
+
+    static func watchKeyboardHeight() {
+        guard !isWatchingKeyboard else { return }
+        isWatchingKeyboard = true
+        let names = [
+            UIResponder.keyboardWillShowNotification,
+            UIResponder.keyboardWillChangeFrameNotification,
+            UIResponder.keyboardWillHideNotification
+        ]
+        for name in names {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { note in
+                if note.name == UIResponder.keyboardWillHideNotification {
+                    latestKeyboardHeight = 0
+                    return
+                }
+                let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect ?? .zero
+                guard frame.height > 1 else { return }
+                latestKeyboardHeight = frame.height
+            }
         }
+    }
+}
+
+/// Reopens the system keyboard once after the phone pad, and only if iPad left the shortcut bar up.
+/// Resigning inside `textFieldDidBeginEditing` is ignored, so the reset happens on the following turns.
+private final class DonorKeyboardReopenGate {
+    private var isReopening = false
+
+    func reopenSystemKeyboardIfNeeded(responder: UIResponder, usesSystemKeyboard: Bool, isStillFocused: @escaping () -> Bool) {
+        guard usesSystemKeyboard, !isReopening, DonorKeyboardHandoff.phonePadWasLastInput else { return }
+        DonorKeyboardHandoff.watchKeyboardHeight()
+        DispatchQueue.main.async { [weak self, weak responder] in
+            guard let self, let responder else { return }
+            guard isStillFocused(), responder.isFirstResponder else { return }
+            // A real keyboard is already up. The shortcut bar is sitting on it.
+            if DonorKeyboardHandoff.latestKeyboardHeight > 160 {
+                DonorKeyboardHandoff.phonePadWasLastInput = false
+                return
+            }
+            DonorKeyboardHandoff.phonePadWasLastInput = false
+            self.isReopening = true
+            responder.resignFirstResponder()
+            if let field = responder as? UITextField {
+                field.inputView = nil
+            } else if let view = responder as? UITextView {
+                view.inputView = nil
+            }
+            DispatchQueue.main.async { [weak self, weak responder] in
+                guard let self, let responder else { return }
+                guard isStillFocused(), (responder as? UIView)?.window != nil else {
+                    self.isReopening = false
+                    return
+                }
+                _ = responder.becomeFirstResponder()
+                self.isReopening = false
+            }
+        }
+    }
+}
+
+/// Previous, Next, and Done live in the iPad shortcut bar, in place of undo, redo, and paste.
+private enum DonorKeyboardShortcutBar {
+    static func install(
+        on responder: UIResponder,
+        previousTitle: String,
+        nextTitle: String,
+        doneTitle: String,
+        showsPrevious: Bool,
+        showsNext: Bool,
+        tint: UIColor?,
+        target: AnyObject,
+        previousAction: Selector,
+        nextAction: Selector,
+        doneAction: Selector
+    ) {
+        let previous = UIBarButtonItem(title: previousTitle, style: .plain, target: target, action: previousAction)
+        previous.isEnabled = showsPrevious
+        let next = UIBarButtonItem(title: nextTitle, style: .plain, target: target, action: nextAction)
+        next.isEnabled = showsNext
+        let done = UIBarButtonItem(title: doneTitle, style: .plain, target: target, action: doneAction)
+        if let tint {
+            previous.tintColor = tint
+            next.tintColor = tint
+            done.tintColor = tint
+        }
+        let assistant = responder.inputAssistantItem
+        assistant.leadingBarButtonGroups = [
+            UIBarButtonItemGroup(barButtonItems: [previous, next], representativeItem: nil)
+        ]
+        assistant.trailingBarButtonGroups = [
+            UIBarButtonItemGroup(barButtonItems: [done], representativeItem: nil)
+        ]
     }
 }
 
@@ -1482,7 +1634,9 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
     var isFocused: Bool = false
     var onFieldBecameActive: ((Int) -> Void)?
     var keyboardReturnKeyType: UIReturnKeyType = .done
+    var onRetreatToPreviousField: (() -> Void)?
     var onAdvanceToNextField: (() -> Void)?
+    var accessoryPreviousTitle: String = "Previous"
     var accessoryNextTitle: String = "Next"
     /// Hides inline QuickType predictions (e.g. domain completions) for sensitive fields like email.
     var suppressKeyboardPredictions: Bool = false
@@ -1494,18 +1648,11 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
     var accessoryBackgroundUIColor: UIColor?
     var accessoryTintUIColor: UIColor?
     var accessoryDoneTitle: String = "Done"
+    /// Saved donor details are shown but cannot be changed.
+    var editingLocked: Bool = false
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
-    }
-
-    private var needsInputAccessoryToolbar: Bool {
-        guard !suppressSystemKeyboard else { return false }
-        return keyboardType == .phonePad || keyboardType == .emailAddress || addsDoneAccessoryBar
-    }
-
-    private var accessoryShowsNext: Bool {
-        onAdvanceToNextField != nil && !suppressSystemKeyboard
     }
 
     func makeUIView(context: Context) -> UITextField {
@@ -1527,13 +1674,34 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
         tf.autocapitalizationType = autocapitalization
         tf.autocorrectionType = disableAutocorrect ? .no : .yes
         tf.spellCheckingType = suppressKeyboardPredictions ? .no : .default
+        if suppressKeyboardPredictions {
+            tf.smartDashesType = .no
+            tf.smartQuotesType = .no
+            tf.smartInsertDeleteType = .no
+        }
         if #available(iOS 17.0, *) {
             tf.inlinePredictionType = suppressKeyboardPredictions ? .no : .default
         }
         tf.adjustsFontSizeToFitWidth = false
         tf.minimumFontSize = fontSize * 0.85
         tf.returnKeyType = keyboardReturnKeyType
-        if suppressSystemKeyboard {
+        if isPhoneField {
+            // `.phonePad` on iPad is the floating popup. A default keyboard type plus a docked
+            // input view keeps a single iPhone-style pad along the bottom.
+            // Digits update the binding directly. insertText is rejected by the phone delegate
+            // and the system then restores the previous text, so typed numbers disappear.
+            tf.keyboardType = .default
+            tf.textContentType = nil
+            let pad = DonorPhonePadInputView()
+            pad.onInsertDigit = { [weak coordinator = context.coordinator] digit in
+                coordinator?.insertPhoneDigit(digit)
+            }
+            pad.onDelete = { [weak coordinator = context.coordinator] in
+                coordinator?.deletePhoneDigit()
+            }
+            tf.inputView = pad
+            context.coordinator.phonePad = pad
+        } else if suppressSystemKeyboard {
             let blank = UIView(frame: .zero)
             tf.inputView = blank
         }
@@ -1542,84 +1710,59 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
         if !isPhoneField {
             tf.addTarget(context.coordinator, action: #selector(Coordinator.textChanged), for: .editingChanged)
         }
-        if needsInputAccessoryToolbar {
-            let showNext = accessoryShowsNext
-            context.coordinator.cachedAccessoryShowNext = showNext
-            tf.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator, showNext: showNext)
-        }
+        tf.inputAccessoryView = nil
+        tf.isUserInteractionEnabled = !editingLocked
+        installShortcutBar(on: tf, target: context.coordinator)
         if autoFocusOnAppear {
             context.coordinator.scheduleBecomeFirstResponder(for: tf)
         }
         return tf
     }
 
-    private func makeAccessoryToolbar(coordinator: Coordinator, showNext: Bool) -> UIToolbar {
-        let toolbar = UIToolbar()
-        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let themed = accessoryBackgroundUIColor != nil && accessoryTintUIColor != nil
-        if themed, let bg = accessoryBackgroundUIColor {
-            DonorFormAccessoryToolbar.applyAppearance(toolbar, backgroundColor: bg)
-        }
-        let tint = accessoryTintUIColor
-        let done: UIBarButtonItem
-        if themed, let t = tint {
-            done = UIBarButtonItem(
-                title: accessoryDoneTitle,
-                style: .plain,
-                target: coordinator,
-                action: #selector(Coordinator.accessoryDoneTapped)
-            )
-            done.tintColor = t
-        } else {
-            done = UIBarButtonItem(
-                barButtonSystemItem: .done,
-                target: coordinator,
-                action: #selector(Coordinator.accessoryDoneTapped)
-            )
-        }
-        if showNext {
-            let next = UIBarButtonItem(title: accessoryNextTitle, style: .plain, target: coordinator, action: #selector(Coordinator.accessoryNextTapped))
-            if let t = tint {
-                next.tintColor = t
-            }
-            toolbar.items = [next, flex, done]
-        } else {
-            toolbar.items = [flex, done]
-        }
-        toolbar.sizeToFit()
-        return toolbar
+    /// Puts Previous, Next, and Done in the iPad shortcut bar. Replaces undo, redo, and paste.
+    /// An empty bar group collapses the prediction strip, so these groups always contain buttons.
+    private func installShortcutBar(on responder: UIResponder, target: AnyObject) {
+        DonorKeyboardShortcutBar.install(
+            on: responder,
+            previousTitle: accessoryPreviousTitle,
+            nextTitle: accessoryNextTitle,
+            doneTitle: accessoryDoneTitle,
+            showsPrevious: onRetreatToPreviousField != nil,
+            showsNext: onAdvanceToNextField != nil,
+            tint: accessoryTintUIColor,
+            target: target,
+            previousAction: #selector(Coordinator.accessoryPreviousTapped),
+            nextAction: #selector(Coordinator.accessoryNextTapped),
+            doneAction: #selector(Coordinator.accessoryDoneTapped)
+        )
     }
 
     func updateUIView(_ uiView: UITextField, context: Context) {
         context.coordinator.parent = self
         context.coordinator.textField = uiView
         fieldRegistry?.register(index: fieldIndex, responder: uiView)
-        uiView.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
-        uiView.textColor = textUIColor
-        uiView.attributedPlaceholder = NSAttributedString(
-            string: placeholder,
-            attributes: [
-                .foregroundColor: placeholderUIColor,
-                .font: UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
-            ]
+        // Assigning font or placeholder while this field is first responder reloads the
+        // iPad keyboard. Only write them when the displayed values actually change.
+        context.coordinator.applyChrome(
+            to: uiView,
+            fontSize: fontSize,
+            textColor: textUIColor,
+            placeholder: placeholder,
+            placeholderColor: placeholderUIColor
         )
         let displayText = isPhoneField ? DonorUSPhoneFormatting.displayDigits(text) : text
         if uiView.text != displayText {
             uiView.text = displayText
         }
-        if needsInputAccessoryToolbar {
-            let showNext = accessoryShowsNext
-            if context.coordinator.cachedAccessoryShowNext != showNext || uiView.inputAccessoryView == nil {
-                context.coordinator.cachedAccessoryShowNext = showNext
-                uiView.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator, showNext: showNext)
+        if uiView.isUserInteractionEnabled == editingLocked {
+            uiView.isUserInteractionEnabled = !editingLocked
+            if editingLocked, uiView.isFirstResponder {
+                uiView.resignFirstResponder()
             }
-        } else {
-            context.coordinator.cachedAccessoryShowNext = nil
-            uiView.inputAccessoryView = nil
         }
-        if isFocused, uiView.window != nil, !uiView.isFirstResponder {
+        if isFocused, !editingLocked, uiView.window != nil, !uiView.isFirstResponder {
             context.coordinator.scheduleBecomeFirstResponder(for: uiView)
-        } else if !isFocused {
+        } else if !isFocused || editingLocked {
             context.coordinator.cancelPendingFocus()
         }
     }
@@ -1627,9 +1770,14 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
     final class Coordinator: NSObject, UITextFieldDelegate {
         var parent: DonorSingleLineUIKitField
         weak var textField: UITextField?
-        /// Avoid rebuilding the accessory view every SwiftUI frame (reduces keyboard chrome flicker).
-        var cachedAccessoryShowNext: Bool?
         private var pendingFocusWorkItem: DispatchWorkItem?
+        private var appliedFontSize: CGFloat = -1
+        private var appliedPlaceholder: String?
+        private var appliedTextColor: UIColor?
+        private var appliedPlaceholderColor: UIColor?
+        private let keyboardReopenGate = DonorKeyboardReopenGate()
+        private var isClearingPhonePad = false
+        var phonePad: DonorPhonePadInputView?
 
         init(_ parent: DonorSingleLineUIKitField) {
             self.parent = parent
@@ -1651,6 +1799,39 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
             pendingFocusWorkItem = nil
         }
 
+        func applyChrome(
+            to field: UITextField,
+            fontSize: CGFloat,
+            textColor: UIColor,
+            placeholder: String,
+            placeholderColor: UIColor
+        ) {
+            let fontChanged = abs(appliedFontSize - fontSize) > 0.5
+            if fontChanged {
+                field.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
+                appliedFontSize = fontSize
+            }
+            if appliedTextColor == nil || !appliedTextColor!.sameRGB(as: textColor, in: field) {
+                field.textColor = textColor
+                appliedTextColor = textColor
+            }
+            if fontChanged
+                || appliedPlaceholder != placeholder
+                || appliedPlaceholderColor == nil
+                || !appliedPlaceholderColor!.sameRGB(as: placeholderColor, in: field) {
+                let placeholderFont = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
+                field.attributedPlaceholder = NSAttributedString(
+                    string: placeholder,
+                    attributes: [
+                        .foregroundColor: placeholderColor,
+                        .font: placeholderFont
+                    ]
+                )
+                appliedPlaceholder = placeholder
+                appliedPlaceholderColor = placeholderColor
+            }
+        }
+
         deinit {
             pendingFocusWorkItem?.cancel()
         }
@@ -1665,12 +1846,71 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
             parent.onEditingDone?()
         }
 
+        @objc func accessoryPreviousTapped() {
+            parent.onRetreatToPreviousField?()
+        }
+
         @objc func accessoryNextTapped() {
             parent.onAdvanceToNextField?()
         }
 
+        func insertPhoneDigit(_ digit: String) {
+            guard parent.isPhoneField, digit.count == 1, let character = digit.first else { return }
+            let previousCount = DonorCheckoutRules.digits(from: parent.text).count
+            let next = DonorCheckoutRules.phoneDigitsByInserting(character, into: parent.text)
+            applyPhoneDigits(next)
+            hidePhonePadIfComplete(previousCount: previousCount, digits: next)
+        }
+
+        func deletePhoneDigit() {
+            guard parent.isPhoneField else { return }
+            applyPhoneDigits(DonorCheckoutRules.phoneDigitsByDeletingLast(from: parent.text))
+        }
+
+        private func applyPhoneDigits(_ digits: String) {
+            parent.text = digits
+            guard let textField else { return }
+            let formatted = DonorUSPhoneFormatting.displayDigits(digits)
+            textField.text = formatted
+            if let end = textField.position(from: textField.beginningOfDocument, offset: formatted.count) {
+                textField.selectedTextRange = textField.textRange(from: end, to: end)
+            }
+        }
+
+        private func hidePhonePadIfComplete(previousCount: Int, digits: String) {
+            guard previousCount < 10, digits.count == 10 else { return }
+            parent.onEditingDone?()
+        }
+
+        func textFieldShouldEndEditing(_ textField: UITextField) -> Bool {
+            // Drop the custom pad while this field is still first responder. Leaving it installed
+            // makes iPad show only the shortcut bar for the next field.
+            guard parent.isPhoneField, !isClearingPhonePad, textField.inputView != nil else { return true }
+            isClearingPhonePad = true
+            textField.inputView = nil
+            textField.reloadInputViews()
+            isClearingPhonePad = false
+            return true
+        }
+
         func textFieldDidBeginEditing(_ textField: UITextField) {
+            if parent.isPhoneField, let phonePad, textField.inputView !== phonePad {
+                textField.inputView = phonePad
+                textField.reloadInputViews()
+            }
+            parent.installShortcutBar(on: textField, target: self)
             parent.onFieldBecameActive?(parent.fieldIndex)
+            keyboardReopenGate.reopenSystemKeyboardIfNeeded(
+                responder: textField,
+                usesSystemKeyboard: !parent.isPhoneField
+            ) { [weak self] in
+                self?.parent.isFocused == true
+            }
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            guard parent.isPhoneField else { return }
+            DonorKeyboardHandoff.notePhonePadDismissed()
         }
 
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -1687,6 +1927,7 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
             guard parent.isPhoneField else { return true }
             let current = textField.text ?? ""
             guard let swiftRange = Range(range, in: current) else { return false }
+            let previousCount = DonorUSPhoneFormatting.digitsOnly(current).count
             let updated = current.replacingCharacters(in: swiftRange, with: string)
             let digits = DonorUSPhoneFormatting.digitsOnly(updated)
             parent.text = digits
@@ -1695,6 +1936,7 @@ private struct DonorSingleLineUIKitField: UIViewRepresentable {
             if let end = textField.position(from: textField.beginningOfDocument, offset: formatted.count) {
                 textField.selectedTextRange = textField.textRange(from: end, to: end)
             }
+            hidePhonePadIfComplete(previousCount: previousCount, digits: digits)
             return false
         }
     }
@@ -1712,40 +1954,33 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
     var fieldIndex: Int = 0
     var isFocused: Bool = false
     var onFieldBecameActive: ((Int) -> Void)?
+    var onRetreatToPreviousField: (() -> Void)?
+    var onAdvanceToNextField: (() -> Void)?
+    var accessoryPreviousTitle: String = "Previous"
+    var accessoryNextTitle: String = "Next"
     var accessoryBackgroundUIColor: UIColor?
     var accessoryTintUIColor: UIColor?
     var accessoryDoneTitle: String = "Done"
+    var editingLocked: Bool = false
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
-    private func makeAccessoryToolbar(coordinator: Coordinator) -> UIToolbar {
-        let toolbar = UIToolbar()
-        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let themed = accessoryBackgroundUIColor != nil && accessoryTintUIColor != nil
-        if themed, let bg = accessoryBackgroundUIColor {
-            DonorFormAccessoryToolbar.applyAppearance(toolbar, backgroundColor: bg)
-        }
-        let done: UIBarButtonItem
-        if themed, let t = accessoryTintUIColor {
-            done = UIBarButtonItem(
-                title: accessoryDoneTitle,
-                style: .plain,
-                target: coordinator,
-                action: #selector(Coordinator.accessoryDoneTapped)
-            )
-            done.tintColor = t
-        } else {
-            done = UIBarButtonItem(
-                barButtonSystemItem: .done,
-                target: coordinator,
-                action: #selector(Coordinator.accessoryDoneTapped)
-            )
-        }
-        toolbar.items = [flex, done]
-        toolbar.sizeToFit()
-        return toolbar
+    private func installShortcutBar(on responder: UIResponder, target: AnyObject) {
+        DonorKeyboardShortcutBar.install(
+            on: responder,
+            previousTitle: accessoryPreviousTitle,
+            nextTitle: accessoryNextTitle,
+            doneTitle: accessoryDoneTitle,
+            showsPrevious: onRetreatToPreviousField != nil,
+            showsNext: onAdvanceToNextField != nil,
+            tint: accessoryTintUIColor,
+            target: target,
+            previousAction: #selector(Coordinator.accessoryPreviousTapped),
+            nextAction: #selector(Coordinator.accessoryNextTapped),
+            doneAction: #selector(Coordinator.accessoryDoneTapped)
+        )
     }
 
     func makeUIView(context: Context) -> UITextView {
@@ -1760,14 +1995,19 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
         tv.autocapitalizationType = autocapitalization
         tv.autocorrectionType = disableAutocorrect ? .no : .yes
         tv.spellCheckingType = .no
+        tv.smartDashesType = .no
+        tv.smartQuotesType = .no
+        tv.smartInsertDeleteType = .no
         if #available(iOS 17.0, *) {
             tv.inlinePredictionType = .no
         }
         tv.keyboardType = .default
-        tv.textContentType = .fullStreetAddress
+        tv.textContentType = nil
         tv.text = text
         fieldRegistry?.register(index: fieldIndex, responder: tv)
-        tv.inputAccessoryView = makeAccessoryToolbar(coordinator: context.coordinator)
+        tv.inputAccessoryView = nil
+        tv.isUserInteractionEnabled = !editingLocked
+        installShortcutBar(on: tv, target: context.coordinator)
         if autoFocusOnAppear {
             context.coordinator.scheduleBecomeFirstResponder(for: tv)
         }
@@ -1778,14 +2018,19 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
         context.coordinator.parent = self
         context.coordinator.textView = uiView
         fieldRegistry?.register(index: fieldIndex, responder: uiView)
-        uiView.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
-        uiView.textColor = textUIColor
+        context.coordinator.applyChrome(to: uiView, fontSize: fontSize, textColor: textUIColor)
         if uiView.text != text {
             uiView.text = text
         }
-        if isFocused, uiView.window != nil, !uiView.isFirstResponder {
+        if uiView.isUserInteractionEnabled == editingLocked {
+            uiView.isUserInteractionEnabled = !editingLocked
+            if editingLocked, uiView.isFirstResponder {
+                uiView.resignFirstResponder()
+            }
+        }
+        if isFocused, !editingLocked, uiView.window != nil, !uiView.isFirstResponder {
             context.coordinator.scheduleBecomeFirstResponder(for: uiView)
-        } else if !isFocused {
+        } else if !isFocused || editingLocked {
             context.coordinator.cancelPendingFocus()
         }
     }
@@ -1794,9 +2039,23 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
         var parent: DonorMultilineUIKitTextView
         weak var textView: UITextView?
         private var pendingFocusWorkItem: DispatchWorkItem?
+        private var appliedFontSize: CGFloat = -1
+        private var appliedTextColor: UIColor?
+        private let keyboardReopenGate = DonorKeyboardReopenGate()
 
         init(_ parent: DonorMultilineUIKitTextView) {
             self.parent = parent
+        }
+
+        func applyChrome(to view: UITextView, fontSize: CGFloat, textColor: UIColor) {
+            if abs(appliedFontSize - fontSize) > 0.5 {
+                view.font = UIFont(name: "Georgia", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize, weight: .regular)
+                appliedFontSize = fontSize
+            }
+            if appliedTextColor == nil || !appliedTextColor!.sameRGB(as: textColor, in: view) {
+                view.textColor = textColor
+                appliedTextColor = textColor
+            }
         }
 
         func scheduleBecomeFirstResponder(for view: UITextView) {
@@ -1824,8 +2083,23 @@ private struct DonorMultilineUIKitTextView: UIViewRepresentable {
             parent.onEditingDone?()
         }
 
+        @objc func accessoryPreviousTapped() {
+            parent.onRetreatToPreviousField?()
+        }
+
+        @objc func accessoryNextTapped() {
+            parent.onAdvanceToNextField?()
+        }
+
         func textViewDidBeginEditing(_ textView: UITextView) {
+            parent.installShortcutBar(on: textView, target: self)
             parent.onFieldBecameActive?(parent.fieldIndex)
+            keyboardReopenGate.reopenSystemKeyboardIfNeeded(
+                responder: textView,
+                usesSystemKeyboard: true
+            ) { [weak self] in
+                self?.parent.isFocused == true
+            }
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -1881,6 +2155,9 @@ private struct DonorKeyboardFrameReader: UIViewRepresentable {
         var onChange: (CGRect, Double) -> Void
         private var tokens: [NSObjectProtocol] = []
         private var lastReported: CGRect?
+        private var pendingRect: CGRect?
+        private var pendingDuration: Double = 0.25
+        private var publishScheduled = false
 
         init(onChange: @escaping (CGRect, Double) -> Void) {
             self.onChange = onChange
@@ -1923,27 +2200,51 @@ private struct DonorKeyboardFrameReader: UIViewRepresentable {
             guard frame.width > 1, frame.height > 1 else { return }
             let local = host.convert(frame, from: nil)
             guard local.width > 1, local.height > 1 else { return }
-            let containerHeight = host.bounds.height > 1
-                ? host.bounds.height
-                : (host.window?.bounds.height ?? UIScreen.main.bounds.height)
-            let hidden = local.minY >= containerHeight - 1
             let guide = guideFrame()
             publish(guide.height > local.height + 20 ? guide : local, duration)
         }
 
         private func guideFrame() -> CGRect {
             guard let host, let tracker else { return .zero }
-            host.layoutIfNeeded()
+            // Read the guide only if layout has already produced it. Forcing layout
+            // inside keyboardWillShow stalls the keyboard until the whole form lays out.
             let frame = tracker.frame
             guard frame.width > 20, frame.height > 20 else { return .zero }
             return host.convert(frame, from: tracker.superview)
         }
 
         private func publish(_ rect: CGRect, _ duration: Double) {
-            if let lastReported, rect.nearlyEquals(lastReported) { return }
-            lastReported = rect
-            onChange(rect, duration)
+            if pendingRect == nil, let lastReported, rect.nearlyEquals(lastReported) { return }
+            pendingRect = rect
+            pendingDuration = duration
+            guard !publishScheduled else { return }
+            publishScheduled = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.publishScheduled = false
+                guard let rect = self.pendingRect else { return }
+                let duration = self.pendingDuration
+                self.pendingRect = nil
+                if let lastReported = self.lastReported, rect.nearlyEquals(lastReported) { return }
+                self.lastReported = rect
+                self.onChange(rect, duration)
+            }
         }
+    }
+}
+
+private extension UIColor {
+    func sameRGB(as other: UIColor, in view: UIView) -> Bool {
+        let left = resolvedColor(with: view.traitCollection)
+        let right = other.resolvedColor(with: view.traitCollection)
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        guard left.getRed(&r1, green: &g1, blue: &b1, alpha: &a1),
+              right.getRed(&r2, green: &g2, blue: &b2, alpha: &a2) else {
+            // Unreadable colors stay as they are. Rewriting them on every pass reloads the keyboard.
+            return true
+        }
+        return abs(r1 - r2) < 0.01 && abs(g1 - g2) < 0.01 && abs(b1 - b2) < 0.01 && abs(a1 - a2) < 0.01
     }
 }
 

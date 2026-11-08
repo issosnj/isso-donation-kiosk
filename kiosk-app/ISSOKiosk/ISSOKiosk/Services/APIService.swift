@@ -821,14 +821,21 @@ struct AddressAutocompleteResponse: Codable {
 struct AddressPrediction: Codable, Identifiable {
     let description: String
     let place_id: String
-    let structured_formatting: StructuredFormatting
-    
+    let structured_formatting: StructuredFormatting?
+
     var id: String { place_id }
+    var title: String {
+        let main = structured_formatting?.main_text.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return main.isEmpty ? description : main
+    }
+    var subtitle: String {
+        structured_formatting?.secondary_text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
 }
 
 struct StructuredFormatting: Codable {
     let main_text: String
-    let secondary_text: String
+    let secondary_text: String?
 }
 
 struct PlaceDetailsResponse: Codable {

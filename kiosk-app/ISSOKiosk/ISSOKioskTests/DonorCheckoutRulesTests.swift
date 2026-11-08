@@ -16,6 +16,20 @@ final class DonorCheckoutRulesTests: XCTestCase {
         XCTAssertEqual(DonorCheckoutRules.displayPhone("215520"), "(215) 520")
     }
 
+    func testPhoneKeypadKeepsEachDigit() {
+        var stored = ""
+        for digit in "2155200565" {
+            stored = DonorCheckoutRules.phoneDigitsByInserting(digit, into: stored)
+        }
+        XCTAssertEqual(stored, "2155200565")
+        XCTAssertEqual(DonorCheckoutRules.displayPhone(stored), "(215) 520-0565")
+        XCTAssertEqual(DonorCheckoutRules.phoneDigitsByInserting("9", into: stored), "2155200565")
+        stored = DonorCheckoutRules.phoneDigitsByDeletingLast(from: stored)
+        XCTAssertEqual(stored, "215520056")
+        XCTAssertEqual(DonorCheckoutRules.phoneDigitsByInserting("a", into: stored), "215520056")
+        XCTAssertEqual(DonorCheckoutRules.phoneDigitsByDeletingLast(from: ""), "")
+    }
+
     func testUnicodeNamesArePreserved() {
         let gujarati = "મિત"
         let hindi = "मीत"
@@ -124,12 +138,18 @@ final class DonorCheckoutRulesTests: XCTestCase {
     }
 
     func testDonorFieldFocusOrder() {
+        XCTAssertEqual(DonorInlineFocus.phone.nextField, .firstName)
+        XCTAssertNil(DonorInlineFocus.phone.previousField)
+        XCTAssertEqual(DonorInlineFocus.firstName.previousField, .phone)
         XCTAssertEqual(DonorInlineFocus.firstName.nextField, .lastName)
-        XCTAssertEqual(DonorInlineFocus.lastName.nextField, .phone)
-        XCTAssertEqual(DonorInlineFocus.phone.nextField, .email)
+        XCTAssertEqual(DonorInlineFocus.lastName.previousField, .firstName)
+        XCTAssertEqual(DonorInlineFocus.lastName.nextField, .email)
+        XCTAssertEqual(DonorInlineFocus.email.previousField, .lastName)
         XCTAssertEqual(DonorInlineFocus.email.nextField, .address)
+        XCTAssertEqual(DonorInlineFocus.address.previousField, .email)
         XCTAssertNil(DonorInlineFocus.address.nextField)
         XCTAssertNil(DonorInlineFocus.none.nextField)
+        XCTAssertNil(DonorInlineFocus.none.previousField)
     }
 
     func testScrollKeepsFieldAboveDockedKeyboardInsideTheCard() {
