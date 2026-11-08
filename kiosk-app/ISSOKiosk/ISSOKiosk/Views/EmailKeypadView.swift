@@ -14,7 +14,7 @@ struct EmailKeypadView: View {
             title: "Email Address",
             inputDisplay: enteredEmail,
             placeholder: "username@domain.com",
-            canContinue: !enteredEmail.isEmpty && isValidEmail(enteredEmail),
+            canContinue: DonorCheckoutRules.isValidEmail(enteredEmail),
             onCancel: onDismiss,
             onContinue: {
                 email = enteredEmail
@@ -107,9 +107,4 @@ struct EmailKeypadView: View {
         }
     }
 
-    private func isValidEmail(_ email: String) -> Bool {
-        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
-        return emailPredicate.evaluate(with: email)
-    }
 }

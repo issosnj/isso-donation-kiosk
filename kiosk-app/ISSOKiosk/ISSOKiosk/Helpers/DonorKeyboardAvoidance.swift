@@ -139,3 +139,39 @@ struct DonorKeyboardAvoidance: Sendable {
         return gaps
     }
 }
+
+/// Where the address suggestion list sits inside the donor-card viewport.
+/// The list stays off the address box and inside the viewport. It moves above the box
+/// when the gap under the box, down to the keyboard, cannot hold the rows.
+struct AddressSuggestionPlacement: Equatable, Sendable {
+    var showsAbove: Bool
+    var frame: CGRect
+
+    static func place(
+        field: CGRect,
+        viewportSize: CGSize,
+        keyboardTop: CGFloat?,
+        desiredHeight: CGFloat,
+        gap: CGFloat,
+        minimumHeight: CGFloat
+    ) -> AddressSuggestionPlacement? {
+        guard field.width > 1, field.height > 1 else { return nil }
+        guard viewportSize.width > 1, viewportSize.height > 1 else { return nil }
+        guard desiredHeight > 1, minimumHeight > 1, gap >= 0 else { return nil }
+
+        let visibleBottom = min(viewportSize.height, max(0, keyboardTop ?? viewportSize.height))
+        let aboveRoom = field.minY - gap
+        let belowRoom = visibleBottom - field.maxY - gap
+        let placeAbove = belowRoom + 0.5 < desiredHeight && aboveRoom > belowRoom
+        let room = placeAbove ? aboveRoom : belowRoom
+        let height = min(desiredHeight, room)
+        guard height + 0.5 >= minimumHeight else { return nil }
+
+        let y = placeAbove ? (field.minY - gap - height) : (field.maxY + gap)
+        guard y >= -0.5, y + height <= viewportSize.height + 0.5 else { return nil }
+
+        let list = CGRect(x: field.minX, y: y, width: field.width, height: height)
+        guard !list.intersects(field) else { return nil }
+        return AddressSuggestionPlacement(showsAbove: placeAbove, frame: list)
+    }
+}

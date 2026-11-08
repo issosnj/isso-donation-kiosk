@@ -46,14 +46,15 @@ final class DonorCheckoutRulesTests: XCTestCase {
         let empty = DonorCheckoutRules.Draft()
         XCTAssertEqual(
             DonorCheckoutRules.issues(draft: empty, anonymous: false),
-            [.firstNameRequired, .lastNameRequired, .phoneRequired]
+            [.firstNameRequired, .lastNameRequired, .phoneRequired, .emailRequired]
         )
         var nine = empty
         nine.firstName = "A"
         nine.lastName = "B"
         nine.phoneDigits = "215520056"
-        XCTAssertEqual(DonorCheckoutRules.issues(draft: nine, anonymous: false), [.phoneRequired])
+        XCTAssertEqual(DonorCheckoutRules.issues(draft: nine, anonymous: false), [.phoneRequired, .emailRequired])
         nine.phoneDigits = "2155200565"
+        nine.email = "a@gmail.com"
         XCTAssertTrue(DonorCheckoutRules.issues(draft: nine, anonymous: false).isEmpty)
     }
 
@@ -69,13 +70,19 @@ final class DonorCheckoutRulesTests: XCTestCase {
     }
 
     func testEmailValidation() {
-        XCTAssertTrue(DonorCheckoutRules.isValidEmail(""))
-        XCTAssertTrue(DonorCheckoutRules.isValidEmail(" donor+seva@temple.org "))
+        XCTAssertFalse(DonorCheckoutRules.isValidEmail(""))
         XCTAssertFalse(DonorCheckoutRules.isValidEmail("not-an-email"))
         XCTAssertFalse(DonorCheckoutRules.isValidEmail("a@b"))
+        XCTAssertFalse(DonorCheckoutRules.isValidEmail("name@gmail"))
+        XCTAssertFalse(DonorCheckoutRules.isValidEmail("name@gmail.c"))
+        XCTAssertFalse(DonorCheckoutRules.isValidEmail("name@gmail..com"))
+        XCTAssertTrue(DonorCheckoutRules.isValidEmail(" donor+seva@temple.org "))
+        XCTAssertTrue(DonorCheckoutRules.isValidEmail("name@gmail.com"))
         var draft = DonorCheckoutRules.Draft(firstName: "A", lastName: "B", phoneDigits: "2155200565", email: "bad", address: "")
         XCTAssertEqual(DonorCheckoutRules.issues(draft: draft, anonymous: false), [.emailInvalid])
         draft.email = ""
+        XCTAssertEqual(DonorCheckoutRules.issues(draft: draft, anonymous: false), [.emailRequired])
+        draft.email = "name@gmail.com"
         XCTAssertTrue(DonorCheckoutRules.issues(draft: draft, anonymous: false).isEmpty)
     }
 

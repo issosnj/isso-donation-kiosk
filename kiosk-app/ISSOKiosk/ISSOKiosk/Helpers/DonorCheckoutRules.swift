@@ -30,6 +30,7 @@ struct DonorCheckoutRules: Sendable {
         case firstNameRequired
         case lastNameRequired
         case phoneRequired
+        case emailRequired
         case emailInvalid
     }
 
@@ -73,10 +74,11 @@ struct DonorCheckoutRules: Sendable {
         return "(\(area)) \(prefix)-\(line)"
     }
 
+    /// A complete address, such as name@gmail.com. Empty and partial values fail.
     static func isValidEmail(_ raw: String) -> Bool {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return true }
-        let pattern = #"^[A-Z0-9a-z._%+\-]+@[A-Z0-9a-z.\-]+\.[A-Za-z]{2,}$"#
+        guard !trimmed.isEmpty else { return false }
+        let pattern = #"^[A-Za-z0-9](?:[A-Za-z0-9._%+\-]{0,62}[A-Za-z0-9])?@(?:[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,}$"#
         return trimmed.range(of: pattern, options: .regularExpression) != nil
     }
 
@@ -92,7 +94,10 @@ struct DonorCheckoutRules: Sendable {
         if digits(from: draft.phoneDigits).count != 10 {
             found.append(.phoneRequired)
         }
-        if !isValidEmail(draft.email) {
+        let email = draft.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        if email.isEmpty {
+            found.append(.emailRequired)
+        } else if !isValidEmail(email) {
             found.append(.emailInvalid)
         }
         return found

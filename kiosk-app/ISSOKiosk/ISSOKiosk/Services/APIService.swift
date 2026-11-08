@@ -22,10 +22,10 @@ class APIService {
         timeout: TimeInterval = 30.0
     ) async throws -> T {
         let fullURL = "\(baseURL)\(endpoint)"
-        print("[APIService] 🌐 \(method) \(endpoint)")
+        print("[APIService] 🌐 \(method) \(Self.loggedEndpoint(endpoint))")
         
         guard let url = URL(string: fullURL) else {
-            print("[APIService] ❌ Invalid URL: \(fullURL)")
+            print("[APIService] ❌ Invalid URL for \(Self.loggedEndpoint(endpoint))")
             throw APIError.invalidURL
         }
         
@@ -61,8 +61,11 @@ class APIService {
                 }
                 
                 guard (200...299).contains(httpResponse.statusCode) else {
-                    // Log the error details
-                    print("[APIService] ❌ HTTP \(httpResponse.statusCode) for \(method) \(endpoint)")
+                    #if DEBUG
+                    Self.logPlacesResponse(endpoint: endpoint, status: httpResponse.statusCode, decoded: nil)
+                    #endif
+                    // Log the error details without query values such as the typed address.
+                    print("[APIService] ❌ HTTP \(httpResponse.statusCode) for \(method) \(Self.loggedEndpoint(endpoint))")
                     
                     // Try to parse error message from response body
                     if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -71,8 +74,9 @@ class APIService {
                         throw APIError.serverError(message)
                     }
                     
-                    // Log response body for debugging
-                    if let responseString = String(data: data, encoding: .utf8), !responseString.isEmpty {
+                    // Places errors can echo the typed address. Keep that body out of the log.
+                    if !endpoint.hasPrefix("/places/"),
+                       let responseString = String(data: data, encoding: .utf8), !responseString.isEmpty {
                         print("[APIService] ❌ Response body: \(responseString.prefix(500))")
                     }
                     
@@ -81,8 +85,20 @@ class APIService {
                 
                 do {
                     let decoded = try JSONDecoder().decode(T.self, from: data)
+                    #if DEBUG
+                    if let autocomplete = decoded as? AddressAutocompleteResponse {
+                        Self.logPlacesResponse(endpoint: endpoint, status: httpResponse.statusCode, decoded: autocomplete.predictions.count)
+                    } else if endpoint.hasPrefix("/places/") {
+                        Self.logPlacesResponse(endpoint: endpoint, status: httpResponse.statusCode, decoded: nil)
+                    }
+                    #endif
                     return decoded
                 } catch {
+                    #if DEBUG
+                    if endpoint.hasPrefix("/places/") {
+                        print("[places] places_predictions_discarded reason=decode status=\(httpResponse.statusCode)")
+                    }
+                    #endif
                     throw APIError.decodingError(error)
                 }
             } catch let error as NSError {
@@ -100,31 +116,67 @@ class APIService {
                 )
                 
                 if isNetworkError && attempt < maxRetries - 1 {
-                    print("[APIService] ⚠️ Network error (code: \(error.code)): \(error.localizedDescription)")
+                    if endpoint.hasPrefix("/places/") {
+                        print("[APIService] ⚠️ Network error (code: \(error.code))")
+                    } else {
+                        print("[APIService] ⚠️ Network error (code: \(error.code)): \(error.localizedDescription)")
+                    }
                     print("[APIService] 💡 Will retry...")
                     continue
                 } else {
                     // Not a retryable error or max retries reached
-                    print("[APIService] ❌ Request failed: \(error.localizedDescription)")
+                    if endpoint.hasPrefix("/places/") {
+                        print("[APIService] ❌ Request failed (code: \(error.code))")
+                    } else {
+                        print("[APIService] ❌ Request failed: \(error.localizedDescription)")
+                    }
                     if let apiError = error as? APIError {
                         throw apiError
                     }
                     throw APIError.networkError(error)
                 }
             } catch {
-                // Non-NSError, don't retry
-                print("[APIService] ❌ Request failed: \(error.localizedDescription)")
+                // Non-NSError, don't retry. Places failures stay free of the typed address.
+                if endpoint.hasPrefix("/places/") {
+                    print("[APIService] ❌ Request failed")
+                } else {
+                    print("[APIService] ❌ Request failed: \(error.localizedDescription)")
+                }
                 throw error
             }
         }
         
         // If we get here, all retries failed
+        #if DEBUG
+        if endpoint.hasPrefix("/places/") {
+            print("[places] places_predictions_discarded reason=network")
+        }
+        #endif
         if let lastError = lastError {
             throw APIError.networkError(lastError)
         } else {
             throw APIError.networkError(NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: [NSLocalizedDescriptionKey: "Request failed after \(maxRetries) attempts"]))
         }
     }
+
+    /// Log path only. Places queries contain the typed address and the session token.
+    private static func loggedEndpoint(_ endpoint: String) -> String {
+        guard endpoint.hasPrefix("/places/"), let query = endpoint.firstIndex(of: "?") else {
+            return endpoint
+        }
+        return String(endpoint[..<query])
+    }
+
+    #if DEBUG
+    private static func logPlacesResponse(endpoint: String, status: Int, decoded: Int?) {
+        let path = loggedEndpoint(endpoint)
+        if let decoded {
+            print("[places] places_response_received path=\(path) status=\(status) decoded=\(decoded)")
+        } else {
+            print("[places] places_response_received path=\(path) status=\(status)")
+        }
+    }
+    #endif
     
     func activateDevice(deviceCode: String) async throws -> DeviceActivationResponse {
         // Validate device code format

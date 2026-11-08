@@ -105,6 +105,8 @@ struct ModernDonationDetailsView: View {
     @State private var pendingSavedDonor: DonorCheckoutRules.SavedDonor?
     @State private var donorRestingFieldFrames: [DonorInlineFocus: CGRect] = [:]
     @State private var donorViewport: CGRect = .zero
+    /// Address box in the donor-field viewport, including the current keyboard scroll.
+    @State private var addressFieldInViewport: CGRect = .zero
     @State private var keyboardFrame: CGRect = .zero
     @State private var keyboardAnimationDuration: Double = 0.25
     /// Scroll applied inside the donor card. Positive moves the fields up; the card clips them.
@@ -182,11 +184,7 @@ struct ModernDonationDetailsView: View {
     }
 
     private func refreshDonorScroll(animated: Bool) {
-        var field = donorRestingFieldFrames[inlineFocus] ?? .zero
-        // Suggestions sit under the address row. Keep that list above the keyboard.
-        if inlineFocus == .address, !addressSuggestions.isEmpty {
-            field.size.height += 220
-        }
+        let field = donorRestingFieldFrames[inlineFocus] ?? .zero
         var next = DonorKeyboardAvoidance.scrollOffset(
             fieldInContent: field,
             viewport: donorViewport,
@@ -443,7 +441,11 @@ struct ModernDonationDetailsView: View {
     @ViewBuilder
     private func inlineEmailField(geometry: GeometryProxy) -> some View {
         let s = geometry.scale
-        let error = shows(.emailInvalid) ? "emailInvalid".localized : nil
+        let error: String? = {
+            if shows(.emailRequired) { return "emailRequired".localized }
+            if shows(.emailInvalid) { return "emailInvalid".localized }
+            return nil
+        }()
         VStack(alignment: .leading, spacing: s(6)) {
             fieldLabel("emailAddress".localized, geometry: geometry)
             fieldChrome(geometry: geometry, focused: inlineFocus == .email, hasError: error != nil) {
@@ -530,16 +532,68 @@ struct ModernDonationDetailsView: View {
                         .allowsHitTesting(false)
                 }
             }
-            if inlineFocus == .address && !addressSuggestions.isEmpty {
-                addressSuggestionList(geometry: geometry)
-                    .padding(.top, s(4))
-                    .zIndex(8)
-            }
+            .donorRestingFrame(.address)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: AddressFieldInViewportKey.self,
+                        value: proxy.frame(in: .named("donorFieldViewport"))
+                    )
+                }
+            )
         }
     }
 
+    /// Keyboard top in the donor-field viewport when that keyboard actually covers the address box.
+    private func addressListKeyboardTop(field: CGRect) -> CGFloat? {
+        guard keyboardFrame.width > 1, keyboardFrame.height > 1 else { return nil }
+        guard donorViewport.width > 1, donorViewport.height > 1 else { return nil }
+        guard field.width > 1 else { return nil }
+        let fieldMinX = donorViewport.minX + field.minX
+        let fieldMaxX = fieldMinX + field.width
+        let overlapsX = fieldMaxX > keyboardFrame.minX + 1 && fieldMinX < keyboardFrame.maxX - 1
+        guard overlapsX else { return nil }
+        let top = keyboardFrame.minY - donorViewport.minY
+        guard top < donorViewport.height - 1 else { return nil }
+        return top
+    }
+
     @ViewBuilder
-    private func addressSuggestionList(geometry: GeometryProxy) -> some View {
+    private func addressSuggestionOverlay(geometry: GeometryProxy) -> some View {
+        let s = geometry.scale
+        let count = min(addressSuggestions.count, 4)
+        let desired = min(s(148), CGFloat(count) * s(54))
+        let field = addressFieldInViewport
+        let placement = AddressSuggestionPlacement.place(
+            field: field,
+            viewportSize: CGSize(width: max(donorViewport.width, 1), height: max(donorViewport.height, 1)),
+            keyboardTop: addressListKeyboardTop(field: field),
+            desiredHeight: desired,
+            gap: s(4),
+            minimumHeight: s(36)
+        )
+        let dropdownVisible = placement != nil && inlineFocus == .address && count > 0
+        Group {
+            if let placement, dropdownVisible {
+                addressSuggestionList(geometry: geometry, height: placement.frame.height)
+                    .frame(width: placement.frame.width, height: placement.frame.height, alignment: .top)
+                    .alignmentGuide(.leading) { dimensions in
+                        dimensions[.leading] - placement.frame.minX
+                    }
+                    .alignmentGuide(.top) { dimensions in
+                        dimensions[.top] - placement.frame.minY
+                    }
+            }
+        }
+        #if DEBUG
+        .background(
+            PlacesDropdownProbe(visible: dropdownVisible, rows: dropdownVisible ? count : 0)
+        )
+        #endif
+    }
+
+    @ViewBuilder
+    private func addressSuggestionList(geometry: GeometryProxy, height: CGFloat) -> some View {
         let s = geometry.scale
         let corner = s(DesignSystem.Components.buttonCornerRadius)
         ScrollView {
@@ -567,13 +621,14 @@ struct ModernDonationDetailsView: View {
                         .padding(.vertical, s(8))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("addressSuggestion-\(suggestion.place_id)")
                     if index < min(addressSuggestions.count, 4) - 1 {
                         Divider().padding(.leading, s(10))
                     }
                 }
             }
         }
-        .frame(height: min(s(148), CGFloat(min(addressSuggestions.count, 4)) * s(54)))
+        .frame(height: height)
         .background(
             RoundedRectangle(cornerRadius: corner)
                 .fill(Color.white.opacity(0.96))
@@ -917,7 +972,15 @@ struct ModernDonationDetailsView: View {
                         )
                     }
                 )
+                .coordinateSpace(name: "donorFieldViewport")
+                .overlay(alignment: .topLeading) {
+                    addressSuggestionOverlay(geometry: geometry)
+                }
                 .clipped()
+                .onPreferenceChange(AddressFieldInViewportKey.self) { frame in
+                    guard !addressFieldInViewport.nearlyEquals(frame) else { return }
+                    addressFieldInViewport = frame
+                }
         }
     }
 
@@ -981,7 +1044,6 @@ struct ModernDonationDetailsView: View {
                 .donorRestingFrame(.email)
                 .allowsHitTesting(!donorIdentityLocked)
             inlineAddressField(geometry: geometry)
-                .donorRestingFrame(.address)
                 .allowsHitTesting(!donorIdentityLocked)
             if donorMatchedPreviousDonation {
                 Text("donorMatchedPrevious".localized)
@@ -1290,7 +1352,7 @@ struct ModernDonationDetailsView: View {
         let arguments = ProcessInfo.processInfo.arguments
         guard arguments.contains("-previewStep3") else { return }
         if debugSeedSuggestions {
-            donorAddress = "2101"
+            donorAddress = "1915"
         }
         donorDetailsRevealed = true
         guard debugInitialFocus != .none || arguments.contains("-previewDismissKeyboard") else { return }
@@ -1313,16 +1375,40 @@ struct ModernDonationDetailsView: View {
     private static var debugAddressSuggestions: [AddressPrediction] {
         [
             AddressPrediction(
-                description: "2101 Garry Road, Cinnaminson, NJ, USA",
-                place_id: "preview-garry",
-                structured_formatting: StructuredFormatting(main_text: "2101 Garry Road", secondary_text: "Cinnaminson, NJ, USA")
+                description: "1915 Conwell Avenue, Philadelphia, PA",
+                place_id: "preview-conwell-ave",
+                structured_formatting: StructuredFormatting(main_text: "1915 Conwell Avenue", secondary_text: "Philadelphia, PA")
             ),
             AddressPrediction(
-                description: "2101 Market Street, Philadelphia, PA, USA",
-                place_id: "preview-market",
-                structured_formatting: StructuredFormatting(main_text: "2101 Market Street", secondary_text: "Philadelphia, PA, USA")
+                description: "1915 Conwell Street, Philadelphia, PA",
+                place_id: "preview-conwell-st",
+                structured_formatting: StructuredFormatting(main_text: "1915 Conwell Street", secondary_text: "Philadelphia, PA")
+            ),
+            AddressPrediction(
+                description: "2101 Garry Road, Cinnaminson, NJ",
+                place_id: "preview-garry",
+                structured_formatting: StructuredFormatting(main_text: "2101 Garry Road", secondary_text: "Cinnaminson, NJ")
+            ),
+            AddressPrediction(
+                description: "1600 Pennsylvania Avenue NW, Washington, DC",
+                place_id: "preview-pennsylvania",
+                structured_formatting: StructuredFormatting(main_text: "1600 Pennsylvania Avenue NW", secondary_text: "Washington, DC")
             )
         ]
+    }
+
+    /// Preview rows stay on screen while the address field is focused. They never call Places.
+    private func scheduleDebugAddressSuggestions() {
+        if suppressNextAddressSearch {
+            suppressNextAddressSearch = false
+            addressSuggestions = []
+            return
+        }
+        guard inlineFocus == .address else {
+            addressSuggestions = []
+            return
+        }
+        addressSuggestions = Self.debugAddressSuggestions
     }
     #endif
 
@@ -1400,6 +1486,12 @@ struct ModernDonationDetailsView: View {
     }
 
     private func scheduleAddressSearch(_ newValue: String) {
+        #if DEBUG
+        if debugSeedSuggestions {
+            scheduleDebugAddressSuggestions()
+            return
+        }
+        #endif
         if suppressNextAddressSearch {
             suppressNextAddressSearch = false
             addressSuggestions = []
@@ -1439,6 +1531,9 @@ struct ModernDonationDetailsView: View {
             addressSessionToken = UUID().uuidString
         }
         
+        #if DEBUG
+        print("[places] places_search_started")
+        #endif
         do {
             let response = try await APIService.shared.autocompleteAddress(
                 input: input,
@@ -1446,16 +1541,28 @@ struct ModernDonationDetailsView: View {
             )
             await MainActor.run {
                 let current = donorAddress.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard DonorCheckoutRules.shouldAcceptAddressResponse(
+                let accepted = DonorCheckoutRules.shouldAcceptAddressResponse(
                     generation: generation,
                     expected: addressQueryGeneration,
                     query: input,
                     current: current
-                ), inlineFocus == .address, !anonymousSeva else { return }
+                )
+                guard accepted, inlineFocus == .address, !anonymousSeva else {
+                    #if DEBUG
+                    let reason = !accepted ? "stale" : (inlineFocus != .address ? "unfocused" : "anonymous")
+                    print("[places] places_predictions_discarded decoded=\(response.predictions.count) reason=\(reason)")
+                    #endif
+                    return
+                }
                 addressSuggestions = response.predictions
+                #if DEBUG
+                print("[places] places_predictions_accepted count=\(response.predictions.count)")
+                #endif
             }
         } catch {
-            print("[DonationDetailsView] Failed to autocomplete address: \(error.localizedDescription)")
+            #if DEBUG
+            print("[places] places_predictions_discarded reason=\(PlacesDebugLog.failureReason(error))")
+            #endif
             await MainActor.run {
                 if generation == addressQueryGeneration {
                     addressSuggestions = []
@@ -1465,6 +1572,15 @@ struct ModernDonationDetailsView: View {
     }
     
     private func selectAddress(suggestion: AddressPrediction) async {
+        #if DEBUG
+        if suggestion.place_id.hasPrefix("preview-") {
+            donorAddress = suggestion.description
+            addressSuggestions = []
+            addressSessionToken = nil
+            print("[places] places_selection_completed formatted=false reason=debug_preview")
+            return
+        }
+        #endif
         do {
             let details = try await APIService.shared.getPlaceDetails(
                 placeId: suggestion.place_id,
@@ -1472,13 +1588,18 @@ struct ModernDonationDetailsView: View {
             )
             
             await MainActor.run {
-                if let formattedAddress = details.formatted_address {
-                    donorAddress = formattedAddress
+                let formatted = details.formatted_address?.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let formatted, !formatted.isEmpty {
+                    donorAddress = formatted
                 } else {
                     donorAddress = suggestion.description
                 }
                 addressSuggestions = []
                 addressSessionToken = nil
+                #if DEBUG
+                let hasFormatted = formatted?.isEmpty == false
+                print("[places] places_selection_completed formatted=\(hasFormatted)")
+                #endif
             }
         } catch {
             // Fallback to description if details fetch fails
@@ -1486,10 +1607,59 @@ struct ModernDonationDetailsView: View {
                 donorAddress = suggestion.description
                 addressSuggestions = []
                 addressSessionToken = nil
+                #if DEBUG
+                print("[places] places_selection_completed formatted=false reason=\(PlacesDebugLog.failureReason(error))")
+                #endif
             }
         }
     }
 }
+
+#if DEBUG
+private struct PlacesDropdownProbe: View {
+    var visible: Bool
+    var rows: Int
+
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .onAppear { PlacesDebugLog.dropdown(visible: visible, rows: rows) }
+            .onChange(of: visible) { _ in PlacesDebugLog.dropdown(visible: visible, rows: rows) }
+            .onChange(of: rows) { _ in PlacesDebugLog.dropdown(visible: visible, rows: rows) }
+    }
+}
+
+private enum PlacesDebugLog {
+    private static var dropdownLine = ""
+
+    static func dropdown(visible: Bool, rows: Int) {
+        let line = "visible=\(visible) rows=\(rows)"
+        guard line != dropdownLine else { return }
+        dropdownLine = line
+        print("[places] places_dropdown_visible \(line)")
+    }
+
+    static func failureReason(_ error: Error) -> String {
+        guard let apiError = error as? APIError else { return "request_failed" }
+        switch apiError {
+        case .httpError(let code):
+            return "http_\(code)"
+        case .decodingError:
+            return "decode"
+        case .networkError, .noConnection:
+            return "network"
+        case .invalidURL:
+            return "invalid_url"
+        case .invalidResponse:
+            return "invalid_response"
+        case .serverError:
+            return "server"
+        case .deviceNotFound, .deviceAlreadyActivated, .invalidDeviceCode:
+            return "request_failed"
+        }
+    }
+}
+#endif
 
 // MARK: - US phone display: (215) 520-0565 (binding stores digits only)
 private enum DonorUSPhoneFormatting {
@@ -2261,6 +2431,14 @@ private struct DonorRestingFieldFramesKey: PreferenceKey {
     static var defaultValue: [DonorInlineFocus: CGRect] = [:]
     static func reduce(value: inout [DonorInlineFocus: CGRect], nextValue: () -> [DonorInlineFocus: CGRect]) {
         value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+private struct AddressFieldInViewportKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let next = nextValue()
+        if next.width > 1, next.height > 1 { value = next }
     }
 }
 
